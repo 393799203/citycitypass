@@ -1,0 +1,401 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  OPERATOR
+  WAREHOUSE_STAFF
+  DRIVER
+  CUSTOMER
+  OWNER
+}
+
+enum OrderStatus {
+  PENDING       // 待拣货
+  PICKING       // 拣货中
+  OUTBOUND_REVIEW  // 出库审核中
+  DISPATCHING   // 待运力调度
+  DISPATCHED    // 已调度
+  IN_TRANSIT    // 运输中
+  DELIVERED     // 已送达
+  CANCELLED     // 已取消
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      UserRole
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Owner {
+  id              String   @id @default(uuid())
+  name            String
+  contact         String?
+  phone           String?
+  productTags     String[]
+  warehouseLocation String?
+  province        String?
+  city            String?
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  status          String   @default("SERVING")
+  isSelfOperated  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orders          Order[]
+  warehouses      Warehouse[]
+}
+
+model ProductCategory {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  brands    ProductBrand[]
+  products  Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductBrand {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  categoryId  String
+  subCategory String?
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  description String?
+  products    Product[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id         String   @id @default(uuid())
+  name       String
+  brandId    String
+  brand      ProductBrand @relation(fields: [brandId], references: [id])
+  categoryId String
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+  status     String   @default("ACTIVE")
+  skus       ProductSKU[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ProductSKU {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  packaging   String
+  spec        String
+  price       Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+  pickOrderItems PickOrderItem[]
+  stocks     Stock[]
+  stockLocks StockLock[]
+  stockIns   StockIn[]
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNo     String      @unique
+  ownerId     String
+  owner       Owner       @relation(fields: [ownerId], references: [id])
+  warehouseId String
+  warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
+  receiver    String
+  phone       String
+  province    String
+  city        String
+  address     String
+  latitude    Float?      // 纬度
+  longitude   Float?      // 经度
+  totalAmount Decimal     @db.Decimal(12, 2)
+  status      OrderStatus @default(PENDING)
+  items       OrderItem[]
+  stockLocks StockLock[]
+  dispatchOrders DispatchOrder[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  skuId      String
+  sku        ProductSKU @relation(fields: [skuId], references: [id])
+  productName String
+  packaging  String
+  spec       String
+  price      Decimal  @db.Decimal(10, 2)
+  quantity   Int
+  subtotal   Decimal  @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
+}
+
+enum PickStatus {
+  PENDING    // 待拣货
+  PICKING    // 拣货中
+  PICKED     // 已拣货
+  PICK_FAILED // 拣货失败
+  COMPLETED  // 已完成
+  CANCELLED  // 已取消
+}
+
+model PickOrder {
+  id          String      @id @default(uuid())
+  pickNo     String      @unique
+  orderIds    String      // 多个订单ID用逗号分隔
+  status     PickStatus  @default(PENDING)
+  items      PickOrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model PickOrderItem {
+  id         String      @id @default(uuid())
+  pickOrderId String
+  pickOrder  PickOrder   @relation(fields: [pickOrderId], references: [id], onDelete: Cascade)
+  skuId      String
+  sku        ProductSKU  @relation(fields: [skuId], references: [id])
+  productName String
+  packaging  String
+  spec       String
+  quantity   Int
+  warehouseLocation String
+  stockLockId String?
+  stockLock  StockLock? @relation(fields: [stockLockId], references: [id])
+}
+
+enum WarehouseType {
+  NORMAL    // 普通仓
+  COLD      // 冷链仓
+}
+
+enum WarehouseStatus {
+  ACTIVE      // 启用
+  INACTIVE    // 停用
+  MAINTENANCE // 维护中
+}
+
+model Warehouse {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  name        String
+  type        WarehouseType   @default(NORMAL)
+  status      WarehouseStatus @default(ACTIVE)
+  province    String?
+  city        String?
+  address     String?
+  latitude    Float?          // 仓库纬度
+  longitude   Float?          // 仓库经度
+  ownerId     String?
+  owner       Owner?          @relation(fields: [ownerId], references: [id])
+  shelves     Shelf[]
+  stocks     Stock[]
+  stockIns   StockIn[]
+  stockLocks StockLock[]
+  orders     Order[]
+  vehicles   Vehicle[]
+  drivers    Driver[]
+  dispatches Dispatch[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Shelf {
+  id          String    @id @default(uuid())
+  code        String
+  type        String    @default("1")  // 1-重型货架 2-轻型货架
+  row         Int       // 第几排（必填）
+  column      Int       // 第几列（必填）
+  level       Int       @default(5)   // 货架层数
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  stockIns   StockIn[]
+  stocks     Stock[]
+  stockLocks StockLock[]
+  
+  @@unique([warehouseId, code])
+  createdAt  DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum LockStatus {
+  LOCKED      // 已锁定（待拣货）
+  RELEASED    // 已释放（订单取消）
+  USED        // 已使用（拣货完成）
+}
+
+model Stock {
+  id              String    @id @default(uuid())
+  skuId           String
+  sku             ProductSKU @relation(fields: [skuId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  shelfId         String?
+  shelf           Shelf?    @relation(fields: [shelfId], references: [id])
+  totalQuantity   Int       @default(0)    // 总库存
+  lockedQuantity  Int       @default(0)    // 已锁定库存
+  availableQuantity Int     @default(0)    // 可用库存
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  stockIns       StockIn[]
+
+  @@unique([skuId, warehouseId, shelfId])
+}
+
+model StockLock {
+  id          String      @id @default(uuid())
+  skuId       String
+  sku         ProductSKU  @relation(fields: [skuId], references: [id])
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id])
+  warehouseId String
+  warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
+  shelfId     String?
+  shelf       Shelf?      @relation(fields: [shelfId], references: [id])
+  quantity    Int         // 锁定数量
+  status      LockStatus  @default(LOCKED)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  pickOrderItems PickOrderItem[]
+}
+
+model StockIn {
+  id          String    @id @default(uuid())
+  stockId     String
+  stock       Stock    @relation(fields: [stockId], references: [id])
+  skuId       String
+  sku         ProductSKU @relation(fields: [skuId], references: [id])
+  warehouseId  String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  shelfId     String?
+  shelf       Shelf?    @relation(fields: [shelfId], references: [id])
+  quantity    Int       // 入库数量
+  batchNo     String?   // 批次号
+  remark      String?   // 备注
+  createdAt   DateTime  @default(now())
+  operator    String?   // 操作人
+}
+
+enum VehicleStatus {
+  AVAILABLE  // 空闲
+  IN_TRANSIT // 配送中
+  MAINTENANCE // 维修
+  DISABLED  // 停用
+}
+
+model Vehicle {
+  id           String        @id @default(uuid())
+  licensePlate String        // 车牌号
+  vehicleType  String        // 车型(小面/中面/厢货)
+  capacity     Int           // 载重(吨)
+  volume       Int?          // 容积(立方米)
+  status       VehicleStatus @default(AVAILABLE)
+  warehouseId  String
+  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
+  latitude     Float?        // 当前纬度
+  longitude    Float?        // 当前经度
+  location     String?       // 当前位置描述
+  address      String?       // 详细地址
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  dispatches   Dispatch[]
+  drivers      Driver[]
+}
+
+enum DriverStatus {
+  AVAILABLE  // 空闲
+  IN_TRANSIT // 配送中
+  RESTING    // 休息
+  DISABLED   // 停用
+}
+
+model Driver {
+  id          String        @id @default(uuid())
+  name        String        // 姓名
+  phone       String        // 电话
+  licenseNo   String        // 驾驶证号
+  licenseTypes String[]      // 准驾车型
+  status      DriverStatus  @default(AVAILABLE)
+  warehouseId String
+  warehouse   Warehouse     @relation(fields: [warehouseId], references: [id])
+  vehicleId   String?
+  vehicle     Vehicle?      @relation(fields: [vehicleId], references: [id])
+  latitude    Float?        // 当前纬度
+  longitude   Float?        // 当前经度
+  location    String?       // 当前位置描述
+  address     String?       // 详细地址
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  dispatches  Dispatch[]
+}
+
+enum DispatchStatus {
+  PENDING     // 待发运
+  IN_TRANSIT  // 配送中
+  COMPLETED   // 已完成
+  CANCELLED   // 已取消
+}
+
+model Dispatch {
+  id             String          @id @default(uuid())
+  dispatchNo     String          @unique // 配送单号
+  vehicleId      String
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id])
+  driverId       String
+  driver         Driver          @relation(fields: [driverId], references: [id])
+  warehouseId     String
+  warehouse      Warehouse       @relation(fields: [warehouseId], references: [id])
+  status         DispatchStatus  @default(PENDING)
+  plannedRoute   Json?           // 规划路线
+  actualRoute   Json?           // 实际路线
+  totalDistance  Float?          // 总距离(公里)
+  departureTime  DateTime?       // 发车时间
+  completedTime  DateTime?       // 完成时间
+  orderCount     Int             // 订单数量
+  totalWeight    Int             // 总重量(件)
+  remark         String?         // 备注
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  orders         DispatchOrder[]
+}
+
+enum DispatchOrderStatus {
+  PENDING    // 待配送
+  DELIVERED  // 已配送
+  SIGNED     // 已签收
+}
+
+model DispatchOrder {
+  id          String              @id @default(uuid())
+  dispatchId  String
+  dispatch    Dispatch            @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  orderId     String
+  order       Order              @relation(fields: [orderId], references: [id])
+  latitude    Float?              // 代理点纬度
+  longitude   Float?              // 代理点经度
+  agentName   String?             // 代理点名称
+  status      DispatchOrderStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}

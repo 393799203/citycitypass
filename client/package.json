@@ -1,0 +1,35 @@
+{
+  "name": "citycitypass-client",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@types/three": "^0.183.1",
+    "@types/xlsx": "^0.0.35",
+    "autoprefixer": "^10.4.20",
+    "axios": "^1.7.7",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.454.0",
+    "postcss": "^8.4.47",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "react-toastify": "^11.0.5",
+    "tailwindcss": "^3.4.14",
+    "three": "^0.183.2",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.9"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  }
+}
