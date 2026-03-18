@@ -420,6 +420,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                 <thead>
                   <tr className="text-left text-gray-500 text-sm border-b">
                     <th className="pb-3">配送单号</th>
+                    <th className="pb-3">目的城市</th>
                     <th className="pb-3">车辆</th>
                     <th className="pb-3">司机</th>
                     <th className="pb-3">订单数</th>
@@ -437,10 +438,15 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                           {dispatch.dispatchNo}
                         </Link>
                       </td>
-                      <td className="py-3">{dispatch.vehicle?.licensePlate}</td>
+                      <td className="py-3">
+                          {dispatch.orders?.[0]?.order?.city || '-'}
+                        </td>
+                        <td className="py-3">
+                          {dispatch.vehicle?.licensePlate}
+                        </td>
                       <td className="py-3">{dispatch.driver?.name}</td>
                       <td className="py-3">{dispatch.orderCount}</td>
-                      <td className="py-3">{dispatch.totalWeight}件</td>
+                      <td className="py-3">{dispatch.totalWeight}吨</td>
                       <td className="py-3">{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</td>
                       <td className="py-3">
                         <span className={`px-2 py-1 text-xs rounded-full ${
@@ -457,9 +463,15 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                           <>
                             <button
                               onClick={() => handleDispatchStatus(dispatch.id, 'IN_TRANSIT')}
-                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 mr-2"
                             >
                               发车
+                            </button>
+                            <button
+                              onClick={() => handleDispatchStatus(dispatch.id, 'CANCELLED')}
+                              className="px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
+                            >
+                              取消
                             </button>
                           </>
                         )}
