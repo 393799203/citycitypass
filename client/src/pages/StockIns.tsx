@@ -309,124 +309,126 @@ export default function StockInsPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">商品入库</h2>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
+              <h2 className="text-lg font-bold">商品入库</h2>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-200 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">商品</label>
-                <select
-                  value={selectedProduct}
-                  onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSku(''); }}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="">请选择商品</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} ({p.brand.name})</option>
-                  ))}
-                </select>
+            <form onSubmit={handleSubmit} className="p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">商品</label>
+                  <select
+                    value={selectedProduct}
+                    onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSku(''); }}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    required
+                  >
+                    <option value="">选择商品</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">规格</label>
+                  <select
+                    value={selectedSku}
+                    onChange={(e) => setSelectedSku(e.target.value)}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    disabled={!selectedProduct}
+                    required
+                  >
+                    <option value="">选择规格</option>
+                    {selectedProductSkus.map(sku => (
+                      <option key={sku.id} value={sku.id}>
+                        {sku.spec} / {sku.packaging}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">仓库</label>
+                  <select
+                    value={selectedWarehouse}
+                    onChange={(e) => { setSelectedWarehouse(e.target.value); setSelectedShelf(''); }}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    required
+                  >
+                    <option value="">选择仓库</option>
+                    {warehouses.map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">货架（可选）</label>
+                  <select
+                    value={selectedShelf}
+                    onChange={(e) => setSelectedShelf(e.target.value)}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    disabled={!selectedWarehouse}
+                  >
+                    <option value="">选择货架</option>
+                    {shelves.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">入库数量</label>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    min="1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">批次号（可选）</label>
+                  <input
+                    type="text"
+                    value={batchNo}
+                    onChange={(e) => setBatchNo(e.target.value)}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    placeholder="批次号"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">规格</label>
-                <select
-                  value={selectedSku}
-                  onChange={(e) => setSelectedSku(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  disabled={!selectedProduct}
-                  required
-                >
-                  <option value="">请选择规格</option>
-                  {selectedProductSkus.map(sku => (
-                    <option key={sku.id} value={sku.id}>
-                      {sku.spec} / {sku.packaging} - ¥{sku.price}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
-                <select
-                  value={selectedWarehouse}
-                  onChange={(e) => { setSelectedWarehouse(e.target.value); setSelectedShelf(''); }}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="">请选择仓库</option>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.id}>{w.name} ({w.code}) - {w.owner?.name || '无货主'}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">货架（可选）</label>
-                <select
-                  value={selectedShelf}
-                  onChange={(e) => setSelectedShelf(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  disabled={!selectedWarehouse}
-                >
-                  <option value="">请选择货架</option>
-                  {shelves.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.code} (排{s.row}-列{s.column})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">入库数量</label>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  min="1"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">批次号（可选）</label>
-                <input
-                  type="text"
-                  value={batchNo}
-                  onChange={(e) => setBatchNo(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="请输入批次号"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">备注（可选）</label>
+              <div className="mt-3">
+                <label className="block text-xs text-gray-600 mb-1">备注（可选）</label>
                 <input
                   type="text"
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="请输入备注"
+                  className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                  placeholder="备注"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 mt-4">
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); resetForm(); }}
-                  className="flex-1 py-2 border rounded-lg hover:bg-gray-50"
+                  className="flex-1 py-2 border rounded-lg text-sm hover:bg-gray-50"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  className="flex-1 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700"
                 >
                   确认入库
                 </button>

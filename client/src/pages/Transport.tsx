@@ -3,6 +3,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Plus, Trash2, Edit2, User, Phone, Car, X, MapPin } from 'lucide-react';
 import { vehicleApi, driverApi, geocodeApi } from '../api';
+import LicensePlateInput from '../components/LicensePlateInput';
 
 const vehicleTypeMap: Record<string, string> = {
   '小面': '小面',
@@ -594,12 +595,10 @@ export default function TransportPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">车牌号</label>
-                    <input
-                      type="text"
+                    <LicensePlateInput
                       value={formData.licensePlate}
-                      onChange={e => setFormData({ ...formData, licensePlate: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="如: 京A12345"
+                      onChange={(val) => setFormData({ ...formData, licensePlate: val })}
+                      className="w-full"
                     />
                   </div>
                   <div>

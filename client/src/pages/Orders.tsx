@@ -63,7 +63,8 @@ interface SKU {
 }
 
 interface OrderFormItem {
-  skuId: string;
+  skuId: string | null;
+  bundleId: string | null;
   productName: string;
   packaging: string;
   spec: string;
@@ -116,6 +117,9 @@ export default function OrdersPage() {
   });
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSku, setSelectedSku] = useState('');
+  const [selectedBundle, setSelectedBundle] = useState('');
+  const [itemType, setItemType] = useState<'product' | 'bundle'>('product');
+  const [bundles, setBundles] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
@@ -468,6 +472,7 @@ export default function OrdersPage() {
       ...prev,
       items: [...prev.items, {
         skuId: selectedSku,
+        bundleId: null,
         productName: product.name,
         packaging: sku.packaging,
         spec: sku.spec,
@@ -705,123 +710,183 @@ export default function OrdersPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">新建订单</h2>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
+              <h2 className="text-lg font-bold">新建订单</h2>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-200 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    货主 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.ownerId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, ownerId: e.target.value, warehouseId: '', items: [] });
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  >
-                    <option value="">请选择货主</option>
-                    {owners.filter(o => o.status !== 'STOPPED').map(o => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
-                    ))}
-                  </select>
+            
+            <form onSubmit={handleSubmit} className="flex h-[calc(90vh-60px)]">
+              {/* 左侧 - 商品选择 */}
+              <div className="w-1/2 border-r flex flex-col">
+                <div className="p-4 border-b bg-gray-50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={formData.ownerId}
+                      onChange={(e) => {
+                        setFormData({ ...formData, ownerId: e.target.value, warehouseId: '', items: [] });
+                      }}
+                      className="px-3 py-2 border rounded-lg text-sm"
+                      required
+                    >
+                      <option value="">选择货主</option>
+                      {owners.filter(o => o.status !== 'STOPPED').map(o => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={formData.warehouseId}
+                      onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value, items: [] })}
+                      className="px-3 py-2 border rounded-lg text-sm"
+                      required
+                    >
+                      <option value="">选择仓库</option>
+                      {(formData.ownerId ? (owners.find(o => o.id === formData.ownerId)?.warehouses || []) : warehouses).map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    发货仓库 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.warehouseId}
-                    onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value, items: [] })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  >
-                    <option value="">请选择仓库</option>
-                    {(formData.ownerId ? (owners.find(o => o.id === formData.ownerId)?.warehouses || []) : warehouses).map(w => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
-                </div>
-                {formData.warehouseId && products.length > 0 && (
-                    <div className="col-span-2 bg-blue-50 p-4 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <Package className="w-5 h-5 text-blue-600 mt-0.5" />
-                        <div className="w-full">
-                          <div className="text-sm font-medium text-gray-700 mb-2">仓库可售商品</div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead className="bg-blue-100">
-                                <tr>
-                                  <th className="px-2 py-1 text-left">商品</th>
-                                  <th className="px-2 py-1 text-left">规格</th>
-                                  <th className="px-2 py-1 text-left">包装</th>
-                                  <th className="px-2 py-1 text-right">可售库存</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {products.slice(0, 8).map((p: any) => (
-                                  p.skus?.filter((s: any) => (s.stock || 0) > 0).map((s: any) => (
-                                    <tr key={s.id} className="border-t border-blue-200">
-                                      <td className="px-2 py-1">{p.name}</td>
-                                      <td className="px-2 py-1">{s.spec || '-'}</td>
-                                      <td className="px-2 py-1">{s.packaging || '-'}</td>
-                                      <td className="px-2 py-1 text-right">{s.stock || 0}</td>
-                                    </tr>
-                                  ))
-                                ))}
-                              </tbody>
-                            </table>
+
+                {formData.warehouseId && (
+                  <div className="flex border-b">
+                    <button
+                      type="button"
+                      onClick={() => { setItemType('product'); setSelectedBundle(''); }}
+                      className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
+                        itemType === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
+                      }`}
+                    >
+                      商品
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setItemType('bundle'); setSelectedProduct(''); setSelectedSku(''); }}
+                      className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
+                        itemType === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
+                      }`}
+                    >
+                      套装
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto p-3">
+                  {formData.warehouseId ? (
+                    <div className="space-y-2">
+                      {itemType === 'product' ? (
+                        products.filter(p => p.skus?.some(s => (s.stock || 0) > 0)).map(p => (
+                          <div key={p.id} className="border rounded-lg p-3">
+                            <div className="font-medium text-sm mb-2">{p.name}</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {p.skus?.filter(s => (s.stock || 0) > 0).map(s => {
+                                const isAdded = formData.items.some(item => item.skuId === s.id);
+                                return (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    disabled={isAdded}
+                                    onClick={() => {
+                                      if (!isAdded) {
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          items: [...prev.items, {
+                                            skuId: s.id,
+                                            bundleId: null,
+                                            productName: p.name,
+                                            packaging: s.packaging,
+                                            spec: s.spec,
+                                            price: Number(s.price),
+                                            quantity: 1,
+                                          }]
+                                        }));
+                                      }
+                                    }}
+                                    className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                      isAdded
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                                        : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                    }`}
+                                  >
+                                    {s.spec || '-'} / {s.packaging || '-'} ×{s.stock}
+                                    {isAdded && ' ✓'}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                          {products.length > 8 && (
-                            <div className="mt-2 text-xs text-gray-500">+{products.length - 8} 更多商品</div>
-                          )}
-                        </div>
-                      </div>
+                        ))
+                      ) : (
+                        bundles.filter(b => (b.stock || 0) > 0).map(b => (
+                          <div key={b.id} className="border rounded-lg p-3 hover:border-purple-300 transition-colors flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm">{b.name}</div>
+                              <div className="text-xs text-gray-500">{b.packaging} {b.spec} · 库存{b.stock}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const existing = formData.items.find(item => item.bundleId === b.id);
+                                if (!existing) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    items: [...prev.items, {
+                                      skuId: null,
+                                      bundleId: b.id,
+                                      productName: b.name,
+                                      packaging: b.packaging,
+                                      spec: b.spec,
+                                      price: Number(b.price),
+                                      quantity: 1,
+                                    }]
+                                  }));
+                                }
+                              }}
+                              disabled={formData.items.some(item => item.bundleId === b.id)}
+                              className={`px-3 py-1 text-xs rounded ${
+                                formData.items.some(item => item.bundleId === b.id)
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                              }`}
+                            >
+                              {formData.items.some(item => item.bundleId === b.id) ? '已添加' : '添加'}
+                            </button>
+                          </div>
+                        ))
+                      )}
                     </div>
+                  ) : (
+                    <div className="text-center text-gray-400 py-10">请先选择货主和仓库</div>
                   )}
+                </div>
               </div>
 
-              <div className="border-t pt-4">
-                  <h3 className="font-medium text-gray-800 mb-3">收货人信息</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        收货人 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.receiver}
-                        onChange={(e) => setFormData({ ...formData, receiver: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="请输入收货人姓名"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        手机号 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="请输入手机号"
-                        required
-                      />
-                    </div>
+              {/* 右侧 - 订单信息 */}
+              <div className="w-1/2 flex flex-col">
+                <div className="p-4 border-b bg-gray-50">
+                  <div className="text-sm font-medium text-gray-700 mb-3">收货人信息</div>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <input
+                      type="text"
+                      value={formData.receiver}
+                      onChange={(e) => setFormData({ ...formData, receiver: e.target.value })}
+                      placeholder="收货人"
+                      className="px-3 py-2 border rounded-lg text-sm"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="手机号"
+                      className="px-3 py-2 border rounded-lg text-sm"
+                      required
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        省市区 <span className="text-red-500">*</span>
-                      </label>
+                  <div className="mb-3 flex gap-2">
+                    <div className="w-1/3">
                       <RegionPicker
                         value={{ province: formData.province, city: formData.city }}
                         onChange={(val) => setFormData({ 
@@ -831,153 +896,89 @@ export default function OrdersPage() {
                         })}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        详细地址 <span className="text-red-500">*</span>
-                      </label>
+                    <div className="flex-1">
                       <input
                         type="text"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        onBlur={async () => {
-                          if (formData.address && formData.city) {
-                            try {
-                              const fullAddress = `${formData.province}${formData.city}${formData.address}`;
-                              const res = await geocodeApi.geocode(fullAddress);
-                              if (res.data.success) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  latitude: res.data.data.latitude.toString(),
-                                  longitude: res.data.data.longitude.toString(),
-                                }));
-                              }
-                            } catch (e) {
-                              // ignore
-                            }
-                          }
-                        }}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="请输入详细地址，如：xxx街道xxx号"
+                        placeholder="详细地址"
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
                         required
                       />
                       {formData.latitude && formData.longitude && (
-                        <p className="text-xs text-green-600 mt-1">
-                          已获取经纬度: {formData.latitude}, {formData.longitude}
-                        </p>
+                        <p className="text-xs text-green-600 mt-1">已获取: {formData.latitude}, {formData.longitude}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
-                  <h3 className="font-medium text-gray-800 mb-3">商品清单</h3>
-                  <div className="flex gap-4 mb-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">选择商品</label>
-                    <select
-                      value={selectedProduct}
-                      onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSku(''); }}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="">请选择商品</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.brand.name})</option>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="text-sm font-medium text-gray-700 mb-2">已选商品 ({formData.items.length})</div>
+                  {formData.items.length === 0 ? (
+                    <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
+                      暂无商品，请从左侧添加
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {formData.items.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 border rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{item.productName}</div>
+                            <div className="text-xs text-gray-500">{item.packaging} {item.spec}</div>
+                          </div>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const qty = parseInt(e.target.value) || 1;
+                              const newItems = [...formData.items];
+                              newItems[idx].quantity = qty;
+                              setFormData({ ...formData, items: newItems });
+                            }}
+                            className="w-16 px-2 py-1 border rounded text-sm text-center"
+                          />
+                          <div className="w-20 text-right text-sm font-medium">¥{item.price * item.quantity}</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newItems = formData.items.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, items: newItems });
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       ))}
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">选择规格</label>
-                    <select
-                      value={selectedSku}
-                      onChange={(e) => setSelectedSku(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      disabled={!selectedProduct}
-                    >
-                      <option value="">请选择规格</option>
-                      {selectedProductSkus.map(sku => (
-                        <option key={sku.id} value={sku.id}>
-                          {sku.packaging} {sku.spec} - ¥{sku.price}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={addItem}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                    >
-                      添加
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                {formData.items.length > 0 && (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">商品</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">规格</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">单价</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">数量</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">小计</th>
-                          <th className="px-4 py-2"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {formData.items.map((item, idx) => (
-                          <tr key={idx}>
-                            <td className="px-4 py-2 text-sm">{item.productName}</td>
-                            <td className="px-4 py-2 text-sm">{item.packaging} {item.spec}</td>
-                            <td className="px-4 py-2 text-sm">¥{item.price}</td>
-                            <td className="px-4 py-2">
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
-                                className="w-20 px-2 py-1 border rounded text-sm"
-                              />
-                            </td>
-                            <td className="px-4 py-2 text-sm text-primary-600 font-medium">
-                              ¥{item.price * item.quantity}
-                            </td>
-                            <td className="px-4 py-2">
-                              <button
-                                type="button"
-                                onClick={() => removeItem(idx)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="bg-gray-50 px-4 py-3 text-right">
-                      <span className="text-lg font-medium">总金额: </span>
-                      <span className="text-xl font-bold text-primary-600">¥{getTotalAmount().toLocaleString()}</span>
+                <div className="border-t p-4 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm text-gray-600">总金额: </span>
+                      <span className="text-xl font-bold text-primary-600">¥{formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setShowModal(false); resetForm(); }}
+                        className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-100"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={formData.items.length === 0}
+                        className="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        创建订单
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  创建订单
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowModal(false); resetForm(); }}
-                  className="flex-1 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
+                </div>
               </div>
             </form>
           </div>
