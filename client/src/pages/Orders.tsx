@@ -4,8 +4,10 @@ import * as XLSX from 'xlsx';
 import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone } from 'lucide-react';
+import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
+import { formatPhone, formatAddress } from '../utils/format';
 
 
 interface Order {
@@ -674,8 +676,19 @@ export default function OrdersPage() {
                     {new Date(order.createdAt).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.owner.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.receiver} {order.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.province}{order.city}{order.address}</td>
+                  <td className="px-6 py-4 text-base">
+                    <div>{order.receiver}</div>
+                    <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
+                      <Phone className="w-4 h-4" />
+                      {formatPhone(order.phone)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-base">
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      {formatAddress(order.province, order.city, order.address)}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-base text-primary-600 font-medium">¥{Number(order.totalAmount).toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -931,13 +944,10 @@ export default function OrdersPage() {
                       className="px-3 py-2 border rounded-lg text-sm"
                       required
                     />
-                    <input
-                      type="tel"
+                    <PhoneInput
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="手机号"
+                      onChange={(val) => setFormData({ ...formData, phone: val })}
                       className="px-3 py-2 border rounded-lg text-sm"
-                      required
                     />
                   </div>
                   <div className="mb-3">

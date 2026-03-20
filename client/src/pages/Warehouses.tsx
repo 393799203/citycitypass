@@ -4,7 +4,9 @@ import { warehouseApi, ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Building2, MapPin, Search, X, Package } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Building2, MapPin, Search, X, Package, Phone, Clock } from 'lucide-react';
+import PhoneInput from '../components/PhoneInput';
+import { formatPhone, formatAddress } from '../utils/format';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -35,6 +37,10 @@ export default function WarehousesPage() {
     latitude: '',
     longitude: '',
     ownerId: '',
+    manager: '',
+    managerPhone: '',
+    businessStartTime: '',
+    businessEndTime: '',
   });
 
   useEffect(() => {
@@ -110,6 +116,10 @@ export default function WarehousesPage() {
       latitude: warehouse.latitude?.toString() || '',
       longitude: warehouse.longitude?.toString() || '',
       ownerId: warehouse.ownerId || '',
+      manager: warehouse.manager || '',
+      managerPhone: warehouse.managerPhone || '',
+      businessStartTime: warehouse.businessHours?.split('-')[0] || '',
+      businessEndTime: warehouse.businessHours?.split('-')[1] || '',
     });
     setShowModal(true);
   };
@@ -127,6 +137,10 @@ export default function WarehousesPage() {
       latitude: '',
       longitude: '',
       ownerId: '',
+      manager: '',
+      managerPhone: '',
+      businessStartTime: '08:00',
+      businessEndTime: '16:00',
     });
   };
 
@@ -208,6 +222,24 @@ export default function WarehousesPage() {
                   <span className="text-gray-500">货主</span>
                   <span className="text-gray-700">{warehouse.owner?.name || '-'}</span>
                 </div>
+                {(warehouse.manager || warehouse.managerPhone) && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">管理员</span>
+                    <div className="flex items-center gap-1 text-gray-700">
+                      <Phone className="w-3 h-3" />
+                      {warehouse.manager} {warehouse.managerPhone && formatPhone(warehouse.managerPhone)}
+                    </div>
+                  </div>
+                )}
+                {(warehouse.businessStartTime || warehouse.businessEndTime) && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">营业时间</span>
+                    <div className="flex items-center gap-1 text-gray-700">
+                      <Clock className="w-3 h-3" />
+                      {warehouse.businessStartTime || '--'}-{warehouse.businessEndTime || '--'}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">货架数</span>
                   <span className="text-gray-700 flex items-center gap-1">
@@ -220,7 +252,7 @@ export default function WarehousesPage() {
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                       <span className="text-gray-500 text-xs">
-                        {warehouse.province}{warehouse.city}{warehouse.address}
+                        {formatAddress(warehouse.province, warehouse.city, warehouse.address)}
                         {warehouse.latitude && warehouse.longitude && (
                           <div className="mt-1">({warehouse.latitude}, {warehouse.longitude})</div>
                         )}
@@ -309,7 +341,20 @@ export default function WarehousesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">所属货主</label>
                 <select
                   value={formData.ownerId}
-                  onChange={e => setFormData({ ...formData, ownerId: e.target.value })}
+                  onChange={e => {
+                    const owner = owners.find(o => o.id === e.target.value);
+                    setFormData({
+                      ...formData,
+                      ownerId: e.target.value,
+                      manager: owner?.contact || '',
+                      managerPhone: owner?.phone || '',
+                      province: owner?.province || '',
+                      city: owner?.city || '',
+                      address: owner?.address || '',
+                      latitude: owner?.latitude?.toString() || '',
+                      longitude: owner?.longitude?.toString() || '',
+                    });
+                  }}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">请选择货主</option>
@@ -317,6 +362,45 @@ export default function WarehousesPage() {
                     <option key={owner.id} value={owner.id}>{owner.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">管理员</label>
+                  <input
+                    type="text"
+                    value={formData.manager}
+                    onChange={e => setFormData({ ...formData, manager: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="管理员姓名"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">管理员电话</label>
+                  <PhoneInput
+                    value={formData.managerPhone}
+                    onChange={(val) => setFormData({ ...formData, managerPhone: val })}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">营业时间</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="time"
+                    value={formData.businessStartTime}
+                    onChange={e => setFormData({ ...formData, businessStartTime: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                  <input
+                    type="time"
+                    value={formData.businessEndTime}
+                    onChange={e => setFormData({ ...formData, businessEndTime: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
               </div>
 
               <div>

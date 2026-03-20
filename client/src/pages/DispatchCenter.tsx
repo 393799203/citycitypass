@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Package, MapPin, Clock, CheckCircle, X, Plus, RefreshCw, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../api';
 import { parseAIResponse } from '../api/ai';
+import { formatPhone, formatAddress } from '../utils/format';
 
 const orderStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -396,14 +397,14 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                               {order.warehouse?.province|| '-'}{order.warehouse?.city || '-'}
                             </span>
                             <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                            <span className="text-purple-600 font-medium truncate max-w-[100px]" title={order.province + order.city + order.address}>
+                            <span className="text-purple-600 font-medium truncate max-w-[100px]" title={formatAddress(order.province, order.city, order.address)}>
                               {order.province}{order.city}
                             </span>
                           </div>
                         </td>
                         <td className="py-3 text-sm">
                           <div>{order.receiver}</div>
-                          <div className="text-gray-400 text-xs">{order.phone}</div>
+                          <div className="text-gray-400 text-xs">{formatPhone(order.phone)}</div>
                         </td>
                         <td className="py-3">
                           <span className={`px-2 py-1 text-xs rounded-full ${
@@ -475,7 +476,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                         </td>
                         <td className="py-3 text-sm">
                           <div className="font-medium">{dispatch.driver?.name || '-'}</div>
-                          <div className="text-gray-400 text-xs">{dispatch.driver?.phone || '-'}</div>
+                          <div className="text-gray-400 text-xs">{formatPhone(dispatch.driver?.phone || '')}</div>
                         </td>
                         <td className="py-3">{dispatch.orderCount}</td>
                         <td className="py-3">{dispatch.totalWeight}吨</td>
@@ -599,7 +600,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   <option value="">请选择司机</option>
                   {drivers.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.name} - {d.phone} - {d.address || '未设置位置'}
+                      {d.name} - {formatPhone(d.phone)} - {d.address || '未设置位置'}
                     </option>
                   ))}
                 </select>

@@ -529,13 +529,13 @@ export default function ProductsPage() {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       {product.brand?.name && (
-                        <span className="px-2 py-0.5 text-xs rounded" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}>
+                        <span className="px-2 py-0.5 text-xs rounded-full border border-blue-300 bg-blue-100 text-blue-700">
                           {product.brand.name}
                         </span>
                       )}
                       {product.category?.name && (
                         <span
-                          className="px-2 py-0.5 text-xs rounded"
+                          className="px-2 py-0.5 text-xs rounded-full border"
                           style={getCategoryStyle(product.category.name)}
                         >
                           {product.category.name}
@@ -547,12 +547,12 @@ export default function ProductsPage() {
                     {product.status === 'ACTIVE' ? '在售' : '停售'}
                   </span>
                 </div>
-                <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f8fcff' }}>
-                  <div className="text-sm" style={{ color: '#0369a1' }}>
-                    <span className="font-medium">{product.skus?.length || 0}</span> 个规格
+                <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f0f4f8' }}>
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium text-gray-800">{product.skus?.length || 0}</span> 个规格
                   </div>
                   {product.skus && product.skus.length > 0 && (
-                    <div className="mt-2 text-xs max-h-16 overflow-y-auto" style={{ color: '#1e40af' }}>
+                    <div className="mt-2 text-xs max-h-16 overflow-y-auto text-gray-600">
                       {product.skus.map(s => (
                         <div key={s.id} className="flex justify-between">
                           <span>{s.spec} / {s.packaging}</span>

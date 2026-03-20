@@ -4,6 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ArrowLeft, Truck, MapPin, Package, Clock, CheckCircle, User } from 'lucide-react';
 import { dispatchApi } from '../api';
+import { formatPhone, formatAddress } from '../utils/format';
 
 const dispatchStatusMap: Record<string, string> = {
   PENDING: '待发运',
@@ -233,7 +234,7 @@ export default function DispatchDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">地址:</span>
-                <span>{dispatch.warehouse?.province}{dispatch.warehouse?.city}{dispatch.warehouse?.address}</span>
+                <span>{formatAddress(dispatch.warehouse?.province, dispatch.warehouse?.city, dispatch.warehouse?.address)}</span>
               </div>
             </div>
           </div>
@@ -252,7 +253,11 @@ export default function DispatchDetailPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">终点:</span>
-                    <span>{dispatch.orders[dispatch.orders.length - 1]?.order?.province}{dispatch.orders[dispatch.orders.length - 1]?.order?.city}{dispatch.orders[dispatch.orders.length - 1]?.order?.address}</span>
+                    <span>{formatAddress(
+                      dispatch.orders[dispatch.orders.length - 1]?.order?.province,
+                      dispatch.orders[dispatch.orders.length - 1]?.order?.city,
+                      dispatch.orders[dispatch.orders.length - 1]?.order?.address
+                    )}</span>
                   </div>
                 </>
               ) : (
@@ -277,8 +282,11 @@ export default function DispatchDetailPage() {
               <User className="w-4 h-4" />
               车辆信息
             </div>
-            <div className="font-medium">
-              {dispatch.vehicle?.licensePlate} ({dispatch.vehicle?.vehicleType})
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
+                {dispatch.vehicle?.licensePlate ? dispatch.vehicle.licensePlate.slice(0, 2) + '·' + dispatch.vehicle.licensePlate.slice(2) : '-'}
+              </div>
+              <span className="text-gray-600">({dispatch.vehicle?.vehicleType})</span>
             </div>
             <div className="text-sm text-gray-500">
               载重: {dispatch.vehicle?.capacity}件
@@ -294,7 +302,7 @@ export default function DispatchDetailPage() {
               {dispatch.driver?.name}
             </div>
             <div className="text-sm text-gray-500">
-              电话: {dispatch.driver?.phone}
+              电话: {formatPhone(dispatch.driver?.phone || '')}
             </div>
           </div>
 
@@ -363,8 +371,8 @@ export default function DispatchDetailPage() {
                     </td>
                     <td className="py-3 font-medium">{doItem.order?.orderNo}</td>
                     <td className="py-3">{doItem.order?.receiver}</td>
-                    <td className="py-3">{doItem.order?.phone}</td>
-                    <td className="py-3">{doItem.order?.province}{doItem.order?.city}{doItem.order?.address}</td>
+                    <td className="py-3">{formatPhone(doItem.order?.phone || '')}</td>
+                    <td className="py-3">{formatAddress(doItem.order?.province, doItem.order?.city, doItem.order?.address)}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         doItem.order?.status === 'PENDING' ? 'bg-yellow-600 text-white' :

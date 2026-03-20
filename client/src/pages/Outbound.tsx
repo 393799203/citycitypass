@@ -4,7 +4,8 @@ import { orderApi, pickOrderApi } from '../api';
 import { parseAIResponse } from '../api/ai';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Loader2, Package, CheckCircle, ClipboardList, Truck, RefreshCw, Sparkles, Info } from 'lucide-react';
+import { Loader2, Package, CheckCircle, ClipboardList, Truck, RefreshCw, Sparkles, Info, Phone, MapPin, ShoppingCart } from 'lucide-react';
+import { formatPhone, formatAddress } from '../utils/format';
 
 const pickStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -522,15 +523,26 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                   {pickOrder.orders && pickOrder.orders.length > 0 && (
                     <div className="mt-2 space-y-2">
                       {pickOrder.orders.map((o: any) => (
-                        <div key={o.id} className="text-sm border-l-2 border-primary-300 pl-2">
-                          <div className="text-gray-500">收货人: {o.receiver} | {o.phone} | {o.address}</div>
-                          <div className="ml-2 mt-1 text-xs text-gray-400">
-                            {o.items?.map((item: any) => (
-                              <span key={item.id} className="mr-2">
-                                {item.bundleId && <span className="text-purple-600">[套装]</span>}
-                                <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging} x{item.quantity}
-                              </span>
-                            ))}
+                        <div key={o.id} className="text-sm border-l-2 border-primary-300 pl-2 space-y-1">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Phone className="w-4 h-4" />
+                            <span>{o.receiver}</span>
+                            <span className="text-gray-400">{formatPhone(o.phone)}</span>
+                          </div>
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <MapPin className="w-4 h-4 mt-0.5" />
+                            <span>{formatAddress(o.province, o.city, o.address)}</span>
+                          </div>
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <ShoppingCart className="w-4 h-4 mt-0.5" />
+                            <div>
+                              {o.items?.map((item: any) => (
+                                <span key={item.id} className="mr-2">
+                                  {item.bundleId && <span className="text-purple-600">[套装]</span>}
+                                  <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging} x{item.quantity}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       ))}

@@ -3,6 +3,7 @@ import { userApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { UserPlus, Pencil, Trash2, X, Loader2, Shield, Filter } from 'lucide-react';
+import { formatPhone } from '../utils/format';
 
 const roleMap: Record<string, string> = {
   ADMIN: '管理员',
@@ -249,7 +250,7 @@ export default function UsersPage() {
                       {roleMap[user.role] || user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone ? formatPhone(user.phone) : '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">

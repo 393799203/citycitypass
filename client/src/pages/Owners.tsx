@@ -3,8 +3,10 @@ import { ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
+import PhoneInput from '../components/PhoneInput';
+import { formatPhone, formatAddress } from '../utils/format';
 import { provinces, provinceCities } from '../data/region';
-import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff, MapPin, Phone } from 'lucide-react';
 
 const defaultProductTags = ['电子产品', '服装', '食品', '建材', '化工', '医药', '生鲜', '家电', '家具'];
 
@@ -276,29 +278,30 @@ export default function OwnersPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">货主主体</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">自营</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">负责人</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">负责人电话</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">货物名称</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">详细地址</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">货主主体</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">负责人</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">货物名称</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">详细地址</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {owners.map((owner) => (
                 <tr key={owner.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{owner.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {owner.isSelfOperated ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">是</span>
-                    ) : (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">否</span>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {owner.name}
+                    {owner.isSelfOperated && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">自营</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.contact || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.phone || '-'}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <div>{owner.contact || '-'}</div>
+                    <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
+                      <Phone className="w-4 h-4" />
+                      {owner.phone ? formatPhone(owner.phone) : '-'}
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {owner.productTags?.map((tag, idx) => (
@@ -309,8 +312,14 @@ export default function OwnersPage() {
                       {(!owner.productTags || owner.productTags.length === 0) && '-'}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {owner.province || owner.city || owner.address ? `${owner.province || ''}${owner.city || ''}${owner.address || ''}` : '-'}
+                  <td className="px-6 py-4 text-sm">
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      {formatAddress(owner.province, owner.city, owner.address)}
+                    </div>
+                    {owner.latitude && owner.longitude && (
+                      <div className="text-xs text-gray-400 mt-0.5">({owner.latitude}, {owner.longitude})</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -409,12 +418,10 @@ export default function OwnersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">负责人电话</label>
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入电话"
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    className="w-full"
                   />
                 </div>
               </div>

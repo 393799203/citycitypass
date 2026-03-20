@@ -3,8 +3,9 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { warehouseApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X, Phone, Clock } from 'lucide-react';
 import WarehouseVisualization from '../components/WarehouseVisualization';
+import { formatPhone, formatAddress } from '../utils/format';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -115,33 +116,49 @@ export default function WarehouseDetailPage() {
               <Building2 className="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">{warehouse.name}</h1>
-              <p className="text-xs text-gray-500">{warehouse.code}</p>
-              {warehouse.owner && (
-                <p className="text-xs text-primary-600">货主: {warehouse.owner.name}</p>
-              )}
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-gray-900">{warehouse.name}</h1>
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  warehouse.type === 'COLD' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {typeMap[warehouse.type]}
+                </span>
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  warehouse.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                  warehouse.status === 'INACTIVE' ? 'bg-red-100 text-red-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {statusMap[warehouse.status]}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-gray-500">仓库编号: {warehouse.code}</span>
+                {warehouse.owner && (
+                  <span className="text-xs text-primary-600">货主: {warehouse.owner.name}</span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <span className={`px-2 py-0.5 text-xs rounded-full ${
-              warehouse.type === 'COLD' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-            }`}>
-              {typeMap[warehouse.type]}
-            </span>
-            <span className={`px-2 py-0.5 text-xs rounded-full ${
-              warehouse.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 
-              warehouse.status === 'INACTIVE' ? 'bg-red-100 text-red-700' :
-              'bg-yellow-100 text-yellow-700'
-            }`}>
-              {statusMap[warehouse.status]}
-            </span>
+          <div className="flex flex-col gap-2 items-end">
+            {(warehouse.manager || warehouse.managerPhone) && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700 flex items-center gap-1 w-fit">
+                <Phone className="w-3 h-3" />
+                {warehouse.manager} {warehouse.managerPhone && formatPhone(warehouse.managerPhone)}
+              </span>
+            )}
+            {(warehouse.businessStartTime || warehouse.businessEndTime) && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-700 flex items-center gap-1 w-fit mt-[9px]">
+                <Clock className="w-3 h-3" />
+                {warehouse.businessStartTime || '--'}-{warehouse.businessEndTime || '--'}
+              </span>
+            )}
           </div>
         </div>
         {(warehouse.province || warehouse.city || warehouse.address) && (
           <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
             <div className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
-              {warehouse.province}{warehouse.city}{warehouse.address}
+              {formatAddress(warehouse.province, warehouse.city, warehouse.address)}
               {warehouse.latitude && warehouse.longitude && (
                 <span className="ml-1">({warehouse.latitude},{warehouse.longitude})</span>
               )}

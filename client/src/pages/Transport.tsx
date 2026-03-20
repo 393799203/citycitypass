@@ -4,11 +4,20 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Plus, Trash2, Edit2, User, Phone, Car, X, MapPin } from 'lucide-react';
 import { vehicleApi, driverApi, geocodeApi } from '../api';
 import LicensePlateInput from '../components/LicensePlateInput';
+import PhoneInput from '../components/PhoneInput';
+import LicenseNoInput from '../components/LicenseNoInput';
+import { formatPhone } from '../utils/format';
 
-const vehicleTypeMap: Record<string, string> = {
-  '小面': '小面',
-  '中面': '中面',
-  '厢货': '厢货',
+const licenseTypeColors: Record<string, { bg: string; text: string; border: string }> = {
+  '小面': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+  '中面': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+  '厢货': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+};
+
+const vehicleTypeColors: Record<string, { bg: string; text: string; border: string }> = {
+  '小面': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+  '中面': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+  '厢货': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
 };
 
 const vehicleStatusMap: Record<string, string> = {
@@ -369,7 +378,6 @@ export default function TransportPage() {
                     <th className="pb-3">载重(吨)</th>
                     <th className="pb-3">容积(m³)</th>
                     <th className="pb-3">当前位置</th>
-                    <th className="pb-3">详细地址</th>
                     <th className="pb-3">当前司机</th>
                     <th className="pb-3">状态</th>
                     <th className="pb-3 text-right">操作</th>
@@ -388,22 +396,35 @@ export default function TransportPage() {
                         {list.map((vehicle: any, idx: number) => (
                           <tr key={vehicle.id} className="border-b hover:bg-gray-50">
                             {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle">{warehouseName}</td>}
-                            <td className="py-3 font-medium">{vehicle.licensePlate}</td>
-                            <td className="py-3">{vehicle.vehicleType}</td>
+                            <td className="py-3">
+                              <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
+                                {vehicle.licensePlate ? vehicle.licensePlate.slice(0, 2) + '·' + vehicle.licensePlate.slice(2) : '-'}
+                              </div>
+                            </td>
+                            <td className="py-3">
+                              {vehicle.vehicleType && vehicleTypeColors[vehicle.vehicleType] ? (
+                                <span className={`px-2 py-0.5 text-xs rounded-full ${vehicleTypeColors[vehicle.vehicleType].bg} ${vehicleTypeColors[vehicle.vehicleType].text} border ${vehicleTypeColors[vehicle.vehicleType].border}`}>
+                                  {vehicle.vehicleType}
+                                </span>
+                              ) : vehicle.vehicleType || '-'}
+                            </td>
                             <td className="py-3">{vehicle.capacity}</td>
                             <td className="py-3">{vehicle.volume || '-'}</td>
                             <td className="py-3 text-gray-500 text-sm">
-                              {vehicle.location || '-'}
-                            </td>
-                            <td className="py-3 text-gray-500 text-sm">
-                              {vehicle.address || '-'}
+                              <div>{vehicle.location || '-'}</div>
+                              <div className="text-xs">{vehicle.address || '-'}</div>
                               {vehicle.latitude && vehicle.longitude && (
-                                <span className="ml-1 text-xs">({vehicle.latitude},{vehicle.longitude})</span>
+                                <div className="text-xs text-gray-400">({vehicle.latitude},{vehicle.longitude})</div>
                               )}
                             </td>
                             <td className="py-3">
-                              {vehicle.drivers && vehicle.drivers.length > 0 
-                                ? vehicle.drivers.map((d: any) => d.name).join(', ')
+                              {vehicle.drivers && vehicle.drivers.length > 0
+                                ? vehicle.drivers.map((d: any) => (
+                                    <div key={d.id} className="text-sm">
+                                      <div className="font-medium">{d.name}</div>
+                                      <div className="text-gray-400 text-xs">{formatPhone(d.phone)}</div>
+                                    </div>
+                                  ))
                                 : '-'}
                             </td>
                             <td className="py-3">
@@ -463,12 +484,10 @@ export default function TransportPage() {
                 <thead>
                   <tr className="text-left text-gray-500 text-sm border-b">
                     <th className="pb-3">仓库</th>
-                    <th className="pb-3">姓名</th>
-                    <th className="pb-3">电话</th>
+                    <th className="pb-3">司机/电话</th>
                     <th className="pb-3">驾驶证号</th>
                     <th className="pb-3">准驾车型</th>
                     <th className="pb-3">当前位置</th>
-                    <th className="pb-3">详细地址</th>
                     <th className="pb-3">当前车辆</th>
                     <th className="pb-3">状态</th>
                     <th className="pb-3 text-right">操作</th>
@@ -487,20 +506,34 @@ export default function TransportPage() {
                         {list.map((driver: any, idx: number) => (
                           <tr key={driver.id} className="border-b hover:bg-gray-50">
                             {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle">{warehouseName}</td>}
-                            <td className="py-3 font-medium">{driver.name}</td>
-                            <td className="py-3">{driver.phone}</td>
-                            <td className="py-3">{driver.licenseNo}</td>
-                            <td className="py-3">{driver.licenseTypes?.join(', ') || '-'}</td>
-                            <td className="py-3 text-gray-500 text-sm">
-                              {driver.location || '-'}
+                            <td className="py-3 text-sm">
+                              <div className="font-medium">{driver.name}</div>
+                              <div className="text-gray-400 text-xs">{formatPhone(driver.phone)}</div>
+                            </td>
+                            <td className="py-3 font-mono text-sm">{driver.licenseNo ? driver.licenseNo.replace(/(\d{6})(\d{6})(\d{2})/, '$1 $2 $3').replace(/(\d{6})(\d{10})(\d{2})/, '$1 $2 $3') : '-'}</td>
+                            <td className="py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {driver.licenseTypes?.map((type: string) => (
+                                  <span key={type} className={`px-2 py-0.5 text-xs rounded-full ${licenseTypeColors[type]?.bg || 'bg-gray-100'} ${licenseTypeColors[type]?.text || 'text-gray-700'} border ${licenseTypeColors[type]?.border || 'border-gray-200'}`}>
+                                    {type}
+                                  </span>
+                                )) || '-'}
+                              </div>
                             </td>
                             <td className="py-3 text-gray-500 text-sm">
-                              {driver.address || '-'}
+                              <div>{driver.location || '-'}</div>
+                              <div className="text-xs">{driver.address || '-'}</div>
                               {driver.latitude && driver.longitude && (
-                                <span className="ml-1 text-xs">({driver.latitude},{driver.longitude})</span>
+                                <div className="text-xs text-gray-400">({driver.latitude},{driver.longitude})</div>
                               )}
                             </td>
-                            <td className="py-3">{driver.vehicle?.licensePlate || '-'}</td>
+                            <td className="py-3">
+                              {driver.vehicle?.licensePlate
+                                ? <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
+                                    {driver.vehicle.licensePlate.slice(0, 2)}·{driver.vehicle.licensePlate.slice(2)}
+                                  </div>
+                                : '-'}
+                            </td>
                             <td className="py-3">
                               <span className={`px-2 py-1 text-xs rounded-full ${
                                 driver.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
@@ -558,7 +591,7 @@ export default function TransportPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">
                 {editingItem ? '编辑' : '添加'}{activeTab === 'vehicle' ? '车辆' : '司机'}
@@ -571,27 +604,41 @@ export default function TransportPage() {
             <div className="space-y-4">
               {activeTab === 'vehicle' ? (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
-                    <select
-                      value={formData.warehouseId}
-                      onChange={e => {
-                        const warehouse = warehouses.find(w => w.id === e.target.value);
-                        setFormData({ 
-                          ...formData, 
-                          warehouseId: e.target.value,
-                          latitude: warehouse?.latitude?.toString() || '',
-                          longitude: warehouse?.longitude?.toString() || '',
-                          location: warehouse?.address || '',
-                        });
-                      }}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="">请选择仓库</option>
-                      {warehouses.map(w => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
+                      <select
+                        value={formData.warehouseId}
+                        onChange={e => {
+                          const warehouse = warehouses.find(w => w.id === e.target.value);
+                          setFormData({
+                            ...formData,
+                            warehouseId: e.target.value,
+                            latitude: warehouse?.latitude?.toString() || '',
+                            longitude: warehouse?.longitude?.toString() || '',
+                            location: warehouse?.address || '',
+                          });
+                        }}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      >
+                        <option value="">请选择仓库</option>
+                        {warehouses.map(w => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">车型</label>
+                      <select
+                        value={formData.vehicleType}
+                        onChange={e => setFormData({ ...formData, vehicleType: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      >
+                        <option value="小面">小面</option>
+                        <option value="中面">中面</option>
+                        <option value="厢货">厢货</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">车牌号</label>
@@ -601,36 +648,26 @@ export default function TransportPage() {
                       className="w-full"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">车型</label>
-                    <select
-                      value={formData.vehicleType}
-                      onChange={e => setFormData({ ...formData, vehicleType: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="小面">小面</option>
-                      <option value="中面">中面</option>
-                      <option value="厢货">厢货</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">载重(吨)</label>
-                    <input
-                      type="number"
-                      value={formData.capacity}
-                      onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">容积(m³)</label>
-                    <input
-                      type="number"
-                      value={formData.volume}
-                      onChange={e => setFormData({ ...formData, volume: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="可选"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">载重(吨)</label>
+                      <input
+                        type="number"
+                        value={formData.capacity}
+                        onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">容积(m³)</label>
+                      <input
+                        type="number"
+                        value={formData.volume}
+                        onChange={e => setFormData({ ...formData, volume: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="可选"
+                      />
+                    </div>
                   </div>
                 </>
               ) : (
@@ -641,8 +678,8 @@ export default function TransportPage() {
                       value={formData.warehouseId}
                       onChange={e => {
                         const warehouse = warehouses.find(w => w.id === e.target.value);
-                        setFormData({ 
-                          ...formData, 
+                        setFormData({
+                          ...formData,
                           warehouseId: e.target.value,
                           latitude: warehouse?.latitude?.toString() || '',
                           longitude: warehouse?.longitude?.toString() || '',
@@ -657,53 +694,55 @@ export default function TransportPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
+                      <PhoneInput
+                        value={formData.phone}
+                        onChange={(val) => setFormData({ ...formData, phone: val })}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">驾驶证号</label>
-                    <input
-                      type="text"
-                      value={formData.licenseNo}
-                      onChange={e => setFormData({ ...formData, licenseNo: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">准驾车型</label>
-                    <div className="flex flex-wrap gap-2">
-                      {['小面', '中面', '厢货'].map(type => (
-                        <label key={type} className="flex items-center gap-1 px-3 py-1 border rounded-lg cursor-pointer hover:bg-gray-50">
-                          <input
-                            type="checkbox"
-                            checked={formData.licenseTypes.includes(type)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setFormData({ ...formData, licenseTypes: [...formData.licenseTypes, type] });
-                              } else {
-                                setFormData({ ...formData, licenseTypes: formData.licenseTypes.filter(t => t !== type) });
-                              }
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 text-primary-600"
-                          />
-                          <span className="text-sm">{type}</span>
-                        </label>
-                      ))}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">驾驶证号</label>
+                      <LicenseNoInput
+                        value={formData.licenseNo}
+                        onChange={(val) => setFormData({ ...formData, licenseNo: val })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">准驾车型</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['小面', '中面', '厢货'].map(type => (
+                          <label key={type} className="flex items-center gap-1 px-3 py-1 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input
+                              type="checkbox"
+                              checked={formData.licenseTypes.includes(type)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, licenseTypes: [...formData.licenseTypes, type] });
+                                } else {
+                                  setFormData({ ...formData, licenseTypes: formData.licenseTypes.filter(t => t !== type) });
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                            />
+                            <span className="text-sm">{type}</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   {formData.latitude && formData.longitude && (

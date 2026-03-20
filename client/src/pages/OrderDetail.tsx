@@ -4,6 +4,7 @@ import { orderApi, pickOrderApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, Calendar, Building2, PackageCheck, ClipboardList } from 'lucide-react';
+import { formatPhone, formatAddress } from '../utils/format';
 
 const statusFlow = [
   { key: 'PENDING', label: '待拣货', description: '订单已创建，等待仓库拣货' },
@@ -273,11 +274,11 @@ export default function OrderDetail() {
               </div>
               <div className="flex items-center gap-3 text-gray-600">
                 <Phone className="w-5 h-5 text-gray-400" />
-                <span>{order.phone}</span>
+                <span>{formatPhone(order.phone)}</span>
               </div>
               <div className="flex items-start gap-3 text-gray-600">
                 <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-                <span>{order.address}</span>
+                <span>{formatAddress(order.province, order.city, order.address)}</span>
               </div>
             </div>
           </div>
@@ -300,16 +301,15 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {(order.picking || order.dispatch) && (
-          <div className="border-t pt-6 mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">配送信息</h3>
+        <div className="border-t pt-6 mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">物流信息</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {order.picking && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="w-5 h-5 text-primary-600" />
-                    <span className="font-medium">拣货单</span>
-                  </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="w-5 h-5 text-primary-600" />
+                  <span className="font-medium">拣货信息</span>
+                </div>
+                {order.picking ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">拣货单号:</span>
@@ -322,19 +322,21 @@ export default function OrderDetail() {
                         order.picking.status === 'PICKING' ? 'bg-blue-600 text-white' :
                         'bg-green-600 text-white'
                       }`}>
-                        {order.picking.status === 'PENDING' ? '待拣货' : 
+                        {order.picking.status === 'PENDING' ? '待拣货' :
                          order.picking.status === 'PICKING' ? '拣货中' : '已完成'}
                       </span>
                     </div>
                   </div>
+                ) : (
+                  <div className="text-sm text-gray-400">暂无拣货信息</div>
+                )}
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium">配送信息</span>
                 </div>
-              )}
-              {order.dispatch && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Truck className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">配送单</span>
-                  </div>
+                {order.dispatch ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">配送单号:</span>
@@ -349,16 +351,17 @@ export default function OrderDetail() {
                         order.dispatch.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
                         'bg-green-600 text-white'
                       }`}>
-                        {order.dispatch.status === 'PENDING' ? '待发运' : 
+                        {order.dispatch.status === 'PENDING' ? '待发运' :
                          order.dispatch.status === 'IN_TRANSIT' ? '配送中' : '已完成'}
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-sm text-gray-400">暂无配送信息</div>
+                )}
+              </div>
             </div>
           </div>
-        )}
 
         <div className="border-t pt-6 mt-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">商品明细</h3>

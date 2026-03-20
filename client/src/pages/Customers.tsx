@@ -3,6 +3,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Filter, Users, FileText, MapPin, Phone, Clock, Shield, Search } from 'lucide-react';
 import AddressInput from '../components/AddressInput';
+import PhoneInput from '../components/PhoneInput';
+import { formatPhone, formatAddress } from '../utils/format';
 
 interface Customer {
   id: string;
@@ -364,11 +366,11 @@ export default function CustomersPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Phone className="w-4 h-4" />
-                  {customer.contact} · {customer.phone}
+                  {customer.contact} · {formatPhone(customer.phone)}
                 </div>
                 <div className="flex items-start gap-2 text-gray-600">
                   <MapPin className="w-4 h-4 mt-0.5" />
-                  <span>{customer.province}{customer.city}{customer.district}{customer.address}</span>
+                  <span>{formatAddress(customer.province, customer.city, customer.address, customer.district)}</span>
                 </div>
                 {(customer.deliveryStartTime || customer.deliveryEndTime) && (
                   <div className="flex items-center gap-2 text-gray-600">
@@ -468,11 +470,10 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">联系电话 *</label>
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    className="w-full"
                     required
                   />
                 </div>

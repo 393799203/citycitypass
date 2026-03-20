@@ -15,6 +15,10 @@ const warehouseSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   ownerId: z.string().optional(),
+  manager: z.string().optional(),
+  managerPhone: z.string().optional(),
+  businessStartTime: z.string().optional(),
+  businessEndTime: z.string().optional(),
 });
 
 router.get('/', async (req: Request, res: Response) => {
@@ -186,7 +190,11 @@ router.post('/', async (req: Request, res: Response) => {
         address: data.address,
         latitude: data.latitude,
         longitude: data.longitude,
-        ownerId: data.ownerId,
+        manager: data.manager,
+        managerPhone: data.managerPhone,
+        businessStartTime: data.businessStartTime,
+        businessEndTime: data.businessEndTime,
+        owner: data.ownerId ? { connect: { id: data.ownerId } } : undefined,
       },
       include: {
         owner: true,
@@ -220,20 +228,29 @@ router.put('/:id', async (req: Request, res: Response) => {
       }
     }
 
+    const updateData: any = {
+      code: data.code,
+      name: data.name,
+      type: data.type,
+      status: data.status,
+      province: data.province,
+      city: data.city,
+      address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      manager: data.manager,
+      managerPhone: data.managerPhone,
+      businessStartTime: data.businessStartTime,
+      businessEndTime: data.businessEndTime,
+    };
+
+    if (data.ownerId !== undefined) {
+      updateData.owner = data.ownerId ? { connect: { id: data.ownerId } } : { disconnect: true };
+    }
+
     const warehouse = await prisma.warehouse.update({
       where: { id },
-      data: {
-        code: data.code,
-        name: data.name,
-        type: data.type,
-        status: data.status,
-        province: data.province,
-        city: data.city,
-        address: data.address,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        ownerId: data.ownerId,
-      },
+      data: updateData,
       include: {
         owner: true,
       },

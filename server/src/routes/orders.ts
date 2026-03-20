@@ -117,10 +117,22 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '订单不存在' });
     }
 
-    const picking = order.pickOrder ? {
-      id: order.pickOrder.id,
-      pickingNo: order.pickOrder.pickNo,
-      status: order.pickOrder.status,
+    const pickOrders = await prisma.pickOrder.findMany({
+      where: {
+        orderIds: {
+          contains: id,
+        },
+      },
+    });
+
+    const matchedPickOrder = pickOrders.find((po: any) =>
+      po.orderIds.split(',').map((oid: string) => oid.trim()).includes(id)
+    );
+
+    const picking = matchedPickOrder ? {
+      id: matchedPickOrder.id,
+      pickingNo: matchedPickOrder.pickNo,
+      status: matchedPickOrder.status,
     } : null;
 
     const dispatch = order.dispatchOrders?.[0]?.dispatch ? {

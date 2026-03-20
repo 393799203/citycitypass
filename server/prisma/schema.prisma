@@ -395,6 +395,10 @@ model Warehouse {
   longitude   Float?          // 仓库经度
   ownerId     String?
   owner       Owner?          @relation(fields: [ownerId], references: [id])
+  manager       String?         // 仓库管理员
+  managerPhone String?        // 管理员电话
+  businessStartTime String?   // 营业开始时间
+  businessEndTime   String?   // 营业结束时间
   shelves     Shelf[]
   stocks     Stock[]
   stockIns   StockIn[]
