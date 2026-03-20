@@ -375,7 +375,13 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                           className="w-4 h-4 rounded border-gray-300"
                         />
                       </td>
-                      <td className="py-3 font-medium">{order.order?.orderNo}</td>
+                      <td className="py-3 font-medium">
+                        {order.order?.id ? (
+                          <Link to={`/orders/${order.order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
+                            {order.order?.orderNo}
+                          </Link>
+                        ) : order.order?.orderNo}
+                      </td>
                       <td className="py-3 text-gray-500 text-sm">{order.order?.createdAt ? new Date(order.order.createdAt).toLocaleString() : '-'}</td>
                       <td className="py-3">{order.order?.owner?.name}</td>
                       <td className="py-3 text-blue-600">{order.order?.warehouse?.name}</td>
@@ -421,7 +427,16 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 flex-wrap">
                       <span className="font-medium text-gray-900">{pickOrder.pickNo}</span>
-                      <span className="text-sm text-gray-500">订单: {pickOrder.orders?.map((o: any) => o.orderNo).join(', ')}</span>
+                      <span className="text-sm text-gray-500">订单: {pickOrder.orders?.map((o: any) => {
+                        const orderId = o?.id;
+                        const orderNo = o?.orderNo;
+                        if (!orderId || !orderNo) return null;
+                        return (
+                          <Link key={orderId} to={`/orders/${orderId}`} className="text-primary-600 hover:text-primary-800 hover:underline mx-0.5">
+                            {orderNo}
+                          </Link>
+                        );
+                      })}</span>
                       <span className="text-sm text-gray-500">{pickOrder.orders?.[0]?.owner?.name}</span>
                       <span className="text-sm text-blue-600">{pickOrder.orders?.[0]?.warehouse?.name}</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${

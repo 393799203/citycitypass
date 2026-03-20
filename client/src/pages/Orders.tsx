@@ -828,9 +828,16 @@ export default function OrdersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-base">
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      {formatAddress(order.province, order.city, order.address)}
+                    <div className="flex flex-col gap-1 text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        {formatAddress(order.province, order.city, order.address)}
+                      </div>
+                      {order.latitude && order.longitude && (
+                        <div className="text-xs text-gray-400">
+                          坐标: {order.latitude}, {order.longitude}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
