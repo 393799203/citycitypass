@@ -106,6 +106,19 @@ export const stockApi = {
   use: (orderId: string) => api.post('/stock/use', { orderId }),
 };
 
+export const bundleApi = {
+  list: (params?: any) => api.get('/bundles', { params }),
+  get: (id: string) => api.get(`/bundles/${id}`),
+  create: (data: any) => api.post('/bundles', data),
+  update: (id: string, data: any) => api.put(`/bundles/${id}`, data),
+  delete: (id: string) => api.delete(`/bundles/${id}`),
+};
+
+export const bundleStockApi = {
+  list: (params?: any) => api.get('/stock/bundle', { params }),
+  stockIn: (data: any) => api.post('/stock/bundle/stock-in', data),
+};
+
 export const vehicleApi = {
   list: (params?: any) => api.get('/vehicles', { params }),
   create: (data: any) => api.post('/vehicles', data),

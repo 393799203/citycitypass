@@ -5,12 +5,15 @@ import prisma from '../lib/prisma';
 const router = Router();
 
 const orderItemSchema = z.object({
-  skuId: z.string(),
+  skuId: z.string().nullable(),
+  bundleId: z.string().nullable(),
   productName: z.string(),
   packaging: z.string(),
   spec: z.string(),
   price: z.number().min(0),
   quantity: z.number().int().min(1),
+}).refine(data => data.skuId || data.bundleId, {
+  message: "必须提供 skuId 或 bundleId"
 });
 
 const orderSchema = z.object({
@@ -58,7 +61,8 @@ router.get('/', async (req: Request, res: Response) => {
         warehouse: true,
         items: {
           include: {
-            sku: true
+            sku: true,
+            bundle: true,
           }
         },
       },
@@ -83,6 +87,17 @@ router.get('/:id', async (req: Request, res: Response) => {
         items: {
           include: {
             sku: true,
+            bundle: {
+              include: {
+                items: {
+                  include: {
+                    sku: {
+                      include: { product: true }
+                    }
+                  }
+                }
+              }
+            },
           },
         },
         dispatchOrders: {
@@ -138,20 +153,42 @@ router.post('/', async (req: Request, res: Response) => {
       totalAmount += item.price * item.quantity;
     }
 
+    const skuItems = data.items.filter(i => i.skuId);
+    const bundleItems = data.items.filter(i => i.bundleId);
+
     const order = await prisma.$transaction(async (tx: typeof prisma) => {
-      const availableStocks = await tx.stock.aggregate({
-        where: {
-          skuId: { in: data.items.map(i => i.skuId) },
-          warehouseId: data.warehouseId,
-        },
-        _sum: { availableQuantity: true },
-      });
-      
-      const totalAvailable = availableStocks._sum.availableQuantity || 0;
-      const totalRequested = data.items.reduce((sum, item) => sum + item.quantity, 0);
-      
-      if (totalAvailable < totalRequested) {
-        throw new Error(`库存不足，当前可用: ${totalAvailable}`);
+      if (skuItems.length > 0) {
+        const availableStocks = await tx.stock.aggregate({
+          where: {
+            skuId: { in: skuItems.map(i => i.skuId!).filter(Boolean) as string[] },
+            warehouseId: data.warehouseId,
+          },
+          _sum: { availableQuantity: true },
+        });
+        
+        const totalAvailable = availableStocks._sum.availableQuantity || 0;
+        const totalRequested = skuItems.reduce((sum, item) => sum + item.quantity, 0);
+        
+        if (totalAvailable < totalRequested) {
+          throw new Error(`库存不足，当前可用: ${totalAvailable}`);
+        }
+      }
+
+      if (bundleItems.length > 0) {
+        for (const item of bundleItems) {
+          const bundleStock = await tx.bundleStock.aggregate({
+            where: {
+              bundleId: item.bundleId!,
+              warehouseId: data.warehouseId,
+            },
+            _sum: { availableQuantity: true },
+          });
+          
+          const totalAvailable = bundleStock._sum.availableQuantity || 0;
+          if (totalAvailable < item.quantity) {
+            throw new Error(`套装 ${item.productName} 库存不足，当前可用: ${totalAvailable}`);
+          }
+        }
       }
 
       const newOrder = await tx.order.create({
@@ -171,6 +208,7 @@ router.post('/', async (req: Request, res: Response) => {
           items: {
             create: data.items.map(item => ({
               skuId: item.skuId,
+              bundleId: item.bundleId,
               productName: item.productName,
               packaging: item.packaging,
               spec: item.spec,
@@ -183,84 +221,98 @@ router.post('/', async (req: Request, res: Response) => {
       });
 
       for (const item of data.items) {
-        const warehouseTotalStock = await tx.stock.aggregate({
-          where: {
-            skuId: item.skuId,
-            warehouseId: data.warehouseId,
-          },
-          _sum: {
-            availableQuantity: true,
-          },
-        });
+        if (item.skuId) {
+          const allStocks = await tx.stock.findMany({
+            where: {
+              skuId: item.skuId!,
+              warehouseId: data.warehouseId,
+              availableQuantity: { gt: 0 },
+            },
+            orderBy: { availableQuantity: 'desc' },
+          });
 
-        const totalAvailable = warehouseTotalStock._sum.availableQuantity || 0;
-        if (totalAvailable < item.quantity) {
-          throw new Error(`SKU ${item.skuId} 在仓库 ${data.warehouseId} 总库存不足，当前可用: ${totalAvailable}, 需要: ${item.quantity}`);
+          let remainingQuantity = item.quantity;
+          const fullStock = allStocks.find(s => s.availableQuantity >= item.quantity);
+          if (fullStock) {
+            await tx.stock.update({
+              where: { id: fullStock.id },
+              data: {
+                lockedQuantity: { increment: item.quantity },
+                availableQuantity: { decrement: item.quantity },
+              },
+            });
+            await tx.stockLock.create({
+              data: {
+                skuId: item.skuId!,
+                orderId: newOrder.id,
+                warehouseId: data.warehouseId,
+                shelfId: fullStock.shelfId,
+                quantity: item.quantity,
+                status: 'LOCKED',
+              },
+            });
+          } else {
+            for (const stock of allStocks) {
+              if (remainingQuantity <= 0) break;
+              const lockQuantity = Math.min(stock.availableQuantity, remainingQuantity);
+              await tx.stock.update({
+                where: { id: stock.id },
+                data: {
+                  lockedQuantity: { increment: lockQuantity },
+                  availableQuantity: { decrement: lockQuantity },
+                },
+              });
+              await tx.stockLock.create({
+                data: {
+                  skuId: item.skuId!,
+                  orderId: newOrder.id,
+                  warehouseId: data.warehouseId,
+                  shelfId: stock.shelfId,
+                  quantity: lockQuantity,
+                  status: 'LOCKED',
+                },
+              });
+              remainingQuantity -= lockQuantity;
+            }
+          }
         }
 
-        const allStocks = await tx.stock.findMany({
-           where: {
-             skuId: item.skuId,
-             warehouseId: data.warehouseId,
-             availableQuantity: { gt: 0 },
-           },
-           orderBy: { availableQuantity: 'desc' },
-         });
-
-         const stockLocks = [];
-         let remainingQuantity = item.quantity;
-
-         const fullStock = allStocks.find(s => (s as any).availableQuantity >= item.quantity);
-         if (fullStock) {
-           await tx.stock.update({
-             where: { id: fullStock.id },
-             data: {
-               lockedQuantity: { increment: item.quantity },
-               availableQuantity: { decrement: item.quantity },
-             },
-           });
-           stockLocks.push({
-             skuId: item.skuId,
-             warehouseId: data.warehouseId,
-             shelfId: fullStock.shelfId,
-             quantity: item.quantity,
-           });
-         } else {
-           for (const stock of allStocks) {
-             if (remainingQuantity <= 0) break;
-
-             const lockQuantity = Math.min(stock.availableQuantity, remainingQuantity);
-            
-            await tx.stock.update({
-              where: { id: stock.id },
+        if (item.bundleId) {
+          const bundleStocks = await tx.bundleStock.findMany({
+            where: {
+              bundleId: item.bundleId!,
+              warehouseId: data.warehouseId,
+              availableQuantity: { gt: 0 },
+            },
+            orderBy: { availableQuantity: 'desc' },
+          });
+          
+          let remainingQuantity = item.quantity;
+          for (const bs of bundleStocks) {
+            if (remainingQuantity <= 0) break;
+            const lockQuantity = Math.min(bs.availableQuantity, remainingQuantity);
+            await tx.bundleStock.update({
+              where: { id: bs.id },
               data: {
                 lockedQuantity: { increment: lockQuantity },
                 availableQuantity: { decrement: lockQuantity },
               },
             });
-
-            stockLocks.push({
-              skuId: item.skuId,
-              warehouseId: data.warehouseId,
-              shelfId: stock.shelfId,
-              quantity: lockQuantity,
+            await tx.bundleStockLock.create({
+              data: {
+                bundleId: item.bundleId!,
+                orderId: newOrder.id,
+                warehouseId: data.warehouseId,
+                shelfId: bs.shelfId,
+                quantity: lockQuantity,
+              },
             });
-
             remainingQuantity -= lockQuantity;
           }
-        }
-
-        for (const lock of stockLocks) {
-          await tx.stockLock.create({
-            data: {
-              skuId: lock.skuId,
-              orderId: newOrder.id,
-              warehouseId: lock.warehouseId,
-              shelfId: lock.shelfId,
-              quantity: lock.quantity,
-              status: 'LOCKED',
-            },
-          });
+          
+          if (remainingQuantity > 0) {
+            throw new Error(`套装 ${item.productName} 库存不足，缺少: ${remainingQuantity}`);
+          }
         }
       }
 
@@ -272,6 +324,7 @@ router.post('/', async (req: Request, res: Response) => {
           items: {
             include: {
               sku: true,
+              bundle: true,
             },
           },
         },
@@ -297,7 +350,11 @@ router.put('/:id/status', async (req: Request, res: Response) => {
     const order = await prisma.$transaction(async (tx: typeof prisma) => {
       const existingOrder = await tx.order.findUnique({
         where: { id },
-        include: { items: true },
+        include: { 
+          items: true,
+          stockLocks: true,
+          bundleStockLocks: true,
+        },
       });
 
       if (!existingOrder) {
@@ -332,6 +389,38 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           }
           await tx.stockLock.delete({ where: { id: lock.id } });
         }
+
+        const bundleStockLocks = await tx.bundleStockLock.findMany({
+          where: { orderId: existingOrder.id },
+        });
+
+        for (const lock of bundleStockLocks) {
+          if (lock.shelfId) {
+            await tx.bundleStock.updateMany({
+              where: {
+                bundleId: lock.bundleId,
+                warehouseId: lock.warehouseId,
+                shelfId: lock.shelfId,
+              },
+              data: {
+                lockedQuantity: { decrement: lock.quantity },
+                availableQuantity: { increment: lock.quantity },
+              },
+            });
+          } else {
+            await tx.bundleStock.updateMany({
+              where: {
+                bundleId: lock.bundleId,
+                warehouseId: lock.warehouseId,
+              },
+              data: {
+                lockedQuantity: { decrement: lock.quantity },
+                availableQuantity: { increment: lock.quantity },
+              },
+            });
+          }
+          await tx.bundleStockLock.delete({ where: { id: lock.id } });
+        }
       }
 
       if (status === 'DISPATCHING') {
@@ -354,6 +443,38 @@ router.put('/:id/status', async (req: Request, res: Response) => {
             });
           }
           await tx.stockLock.delete({ where: { id: lock.id } });
+        }
+
+        const bundleStockLocks = await tx.bundleStockLock.findMany({
+          where: { orderId: existingOrder.id },
+        });
+
+        for (const lock of bundleStockLocks) {
+          if (lock.shelfId) {
+            await tx.bundleStock.updateMany({
+              where: {
+                bundleId: lock.bundleId,
+                warehouseId: lock.warehouseId,
+                shelfId: lock.shelfId,
+              },
+              data: {
+                totalQuantity: { decrement: lock.quantity },
+                lockedQuantity: { decrement: lock.quantity },
+              },
+            });
+          } else {
+            await tx.bundleStock.updateMany({
+              where: {
+                bundleId: lock.bundleId,
+                warehouseId: lock.warehouseId,
+              },
+              data: {
+                totalQuantity: { decrement: lock.quantity },
+                lockedQuantity: { decrement: lock.quantity },
+              },
+            });
+          }
+          await tx.bundleStockLock.delete({ where: { id: lock.id } });
         }
       }
 

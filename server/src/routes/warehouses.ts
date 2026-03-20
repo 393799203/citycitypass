@@ -40,6 +40,12 @@ router.get('/', async (req: Request, res: Response) => {
             totalQuantity: true,
           },
         },
+        bundleStocks: {
+          select: {
+            bundleId: true,
+            totalQuantity: true,
+          },
+        },
       },
       orderBy: [
         { owner: { isSelfOperated: 'desc' } },
@@ -49,15 +55,23 @@ router.get('/', async (req: Request, res: Response) => {
 
     const warehousesWithStock = warehouses.map(w => {
       const skuStockMap: Record<string, number> = {};
+      const bundleStockMap: Record<string, number> = {};
       w.stocks.forEach((s: any) => {
         if (s.skuId && (s.totalQuantity || 0) > 0) {
           skuStockMap[s.skuId] = (s.totalQuantity || 0);
         }
       });
+      w.bundleStocks.forEach((b: any) => {
+        if (b.bundleId && (b.totalQuantity || 0) > 0) {
+          bundleStockMap[b.bundleId] = (b.totalQuantity || 0);
+        }
+      });
       return {
         ...w,
         totalStock: w.stocks.reduce((sum: number, s: any) => sum + (Number(s.totalQuantity) || 0), 0),
+        totalBundleStock: w.bundleStocks.reduce((sum: number, b: any) => sum + (Number(b.totalQuantity) || 0), 0),
         skuCount: Object.keys(skuStockMap).length,
+        bundleCount: Object.keys(bundleStockMap).length,
       };
     });
 
@@ -84,6 +98,21 @@ router.get('/:id', async (req: Request, res: Response) => {
                   include: { product: true }
                 }
               }
+            },
+            bundleStocks: {
+              include: {
+                bundle: {
+                  include: {
+                    items: {
+                      include: {
+                        sku: {
+                          include: { product: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -103,11 +132,31 @@ router.get('/:id', async (req: Request, res: Response) => {
       },
     });
 
+    const bundleStockStats = await prisma.bundleStock.aggregate({
+      where: { warehouseId: id },
+      _sum: {
+        totalQuantity: true,
+        availableQuantity: true,
+        lockedQuantity: true,
+      },
+    });
+
     const totalStock = stockStats._sum.totalQuantity || 0;
     const availableStock = stockStats._sum.availableQuantity || 0;
     const lockedStock = stockStats._sum.lockedQuantity || 0;
+    const totalBundleStock = bundleStockStats._sum.totalQuantity || 0;
+    const availableBundleStock = bundleStockStats._sum.availableQuantity || 0;
+    const lockedBundleStock = bundleStockStats._sum.lockedQuantity || 0;
 
-    res.json({ success: true, data: { ...warehouse, totalStock, availableStock, lockedStock } });
+    res.json({ success: true, data: { 
+      ...warehouse, 
+      totalStock, 
+      availableStock, 
+      lockedStock,
+      totalBundleStock,
+      availableBundleStock,
+      lockedBundleStock,
+    } });
   } catch (error) {
     console.error('Get warehouse error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

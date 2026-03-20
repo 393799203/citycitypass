@@ -111,6 +111,82 @@ model ProductSKU {
   stocks     Stock[]
   stockLocks StockLock[]
   stockIns   StockIn[]
+  bundleItems BundleSKUItem[]
+}
+
+model BundleSKU {
+  id          String   @id @default(uuid())
+  name        String
+  packaging   String
+  spec        String
+  price       Decimal  @db.Decimal(10, 2)
+  image       String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       BundleSKUItem[]
+  stocks      BundleStock[]
+  stockLocks  BundleStockLock[]
+  stockIns   BundleStockIn[]
+  pickOrderItems PickOrderItem[]
+  orderItems  OrderItem[]
+}
+
+model BundleSKUItem {
+  id          String    @id @default(uuid())
+  bundleId    String
+  bundle      BundleSKU @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  skuId       String
+  sku         ProductSKU @relation(fields: [skuId], references: [id])
+  quantity    Int       // 该商品在套装中的数量
+  createdAt   DateTime  @default(now())
+
+  @@unique([bundleId, skuId])
+}
+
+model BundleStock {
+  id              String    @id @default(uuid())
+  bundleId        String
+  bundle          BundleSKU @relation(fields: [bundleId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  shelfId         String?
+  shelf           Shelf?    @relation(fields: [shelfId], references: [id])
+  totalQuantity   Int       @default(0)
+  lockedQuantity  Int       @default(0)
+  availableQuantity Int      @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([bundleId, warehouseId, shelfId])
+}
+
+model BundleStockLock {
+  id          String   @id @default(uuid())
+  bundleId    String
+  bundle      BundleSKU @relation(fields: [bundleId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  shelfId     String?
+  shelf       Shelf?   @relation(fields: [shelfId], references: [id])
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quantity    Int
+  createdAt   DateTime @default(now())
+  pickOrderItems PickOrderItem[]
+}
+
+model BundleStockIn {
+  id          String    @id @default(uuid())
+  bundleId    String
+  bundle      BundleSKU @relation(fields: [bundleId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  shelfId     String?
+  shelf       Shelf?    @relation(fields: [shelfId], references: [id])
+  quantity    Int
+  remark      String?
+  createdAt   DateTime  @default(now())
 }
 
 model Order {
@@ -131,6 +207,7 @@ model Order {
   status      OrderStatus @default(PENDING)
   items       OrderItem[]
   stockLocks StockLock[]
+  bundleStockLocks BundleStockLock[]
   dispatchOrders DispatchOrder[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -140,8 +217,10 @@ model OrderItem {
   id         String   @id @default(uuid())
   orderId    String
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  skuId      String
-  sku        ProductSKU @relation(fields: [skuId], references: [id])
+  skuId      String?
+  sku        ProductSKU? @relation(fields: [skuId], references: [id])
+  bundleId   String?
+  bundle     BundleSKU? @relation(fields: [bundleId], references: [id])
   productName String
   packaging  String
   spec       String
@@ -174,8 +253,10 @@ model PickOrderItem {
   id         String      @id @default(uuid())
   pickOrderId String
   pickOrder  PickOrder   @relation(fields: [pickOrderId], references: [id], onDelete: Cascade)
-  skuId      String
-  sku        ProductSKU  @relation(fields: [skuId], references: [id])
+  skuId      String?
+  sku        ProductSKU?  @relation(fields: [skuId], references: [id])
+  bundleId   String?
+  bundle     BundleSKU?  @relation(fields: [bundleId], references: [id])
   productName String
   packaging  String
   spec       String
@@ -183,6 +264,8 @@ model PickOrderItem {
   warehouseLocation String
   stockLockId String?
   stockLock  StockLock? @relation(fields: [stockLockId], references: [id])
+  bundleStockLockId String?
+  bundleStockLock BundleStockLock? @relation(fields: [bundleStockLockId], references: [id])
 }
 
 enum WarehouseType {
@@ -217,6 +300,9 @@ model Warehouse {
   vehicles   Vehicle[]
   drivers    Driver[]
   dispatches Dispatch[]
+  bundleStocks    BundleStock[]
+  bundleStockLocks BundleStockLock[]
+  bundleStockIns BundleStockIn[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -233,6 +319,9 @@ model Shelf {
   stockIns   StockIn[]
   stocks     Stock[]
   stockLocks StockLock[]
+  bundleStocks    BundleStock[]
+  bundleStockLocks BundleStockLock[]
+  bundleStockIns BundleStockIn[]
   
   @@unique([warehouseId, code])
   createdAt  DateTime  @default(now())
@@ -282,8 +371,8 @@ model StockLock {
 
 model StockIn {
   id          String    @id @default(uuid())
-  stockId     String
-  stock       Stock    @relation(fields: [stockId], references: [id])
+  stockId     String?
+  stock       Stock?    @relation(fields: [stockId], references: [id])
   skuId       String
   sku         ProductSKU @relation(fields: [skuId], references: [id])
   warehouseId  String

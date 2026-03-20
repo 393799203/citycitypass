@@ -380,7 +380,16 @@ export default function OrderDetail() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Package className="w-5 h-5 text-gray-400" />
-                        <span className="font-medium text-gray-900">{item.productName}</span>
+                        {item.bundleId ? (
+                          <div>
+                            <span className="text-purple-600 text-xs font-medium">[套装] {item.productName}</span>
+                            <div className="text-xs text-purple-600 mt-1">
+                              包含: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="font-medium text-gray-900">{item.productName}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{item.packaging}</td>

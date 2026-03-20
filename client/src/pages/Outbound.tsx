@@ -4,7 +4,7 @@ import { orderApi, pickOrderApi } from '../api';
 import { parseAIResponse } from '../api/ai';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Loader2, Package, CheckCircle, ClipboardList, Truck, RefreshCw, Sparkles } from 'lucide-react';
+import { Loader2, Package, CheckCircle, ClipboardList, Truck, RefreshCw, Sparkles, Info } from 'lucide-react';
 
 const pickStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -95,7 +95,7 @@ export default function OutboundPage() {
         warehouse: o.order?.warehouse?.name,
         warehouseId: o.order?.warehouseId,
         createdAt: o.order?.createdAt,
-        items: o.items?.map((item: any) => `${item.productName} ${item.spec || ''} ${item.packaging || ''} x${item.quantity}`) || [],
+        items: o.items?.map((item: any) => `${item.bundleId ? '[套装] ' : ''}${item.productName} ${item.spec || ''} ${item.packaging || ''} x${item.quantity}`) || [],
       }));
 
       const prompt = `你是一个物流拣货助手。我有${orderList.length}个待拣货的订单，请帮我分析并将可以一次性合并拣货的订单推荐为一组。
@@ -330,7 +330,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                   </button>
                 </div>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-visible">
               <table className="w-full">
                 <thead>
                   <tr className="text-left text-gray-500 text-sm border-b">
@@ -381,6 +381,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                       <td className="py-3">
                         {order.items?.map((item: any) => (
                           <span key={item.id} className="inline-block mr-2 text-sm">
+                            {item.bundleId && <span className="text-purple-600">[套装]</span>}
                             {item.productName} {item.spec && `(${item.spec})`} {item.packaging && `· ${item.packaging}`} x{item.quantity}
                           </span>
                         ))}
@@ -463,7 +464,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                       )}
                     </div>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="overflow-x-visible bg-gray-50 rounded-lg p-3">
                     <table className="w-full">
                       <thead>
                         <tr className="text-xs text-gray-500">
@@ -476,7 +477,27 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                       <tbody className="text-sm">
                         {(pickOrder.items || []).map((item: any) => (
                           <tr key={item.id} className="border-t border-gray-200">
-                            <td className="py-2">{item.productName}</td>
+                            <td className="py-2">
+                              {item.bundleId ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-purple-600">[套装]</span>
+                                  {item.bundle?.items?.length > 0 && (
+                                    <div className="relative group">
+                                      <Info className="w-3 h-3 text-gray-400 cursor-help" />
+                                      <div className="absolute left-0 top-5 z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 min-w-[180px]">
+                                        <div className="font-medium mb-1">套装包含：</div>
+                                        {item.bundle.items.map((bi: any) => (
+                                          <div key={bi.id} className="text-gray-300">
+                                            {bi.sku?.product?.name} - {bi.sku?.spec}/{bi.sku?.packaging} × {bi.quantity}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
+                              {item.productName}
+                            </td>
                             <td className="py-2 text-gray-500">{item.packaging} · {item.spec}</td>
                             <td className="py-2 text-left">{item.quantity}</td>
                             <td className="py-2 text-gray-500">
@@ -496,6 +517,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                           <div className="ml-2 mt-1 text-xs text-gray-400">
                             {o.items?.map((item: any) => (
                               <span key={item.id} className="mr-2">
+                                {item.bundleId && <span className="text-purple-600">[套装]</span>}
                                 {item.productName} {item.spec} {item.packaging} x{item.quantity}
                               </span>
                             ))}

@@ -148,6 +148,11 @@ export default function WarehouseDetailPage() {
             </div>
             <div className="text-green-600 font-medium">
               总库存: {warehouse.totalStock || 0} / 冻结: {warehouse.lockedStock || 0} / 可用: {warehouse.availableStock || 0}
+              {(warehouse.totalBundleStock > 0) && (
+                <span className="ml-3 text-purple-600">
+                  套装: {warehouse.totalBundleStock || 0} / 冻结: {warehouse.lockedBundleStock || 0} / 可用: {warehouse.availableBundleStock || 0}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -207,14 +212,22 @@ export default function WarehouseDetailPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2">
-                            {shelf.stocks && shelf.stocks.filter((s: any) => (s.availableQuantity || 0) > 0).length > 0 ? (
+                            {(shelf.stocks && shelf.stocks.filter((s: any) => (s.availableQuantity || 0) > 0).length > 0) || (shelf.bundleStocks && shelf.bundleStocks.filter((b: any) => (b.availableQuantity || 0) > 0).length > 0) ? (
                               <div className="text-sm">
-                                {shelf.stocks.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => (
+                                {shelf.stocks?.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => (
                                   <div key={s.id} className="text-xs">
                                     <span className="text-gray-700">{s.sku?.product?.name} / {s.sku?.spec} / {s.sku?.packaging}</span>
                                     <span className="text-gray-400 mx-1">/</span>
                                     <span className="text-green-600 font-medium">{s.availableQuantity || 0}</span>
                                     <span className="text-gray-400">件</span>
+                                  </div>
+                                ))}
+                                {shelf.bundleStocks?.filter((b: any) => (b.availableQuantity || 0) > 0).map((b: any) => (
+                                  <div key={b.id} className="text-xs flex items-center gap-1">
+                                    <span className="text-purple-700">{b.bundle?.name}</span>
+                                    <span className="text-gray-400 mx-1">/</span>
+                                    <span className="text-green-600 font-medium">{b.availableQuantity || 0}</span>
+                                    <span className="text-gray-400">套</span>
                                   </div>
                                 ))}
                               </div>

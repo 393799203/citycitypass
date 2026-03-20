@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi } from '../api';
+import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck } from 'lucide-react';
@@ -313,6 +313,10 @@ export default function OrdersPage() {
       if (res.data.success) {
         setProducts(res.data.data);
       }
+      const bundleRes = await bundleApi.list();
+      if (bundleRes.data.success) {
+        setBundles(bundleRes.data.data);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -338,15 +342,34 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (formData.warehouseId) {
-      fetch(`/api/products?warehouseId=${formData.warehouseId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setProducts(data.data);
-          }
-        });
+      Promise.all([
+        fetch(`/api/products?warehouseId=${formData.warehouseId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(res => res.json()),
+        fetch(`/api/stock?warehouseId=${formData.warehouseId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(res => res.json())
+      ]).then(([productsData, stockData]) => {
+        if (productsData.success) {
+          setProducts(productsData.data);
+        }
+        if (stockData.success) {
+          const stocks = stockData.data;
+          const productStocks = stocks.productStocks || [];
+          const bundleStocks = stocks.bundleStocks || [];
+          setProducts((prev: any) => prev.map((p: any) => ({
+            ...p,
+            skus: p.skus?.map((s: any) => ({
+              ...s,
+              stock: productStocks.filter((ps: any) => ps.skuId === s.id).reduce((sum: number, ps: any) => sum + ps.availableQuantity, 0)
+            }))
+          })));
+          setBundles((prev: any) => prev.map((b: any) => ({
+            ...b,
+            stock: bundleStocks.filter((bs: any) => bs.bundleId === b.id).reduce((sum: number, bs: any) => sum + bs.availableQuantity, 0)
+          })));
+        }
+      });
     } else {
       setProducts([]);
     }
@@ -810,7 +833,7 @@ export default function OrdersPage() {
                                         : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
                                     }`}
                                   >
-                                    {s.spec || '-'} / {s.packaging || '-'} ×{s.stock}
+                                    {s.spec || '-'} / {s.packaging || '-'}  库存:{s.stock}
                                     {isAdded && ' ✓'}
                                   </button>
                                 );
@@ -823,7 +846,7 @@ export default function OrdersPage() {
                           <div key={b.id} className="border rounded-lg p-3 hover:border-purple-300 transition-colors flex items-center justify-between">
                             <div>
                               <div className="font-medium text-sm">{b.name}</div>
-                              <div className="text-xs text-gray-500">{b.packaging} {b.spec} · 库存{b.stock}</div>
+                              <div className="text-xs text-gray-500">{b.packaging} {b.spec} 库存 {b.stock}</div>
                             </div>
                             <button
                               type="button"

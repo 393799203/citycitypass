@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import { Plus, Package, Warehouse, X } from 'lucide-react';
-import { stockApi, productApi, warehouseApi } from '../api';
+import { Plus, Package, Warehouse, X, Info } from 'lucide-react';
+import { stockApi, productApi, warehouseApi, bundleApi } from '../api';
 
 interface Product {
   id: string;
@@ -38,13 +38,16 @@ interface Shelf {
 
 export default function StockInsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [bundles, setBundles] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showStockInModal, setShowStockInModal] = useState(false);
+  const [itemType, setItemType] = useState<'product' | 'bundle'>('product');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSku, setSelectedSku] = useState('');
+  const [selectedBundle, setSelectedBundle] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [selectedShelf, setSelectedShelf] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -53,6 +56,7 @@ export default function StockInsPage() {
   const [stockIns, setStockIns] = useState<any[]>([]);
   const [stockInLoading, setStockInLoading] = useState(false);
   const [stocks, setStocks] = useState<any[]>([]);
+  const [bundleStocks, setBundleStocks] = useState<any[]>([]);
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
   const [filterShelf, setFilterShelf] = useState('');
@@ -64,11 +68,12 @@ export default function StockInsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productRes, warehouseRes, stockRes, stockInRes] = await Promise.all([
+      const [productRes, warehouseRes, stockRes, stockInRes, bundleRes] = await Promise.all([
         productApi.list(),
         warehouseApi.list({ status: 'ACTIVE' }),
         stockApi.list(),
-        fetchStockIns()
+        fetchStockIns(),
+        bundleApi.list()
       ]);
       if (productRes.data.success) {
         setProducts(productRes.data.data);
@@ -77,7 +82,11 @@ export default function StockInsPage() {
         setWarehouses(warehouseRes.data.data);
       }
       if (stockRes.data.success) {
-        setStocks(stockRes.data.data);
+        const data = stockRes.data.data;
+        setStocks([...(data.productStocks || []), ...(data.bundleStocks || [])]);
+      }
+      if (bundleRes.data.success) {
+        setBundles(bundleRes.data.data);
       }
     } catch (error) {
       console.error('Fetch data error:', error);
@@ -131,37 +140,66 @@ export default function StockInsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSku || !selectedWarehouse || quantity <= 0) {
-      toast.error('请填写完整信息');
-      return;
-    }
-
-    try {
-      const res = await stockApi.stockIn({
-        skuId: selectedSku,
-        warehouseId: selectedWarehouse,
-        shelfId: selectedShelf || null,
-        quantity,
-        batchNo: batchNo || null,
-        remark: remark || null,
-      });
-      
-      if (res.data.success) {
-        toast.success('入库成功');
-        setShowModal(false);
-        fetchData();
-        resetForm();
-      } else {
-        toast.error(res.data.message || '入库失败');
+    
+    if (itemType === 'product') {
+      if (!selectedSku || !selectedWarehouse || quantity <= 0) {
+        toast.error('请填写完整信息');
+        return;
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || '入库失败');
+      try {
+        const res = await stockApi.stockIn({
+          skuId: selectedSku,
+          warehouseId: selectedWarehouse,
+          shelfId: selectedShelf || null,
+          quantity,
+          batchNo: batchNo || null,
+          remark: remark || null,
+        });
+        
+        if (res.data.success) {
+          toast.success('入库成功');
+          setShowModal(false);
+          fetchData();
+          resetForm();
+        } else {
+          toast.error(res.data.message || '入库失败');
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || '入库失败');
+      }
+    } else {
+      if (!selectedBundle || !selectedWarehouse || quantity <= 0) {
+        toast.error('请填写完整信息');
+        return;
+      }
+      try {
+        const res = await stockApi.stockIn({
+          type: 'bundle',
+          bundleId: selectedBundle,
+          warehouseId: selectedWarehouse,
+          shelfId: selectedShelf || null,
+          quantity,
+        });
+        
+        if (res.data.success) {
+          toast.success('入库成功');
+          setShowModal(false);
+          fetchData();
+          resetForm();
+        } else {
+          toast.error(res.data.message || '入库失败');
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || '入库失败');
+      }
     }
   };
 
   const resetForm = () => {
+    setItemType('product');
     setSelectedProduct('');
     setSelectedSku('');
+    setSelectedBundle('');
     setSelectedWarehouse('');
     setSelectedShelf('');
     setQuantity(1);
@@ -254,12 +292,13 @@ export default function StockInsPage() {
             </button>
           </div>
           
-          <div className="overflow-x-auto">
+          <div className="overflow-x-visible">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-2 text-left">仓库名</th>
-                  <th className="px-3 py-2 text-left">商品</th>
+                  <th className="px-3 py-2 text-left">类型</th>
+                  <th className="px-3 py-2 text-left">商品/套装</th>
                   <th className="px-3 py-2 text-left">货架</th>
                   <th className="px-3 py-2 text-right">总库存</th>
                   <th className="px-3 py-2 text-right">已锁定</th>
@@ -271,7 +310,13 @@ export default function StockInsPage() {
                   const filteredStocks = stocks.filter((stock: any) => {
                     if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
                     if (filterShelf && stock.shelfId !== filterShelf) return false;
-                    if (filterProduct && stock.sku?.product?.id !== filterProduct) return false;
+                    if (filterProduct) {
+                      if (stock.type === 'product') {
+                        if (stock.sku?.product?.id !== filterProduct) return false;
+                      } else if (stock.type === 'bundle') {
+                        return false;
+                      }
+                    }
                     return true;
                   });
                   const groupedStocks = filteredStocks.reduce((acc: any, stock: any) => {
@@ -285,7 +330,31 @@ export default function StockInsPage() {
                       {list.map((stock: any, idx: number) => (
                         <tr key={stock.id} className="border-t">
                           {idx === 0 && <td rowSpan={list.length} className="px-3 py-2 align-middle text-primary-600 font-medium">{warehouseName}</td>}
-                          <td className="px-3 py-2">{getSkuInfo(stock.skuId)}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-0.5 text-xs rounded ${stock.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {stock.type === 'bundle' ? '套装' : '商品'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {stock.type === 'bundle' 
+                              ? <div className="flex items-center gap-1">
+                                  {stock.bundle?.name}
+                                  {stock.bundle?.items?.length > 0 && (
+                                    <div className="relative group">
+                                      <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                                      <div className="absolute left-0 top-6 z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 min-w-[200px]">
+                                        <div className="font-medium mb-1">套装包含：</div>
+                                        {stock.bundle.items.map((item: any) => (
+                                          <div key={item.id} className="text-gray-300">
+                                            {item.sku?.product?.name} - {item.sku?.spec}/{item.sku?.packaging} × {item.quantity}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              : `${stock.sku?.product?.name || ''} - ${stock.sku?.spec || ''}/${stock.sku?.packaging || ''}`}
+                          </td>
                           <td className="px-3 py-2">{stock.shelf?.code || '-'}</td>
                           <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
                           <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
@@ -297,7 +366,7 @@ export default function StockInsPage() {
                 })()}
                 {stocks.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
                       暂无库存数据
                     </td>
                   </tr>
@@ -311,42 +380,65 @@ export default function StockInsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
             <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h2 className="text-lg font-bold">商品入库</h2>
+              <h2 className="text-lg font-bold">{itemType === 'product' ? '商品入库' : '套装入库'}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-200 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">商品</label>
-                  <select
-                    value={selectedProduct}
-                    onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSku(''); }}
-                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                    required
-                  >
-                    <option value="">选择商品</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex border-b mb-4">
+                <button
+                  type="button"
+                  onClick={() => { setItemType('product'); setSelectedBundle(''); }}
+                  className={`flex-1 py-2 text-sm font-medium border-b-2 ${
+                    itemType === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
+                  }`}
+                >
+                  商品入库
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setItemType('bundle'); setSelectedProduct(''); setSelectedSku(''); }}
+                  className={`flex-1 py-2 text-sm font-medium border-b-2 ${
+                    itemType === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
+                  }`}
+                >
+                  套装入库
+                </button>
+              </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">规格</label>
-                  <select
-                    value={selectedSku}
-                    onChange={(e) => setSelectedSku(e.target.value)}
-                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                    disabled={!selectedProduct}
-                    required
-                  >
-                    <option value="">选择规格</option>
-                    {selectedProductSkus.map(sku => (
-                      <option key={sku.id} value={sku.id}>
-                        {sku.spec} / {sku.packaging}
-                      </option>
+              {itemType === 'product' ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">商品</label>
+                      <select
+                        value={selectedProduct}
+                        onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSku(''); }}
+                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                        required
+                      >
+                        <option value="">选择商品</option>
+                        {products.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">规格</label>
+                      <select
+                        value={selectedSku}
+                        onChange={(e) => setSelectedSku(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                        disabled={!selectedProduct}
+                        required
+                      >
+                        <option value="">选择规格</option>
+                        {selectedProductSkus.map(sku => (
+                          <option key={sku.id} value={sku.id}>
+                            {sku.spec} / {sku.packaging}
+                          </option>
                     ))}
                   </select>
                 </div>
@@ -375,7 +467,7 @@ export default function StockInsPage() {
                     disabled={!selectedWarehouse}
                   >
                     <option value="">选择货架</option>
-                    {shelves.map(s => (
+                    {shelves.filter(s => s.warehouseId === selectedWarehouse).map(s => (
                       <option key={s.id} value={s.id}>
                         {s.code}
                       </option>
@@ -417,6 +509,71 @@ export default function StockInsPage() {
                   placeholder="备注"
                 />
               </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">套装</label>
+                      <select
+                        value={selectedBundle}
+                        onChange={(e) => setSelectedBundle(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                        required
+                      >
+                        <option value="">选择套装</option>
+                        {bundles.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">仓库</label>
+                      <select
+                        value={selectedWarehouse}
+                        onChange={(e) => { setSelectedWarehouse(e.target.value); setSelectedShelf(''); }}
+                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                        required
+                      >
+                        <option value="">选择仓库</option>
+                        {warehouses.map(w => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">货架（可选）</label>
+                      <select
+                        value={selectedShelf}
+                        onChange={(e) => setSelectedShelf(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                        disabled={!selectedWarehouse}
+                      >
+                        <option value="">选择货架</option>
+                        {shelves.filter(s => s.warehouseId === selectedWarehouse).map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.code}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">入库数量</label>
+                      <input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                        min="1"
+                        required
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-2 mt-4">
                 <button
@@ -447,12 +604,13 @@ export default function StockInsPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-auto max-h-[60vh] p-6">
+            <div className="overflow-visible max-h-[60vh] p-6">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
                     <th className="px-3 py-2 text-left">仓库名</th>
-                    <th className="px-3 py-2 text-left">商品</th>
+                    <th className="px-3 py-2 text-left">类型</th>
+                    <th className="px-3 py-2 text-left">商品/套装</th>
                     <th className="px-3 py-2 text-left">货架</th>
                     <th className="px-3 py-2 text-right">数量</th>
                     <th className="px-3 py-2 text-left">时间</th>
@@ -471,7 +629,31 @@ export default function StockInsPage() {
                         {list.map((item: any, idx: number) => (
                           <tr key={item.id} className="border-t">
                             {idx === 0 && <td rowSpan={list.length} className="px-3 py-2 align-middle text-primary-600 font-medium">{warehouseName}</td>}
-                            <td className="px-3 py-2">{getSkuInfo(item.skuId)}</td>
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {item.type === 'bundle' ? '套装' : '商品'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              {item.type === 'bundle' 
+                                ? <div className="flex items-center gap-1">
+                                    {item.bundle?.name}
+                                    {item.bundle?.items?.length > 0 && (
+                                      <div className="relative group">
+                                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                                        <div className="absolute left-0 top-6 z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 min-w-[200px]">
+                                          <div className="font-medium mb-1">套装包含：</div>
+                                          {item.bundle.items.map((bundleItem: any) => (
+                                            <div key={bundleItem.id} className="text-gray-300">
+                                              {bundleItem.sku?.product?.name} - {bundleItem.sku?.spec}/{bundleItem.sku?.packaging} × {bundleItem.quantity}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                : getSkuInfo(item.skuId)}
+                            </td>
                             <td className="px-3 py-2">{item.shelf?.code || '-'}</td>
                             <td className="px-3 py-2 text-right">+{item.quantity}</td>
                             <td className="px-3 py-2 text-gray-500">
