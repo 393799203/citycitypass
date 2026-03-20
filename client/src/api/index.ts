@@ -100,6 +100,7 @@ export const warehouseApi = {
 export const stockApi = {
   list: (params?: any) => api.get('/stock', { params }),
   getAvailable: (warehouseId: string, skuId: string) => api.get('/stock/available', { params: { warehouseId, skuId } }),
+  getOwnerStockSummary: (ownerId: string) => api.get('/stock/owner-stock-summary', { params: { ownerId } }),
   stockIn: (data: any) => api.post('/stock/stock-in', data),
   stockIns: (params?: any) => api.get('/stock/stock-in', { params }),
   lock: (data: any) => api.post('/stock/lock', data),

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi } from '../api';
+import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone } from 'lucide-react';
@@ -123,7 +123,25 @@ export default function OrdersPage() {
   const [selectedBundle, setSelectedBundle] = useState('');
   const [itemType, setItemType] = useState<'product' | 'bundle'>('product');
   const [bundles, setBundles] = useState<any[]>([]);
+  const [ownerStockSummary, setOwnerStockSummary] = useState<any>(null);
+  const [splitPreview, setSplitPreview] = useState<{show: boolean; allocations: Record<string, any[]>} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (formData.ownerId) {
+      stockApi.getOwnerStockSummary(formData.ownerId).then(res => {
+        if (res.data.success) {
+          setOwnerStockSummary(res.data.data || { products: [], bundles: [] });
+        } else {
+          setOwnerStockSummary({ products: [], bundles: [] });
+        }
+      }).catch(() => {
+        setOwnerStockSummary({ products: [], bundles: [] });
+      });
+    } else {
+      setOwnerStockSummary(null);
+    }
+  }, [formData.ownerId]);
 
   const handleExport = () => {
     const exportData: any[] = [];
@@ -132,7 +150,8 @@ export default function OrdersPage() {
       order.items.forEach((item, idx) => {
         exportData.push({
           '订单编号': order.orderNo,
-          '货主': order.owner.name,
+          '货主': order.owner?.name || '',
+          '发货仓': order.warehouse?.name || '',
           '收货人': order.receiver,
           '手机号': order.phone,
           '收货地址': `${order.province || ''}${order.city || ''}${order.address}`,
@@ -385,14 +404,139 @@ export default function OrdersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.ownerId || !formData.warehouseId || !formData.receiver || !formData.phone || !formData.province || !formData.city || !formData.address || formData.items.length === 0) {
+    if (!formData.ownerId || !formData.receiver || !formData.phone || !formData.province || !formData.city || !formData.address || formData.items.length === 0) {
       toast.error('请填写完整信息');
       return;
     }
 
+    const checkSplitNeeded = () => {
+      const skuItems = formData.items.filter(i => i.skuId);
+      const bundleItems = formData.items.filter(i => i.bundleId);
+      const skuMap = new Map<string, Map<string, number>>();
+      const bundleMap = new Map<string, Map<string, number>>();
+
+      for (const p of ownerStockSummary?.products || []) {
+        for (const ws of p.warehouseSummary || []) {
+          if (!skuMap.has(p.skuId)) {
+            skuMap.set(p.skuId, new Map());
+          }
+          const existing = skuMap.get(p.skuId)!.get(ws.warehouseId) || 0;
+          skuMap.get(p.skuId)!.set(ws.warehouseId, existing + ws.available);
+        }
+      }
+
+      for (const b of ownerStockSummary?.bundles || []) {
+        for (const ws of b.warehouseSummary || []) {
+          if (!bundleMap.has(b.bundleId)) {
+            bundleMap.set(b.bundleId, new Map());
+          }
+          const existing = bundleMap.get(b.bundleId)!.get(ws.warehouseId) || 0;
+          bundleMap.get(b.bundleId)!.set(ws.warehouseId, existing + ws.available);
+        }
+      }
+
+      const singleWarehouseFit = (warehouseId: string) => {
+        for (const item of [...skuItems, ...bundleItems]) {
+          const isSku = !!item.skuId;
+          const mapToUse = isSku ? skuMap : bundleMap;
+          const itemId = isSku ? item.skuId : item.bundleId;
+          const warehouseStock = mapToUse.get(itemId!);
+          if (!warehouseStock) return false;
+          const available = warehouseStock.get(warehouseId) || 0;
+          if (available < item.quantity) return false;
+        }
+        return true;
+      };
+
+      const warehouseIds = new Set<string>();
+      for (const p of ownerStockSummary?.products || []) {
+        for (const ws of p.warehouseSummary || []) {
+          warehouseIds.add(ws.warehouseId);
+        }
+      }
+      for (const b of ownerStockSummary?.bundles || []) {
+        for (const ws of b.warehouseSummary || []) {
+          warehouseIds.add(ws.warehouseId);
+        }
+      }
+
+      for (const whId of warehouseIds) {
+        if (singleWarehouseFit(whId)) {
+          return null;
+        }
+      }
+
+      const allocations: Record<string, any[]> = {};
+      for (const item of [...skuItems, ...bundleItems]) {
+        const isSku = !!item.skuId;
+        const mapToUse = isSku ? skuMap : bundleMap;
+        const itemId = isSku ? item.skuId : item.bundleId;
+        const warehouseStock = mapToUse.get(itemId!);
+        if (!warehouseStock) continue;
+
+        let remainingQty = item.quantity;
+        const sortedEntries = Array.from(warehouseStock.entries()).sort((a, b) => b[1] - a[1]);
+
+        for (const [warehouseId, available] of sortedEntries) {
+          if (remainingQty <= 0) break;
+          const toAllocate = Math.min(available, remainingQty);
+          if (toAllocate > 0) {
+            if (!allocations[warehouseId]) {
+              allocations[warehouseId] = [];
+            }
+            const existing = allocations[warehouseId].find((i: any) =>
+              (isSku && i.skuId === item.skuId) || (!isSku && i.bundleId === item.bundleId)
+            );
+            if (existing) {
+              existing.quantity += toAllocate;
+            } else {
+              allocations[warehouseId].push({ ...item, quantity: toAllocate });
+            }
+            warehouseStock.set(warehouseId, available - toAllocate);
+            remainingQty -= toAllocate;
+          }
+        }
+      }
+
+      const warehouseNames = new Map<string, string>();
+      for (const p of ownerStockSummary?.products || []) {
+        for (const ws of p.warehouseSummary || []) {
+          if (!warehouseNames.has(ws.warehouseId)) {
+            warehouseNames.set(ws.warehouseId, ws.warehouseName);
+          }
+        }
+      }
+      for (const b of ownerStockSummary?.bundles || []) {
+        for (const ws of b.warehouseSummary || []) {
+          if (!warehouseNames.has(ws.warehouseId)) {
+            warehouseNames.set(ws.warehouseId, ws.warehouseName);
+          }
+        }
+      }
+
+      const previewAllocations: Record<string, any[]> = {};
+      for (const [whId, items] of Object.entries(allocations)) {
+        previewAllocations[warehouseNames.get(whId) || whId] = items;
+      }
+
+      return previewAllocations;
+    };
+
+    const splitResult = checkSplitNeeded();
+
+    if (splitResult && Object.keys(splitResult).length > 1) {
+      setSplitPreview({ show: true, allocations: splitResult });
+      return;
+    }
+
+    submitOrder();
+  };
+
+  const submitOrder = async () => {
     try {
       const data = {
         ...formData,
+        warehouseId: formData.warehouseId || '',
         latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
         longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       };
@@ -401,8 +545,8 @@ export default function OrdersPage() {
         await orderApi.update(editingId, data);
         toast.success('订单更新成功');
       } else {
-        await orderApi.create(data);
-        toast.success('订单创建成功');
+        const res = await orderApi.create(data);
+        toast.success(`订单创建成功${Array.isArray(res.data.data) ? `，共 ${res.data.data.length} 个订单` : ''}`);
       }
       setShowModal(false);
       resetForm();
@@ -788,37 +932,23 @@ export default function OrdersPage() {
               {/* 左侧 - 商品选择 */}
               <div className={`w-1/2 border-r flex flex-col ${editingId ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="p-4 border-b bg-gray-50">
-                  <div className="grid grid-cols-2 gap-3">
-                    <select
-                      value={formData.ownerId}
-                      onChange={(e) => {
-                        setFormData({ ...formData, ownerId: e.target.value, warehouseId: '', items: [] });
-                      }}
-                      className="px-3 py-2 border rounded-lg text-sm"
-                      required
-                      disabled={!!editingId}
-                    >
-                      <option value="">选择货主</option>
-                      {owners.filter(o => o.status !== 'STOPPED').map(o => (
-                        <option key={o.id} value={o.id}>{o.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={formData.warehouseId}
-                      onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value, items: [] })}
-                      className="px-3 py-2 border rounded-lg text-sm"
-                      required
-                      disabled={!!editingId}
-                    >
-                      <option value="">选择仓库</option>
-                      {(formData.ownerId ? (owners.find(o => o.id === formData.ownerId)?.warehouses || []) : warehouses).map(w => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    value={formData.ownerId}
+                    onChange={(e) => {
+                      setFormData({ ...formData, ownerId: e.target.value, warehouseId: '', items: [] });
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    required
+                    disabled={!!editingId}
+                  >
+                    <option value="">选择货主</option>
+                    {owners.filter(o => o.status !== 'STOPPED').map(o => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {formData.warehouseId && (
+                {(formData.ownerId && ownerStockSummary) && (
                   <div className="flex border-b">
                     <button
                       type="button"
@@ -841,8 +971,159 @@ export default function OrdersPage() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto p-3">
-                  {formData.warehouseId ? (
+                <div className="flex-1 overflow-y-auto p-2">
+                  {formData.ownerId && ownerStockSummary && itemType === 'product' ? (
+                    (() => {
+                      const products = ownerStockSummary.products as any[];
+                      const groupedProducts = products.reduce<Record<string, any[]>>((acc, p) => {
+                        if (!acc[p.productName]) {
+                          acc[p.productName] = [];
+                        }
+                        acc[p.productName].push(p);
+                        return acc;
+                      }, {} as Record<string, any[]>);
+                      const filteredProducts = Object.entries(groupedProducts).filter(([_, skus]) =>
+                        skus.some((sku: any) => sku.totalAvailable > 0)
+                      );
+                      return (
+                        <div className="space-y-3">
+                          {filteredProducts.map(([productName, skus]: [string, any[]]) => {
+                            const firstSku = skus[0];
+                            const brand = firstSku?.brand;
+                            const category = firstSku?.category;
+                            return (
+                            <div key={productName} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Package className="w-5 h-5 text-blue-500" />
+                                  <h3 className="font-bold text-base">{productName}</h3>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {category && (
+                                    <span className="px-2 py-0.5 text-xs rounded-full border border-gray-300 bg-gray-100 text-gray-700">
+                                      {category.name}
+                                    </span>
+                                  )}
+                                  {brand && (
+                                    <span className="px-2 py-0.5 text-xs rounded-full border border-blue-300 bg-blue-100 text-blue-700">
+                                      {brand.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                {skus.filter((sku: any) => sku.totalAvailable > 0).map((sku: any) => {
+                                  const isAdded = formData.items.some(item => item.skuId === sku.skuId);
+                                  return (
+                                    <button
+                                      key={sku.skuId}
+                                      type="button"
+                                      disabled={isAdded}
+                                      onClick={() => {
+                                        if (!isAdded) {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            items: [...prev.items, {
+                                              skuId: sku.skuId,
+                                              bundleId: null,
+                                              productName: sku.productName,
+                                              packaging: sku.packaging,
+                                              spec: sku.spec,
+                                              price: sku.price,
+                                              quantity: 1,
+                                            }]
+                                          }));
+                                        }
+                                      }}
+                                      className={`p-2 rounded-lg border text-left transition-all ${
+                                        isAdded
+                                          ? 'bg-gray-50 border-gray-200 opacity-60'
+                                          : 'bg-gray-50 border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                                      }`}
+                                    >
+                                      <div className="text-xs text-gray-600">{sku.spec} / {sku.packaging}</div>
+                                      <div className="flex items-center justify-between mt-1">
+                                        <span className="text-sm font-bold text-blue-600">¥{sku.price}</span>
+                                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                          isAdded ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'
+                                        }`}>
+                                          {isAdded ? '✓' : `${sku.totalAvailable}件`}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                          })}
+                        </div>
+                      );
+                    })()
+                  ) : formData.ownerId && ownerStockSummary && itemType === 'bundle' ? (
+                    (() => {
+                      const bundles = (ownerStockSummary.bundles as any[])?.filter((b: any) => b.totalAvailable > 0) || [];
+                      return bundles.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-3">
+                          {bundles.map((b: any) => {
+                            const isAdded = formData.items.some(item => item.bundleId === b.bundleId);
+                            return (
+                              <div
+                                key={b.bundleId}
+                                className={`border border-purple-200 rounded-lg p-3 hover:shadow-lg transition-all bg-white ${
+                                  isAdded ? 'opacity-60' : 'cursor-pointer'
+                                }`}
+                                onClick={() => {
+                                  if (!isAdded) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      items: [...prev.items, {
+                                        skuId: null,
+                                        bundleId: b.bundleId,
+                                        productName: b.bundleName,
+                                        packaging: '',
+                                        spec: '',
+                                        price: b.price,
+                                        quantity: 1,
+                                      }]
+                                    }));
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Package className="w-4 h-4 text-purple-500" />
+                                  <span className="font-bold text-sm">{b.bundleName}</span>
+                                </div>
+                                <div className="text-lg font-bold text-purple-600 mb-2">
+                                  ¥{Number(b.price).toFixed(2)}
+                                </div>
+                                {b.items && b.items.length > 0 && (
+                                  <div className="text-xs text-purple-700 bg-purple-50 rounded p-2 mb-2 max-h-20 overflow-y-auto">
+                                    {b.items.map((item: any, idx: number) => (
+                                      <div key={idx} className="flex justify-between py-0.5">
+                                        <span className="truncate">{item.productName} {item.spec}/{item.packaging}</span>
+                                        <span className="font-medium ml-1">×{item.quantity}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-500">库存 {b.totalAvailable}</span>
+                                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                                    isAdded ? 'bg-gray-200 text-gray-500' : 'bg-purple-100 text-purple-700'
+                                  }`}>
+                                    {isAdded ? '✓' : '添加'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-400 py-10">该货主暂无套装</div>
+                      );
+                    })()
+                  ) : formData.warehouseId ? (
                     <div className="space-y-2">
                       {itemType === 'product' ? (
                         products.filter(p => p.skus?.some(s => (s.stock || 0) > 0)).map(p => (
@@ -926,7 +1207,7 @@ export default function OrdersPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-400 py-10">请先选择货主和仓库</div>
+                    <div className="text-center text-gray-400 py-10">请先选择货主查看可用商品</div>
                   )}
                 </div>
               </div>
@@ -991,7 +1272,10 @@ export default function OrdersPage() {
                             min="1"
                             value={item.quantity}
                             onChange={(e) => {
-                              const qty = parseInt(e.target.value) || 1;
+                              const maxStock = item.skuId
+                                ? ownerStockSummary?.products?.find((p: any) => p.skuId === item.skuId)?.totalAvailable || 999
+                                : ownerStockSummary?.bundles?.find((b: any) => b.bundleId === item.bundleId)?.totalAvailable || 999;
+                              const qty = Math.min(Math.max(parseInt(e.target.value) || 1, 1), maxStock);
                               const newItems = [...formData.items];
                               newItems[idx].quantity = qty;
                               setFormData({ ...formData, items: newItems });
@@ -1043,6 +1327,49 @@ export default function OrdersPage() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+
+      {splitPreview?.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">订单将拆分为多个仓库</h3>
+            <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
+              {Object.entries(splitPreview.allocations).map(([warehouseName, items]) => (
+                <div key={warehouseName} className="border rounded-lg p-3">
+                  <div className="font-medium text-blue-600 mb-2">{warehouseName}</div>
+                  {items.map((item: any, idx: number) => (
+                    <div key={idx} className="text-sm text-gray-600 flex justify-between">
+                      <span>{item.productName} × {item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="text-sm text-gray-500 mb-4">
+              共 {Object.keys(splitPreview.allocations).length} 个仓库，{formData.items.length} 件商品
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSplitPreview(null)}
+                className="flex-1 px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSplitPreview(null);
+                  submitOrder();
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                确认创建
+              </button>
+            </div>
           </div>
         </div>
       )}

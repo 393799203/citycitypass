@@ -120,6 +120,151 @@ router.get('/available', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/owner-stock-summary', async (req: Request, res: Response) => {
+  try {
+    const { ownerId } = req.query;
+    if (!ownerId) {
+      return res.status(400).json({ success: false, message: '缺少货主ID' });
+    }
+
+    const warehouses = await prisma.warehouse.findMany({
+      where: { ownerId: ownerId as string },
+      select: { id: true, name: true, code: true },
+    });
+
+    if (warehouses.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const warehouseIds = warehouses.map(w => w.id);
+
+    const stocks = await prisma.stock.findMany({
+      where: { warehouseId: { in: warehouseIds } },
+      include: {
+        sku: {
+          include: {
+            product: {
+              include: { brand: true, category: true },
+            },
+          },
+        },
+      },
+    });
+
+    const bundleStocks = await prisma.bundleStock.findMany({
+      where: { warehouseId: { in: warehouseIds } },
+      include: {
+        bundle: {
+          include: {
+            items: {
+              include: {
+                sku: {
+                  include: { product: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const skuMap = new Map<string, {
+      skuId: string;
+      productName: string;
+      spec: string;
+      packaging: string;
+      price: number;
+      totalAvailable: number;
+      brand?: { id: string; name: string };
+      category?: { id: string; name: string };
+      warehouseSummary: { warehouseId: string; warehouseName: string; available: number }[];
+    }>();
+
+    for (const stock of stocks) {
+      const key = stock.skuId;
+      if (!skuMap.has(key)) {
+        skuMap.set(key, {
+          skuId: stock.skuId,
+          productName: stock.sku.product?.name || '',
+          spec: stock.sku.spec || '',
+          packaging: stock.sku.packaging || '',
+          price: stock.sku.price ? Number(stock.sku.price) : 0,
+          totalAvailable: 0,
+          brand: stock.sku.product?.brand ? { id: stock.sku.product.brand.id, name: stock.sku.product.brand.name } : undefined,
+          category: stock.sku.product?.category ? { id: stock.sku.product.category.id, name: stock.sku.product.category.name } : undefined,
+          warehouseSummary: [],
+        });
+      }
+      const entry = skuMap.get(key)!;
+      entry.totalAvailable += stock.availableQuantity;
+      const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+      const wsEntry = entry.warehouseSummary.find(ws => ws.warehouseId === stock.warehouseId);
+      if (wsEntry) {
+        wsEntry.available += stock.availableQuantity;
+      } else {
+        entry.warehouseSummary.push({
+          warehouseId: stock.warehouseId,
+          warehouseName: warehouse?.name || '',
+          available: stock.availableQuantity,
+        });
+      }
+    }
+
+    const bundleMap = new Map<string, {
+      bundleId: string;
+      bundleName: string;
+      price: number;
+      totalAvailable: number;
+      items: { skuId: string; productName: string; spec: string; packaging: string; quantity: number }[];
+      warehouseSummary: { warehouseId: string; warehouseName: string; available: number }[];
+    }>();
+
+    for (const bs of bundleStocks) {
+      const key = bs.bundleId;
+      if (!bundleMap.has(key)) {
+        bundleMap.set(key, {
+          bundleId: bs.bundleId,
+          bundleName: bs.bundle.name || '',
+          price: bs.bundle.price ? Number(bs.bundle.price) : 0,
+          totalAvailable: 0,
+          items: bs.bundle.items?.map(item => ({
+            skuId: item.skuId,
+            productName: item.sku?.product?.name || '',
+            spec: item.sku?.spec || '',
+            packaging: item.sku?.packaging || '',
+            quantity: item.quantity,
+          })) || [],
+          warehouseSummary: [],
+        });
+      }
+      const entry = bundleMap.get(key)!;
+      entry.totalAvailable += bs.availableQuantity;
+      const warehouse = warehouses.find(w => w.id === bs.warehouseId);
+      const wsEntry = entry.warehouseSummary.find(ws => ws.warehouseId === bs.warehouseId);
+      if (wsEntry) {
+        wsEntry.available += bs.availableQuantity;
+      } else {
+        entry.warehouseSummary.push({
+          warehouseId: bs.warehouseId,
+          warehouseName: warehouse?.name || '',
+          available: bs.availableQuantity,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        products: Array.from(skuMap.values()),
+        bundles: Array.from(bundleMap.values()),
+      },
+    });
+  } catch (error) {
+    console.error('Get owner stock summary error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.get('/stock-in', async (req: Request, res: Response) => {
   try {
     const { warehouseId, skuId } = req.query;
