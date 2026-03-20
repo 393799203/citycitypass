@@ -147,7 +147,7 @@ export default function WarehouseDetailPage() {
               )}
             </div>
             <div className="text-green-600 font-medium">
-              总库存: {warehouse.totalStock || 0} / 冻结: {warehouse.lockedStock || 0} / 可用: {warehouse.availableStock || 0}
+              商品: {warehouse.totalStock || 0} / 冻结: {warehouse.lockedStock || 0} / 可用: {warehouse.availableStock || 0}
               {(warehouse.totalBundleStock > 0) && (
                 <span className="ml-3 text-purple-600">
                   套装: {warehouse.totalBundleStock || 0} / 冻结: {warehouse.lockedBundleStock || 0} / 可用: {warehouse.availableBundleStock || 0}

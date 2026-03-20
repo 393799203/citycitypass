@@ -232,16 +232,16 @@ export default function WarehousesPage() {
                       <span className="text-gray-500 text-xs">
                         {warehouse.province}{warehouse.city}{warehouse.address}
                         {warehouse.latitude && warehouse.longitude && (
-                          <span className="ml-1">({warehouse.latitude},{warehouse.longitude})</span>
+                          <div className="mt-1">({warehouse.latitude}, {warehouse.longitude})</div>
                         )}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      库存: {warehouse.totalStock || 0} 件 / {warehouse.skuCount || 0} SKU
+                    <div className="text-xs text-gray-600">
+                      <div>商品库存: {warehouse.totalStock || 0} 件 / {warehouse.skuCount || 0} SKU</div>
                       {(warehouse.totalBundleStock > 0 || warehouse.bundleCount > 0) && (
-                        <span className="ml-2 text-purple-600">
-                          / 套装: {warehouse.totalBundleStock || 0} 件 / {warehouse.bundleCount || 0} 款
-                        </span>
+                        <div className="text-purple-600 mt-1">
+                          套装库存: {warehouse.totalBundleStock || 0} 件 / {warehouse.bundleCount || 0} 款
+                        </div>
                       )}
                     </div>
                   </div>
