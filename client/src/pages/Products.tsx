@@ -556,7 +556,7 @@ export default function ProductsPage() {
                       {product.skus.map(s => (
                         <div key={s.id} className="flex justify-between">
                           <span>{s.spec} / {s.packaging}</span>
-                          <span className="font-medium">¥{s.price}</span>
+                          <span className="font-bold">¥{s.price}</span>
                         </div>
                       ))}
                     </div>
