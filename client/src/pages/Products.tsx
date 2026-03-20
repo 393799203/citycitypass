@@ -503,7 +503,10 @@ export default function ProductsPage() {
               <div key={product.id} className="border rounded-lg p-4 hover:shadow-lg transition-all bg-white">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <h3 className="font-bold text-lg">{product.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <Package className="w-5 h-5 text-gray-500" />
+                      <h3 className="font-bold text-lg">{product.name}</h3>
+                    </div>
                     <p className="text-sm text-gray-500 mt-1">{product.brand?.name} · {product.category?.name}</p>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded font-medium ${product.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>

@@ -314,6 +314,19 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           data: { status: 'AVAILABLE', vehicleId: null },
         });
 
+        let lastDeliveredOrder = null;
+        
+        const orderIds = existing.orders.map(o => o.orderId);
+        const orders = await tx.order.findMany({
+          where: { id: { in: orderIds } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        });
+        
+        if (orders.length > 0) {
+          lastDeliveredOrder = orders[0];
+        }
+
         for (const dispatchOrder of existing.orders) {
           await tx.order.update({
             where: { id: dispatchOrder.orderId },
@@ -323,6 +336,27 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           await tx.dispatchOrder.update({
             where: { id: dispatchOrder.id },
             data: { status: 'SIGNED' },
+          });
+        }
+
+        if (lastDeliveredOrder) {
+          const locationData = {
+            location: `${lastDeliveredOrder.province || ''}${lastDeliveredOrder.city || ''}`,
+            address: lastDeliveredOrder.address,
+          };
+          
+          const coordinateData: any = {};
+          if (lastDeliveredOrder.latitude != null) coordinateData.latitude = lastDeliveredOrder.latitude;
+          if (lastDeliveredOrder.longitude != null) coordinateData.longitude = lastDeliveredOrder.longitude;
+
+          await tx.vehicle.update({
+            where: { id: existing.vehicleId },
+            data: { ...locationData, ...coordinateData },
+          });
+
+          await tx.driver.update({
+            where: { id: existing.driverId },
+            data: { ...locationData, ...coordinateData },
           });
         }
       } else if (status === 'CANCELLED') {
