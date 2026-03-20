@@ -147,7 +147,7 @@ export default function WarehouseDetailPage() {
               </span>
             )}
             {(warehouse.businessStartTime || warehouse.businessEndTime) && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-700 flex items-center gap-1 w-fit mt-[9px]">
+              <span className="px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-700 flex items-center gap-1 w-fit">
                 <Clock className="w-3 h-3" />
                 {warehouse.businessStartTime || '--'}-{warehouse.businessEndTime || '--'}
               </span>
