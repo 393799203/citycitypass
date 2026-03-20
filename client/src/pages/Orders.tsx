@@ -102,6 +102,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [filters, setFilters] = useState({ orderNo: '', ownerId: '', status: '', startDate: '', endDate: '' });
   const [formData, setFormData] = useState({
     ownerId: '',
@@ -474,6 +475,27 @@ export default function OrdersPage() {
     });
     setSelectedProduct('');
     setSelectedSku('');
+  };
+
+  const fetchCoordinates = async () => {
+    const fullAddress = `${formData.province}${formData.city}${formData.address}`;
+    if (!fullAddress || !formData.province || !formData.city || !formData.address) return;
+
+    setGeocoding(true);
+    try {
+      const res = await geocodeApi.geocode(fullAddress);
+      if (res.data.success && res.data.data.latitude && res.data.data.longitude) {
+        setFormData(prev => ({
+          ...prev,
+          latitude: String(res.data.data.latitude),
+          longitude: String(res.data.data.longitude),
+        }));
+      }
+    } catch (error) {
+      console.error('获取坐标失败:', error);
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const addItem = () => {
@@ -912,11 +934,14 @@ export default function OrdersPage() {
                     <div className="w-1/3">
                       <RegionPicker
                         value={{ province: formData.province, city: formData.city }}
-                        onChange={(val) => setFormData({ 
-                          ...formData, 
-                          province: val.province || '', 
-                          city: val.city || '' 
-                        })}
+                        onChange={(val) => {
+                          setFormData({ 
+                            ...formData, 
+                            province: val.province || '', 
+                            city: val.city || ''
+                          });
+                          setTimeout(() => fetchCoordinates(), 100);
+                        }}
                       />
                     </div>
                     <div className="flex-1">
@@ -924,13 +949,20 @@ export default function OrdersPage() {
                         type="text"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        onBlur={() => fetchCoordinates()}
                         placeholder="详细地址"
                         className="w-full px-3 py-2 border rounded-lg text-sm"
                         required
                       />
-                      {formData.latitude && formData.longitude && (
-                        <p className="text-xs text-green-600 mt-1">已获取: {formData.latitude}, {formData.longitude}</p>
-                      )}
+                      <div className="mt-1 flex items-center gap-2">
+                        {geocoding ? (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> 定位中...
+                          </span>
+                        ) : formData.latitude && formData.longitude ? (
+                          <span className="text-xs text-green-600">已获取坐标 ({formData.latitude}, {formData.longitude})</span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </div>
