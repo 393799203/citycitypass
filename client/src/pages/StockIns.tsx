@@ -60,6 +60,8 @@ export default function StockInsPage() {
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
   const [filterShelf, setFilterShelf] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterBundle, setFilterBundle] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -275,17 +277,37 @@ export default function StockInsPage() {
               ))}
             </select>
             <select
-              value={filterProduct}
-              onChange={(e) => setFilterProduct(e.target.value)}
+              value={filterType}
+              onChange={(e) => { setFilterType(e.target.value); setFilterProduct(''); setFilterBundle(''); }}
+              className="px-3 py-2 border rounded text-sm w-28"
+            >
+              <option value="">全部类型</option>
+              <option value="product">普通商品</option>
+              <option value="bundle">套装</option>
+            </select>
+            <select
+              value={filterType === 'bundle' ? filterBundle : filterProduct}
+              onChange={(e) => {
+                if (filterType === 'bundle') {
+                  setFilterBundle(e.target.value);
+                } else {
+                  setFilterProduct(e.target.value);
+                }
+              }}
               className="px-3 py-2 border rounded text-sm w-36"
             >
-              <option value="">全部商品</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              <option value="">全部{filterType === 'bundle' ? '套装' : filterType === 'product' ? '商品' : '商品/套装'}</option>
+              {filterType === 'bundle'
+                ? bundles.map(b => <option key={b.id} value={b.id}>{b.name}</option>)
+                : filterType === 'product'
+                  ? products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
+                  : [...products.map(p => ({ id: p.id, name: p.name })), ...bundles.map(b => ({ id: b.id, name: b.name }))].map(item => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))
+              }
             </select>
             <button
-              onClick={() => { setFilterWarehouse(''); setFilterShelf(''); setFilterProduct(''); }}
+              onClick={() => { setFilterWarehouse(''); setFilterShelf(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); }}
               className="px-3 py-2 border border-gray-300 text-gray-600 rounded text-sm"
             >
               重置
@@ -310,6 +332,8 @@ export default function StockInsPage() {
                   const filteredStocks = stocks.filter((stock: any) => {
                     if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
                     if (filterShelf && stock.shelfId !== filterShelf) return false;
+                    if (filterType && stock.type !== filterType) return false;
+                    if (filterType === 'bundle' && filterBundle && stock.bundleId !== filterBundle) return false;
                     if (filterProduct) {
                       if (stock.type === 'product') {
                         if (stock.sku?.product?.id !== filterProduct) return false;

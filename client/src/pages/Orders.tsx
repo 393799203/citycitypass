@@ -651,40 +651,41 @@ export default function OrdersPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">订单编号</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">下单时间</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">货主</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">收货人</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">收货地址</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品总数</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">总金额</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">订单编号</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">下单时间</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">货主</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">收货人</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">收货地址</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">商品总数</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">总金额</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">状态</th>
+                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500 uppercase">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
                     <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                       {order.orderNo}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">
                     {new Date(order.createdAt).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.owner.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.receiver} {order.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.province}{order.city}{order.address}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary-600 font-medium">¥{Number(order.totalAmount).toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.owner.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.receiver} {order.phone}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.province}{order.city}{order.address}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-base text-primary-600 font-medium">¥{Number(order.totalAmount).toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
+                    <span className={`px-2 py-1 text-sm rounded-full ${
                       order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'PICKING' ? 'bg-orange-100 text-orange-800' :
-                      (order.status === 'OUTBOUND_REVIEW') ? 'bg-purple-100 text-purple-800' :
-                      order.status === 'DISPATCHING' ? 'bg-indigo-100 text-indigo-800' :
-                      order.status === 'DISPATCHED' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'PICKING' ? 'bg-indigo-100 text-indigo-800' :
+                      order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-100 text-purple-800' :
+                      order.status === 'DISPATCHING' ? 'bg-cyan-100 text-cyan-800' :
+                      order.status === 'DISPATCHED' ? 'bg-cyan-100 text-cyan-800' :
                       order.status === 'IN_TRANSIT' ? 'bg-purple-100 text-purple-800' :
                       order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
                       'bg-red-100 text-red-800'
@@ -692,7 +693,7 @@ export default function OrdersPage() {
                       {statusMap[order.status]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-base">
                     {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
                       <>
                         <button
@@ -764,15 +765,15 @@ export default function OrdersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h2 className="text-lg font-bold">新建订单</h2>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-200 rounded-lg">
+              <h2 className="text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2>
+              <button onClick={() => { setShowModal(false); resetForm(); setEditingId(null); }} className="p-2 hover:bg-gray-200 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="flex h-[calc(90vh-60px)]">
               {/* 左侧 - 商品选择 */}
-              <div className="w-1/2 border-r flex flex-col">
+              <div className={`w-1/2 border-r flex flex-col ${editingId ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="p-4 border-b bg-gray-50">
                   <div className="grid grid-cols-2 gap-3">
                     <select
@@ -782,6 +783,7 @@ export default function OrdersPage() {
                       }}
                       className="px-3 py-2 border rounded-lg text-sm"
                       required
+                      disabled={!!editingId}
                     >
                       <option value="">选择货主</option>
                       {owners.filter(o => o.status !== 'STOPPED').map(o => (
@@ -793,6 +795,7 @@ export default function OrdersPage() {
                       onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value, items: [] })}
                       className="px-3 py-2 border rounded-lg text-sm"
                       required
+                      disabled={!!editingId}
                     >
                       <option value="">选择仓库</option>
                       {(formData.ownerId ? (owners.find(o => o.id === formData.ownerId)?.warehouses || []) : warehouses).map(w => (
@@ -984,6 +987,7 @@ export default function OrdersPage() {
                               setFormData({ ...formData, items: newItems });
                             }}
                             className="w-16 px-2 py-1 border rounded text-sm text-center"
+                            disabled={!!editingId}
                           />
                           <div className="w-20 text-right text-sm font-medium">¥{item.price * item.quantity}</div>
                           <button
@@ -993,6 +997,7 @@ export default function OrdersPage() {
                               setFormData({ ...formData, items: newItems });
                             }}
                             className="p-1 text-red-500 hover:bg-red-50 rounded"
+                            disabled={!!editingId}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
