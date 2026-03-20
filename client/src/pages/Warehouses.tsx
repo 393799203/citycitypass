@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { warehouseApi, ownerApi, geocodeApi } from '../api';
+import { warehouseApi, ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import RegionPicker from '../components/RegionPicker';
+import AddressInput from '../components/AddressInput';
 import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Building2, MapPin, Search, X, Package } from 'lucide-react';
 
 const typeMap: Record<string, string> = {
@@ -254,7 +254,7 @@ export default function WarehousesPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold">{editingId ? '编辑仓库' : '创建仓库'}</h2>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
@@ -329,50 +329,25 @@ export default function WarehousesPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">省市区</label>
-                  <RegionPicker
-                    value={{ province: formData.province, city: formData.city }}
-                    onChange={(val) => setFormData({ 
-                      ...formData, 
-                      province: val.province || '', 
-                      city: val.city || '' 
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">详细地址</label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                    onBlur={async () => {
-                      if (formData.address) {
-                        try {
-                          const fullAddress = `${formData.province}${formData.city}${formData.address}`;
-                          const res = await geocodeApi.geocode(fullAddress);
-                          if (res.data.success) {
-                            setFormData(prev => ({
-                              ...prev,
-                              latitude: res.data.data.latitude.toString(),
-                              longitude: res.data.data.longitude.toString(),
-                            }));
-                          }
-                        } catch (e) {
-                          // ignore
-                        }
-                      }
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  />
-                  {formData.latitude && formData.longitude && (
-                    <p className="text-xs text-green-600 mt-1">
-                      已获取经纬度: {formData.latitude}, {formData.longitude}
-                    </p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+                <AddressInput
+                  value={{
+                    province: formData.province || '',
+                    city: formData.city || '',
+                    address: formData.address || '',
+                    latitude: formData.latitude || '',
+                    longitude: formData.longitude || '',
+                  }}
+                  onChange={(val) => setFormData({
+                    ...formData,
+                    province: val.province || '',
+                    city: val.city || '',
+                    address: val.address || '',
+                    latitude: val.latitude || '',
+                    longitude: val.longitude || '',
+                  })}
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4">

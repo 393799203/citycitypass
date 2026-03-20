@@ -14,6 +14,7 @@ import DispatchCenter from './pages/DispatchCenter';
 import DispatchDetail from './pages/DispatchDetail';
 import Owners from './pages/Owners';
 import Users from './pages/Users';
+import Customers from './pages/Customers';
 import { useAuthStore } from './stores/auth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -42,6 +43,7 @@ function App() {
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="products" element={<Products />} />
+          <Route path="customers" element={<Customers />} />
           <Route path="warehouses" element={<Warehouses />} />
           <Route path="warehouses/:id" element={<WarehouseDetail />} />
           <Route path="inbound" element={<StockIns />} />

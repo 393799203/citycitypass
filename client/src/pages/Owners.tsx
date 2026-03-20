@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ownerApi, geocodeApi } from '../api';
+import { ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import RegionPicker from '../components/RegionPicker';
+import AddressInput from '../components/AddressInput';
 import { provinces, provinceCities } from '../data/region';
 import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff } from 'lucide-react';
 
@@ -17,6 +17,9 @@ interface Owner {
   warehouseLocation?: string;
   province?: string;
   city?: string;
+  address?: string;
+  latitude?: string;
+  longitude?: string;
   status: string;
   isSelfOperated?: boolean;
 }
@@ -278,7 +281,6 @@ export default function OwnersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">负责人</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">负责人电话</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">货物名称</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">所在城市</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">详细地址</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
@@ -308,9 +310,8 @@ export default function OwnersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {owner.province || owner.city ? `${owner.province || ''}${owner.city || ''}` : '-'}
+                    {owner.province || owner.city || owner.address ? `${owner.province || ''}${owner.city || ''}${owner.address || ''}` : '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.warehouseLocation || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       owner.status === 'SERVING' 
@@ -362,7 +363,7 @@ export default function OwnersPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold">{editingId ? '编辑货主' : '新增货主'}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -508,52 +509,25 @@ export default function OwnersPage() {
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">省市区</label>
-                  <RegionPicker
-                    value={{ province: formData.province, city: formData.city }}
-                    onChange={(val) => setFormData({ 
-                      ...formData, 
-                      province: val.province || '', 
-                      city: val.city || '' 
-                    })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">详细地址</label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    onBlur={async () => {
-                      if (formData.address) {
-                        try {
-                          const fullAddress = `${formData.province}${formData.city}${formData.address}`;
-                          const res = await geocodeApi.geocode(fullAddress);
-                          if (res.data.success) {
-                            setFormData(prev => ({
-                              ...prev,
-                              latitude: res.data.data.latitude.toString(),
-                              longitude: res.data.data.longitude.toString(),
-                            }));
-                          } else {
-                            toast.error('获取经纬度失败');
-                          }
-                        } catch (e) {
-                          // ignore
-                        }
-                      }
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入详细地址"
-                  />
-                  {formData.latitude && formData.longitude && (
-                    <p className="text-xs text-green-600 mt-1">
-                      已获取经纬度: {formData.latitude}, {formData.longitude}
-                    </p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+                <AddressInput
+                  value={{
+                    province: formData.province || '',
+                    city: formData.city || '',
+                    address: formData.address || '',
+                    latitude: formData.latitude || '',
+                    longitude: formData.longitude || '',
+                  }}
+                  onChange={(val) => setFormData({
+                    ...formData,
+                    province: val.province || '',
+                    city: val.city || '',
+                    address: val.address || '',
+                    latitude: val.latitude || '',
+                    longitude: val.longitude || '',
+                  })}
+                />
               </div>
               
               <div className="flex gap-3 pt-4">

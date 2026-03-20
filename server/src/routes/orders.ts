@@ -342,6 +342,34 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { receiver, phone, province, city, address, latitude, longitude } = req.body;
+
+    const order = await prisma.order.update({
+      where: { id },
+      data: {
+        receiver,
+        phone,
+        province,
+        city,
+        address,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+      },
+    });
+
+    res.json({ success: true, data: order });
+  } catch (error: any) {
+    console.error('Update order error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ success: false, message: '订单不存在' });
+    }
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.put('/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -532,8 +560,8 @@ router.delete('/:id', async (req: Request, res: Response) => {
         await tx.stockLock.delete({ where: { id: lock.id } });
       }
 
-      const pickOrder = await tx.pickOrder.findUnique({ where: { orderId: id } });
-      if (pickOrder) {
+      const pickOrders = await tx.pickOrder.findMany({ where: { orderIds: { contains: id } } });
+      for (const pickOrder of pickOrders) {
         await tx.pickOrderItem.deleteMany({ where: { pickOrderId: pickOrder.id } });
         await tx.pickOrder.delete({ where: { id: pickOrder.id } });
       }

@@ -16,6 +16,7 @@ import {
   Settings,
   Building2,
   Route,
+  FileText,
 } from 'lucide-react';
 
 const roleMap: Record<string, string> = {
@@ -32,8 +33,9 @@ const configMenuItems = [
   { path: '/owners', icon: Building2, label: '货主管理' },
   { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
   { path: '/products', icon: Package, label: '商品管理' },
+  { path: '/customers', icon: Users, label: '客户管理' },
   { path: '/inbound', icon: ArrowDownToLine, label: '入库管理' },
-  { path: '/transport', icon: Users, label: '运力管理' },
+  { path: '/transport', icon: Truck, label: '运力管理' },
 ];
 
 const businessMenuItems = [

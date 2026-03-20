@@ -4,8 +4,8 @@ import * as XLSX from 'xlsx';
 import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck } from 'lucide-react';
-import RegionPicker from '../components/RegionPicker';
+import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw } from 'lucide-react';
+import AddressInput from '../components/AddressInput';
 
 
 interface Order {
@@ -101,8 +101,8 @@ export default function OrdersPage() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [geocoding, setGeocoding] = useState(false);
   const [filters, setFilters] = useState({ orderNo: '', ownerId: '', status: '', startDate: '', endDate: '' });
   const [formData, setFormData] = useState({
     ownerId: '',
@@ -394,10 +394,17 @@ export default function OrdersPage() {
         latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
         longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       };
-      await orderApi.create(data);
-      toast.success('订单创建成功');
+
+      if (editingId) {
+        await orderApi.update(editingId, data);
+        toast.success('订单更新成功');
+      } else {
+        await orderApi.create(data);
+        toast.success('订单创建成功');
+      }
       setShowModal(false);
       resetForm();
+      setEditingId(null);
       fetchOrders();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
@@ -475,27 +482,6 @@ export default function OrdersPage() {
     });
     setSelectedProduct('');
     setSelectedSku('');
-  };
-
-  const fetchCoordinates = async () => {
-    const fullAddress = `${formData.province}${formData.city}${formData.address}`;
-    if (!fullAddress || !formData.province || !formData.city || !formData.address) return;
-
-    setGeocoding(true);
-    try {
-      const res = await geocodeApi.geocode(fullAddress);
-      if (res.data.success && res.data.data.latitude && res.data.data.longitude) {
-        setFormData(prev => ({
-          ...prev,
-          latitude: String(res.data.data.latitude),
-          longitude: String(res.data.data.longitude),
-        }));
-      }
-    } catch (error) {
-      console.error('获取坐标失败:', error);
-    } finally {
-      setGeocoding(false);
-    }
   };
 
   const addItem = () => {
@@ -707,38 +693,59 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    {order.status === 'PENDING' && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, getNextStatus(order.status)!)}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg mr-2"
-                        title={getStatusButtonText(order.status)}
-                      >
-                        <PackageCheck className="w-4 h-4" />
-                      </button>
-                    )}
-                    {(order.status === 'DISPATCHING' || order.status === 'DISPATCHED') && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, getNextStatus(order.status)!)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"
-                        title={getStatusButtonText(order.status)}
-                      >
-                        <Truck className="w-4 h-4" />
-                      </button>
-                    )}
-                    {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && 
-                     order.status !== 'DISPATCHING' && order.status !== 'DISPATCHED' && 
-                     order.status !== 'IN_TRANSIT' && order.status !== 'DELIVERED' && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, 'CANCELLED')}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                        title="取消"
-                      >
-                        <Ban className="w-4 h-4" />
-                      </button>
+                    {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const orderData = order as any;
+                            setEditingId(order.id);
+                            setFormData({
+                              ownerId: orderData.ownerId,
+                              warehouseId: orderData.warehouseId,
+                              receiver: orderData.receiver,
+                              phone: orderData.phone,
+                              province: orderData.province,
+                              city: orderData.city,
+                              address: orderData.address,
+                              latitude: orderData.latitude?.toString() || '',
+                              longitude: orderData.longitude?.toString() || '',
+                              items: (orderData.items || []).map((item: any) => ({
+                                skuId: item.skuId,
+                                bundleId: item.bundleId,
+                                productName: item.productName,
+                                packaging: item.packaging,
+                                spec: item.spec,
+                                price: item.price,
+                                quantity: item.quantity,
+                              })),
+                            });
+                            setShowModal(true);
+                          }}
+                          className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg"
+                          title="修改"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('确定要取消该订单吗？')) {
+                              handleStatusChange(order.id, 'CANCELLED');
+                            }
+                          }}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                          title="取消"
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                     {order.status === 'CANCELLED' && (
                       <button
-                        onClick={() => handleDelete(order.id)}
+                        onClick={() => {
+                          if (confirm('确定要删除该订单吗？')) {
+                            handleDelete(order.id);
+                          }
+                        }}
                         className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
                         title="删除"
                       >
@@ -930,40 +937,25 @@ export default function OrdersPage() {
                       required
                     />
                   </div>
-                  <div className="mb-3 flex gap-2">
-                    <div className="w-1/3">
-                      <RegionPicker
-                        value={{ province: formData.province, city: formData.city }}
-                        onChange={(val) => {
-                          setFormData({ 
-                            ...formData, 
-                            province: val.province || '', 
-                            city: val.city || ''
-                          });
-                          setTimeout(() => fetchCoordinates(), 100);
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        onBlur={() => fetchCoordinates()}
-                        placeholder="详细地址"
-                        className="w-full px-3 py-2 border rounded-lg text-sm"
-                        required
-                      />
-                      <div className="mt-1 flex items-center gap-2">
-                        {geocoding ? (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" /> 定位中...
-                          </span>
-                        ) : formData.latitude && formData.longitude ? (
-                          <span className="text-xs text-green-600">已获取坐标 ({formData.latitude}, {formData.longitude})</span>
-                        ) : null}
-                      </div>
-                    </div>
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium mb-1">配送地址</label>
+                    <AddressInput
+                      value={{
+                        province: formData.province,
+                        city: formData.city,
+                        address: formData.address,
+                        latitude: formData.latitude,
+                        longitude: formData.longitude,
+                      }}
+                      onChange={(val) => setFormData({
+                        ...formData,
+                        province: val.province || '',
+                        city: val.city || '',
+                        address: val.address || '',
+                        latitude: val.latitude || '',
+                        longitude: val.longitude || '',
+                      })}
+                    />
                   </div>
                 </div>
 

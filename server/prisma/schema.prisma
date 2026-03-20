@@ -2,6 +2,109 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Customer {
+  id           String      @id @default(uuid())
+  code        String      @unique
+  name        String
+  channel     String?     // 渠道：电商、线下门店、批发商等
+  region      String?     // 区域：华东、华北、华南等
+  level       CustomerLevel @default(NORMAL)
+  
+  // 联系信息
+  contact     String
+  phone       String
+  
+  // 地址信息
+  province    String
+  city        String
+  district    String?
+  address     String
+  latitude    Float?
+  longitude   Float?
+  
+  // 配送设置
+  deliveryStartTime String?  // 配送开始时间 如：09:00
+  deliveryEndTime   String?  // 配送结束时间 如：18:00
+  specialRequirements String? // 特殊要求：夜间配送、需提前预约等
+  
+  // 签收规则
+  inspectionRequired  Boolean @default(true)  // 是否需要验货
+  certificateRequired Boolean @default(false) // 是否需要凭证
+  signatureNote      String? // 签收备注
+  
+  // 状态
+  status       CustomerStatus @default(ACTIVE)
+  remark       String?
+
+  // 关联
+  contracts    Contract[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum CustomerLevel {
+  VIP
+  NORMAL
+  POTENTIAL
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+model Contract {
+  id           String      @id @default(uuid())
+  contractNo   String      @unique
+  name         String      // 合同名称
+  
+  // 关联客户
+  customerId   String
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  
+  // 合同信息
+  startDate    DateTime
+  endDate      DateTime
+  amount       Decimal?    @db.Decimal(12, 2)  // 合同金额
+  
+  // 计价条款
+  pricingTerms Json?       // 差异化计价条款（JSON格式）
+  // {
+  //   "baseRate": 10,        // 基础费率
+  //   "distanceRates": {...}, // 距离计价
+  //   "weightRates": {...},   // 重量计价
+  //   "volumeRates": {...},   // 体积计价
+  //   "specialRates": {...},  // 特殊服务费
+  //   "discounts": {...}      // 折扣条款
+  // }
+  
+  // 服务条款
+  serviceTerms String?     // 服务条款描述
+  specialTerms String?     // 特殊条款
+  
+  // 状态
+  status       ContractStatus @default(ACTIVE)
+  autoRenew    Boolean @default(false)  // 是否自动续约
+
+  // 合同附件
+  fileUrl      String?     // 合同文件URL
+  fileName     String?     // 合同文件名
+  fileSize     Int?       // 合同文件大小
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum ContractStatus {
+  DRAFT       // 草稿
+  PENDING     // 待生效
+  ACTIVE      // 生效中
+  EXPIRED     // 已过期
+  TERMINATED  // 已终止
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

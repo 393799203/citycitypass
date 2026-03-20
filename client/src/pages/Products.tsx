@@ -348,6 +348,26 @@ export default function ProductsPage() {
     return bundle.items.reduce((sum, item) => sum + item.quantity, 0);
   };
 
+  const getCategoryColor = (categoryName: string) => {
+    const colors = [
+      { bg: '#fce7f3', text: '#db2777' },
+      { bg: '#ffedd5', text: '#ea580c' },
+      { bg: '#fef3c7', text: '#d97706' },
+      { bg: '#ecfccb', text: '#65a30d' },
+      { bg: '#ccfbf1', text: '#0d9488' },
+      { bg: '#cffafe', text: '#0891b2' },
+      { bg: '#e0e7ff', text: '#4f46e5' },
+      { bg: '#ede9fe', text: '#7c3aed' },
+    ];
+    const hash = categoryName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
+  const getCategoryStyle = (categoryName: string) => {
+    const color = getCategoryColor(categoryName);
+    return { backgroundColor: color.bg, color: color.text };
+  };
+
   const getOriginalPrice = (bundle: Bundle) => {
     if (!bundle.items || bundle.items.length === 0) return 0;
     return bundle.items.reduce((sum, item) => {
@@ -500,29 +520,43 @@ export default function ProductsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map(product => (
-              <div key={product.id} className="border rounded-lg p-4 hover:shadow-lg transition-all bg-white">
+              <div key={product.id} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Package className="w-5 h-5 text-gray-500" />
+                      <Package className="w-5 h-5 text-blue-500" />
                       <h3 className="font-bold text-lg">{product.name}</h3>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">{product.brand?.name} · {product.category?.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {product.brand?.name && (
+                        <span className="px-2 py-0.5 text-xs rounded" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}>
+                          {product.brand.name}
+                        </span>
+                      )}
+                      {product.category?.name && (
+                        <span
+                          className="px-2 py-0.5 text-xs rounded"
+                          style={getCategoryStyle(product.category.name)}
+                        >
+                          {product.category.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded font-medium ${product.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                     {product.status === 'ACTIVE' ? '在售' : '停售'}
                   </span>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                  <div className="text-sm text-gray-600">
+                <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f0f9ff' }}>
+                  <div className="text-sm" style={{ color: '#0369a1' }}>
                     <span className="font-medium">{product.skus?.length || 0}</span> 个规格
                   </div>
                   {product.skus && product.skus.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-500 max-h-16 overflow-y-auto">
+                    <div className="mt-2 text-xs max-h-16 overflow-y-auto" style={{ color: '#1e40af' }}>
                       {product.skus.map(s => (
                         <div key={s.id} className="flex justify-between">
                           <span>{s.spec} / {s.packaging}</span>
-                          <span className="text-primary-600">¥{s.price}</span>
+                          <span className="font-medium">¥{s.price}</span>
                         </div>
                       ))}
                     </div>
@@ -530,18 +564,18 @@ export default function ProductsPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleEdit(product)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-primary-200 text-primary-600 rounded-lg text-sm hover:bg-primary-50"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    编辑
-                  </button>
-                  <button
                     onClick={() => { fetchProductStocks(product); setShowStockModal(true); }}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-green-200 text-green-600 rounded-lg text-sm hover:bg-green-50"
                   >
                     <Warehouse className="w-4 h-4" />
                     库存
+                  </button>
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-primary-200 text-primary-600 rounded-lg text-sm hover:bg-primary-50"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    编辑
                   </button>
                   <button
                     onClick={() => handleDelete(product.id)}

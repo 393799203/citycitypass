@@ -479,8 +479,8 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                           <tr key={item.id} className="border-t border-gray-200">
                             <td className="py-2">
                               {item.bundleId ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-purple-600">[套装]</span>
+                                <div className="flex items-center p-1 gap-1">
+                                  <span className="text-purple-600">[套装] {item.productName}</span>
                                   {item.bundle?.items?.length > 0 && (
                                     <div className="relative group">
                                       <Info className="w-3 h-3 text-gray-400 cursor-help" />
@@ -495,8 +495,18 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                                     </div>
                                   )}
                                 </div>
-                              ) : null}
-                              {item.productName}
+                              ) : (
+                                <div className="rounded-lg p-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-blue-700">{item.productName}</span>
+                                    {item.categoryName && (
+                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded">
+                                        {item.categoryName}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </td>
                             <td className="py-2 text-gray-500">{item.packaging} · {item.spec}</td>
                             <td className="py-2 text-left">{item.quantity}</td>

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
@@ -15,6 +16,9 @@ import vehicleRoutes from './routes/vehicles';
 import driverRoutes from './routes/drivers';
 import dispatchRoutes from './routes/dispatches';
 import geocodeRoutes from './routes/geocode';
+import customerRoutes from './routes/customers';
+import contractRoutes from './routes/contracts';
+import uploadRoutes from './routes/upload';
 
 dotenv.config();
 
@@ -38,6 +42,11 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/dispatches', dispatchRoutes);
 app.use('/api/geocode', geocodeRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/upload', uploadRoutes);
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
