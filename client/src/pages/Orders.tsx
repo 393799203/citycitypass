@@ -680,15 +680,15 @@ export default function OrdersPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-base text-primary-600 font-medium">¥{Number(order.totalAmount).toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-sm rounded-full ${
-                      order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' :
-                      order.status === 'PICKING' ? 'bg-indigo-100 text-indigo-800' :
-                      order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-100 text-purple-800' :
-                      order.status === 'DISPATCHING' ? 'bg-cyan-100 text-cyan-800' :
-                      order.status === 'DISPATCHED' ? 'bg-cyan-100 text-cyan-800' :
-                      order.status === 'IN_TRANSIT' ? 'bg-purple-100 text-purple-800' :
-                      order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
+                      order.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                      order.status === 'APPROVED' ? 'bg-blue-600 text-white' :
+                      order.status === 'PICKING' ? 'bg-indigo-600 text-white' :
+                      order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-600 text-white' :
+                      order.status === 'DISPATCHING' ? 'bg-cyan-600 text-white' :
+                      order.status === 'DISPATCHED' ? 'bg-cyan-600 text-white' :
+                      order.status === 'IN_TRANSIT' ? 'bg-purple-600 text-white' :
+                      order.status === 'DELIVERED' ? 'bg-green-600 text-white' :
+                      'bg-red-600 text-white'
                     }`}>
                       {statusMap[order.status]}
                     </span>

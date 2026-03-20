@@ -34,7 +34,7 @@ const configMenuItems = [
   { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
   { path: '/products', icon: Package, label: '商品管理' },
   { path: '/customers', icon: Users, label: '客户管理' },
-  { path: '/inbound', icon: ArrowDownToLine, label: '入库管理' },
+  { path: '/inbound', icon: ArrowDownToLine, label: '库存管理' },
   { path: '/transport', icon: Truck, label: '运力管理' },
 ];
 
@@ -199,7 +199,7 @@ export default function Layout() {
             </button>
           </div>
         </header>
-        <main className="p-6 lg:p-8 pt-0">
+        <main className="p-4 lg:p-6 pt-0">
           <Outlet />
         </main>
       </div>

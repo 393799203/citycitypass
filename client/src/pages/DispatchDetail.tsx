@@ -211,10 +211,10 @@ export default function DispatchDetailPage() {
             <p className="text-gray-500 mt-1">配送单号: {dispatch.dispatchNo}</p>
           </div>
           <span className={`px-3 py-1 text-sm rounded-full ${
-            dispatch.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-            dispatch.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-800' :
-            dispatch.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-            'bg-red-100 text-red-800'
+            dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+            dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
+            dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+            'bg-gray-600 text-white'
           }`}>
             {dispatchStatusMap[dispatch.status]}
           </span>
@@ -367,16 +367,22 @@ export default function DispatchDetailPage() {
                     <td className="py-3">{doItem.order?.province}{doItem.order?.city}{doItem.order?.address}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        doItem.order?.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                        doItem.order?.status === 'DISPATCHING' ? 'bg-blue-100 text-blue-800' :
-                        doItem.order?.status === 'DISPATCHED' ? 'bg-purple-100 text-purple-800' :
-                        doItem.order?.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
+                        doItem.order?.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+                        doItem.order?.status === 'APPROVED' ? 'bg-blue-600 text-white' :
+                        doItem.order?.status === 'IN_TRANSIT' ? 'bg-purple-600 text-white' :
+                        doItem.order?.status === 'DELIVERED' ? 'bg-green-600 text-white' :
+                        doItem.order?.status === 'CANCELLED' ? 'bg-red-600 text-white' :
+                        'bg-gray-600 text-white'
                       }`}>
-                        {doItem.order?.status === 'PENDING' ? '待确认' : 
-                         doItem.order?.status === 'DISPATCHING' ? '待调度' : 
-                         doItem.order?.status === 'DISPATCHED' ? '已调度' : 
-                         doItem.order?.status === 'COMPLETED' ? '已完成' : 
+                        {doItem.order?.status === 'PENDING' ? '待确认' :
+                         doItem.order?.status === 'APPROVED' ? '已通过' :
+                         doItem.order?.status === 'PICKING' ? '拣货中' :
+                         doItem.order?.status === 'OUTBOUND_REVIEW' ? '待出库' :
+                         doItem.order?.status === 'DISPATCHING' ? '待调度' :
+                         doItem.order?.status === 'DISPATCHED' ? '已调度' :
+                         doItem.order?.status === 'IN_TRANSIT' ? '配送中' :
+                         doItem.order?.status === 'DELIVERED' ? '已送达' :
+                         doItem.order?.status === 'CANCELLED' ? '已取消' :
                          doItem.order?.status || '-'}
                       </span>
                     </td>

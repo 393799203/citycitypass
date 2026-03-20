@@ -382,7 +382,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                         {order.items?.map((item: any) => (
                           <span key={item.id} className="inline-block mr-2 text-sm">
                             {item.bundleId && <span className="text-purple-600">[套装]</span>}
-                            {item.productName} {item.spec && `(${item.spec})`} {item.packaging && `· ${item.packaging}`} x{item.quantity}
+                            <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec && `(${item.spec})`} {item.packaging && `· ${item.packaging}`} x{item.quantity}
                           </span>
                         ))}
                       </td>
@@ -424,9 +424,9 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                       <span className="text-sm text-gray-500">{pickOrder.orders?.[0]?.owner?.name}</span>
                       <span className="text-sm text-blue-600">{pickOrder.orders?.[0]?.warehouse?.name}</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        pickOrder.status === 'PICKING' ? 'bg-orange-100 text-orange-800' :
-                        pickOrder.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                        'bg-green-100 text-green-800'
+                        pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                        pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
+                        'bg-green-600 text-white'
                       }`}>
                         {pickStatusMap[pickOrder.status]}
                       </span>
@@ -480,7 +480,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                             <td className="py-2">
                               {item.bundleId ? (
                                 <div className="flex items-center p-1 gap-1">
-                                  <span className="text-purple-600">[套装] {item.productName}</span>
+                                  <span className="text-purple-600 font-medium">[套装] {item.productName}</span>
                                   {item.bundle?.items?.length > 0 && (
                                     <div className="relative group">
                                       <Info className="w-3 h-3 text-gray-400 cursor-help" />
@@ -498,7 +498,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                               ) : (
                                 <div className="rounded-lg p-1">
                                   <div className="flex items-center justify-between">
-                                    <span className="font-medium text-blue-700">{item.productName}</span>
+                                    <span className="font-medium text-blue-600">{item.productName}</span>
                                     {item.categoryName && (
                                       <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded">
                                         {item.categoryName}
@@ -528,7 +528,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                             {o.items?.map((item: any) => (
                               <span key={item.id} className="mr-2">
                                 {item.bundleId && <span className="text-purple-600">[套装]</span>}
-                                {item.productName} {item.spec} {item.packaging} x{item.quantity}
+                                <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging} x{item.quantity}
                               </span>
                             ))}
                           </div>

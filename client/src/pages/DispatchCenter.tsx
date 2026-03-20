@@ -397,7 +397,17 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                         <td className="py-3">{order.phone}</td>
                         <td className="py-3">{order.province}{order.city}{order.address}</td>
                         <td className="py-3">
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            order.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+                            order.status === 'APPROVED' ? 'bg-blue-600 text-white' :
+                            order.status === 'PICKING' ? 'bg-indigo-600 text-white' :
+                            order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-600 text-white' :
+                            order.status === 'DISPATCHING' ? 'bg-cyan-600 text-white' :
+                            order.status === 'DISPATCHED' ? 'bg-cyan-600 text-white' :
+                            order.status === 'IN_TRANSIT' ? 'bg-purple-600 text-white' :
+                            order.status === 'DELIVERED' ? 'bg-green-600 text-white' :
+                            'bg-red-600 text-white'
+                          }`}>
                             {orderStatusMap[order.status]}
                           </span>
                         </td>
@@ -450,10 +460,10 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                       <td className="py-3">{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</td>
                       <td className="py-3">
                         <span className={`px-2 py-1 text-xs rounded-full ${
-                          dispatch.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                          dispatch.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-800' :
-                          dispatch.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
+                          dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+                          dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
+                          dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+                          'bg-gray-600 text-white'
                         }`}>
                           {dispatchStatusMap[dispatch.status]}
                         </span>

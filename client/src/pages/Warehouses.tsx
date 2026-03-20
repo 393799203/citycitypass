@@ -133,18 +133,8 @@ export default function WarehousesPage() {
   return (
     <div className="space-y-6">
       <ToastContainer />
-      
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            返回
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-800">仓库管理</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-800">仓库管理</h1>
         <button
           onClick={() => {
             resetForm();

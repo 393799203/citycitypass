@@ -227,34 +227,30 @@ export default function StockInsPage() {
   return (
     <div className="space-y-6">
       <ToastContainer />
-      
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">库存管理</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowStockInModal(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            <Warehouse className="w-5 h-5" />
-            入库记录
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-          >
-            <Plus className="w-5 h-5" />
-            入库
-          </button>
-        </div>
-      </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
           <Package className="w-5 h-5" />
           库存列表
         </h2>
-          
-          <div className="flex gap-2 mb-4 flex-wrap justify-end items-center">
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowStockInModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
+            >
+              <Warehouse className="w-4 h-4" />
+              入库记录
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              入库
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap items-center">
             <select
               value={filterWarehouse}
               onChange={(e) => { setFilterWarehouse(e.target.value); setFilterShelf(''); }}
@@ -313,8 +309,8 @@ export default function StockInsPage() {
               重置
             </button>
           </div>
-          
-          <div className="overflow-x-visible">
+        </div>
+        <div className="overflow-x-visible mt-4">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -628,7 +624,7 @@ export default function StockInsPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-visible max-h-[60vh] p-6">
+            <div className="overflow-y-auto max-h-[60vh]">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
@@ -681,7 +677,7 @@ export default function StockInsPage() {
                             <td className="px-3 py-2">{item.shelf?.code || '-'}</td>
                             <td className="px-3 py-2 text-right">+{item.quantity}</td>
                             <td className="px-3 py-2 text-gray-500">
-                              {new Date(item.createdAt).toLocaleDateString()}
+                              {new Date(item.createdAt).toLocaleString()}
                             </td>
                           </tr>
                         ))}

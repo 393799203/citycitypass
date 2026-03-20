@@ -408,10 +408,10 @@ export default function TransportPage() {
                             </td>
                             <td className="py-3">
                               <span className={`px-2 py-1 text-xs rounded-full ${
-                                vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
-                                vehicle.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-800' :
-                                vehicle.status === 'MAINTENANCE' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
+                                vehicle.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
+                                vehicle.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
+                                vehicle.status === 'MAINTENANCE' ? 'bg-yellow-600 text-white' :
+                                'bg-gray-600 text-white'
                               }`}>
                                 {vehicleStatusMap[vehicle.status]}
                               </span>
@@ -503,10 +503,10 @@ export default function TransportPage() {
                             <td className="py-3">{driver.vehicle?.licensePlate || '-'}</td>
                             <td className="py-3">
                               <span className={`px-2 py-1 text-xs rounded-full ${
-                                driver.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
-                                driver.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-800' :
-                                driver.status === 'RESTING' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
+                                driver.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
+                                driver.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
+                                driver.status === 'RESTING' ? 'bg-yellow-600 text-white' :
+                                'bg-gray-600 text-white'
                               }`}>
                                 {driverStatusMap[driver.status]}
                               </span>

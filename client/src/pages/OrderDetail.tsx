@@ -146,14 +146,14 @@ export default function OrderDetail() {
           </div>
           <div className="flex items-center gap-3">
             <span className={`px-3 py-1.5 text-sm rounded-full ${
-              order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-              order.status === 'PICKING' ? 'bg-orange-100 text-orange-800' :
-              (order.status === 'OUTBOUND_REVIEW') ? 'bg-purple-100 text-purple-800' :
-              order.status === 'DISPATCHING' ? 'bg-indigo-100 text-indigo-800' :
-              order.status === 'DISPATCHED' ? 'bg-blue-100 text-blue-800' :
-              order.status === 'IN_TRANSIT' ? 'bg-purple-100 text-purple-800' :
-              order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-              'bg-red-100 text-red-800'
+              order.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+              order.status === 'PICKING' ? 'bg-orange-600 text-white' :
+              (order.status === 'OUTBOUND_REVIEW') ? 'bg-purple-600 text-white' :
+              order.status === 'DISPATCHING' ? 'bg-indigo-600 text-white' :
+              order.status === 'DISPATCHED' ? 'bg-blue-600 text-white' :
+              order.status === 'IN_TRANSIT' ? 'bg-purple-600 text-white' :
+              order.status === 'DELIVERED' ? 'bg-green-600 text-white' :
+              'bg-red-600 text-white'
             }`}>
               {statusMap[order.status]}
             </span>
@@ -241,9 +241,9 @@ export default function OrderDetail() {
                 <ClipboardList className="w-5 h-5 text-blue-600" />
                 <span className="font-medium text-blue-900">关联拣货单: {order.pickOrder.pickNo}</span>
                 <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  order.pickOrder.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                  order.pickOrder.status === 'PICKING' ? 'bg-orange-100 text-orange-800' :
-                  'bg-green-100 text-green-800'
+                  order.pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                  order.pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
+                  'bg-green-600 text-white'
                 }`}>
                   {order.pickOrder.status === 'PENDING' ? '待拣货' : 
                    order.pickOrder.status === 'PICKING' ? '拣货中' : '已拣货'}
@@ -318,9 +318,9 @@ export default function OrderDetail() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">状态:</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        order.picking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                        order.picking.status === 'PICKING' ? 'bg-orange-100 text-orange-800' :
-                        'bg-green-100 text-green-800'
+                        order.picking.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                        order.picking.status === 'PICKING' ? 'bg-blue-600 text-white' :
+                        'bg-green-600 text-white'
                       }`}>
                         {order.picking.status === 'PENDING' ? '待拣货' : 
                          order.picking.status === 'PICKING' ? '拣货中' : '已完成'}
@@ -345,9 +345,9 @@ export default function OrderDetail() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">状态:</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        order.dispatch.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                        order.dispatch.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-800' :
-                        'bg-green-100 text-green-800'
+                        order.dispatch.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                        order.dispatch.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
+                        'bg-green-600 text-white'
                       }`}>
                         {order.dispatch.status === 'PENDING' ? '待发运' : 
                          order.dispatch.status === 'IN_TRANSIT' ? '配送中' : '已完成'}
@@ -382,13 +382,13 @@ export default function OrderDetail() {
                         <Package className="w-5 h-5 text-gray-400" />
                         {item.bundleId ? (
                           <div>
-                            <span className="text-purple-600 text-xs font-medium">[套装] {item.productName}</span>
+                            <span className="text-purple-600 text-sm font-medium">[套装] {item.productName}</span>
                             <div className="text-xs text-purple-600 mt-1">
                               包含: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
                             </div>
                           </div>
                         ) : (
-                          <span className="font-medium text-gray-900">{item.productName}</span>
+                          <span className="font-medium text-blue-600">{item.productName}</span>
                         )}
                       </div>
                     </td>
