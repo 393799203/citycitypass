@@ -547,7 +547,7 @@ export default function ProductsPage() {
                     {product.status === 'ACTIVE' ? '在售' : '停售'}
                   </span>
                 </div>
-                <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f0f9ff' }}>
+                <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f8fcff' }}>
                   <div className="text-sm" style={{ color: '#0369a1' }}>
                     <span className="font-medium">{product.skus?.length || 0}</span> 个规格
                   </div>
