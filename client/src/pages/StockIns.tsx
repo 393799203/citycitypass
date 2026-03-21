@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
-import { stockApi, productApi, warehouseApi, bundleApi } from '../api';
+import { stockApi, productApi, warehouseApi, bundleApi, ownerApi } from '../api';
 
 interface Product {
   id: string;
@@ -57,6 +57,8 @@ export default function StockInsPage() {
   const [stockInLoading, setStockInLoading] = useState(false);
   const [stocks, setStocks] = useState<any[]>([]);
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
+  const [owners, setOwners] = useState<any[]>([]);
+  const [filterOwner, setFilterOwner] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
   const [filterShelf, setFilterShelf] = useState('');
@@ -70,18 +72,22 @@ export default function StockInsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productRes, warehouseRes, stockRes, stockInRes, bundleRes] = await Promise.all([
+      const [productRes, warehouseRes, stockRes, stockInRes, bundleRes, ownerRes] = await Promise.all([
         productApi.list(),
         warehouseApi.list({ status: 'ACTIVE' }),
         stockApi.list(),
         fetchStockIns(),
-        bundleApi.list()
+        bundleApi.list(),
+        ownerApi.list()
       ]);
       if (productRes.data.success) {
         setProducts(productRes.data.data);
       }
       if (warehouseRes.data.success) {
         setWarehouses(warehouseRes.data.data);
+      }
+      if (ownerRes.data.success) {
+        setOwners(ownerRes.data.data);
       }
       if (stockRes.data.success) {
         const data = stockRes.data.data;
@@ -252,13 +258,24 @@ export default function StockInsPage() {
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <select
-              value={filterWarehouse}
-              onChange={(e) => { setFilterWarehouse(e.target.value); setFilterShelf(''); }}
+              value={filterOwner}
+              onChange={(e) => { setFilterOwner(e.target.value); setFilterWarehouse(''); setFilterShelf(''); setFilterProduct(''); }}
               className="px-3 py-2 border rounded text-sm w-36"
             >
+              <option value="">全部货主</option>
+              {owners.filter(o => o.status !== 'STOPPED').map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+            <select
+              value={filterWarehouse}
+              onChange={(e) => { setFilterWarehouse(e.target.value); setFilterShelf(''); }}
+              disabled={!filterOwner}
+              className="px-3 py-2 border rounded text-sm w-36 disabled:opacity-50"
+            >
               <option value="">全部仓库</option>
-              {warehouses.map(w => (
-                <option key={w.id} value={w.id}>{w.name} ({w.code}) - {w.owner?.name || '无货主'}</option>
+              {warehouses.filter(w => !filterOwner || w.ownerId === filterOwner).map(w => (
+                <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
               ))}
             </select>
             <select
@@ -303,7 +320,7 @@ export default function StockInsPage() {
               }
             </select>
             <button
-              onClick={() => { setFilterWarehouse(''); setFilterShelf(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); }}
+              onClick={() => { setFilterOwner(''); setFilterWarehouse(''); setFilterShelf(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); }}
               className="px-3 py-2 border border-gray-300 text-gray-600 rounded text-sm"
             >
               重置
@@ -312,6 +329,7 @@ export default function StockInsPage() {
         </div>
         {(() => {
           const filteredStocks = stocks.filter((stock: any) => {
+            if (filterOwner && stock.warehouse?.ownerId !== filterOwner) return false;
             if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
             if (filterShelf && stock.shelfId !== filterShelf) return false;
             if (filterType && stock.type !== filterType) return false;
