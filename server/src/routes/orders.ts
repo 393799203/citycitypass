@@ -624,6 +624,16 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 lockedQuantity: { decrement: lock.quantity },
               },
             });
+
+            await tx.stockOut.create({
+              data: {
+                orderId: lock.orderId,
+                skuId: lock.skuId,
+                warehouseId: lock.warehouseId,
+                shelfId: lock.shelfId,
+                quantity: lock.quantity,
+              },
+            });
           }
           await tx.stockLock.delete({ where: { id: lock.id } });
         }
@@ -657,6 +667,17 @@ router.put('/:id/status', async (req: Request, res: Response) => {
               },
             });
           }
+
+          await tx.stockOut.create({
+            data: {
+              orderId: lock.orderId,
+              bundleId: lock.bundleId,
+              warehouseId: lock.warehouseId,
+              shelfId: lock.shelfId,
+              quantity: lock.quantity,
+            },
+          });
+
           await tx.bundleStockLock.delete({ where: { id: lock.id } });
         }
       }

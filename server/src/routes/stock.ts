@@ -534,6 +534,16 @@ router.post('/use', async (req: Request, res: Response) => {
               lockedQuantity: stock.lockedQuantity - lock.quantity,
             },
           });
+
+          await tx.stockOut.create({
+            data: {
+              orderId: lock.orderId,
+              skuId: lock.skuId,
+              warehouseId: lock.warehouseId,
+              shelfId: lock.shelfId,
+              quantity: lock.quantity,
+            },
+          });
         }
 
         await tx.stockLock.update({
@@ -667,6 +677,16 @@ router.post('/bundle/use', async (req: Request, res: Response) => {
               lockedQuantity: bundleStock.lockedQuantity - lock.quantity,
             },
           });
+
+          await tx.stockOut.create({
+            data: {
+              orderId: lock.orderId,
+              bundleId: lock.bundleId,
+              warehouseId: lock.warehouseId,
+              shelfId: lock.shelfId,
+              quantity: lock.quantity,
+            },
+          });
         }
 
         await tx.bundleStockLock.delete({ where: { id: lock.id } });
@@ -678,6 +698,59 @@ router.post('/bundle/use', async (req: Request, res: Response) => {
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Use bundle stock error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.get('/out', async (req: Request, res: Response) => {
+  try {
+    const { warehouseId, startDate, endDate, orderId } = req.query;
+    const where: any = {};
+    if (warehouseId) where.warehouseId = warehouseId as string;
+    if (orderId) where.orderId = orderId as string;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate as string);
+      if (endDate) where.createdAt.lte = new Date(endDate as string);
+    }
+
+    const stockOuts = await prisma.stockOut.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const warehouseIds = [...new Set(stockOuts.map(s => s.warehouseId))];
+    const skuIds = stockOuts.filter(s => s.skuId).map(s => s.skuId);
+    const bundleIds = stockOuts.filter(s => s.bundleId).map(s => s.bundleId);
+    const shelfIds = stockOuts.filter(s => s.shelfId).map(s => s.shelfId);
+    const orderIds = [...new Set(stockOuts.map(s => s.orderId))];
+
+    const [warehouses, skus, bundles, shelves, orders] = await Promise.all([
+      warehouseIds.length ? prisma.warehouse.findMany({ where: { id: { in: warehouseIds } } }) : [],
+      skuIds.length ? prisma.productSKU.findMany({ where: { id: { in: skuIds } }, include: { product: true } }) : [],
+      bundleIds.length ? prisma.bundleSKU.findMany({ where: { id: { in: bundleIds } }, include: { items: { include: { sku: { include: { product: true } } } } } }) : [],
+      shelfIds.length ? prisma.shelf.findMany({ where: { id: { in: shelfIds } } }) : [],
+      orderIds.length ? prisma.order.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNo: true } }) : [],
+    ]);
+
+    const warehouseMap = Object.fromEntries(warehouses.map(w => [w.id, w]));
+    const skuMap = Object.fromEntries(skus.map(s => [s.id, s]));
+    const bundleMap = Object.fromEntries(bundles.map(b => [b.id, b]));
+    const shelfMap = Object.fromEntries(shelves.map(s => [s.id, s]));
+    const orderMap = Object.fromEntries(orders.map(o => [o.id, o]));
+
+    const result = stockOuts.map(out => ({
+      ...out,
+      warehouse: warehouseMap[out.warehouseId],
+      sku: out.skuId ? skuMap[out.skuId] : null,
+      bundle: out.bundleId ? bundleMap[out.bundleId] : null,
+      shelf: out.shelfId ? shelfMap[out.shelfId] : null,
+      order: orderMap[out.orderId] || null,
+    }));
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('List stock out error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });

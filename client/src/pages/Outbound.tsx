@@ -24,6 +24,7 @@ export default function OutboundPage() {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiRecommendOrders, setAiRecommendOrders] = useState<{orderIds: string[], reason: string} | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -498,17 +499,15 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                                 <div className="flex items-center p-1 gap-1">
                                   <span className="text-purple-600 font-medium">[套装] {item.productName}</span>
                                   {item.bundle?.items?.length > 0 && (
-                                    <div className="relative group">
+                                    <button
+                                      type="button"
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-purple-300">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      onMouseLeave={() => setTooltip(null)}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-purple-300">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      className="p-0.5 hover:bg-gray-100 rounded"
+                                    >
                                       <Info className="w-3 h-3 text-gray-400 cursor-help" />
-                                      <div className="absolute left-0 top-5 z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 min-w-[180px]">
-                                        <div className="font-medium mb-1">套装包含：</div>
-                                        {item.bundle.items.map((bi: any) => (
-                                          <div key={bi.id} className="text-gray-300">
-                                            {bi.sku?.product?.name} - {bi.sku?.spec}/{bi.sku?.packaging} × {bi.quantity}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
+                                    </button>
                                   )}
                                 </div>
                               ) : (
@@ -569,6 +568,15 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
           )}
         </div>
       </div>
+
+      {tooltip && (
+        <div
+          className="fixed bg-gray-900 text-white text-xs rounded-xl p-3 min-w-[220px] shadow-xl z-[9999] pointer-events-none"
+          style={{ left: tooltip.x, top: tooltip.y - 30 }}
+        >
+          {tooltip.content}
+        </div>
+      )}
     </div>
   );
 }

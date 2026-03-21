@@ -103,6 +103,7 @@ export const stockApi = {
   getOwnerStockSummary: (ownerId: string) => api.get('/stock/owner-stock-summary', { params: { ownerId } }),
   stockIn: (data: any) => api.post('/stock/stock-in', data),
   stockIns: (params?: any) => api.get('/stock/stock-in', { params }),
+  stockOuts: (params?: any) => api.get('/stock/out', { params }),
   lock: (data: any) => api.post('/stock/lock', data),
   unlock: (orderId: string) => api.post('/stock/unlock', { orderId }),
   use: (orderId: string) => api.post('/stock/use', { orderId }),

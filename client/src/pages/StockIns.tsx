@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
 import { stockApi, productApi, warehouseApi, bundleApi, ownerApi } from '../api';
@@ -54,10 +55,13 @@ export default function StockInsPage() {
   const [batchNo, setBatchNo] = useState('');
   const [remark, setRemark] = useState('');
   const [stockIns, setStockIns] = useState<any[]>([]);
+  const [stockOuts, setStockOuts] = useState<any[]>([]);
   const [stockInLoading, setStockInLoading] = useState(false);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [stocks, setStocks] = useState<any[]>([]);
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
+  const [showStockOutModal, setShowStockOutModal] = useState(false);
   const [filterOwner, setFilterOwner] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
@@ -249,6 +253,20 @@ export default function StockInsPage() {
               入库记录
             </button>
             <button
+              onClick={() => {
+                stockApi.stockOuts().then(res => {
+                  if (res.data.success) {
+                    setStockOuts(res.data.data);
+                    setShowStockOutModal(true);
+                  }
+                });
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
+            >
+              <Package className="w-4 h-4" />
+              出库记录
+            </button>
+            <button
               onClick={() => setShowModal(true)}
               className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
             >
@@ -395,7 +413,7 @@ export default function StockInsPage() {
                 const bundleTotal = bundleSkus.reduce((sum: number, s: any) => sum + s.totalQuantity, 0);
 
                 return (
-                <div key={warehouseName} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div key={warehouseName} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
                   <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -439,19 +457,15 @@ export default function StockInsPage() {
                                 <Package className="w-4 h-4 text-purple-500 shrink-0" />
                                 <span className="font-medium text-gray-800 truncate">{stock.bundle?.name}</span>
                                 {stock.bundle?.items?.length > 0 && (
-                                  <div className="relative group shrink-0">
+                                  <button
+                                    type="button"
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{stock.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-purple-300">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                    onMouseLeave={() => setTooltip(null)}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{stock.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-purple-300">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                    className="p-0.5 hover:bg-gray-100 rounded shrink-0"
+                                  >
                                     <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                                    <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded-xl p-3 min-w-[220px] shadow-xl">
-                                      <div className="font-semibold mb-2 text-purple-300">套装包含：</div>
-                                      {stock.bundle.items.map((item: any) => (
-                                        <div key={item.id} className="text-gray-200 py-1">
-                                          <span className="text-purple-300">{item.sku?.product?.name}</span>
-                                          <span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span>
-                                          <span className="text-yellow-400 ml-1">×{item.quantity}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
+                                  </button>
                                 )}
                               </div>
                             ) : (
@@ -779,17 +793,15 @@ export default function StockInsPage() {
                                 ? <div className="flex items-center gap-1">
                                     {item.bundle?.name}
                                     {item.bundle?.items?.length > 0 && (
-                                      <div className="relative group">
+                                      <button
+                                        type="button"
+                                        onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-purple-300">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
+                                        onMouseLeave={() => setTooltip(null)}
+                                        onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-purple-300">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
+                                        className="p-0.5 hover:bg-gray-100 rounded"
+                                      >
                                         <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                                        <div className="absolute left-0 top-6 z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 min-w-[200px]">
-                                          <div className="font-medium mb-1">套装包含：</div>
-                                          {item.bundle.items.map((bundleItem: any) => (
-                                            <div key={bundleItem.id} className="text-gray-300">
-                                              {bundleItem.sku?.product?.name} - {bundleItem.sku?.spec}/{bundleItem.sku?.packaging} × {bundleItem.quantity}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
+                                      </button>
                                     )}
                                   </div>
                                 : getSkuInfo(item.skuId)}
@@ -822,6 +834,93 @@ export default function StockInsPage() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {showStockOutModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b shrink-0">
+              <h2 className="text-xl font-bold">出库记录</h2>
+              <button onClick={() => setShowStockOutModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-auto flex-1">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">仓库</th>
+                    <th className="px-3 py-2 text-left">订单号</th>
+                    <th className="px-3 py-2 text-left">类型</th>
+                    <th className="px-3 py-2 text-left">商品/套装</th>
+                    <th className="px-3 py-2 text-left">货架</th>
+                    <th className="px-3 py-2 text-right">数量</th>
+                    <th className="px-3 py-2 text-left">时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockOuts.length > 0 ? stockOuts.map((out: any) => (
+                    <tr key={out.id} className="border-t overflow-visible">
+                      <td className="px-3 py-2">{out.warehouse?.name || '-'}</td>
+                      <td className="px-3 py-2 font-mono text-sm">
+                          {out.order?.orderNo ? (
+                            <Link to={`/orders/${out.orderId}`} className="text-primary-600 hover:text-primary-800 hover:underline">
+                              {out.order.orderNo}
+                            </Link>
+                          ) : out.orderId.substring(0, 8)}
+                        </td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 text-xs rounded ${out.skuId ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                          {out.skuId ? '商品' : '套装'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        {out.skuId
+                          ? `${out.sku?.product?.name || ''} - ${out.sku?.spec || ''}/${out.sku?.packaging || ''}`
+                          : (
+                            <div className="flex items-center gap-2">
+                              <span>{out.bundle?.name || '-'}</span>
+                              {out.bundle?.items?.length > 0 && (
+                                <button
+                                  type="button"
+                                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{out.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-purple-300">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                  onMouseLeave={() => setTooltip(null)}
+                                  onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{out.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-purple-300">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                  className="p-0.5 hover:bg-gray-100 rounded"
+                                >
+                                  <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                      </td>
+                      <td className="px-3 py-2">{out.shelf?.code || '-'}</td>
+                      <td className="px-3 py-2 text-right text-red-600">-{out.quantity}</td>
+                      <td className="px-3 py-2 text-gray-500">
+                        {new Date(out.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
+                        暂无出库记录
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tooltip && (
+        <div
+          className="fixed bg-gray-900 text-white text-xs rounded-xl p-3 min-w-[220px] shadow-xl z-[9999] pointer-events-none"
+          style={{ left: tooltip.x, top: tooltip.y - 30 }}
+        >
+          {tooltip.content}
         </div>
       )}
     </div>
