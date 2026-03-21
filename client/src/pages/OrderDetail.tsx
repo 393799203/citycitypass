@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { orderApi, pickOrderApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, Calendar, Building2, PackageCheck, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, Calendar, Building2, PackageCheck, ClipboardList, Pencil, Trash2, Ban } from 'lucide-react';
 import { formatPhone, formatAddress } from '../utils/format';
 
 const statusFlow = [
@@ -158,36 +158,33 @@ export default function OrderDetail() {
             }`}>
               {statusMap[order.status]}
             </span>
-            {(order.status === 'PENDING') && getNextStatus(order.status) && (
-              <button
-                onClick={() => handleStatusChange(getNextStatus(order.status)!)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                <PackageCheck className="w-4 h-4" />
-                {getStatusButtonText(order.status)}
-              </button>
-            )}
-            {(order.status === 'OUTBOUND_REVIEW' || order.status === 'DISPATCHING' || order.status === 'DISPATCHED') && getNextStatus(order.status) && (
-              <button
-                onClick={() => handleStatusChange(getNextStatus(order.status)!)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Truck className="w-4 h-4" />
-                {getStatusButtonText(order.status)}
-              </button>
-            )}
-            {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && 
-             order.status !== 'DISPATCHING' && order.status !== 'DISPATCHED' && 
-             order.status !== 'IN_TRANSIT' && order.status !== 'DELIVERED' && (
+            {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
               <button
                 onClick={() => {
                   if (confirm('确定要取消该订单吗？')) {
                     handleStatusChange('CANCELLED');
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 ml-2"
+                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                title="取消"
               >
-                取消订单
+                <Ban className="w-4 h-4" />
+              </button>
+            )}
+            {order.status === 'CANCELLED' && (
+              <button
+                onClick={() => {
+                  if (confirm('确定要删除该订单吗？')) {
+                    orderApi.delete(order.id).then(() => {
+                      toast.success('订单已删除');
+                      navigate('/orders');
+                    });
+                  }
+                }}
+                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                title="删除"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
           </div>
