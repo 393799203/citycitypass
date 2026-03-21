@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import { Plus, Package, Warehouse, X, Info } from 'lucide-react';
+import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
 import { stockApi, productApi, warehouseApi, bundleApi } from '../api';
 
 interface Product {
@@ -310,91 +310,193 @@ export default function StockInsPage() {
             </button>
           </div>
         </div>
-        <div className="overflow-x-visible mt-4">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left">仓库名</th>
-                  <th className="px-3 py-2 text-left">类型</th>
-                  <th className="px-3 py-2 text-left">商品/套装</th>
-                  <th className="px-3 py-2 text-left">货架</th>
-                  <th className="px-3 py-2 text-right">总库存</th>
-                  <th className="px-3 py-2 text-right">已锁定</th>
-                  <th className="px-3 py-2 text-right">可用</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const filteredStocks = stocks.filter((stock: any) => {
-                    if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
-                    if (filterShelf && stock.shelfId !== filterShelf) return false;
-                    if (filterType && stock.type !== filterType) return false;
-                    if (filterType === 'bundle' && filterBundle && stock.bundleId !== filterBundle) return false;
-                    if (filterProduct) {
-                      if (stock.type === 'product') {
-                        if (stock.sku?.product?.id !== filterProduct) return false;
-                      } else if (stock.type === 'bundle') {
-                        return false;
-                      }
-                    }
-                    return true;
+        {(() => {
+          const filteredStocks = stocks.filter((stock: any) => {
+            if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
+            if (filterShelf && stock.shelfId !== filterShelf) return false;
+            if (filterType && stock.type !== filterType) return false;
+            if (filterType === 'bundle' && filterBundle && stock.bundleId !== filterBundle) return false;
+            if (filterProduct) {
+              if (stock.type === 'product') {
+                if (stock.sku?.product?.id !== filterProduct) return false;
+              } else if (stock.type === 'bundle') {
+                return false;
+              }
+            }
+            return true;
+          });
+          const groupedStocks = filteredStocks.reduce((acc: any, stock: any) => {
+            const key = stock.warehouse?.name || '未知仓库';
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(stock);
+            return acc;
+          }, {});
+          const warehouseEntries = Object.entries(groupedStocks);
+
+          if (warehouseEntries.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <Package className="w-16 h-16 mb-4 opacity-50" />
+                <p className="text-lg">暂无库存数据</p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid gap-4 mt-4">
+              {warehouseEntries.map(([warehouseName, list]: [string, any]) => {
+                const groupedBySku = list.reduce((acc: any, stock: any) => {
+                  const key = stock.type === 'bundle'
+                    ? `bundle-${stock.bundleId}`
+                    : `product-${stock.skuId}`;
+                  if (!acc[key]) {
+                    acc[key] = {
+                      ...stock,
+                      shelves: [],
+                      totalQuantity: 0,
+                      lockedQuantity: 0,
+                      availableQuantity: 0,
+                    };
+                  }
+                  acc[key].shelves.push({
+                    code: stock.shelf?.code || '-',
+                    total: stock.totalQuantity,
+                    locked: stock.lockedQuantity,
+                    available: stock.availableQuantity,
                   });
-                  const groupedStocks = filteredStocks.reduce((acc: any, stock: any) => {
-                    const key = stock.warehouse?.name || '未知仓库';
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push(stock);
-                    return acc;
-                  }, {});
-                  return Object.entries(groupedStocks).map(([warehouseName, list]: [string, any]) => (
-                    <React.Fragment key={warehouseName}>
-                      {list.map((stock: any, idx: number) => (
-                        <tr key={stock.id} className="border-t">
-                          {idx === 0 && <td rowSpan={list.length} className="px-3 py-2 align-middle text-primary-600 font-medium">{warehouseName}</td>}
-                          <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 text-xs rounded ${stock.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {stock.type === 'bundle' ? '套装' : '商品'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            {stock.type === 'bundle' 
-                              ? <div className="flex items-center gap-1">
-                                  {stock.bundle?.name}
-                                  {stock.bundle?.items?.length > 0 && (
-                                    <div className="relative group">
-                                      <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                                      <div className="absolute left-0 top-6 z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 min-w-[200px]">
-                                        <div className="font-medium mb-1">套装包含：</div>
-                                        {stock.bundle.items.map((item: any) => (
-                                          <div key={item.id} className="text-gray-300">
-                                            {item.sku?.product?.name} - {item.sku?.spec}/{item.sku?.packaging} × {item.quantity}
-                                          </div>
-                                        ))}
-                                      </div>
+                  acc[key].totalQuantity += stock.totalQuantity;
+                  acc[key].lockedQuantity += stock.lockedQuantity;
+                  acc[key].availableQuantity += stock.availableQuantity;
+                  return acc;
+                }, {});
+
+                const skuList = Object.values(groupedBySku);
+                const productSkus = skuList.filter((s: any) => s.type === 'product');
+                const bundleSkus = skuList.filter((s: any) => s.type === 'bundle');
+                const productTotal = productSkus.reduce((sum: number, s: any) => sum + s.totalQuantity, 0);
+                const bundleTotal = bundleSkus.reduce((sum: number, s: any) => sum + s.totalQuantity, 0);
+
+                return (
+                <div key={warehouseName} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                          <Warehouse className="w-4 h-4 text-primary-600" />
+                        </div>
+                        <h3 className="font-semibold text-gray-800">{warehouseName}</h3>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <Package className="w-3 h-3 text-blue-500" />
+                          <span className="text-gray-600">商品</span>
+                          <span className="font-medium text-gray-800">{productSkus.length} SKU</span>
+                          <span className="text-gray-400">/</span>
+                          <span className="text-blue-600 font-medium">{productTotal}件</span>
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Package className="w-3 h-3 text-purple-500" />
+                          <span className="text-gray-600">套装</span>
+                          <span className="font-medium text-gray-800">{bundleSkus.length} SKU</span>
+                          <span className="text-gray-400">/</span>
+                          <span className="text-purple-600 font-medium">{bundleTotal}件</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {skuList.map((stock: any) => (
+                      <div key={stock.id} className="hover:bg-gray-50/50 transition-colors">
+                        <div className="px-4 py-3 flex items-center gap-3">
+                          <span className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded ${
+                            stock.type === 'bundle'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {stock.type === 'bundle' ? '套装' : '商品'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            {stock.type === 'bundle' ? (
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-purple-500 shrink-0" />
+                                <span className="font-medium text-gray-800 truncate">{stock.bundle?.name}</span>
+                                {stock.bundle?.items?.length > 0 && (
+                                  <div className="relative group shrink-0">
+                                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                                    <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded-xl p-3 min-w-[220px] shadow-xl">
+                                      <div className="font-semibold mb-2 text-purple-300">套装包含：</div>
+                                      {stock.bundle.items.map((item: any) => (
+                                        <div key={item.id} className="text-gray-200 py-1">
+                                          <span className="text-purple-300">{item.sku?.product?.name}</span>
+                                          <span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span>
+                                          <span className="text-yellow-400 ml-1">×{item.quantity}</span>
+                                        </div>
+                                      ))}
                                     </div>
-                                  )}
-                                </div>
-                              : `${stock.sku?.product?.name || ''} - ${stock.sku?.spec || ''}/${stock.sku?.packaging || ''}`}
-                          </td>
-                          <td className="px-3 py-2">{stock.shelf?.code || '-'}</td>
-                          <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
-                          <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
-                          <td className="px-3 py-2 text-right text-green-600 font-medium">{stock.availableQuantity}</td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ));
-                })()}
-                {stocks.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
-                      暂无库存数据
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-blue-500 shrink-0" />
+                                <span className="font-medium text-gray-800 truncate">{stock.sku?.product?.name}</span>
+                                <span className="text-gray-400 text-sm truncate">{stock.sku?.spec} / {stock.sku?.packaging}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="shrink-0 flex items-center gap-3 text-xs">
+                            {stock.shelves.length === 1 && (
+                              <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2 py-1">
+                                <MapPin className="w-3 h-3 text-gray-400" />
+                                <span className="font-mono text-gray-600 text-xs">{stock.shelves[0].code}</span>
+                              </div>
+                            )}
+                            {stock.shelves.length > 1 && (
+                              <div className="flex items-center gap-1.5">
+                                {stock.shelves.map((shelf: any, idx: number) => (
+                                  <div key={idx} className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+                                    <MapPin className="w-3 h-3 text-gray-400" />
+                                    <span className="font-mono text-gray-600 text-xs">{shelf.code}</span>
+                                    <span className="text-gray-300">|</span>
+                                    <span className="text-gray-500">库<span className="text-gray-700">{shelf.total}</span></span>
+                                    <span className="text-gray-300">|</span>
+                                    <span className="text-orange-500">冻<span className="text-gray-700">{shelf.locked}</span></span>
+                                    <span className="text-gray-300">|</span>
+                                    <span className="text-green-600">可<span className="text-gray-700">{shelf.available}</span></span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="text-center">
+                              <div className="text-base font-bold text-gray-700">{stock.totalQuantity}</div>
+                              <div className="text-gray-400">总库存</div>
+                            </div>
+                            <div className="w-px h-6 bg-gray-200"></div>
+                            <div className="text-center">
+                              <div className={`text-base font-bold ${stock.lockedQuantity > 0 ? 'text-orange-500' : 'text-gray-300'}`}>
+                                {stock.lockedQuantity}
+                              </div>
+                              <div className="text-gray-400">已锁定</div>
+                            </div>
+                            <div className="w-px h-6 bg-gray-200"></div>
+                            <div className="text-center">
+                              <div className={`text-base font-bold ${stock.availableQuantity > 0 ? 'text-green-600' : 'text-red-400'}`}>
+                                {stock.availableQuantity}
+                              </div>
+                              <div className="text-gray-400">可用</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+          );
+        })()}
+      </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
