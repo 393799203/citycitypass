@@ -91,38 +91,64 @@ export default function OutboundPage() {
 
     setAiLoading(true);
     try {
-      const orderList = pendingOrders.map((o: any) => ({
-        id: o.order?.id,
-        orderNo: o.order?.orderNo,
-        warehouse: o.order?.warehouse?.name,
-        warehouseId: o.order?.warehouseId,
-        createdAt: o.order?.createdAt,
-        items: o.items?.map((item: any) => `${item.bundleId ? '[套装] ' : ''}${item.productName} ${item.spec || ''} ${item.packaging || ''} x${item.quantity}`) || [],
-      }));
+      const orderList = pendingOrders.map((o: any) => {
+        const itemLocations = o.items?.map((item: any) => {
+          const lock = item.skuId
+            ? o.order?.stockLocks?.find((l: any) => l.skuId === item.skuId)
+            : o.order?.bundleStockLocks?.find((l: any) => l.bundleId === item.bundleId);
+          const loc = lock?.location;
+          const zone = loc?.shelf?.zone;
+          const locationStr = loc
+            ? `${o.order?.warehouse?.name || '仓库'}-${zone?.code || '?'}-${loc.shelf?.code || '?'}-L${loc.level}`
+            : '';
+          return `${item.bundleId ? '[套装] ' : ''}${item.productName} ${item.spec || ''} ${item.packaging || ''} x${item.quantity}${locationStr ? ` 库位: ${locationStr}` : ''}`;
+        }) || [];
+        return {
+          id: o.order?.id,
+          orderNo: o.order?.orderNo,
+          warehouse: o.order?.warehouse?.name || '未知仓库',
+          warehouseId: o.order?.warehouseId,
+          createdAt: o.order?.createdAt,
+          items: itemLocations,
+        };
+      });
 
-      const prompt = `你是一个物流拣货助手。我有${orderList.length}个待拣货的订单，请帮我分析并将可以一次性合并拣货的订单推荐为一组。
+      if (orderList.length === 0) {
+        toast.error('没有待拣货订单');
+        setAiLoading(false);
+        return;
+      }
 
-推荐规则（按优先级排序）：
-1. 优先选择同一仓库的订单
-2. 同一仓库内，优先选择下单时间相近的订单（比如同一天或相近几小时内）
-3. 优先选择订单数量最多的仓库
+      const prompt = `你是一个物流拣货助手。我有${orderList.length}个待拣货的订单，请帮我分析并将可以一次性合并拣货的订单推荐为一组或多组。
 
-订单列表（包含下单时间）：
-${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时间: ${new Date(o.createdAt).toLocaleString()}, 商品: ${o.items.join(', ')}`).join('\n')}
+重要规则：
+1. 同一仓库的订单可以合并拣货
+2. 不同仓库的订单必须分开
+3. 同一仓库内，优先选择商品存放位置相近的订单（比如同一货架或相邻货架）
+4. 下单时间相近的订单可以一起拣货
 
-请返回JSON格式的推荐分组，格式如下：
+商品库位格式：【仓库-库区-货架-库位】
+
+订单列表：
+${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时间: ${new Date(o.createdAt).toLocaleString()}\n  商品: ${o.items.join('\n  ')}`).join('\n\n')}
+
+请返回JSON格式的推荐分组，每个分组内的订单必须在同一仓库：
 {
   "groups": [
     {
-      "reason": "推荐理由，如：这些订单都在杭州分仓，下单时间相近，共X单",
-      "orderIds": ["订单ID1", "订单ID2"]
+      "reason": "推荐理由，如：这两个订单都在城城通1号仓，商品都在RV-R001货架，可以一次性拣完",
+      "orderIds": ["ORD202603226332"]
     }
   ]
 }
 
 请只返回JSON，不要其他文字。`;
 
+      console.log('=== AI 提示词 ===');
+      console.log(prompt);
       const result = await parseAIResponse<{groups: Array<{reason: string, orderIds: string[]}>}>(prompt);
+      console.log('=== AI 响应 ===');
+      console.log(result);
       
       if (result && result.groups && result.groups.length > 0) {
         const bestGroup = result.groups[0];
@@ -186,8 +212,8 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">AI推荐拣货单</h3>
             <p className="text-gray-600 mb-4">
-              关联订单：{aiRecommendOrders.orderIds.map(id => {
-                const order = pickOrders.find((o: any) => o.order?.id === id);
+              关联订单：{aiRecommendOrders.orderIds.map(orderNo => {
+                const order = pickOrders.find((o: any) => o.order?.orderNo === orderNo);
                 return order?.order?.orderNo;
               }).filter(Boolean).join('、')}
             </p>
@@ -207,7 +233,11 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
               <button
                 onClick={async () => {
                   try {
-                    await pickOrderApi.create({ orderIds: aiRecommendOrders.orderIds });
+                    const orderIds = aiRecommendOrders.orderIds.map(orderNo => {
+                      const order = pickOrders.find((o: any) => o.order?.orderNo === orderNo);
+                      return order?.order?.id;
+                    }).filter(Boolean);
+                    await pickOrderApi.create({ orderIds });
                     toast.success(`已生成 1 个合并拣货单`);
                     setAiRecommendOrders(null);
                     setSelectedOrders([]);
@@ -488,7 +518,7 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                           <th className="text-left py-1">商品</th>
                           <th className="text-left py-1">包装/规格</th>
                           <th className="text-left py-1">数量</th>
-                          <th className="text-left py-1">库位(货架)</th>
+                          <th className="text-left py-1">库位(货位)</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
@@ -501,9 +531,9 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                                   {item.bundle?.items?.length > 0 && (
                                     <button
                                       type="button"
-                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-purple-300">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                                       onMouseLeave={() => setTooltip(null)}
-                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-purple-300">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-purple-300">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                                       className="p-0.5 hover:bg-gray-100 rounded"
                                     >
                                       <Info className="w-3 h-3 text-gray-400 cursor-help" />
@@ -526,7 +556,9 @@ ${orderList.map(o => `ID: ${o.id}, 订单号: ${o.orderNo}, 仓库: ${o.warehous
                             <td className="py-2 text-gray-500">{item.packaging} · {item.spec}</td>
                             <td className="py-2 text-left">{item.quantity}</td>
                             <td className="py-2 text-gray-500">
-                              {item.stockLock?.shelf?.code || item.warehouseLocation || '-'}
+                              {item.stockLock?.location ? `${item.stockLock.location.shelf?.zone?.code}-${item.stockLock.location.shelf?.code}-L${item.stockLock.location.level}` :
+                               item.bundleStockLock?.location ? `${item.bundleStockLock.location.shelf?.zone?.code}-${item.bundleStockLock.location.shelf?.code}-L${item.bundleStockLock.location.level}` :
+                               item.warehouseLocation || '-'}
                               {pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && ' (已退回)'}
                             </td>
                           </tr>

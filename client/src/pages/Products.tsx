@@ -103,9 +103,12 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
   const [productStocks, setProductStocks] = useState<any[]>([]);
-  const [shelves, setShelves] = useState<any[]>([]);
+  const [allLocations, setAllLocations] = useState<any[]>([]);
   const [stockLoading, setStockLoading] = useState(false);
-  const [stockForm, setStockForm] = useState({ warehouseId: '', shelfId: '', quantity: 1, skuId: '' });
+  const [stockForm, setStockForm] = useState({ warehouseId: '', zoneId: '', shelfId: '', locationId: '', quantity: 1, remark: '', skuId: '' });
+  const [stockZones, setStockZones] = useState<any[]>([]);
+  const [stockShelves, setStockShelves] = useState<any[]>([]);
+  const [stockLocations, setStockLocations] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -379,6 +382,7 @@ export default function ProductsPage() {
   const fetchBundleStocks = async (bundle: Bundle) => {
     setSelectedBundle(bundle);
     setSelectedProduct(null);
+    setProductStocks([]);
     setStockLoading(true);
     try {
       const res = await fetch(`/api/stock/bundle/${bundle.id}`, {
@@ -395,14 +399,11 @@ export default function ProductsPage() {
     }
   };
 
-  const fetchShelves = async (warehouseId: string) => {
+  const fetchZones = async (warehouseId: string) => {
     try {
-      const res = await fetch(`/api/warehouses/${warehouseId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShelves(data.data.shelves || []);
+      const res = await warehouseApi.listZones(warehouseId);
+      if (res.data.success) {
+        setStockZones(res.data.data || []);
       }
     } catch (error) {
       console.error(error);
@@ -418,13 +419,13 @@ export default function ProductsPage() {
           body: JSON.stringify({
             bundleId: selectedBundle.id,
             warehouseId: stockForm.warehouseId,
-            shelfId: stockForm.shelfId || null,
+            locationId: stockForm.locationId || null,
             quantity: stockForm.quantity,
           }),
         });
         toast.success('入库成功');
         fetchBundleStocks(selectedBundle);
-        setStockForm({ warehouseId: '', shelfId: '', quantity: 1, skuId: '' });
+        setStockForm({ warehouseId: '', zoneId: '', shelfId: '', locationId: '', quantity: 1, remark: '', skuId: '' });
       } catch (error: any) {
         toast.error(error.response?.data?.message || '入库失败');
       }
@@ -436,13 +437,14 @@ export default function ProductsPage() {
           body: JSON.stringify({
             skuId: stockForm.skuId,
             warehouseId: stockForm.warehouseId,
-            shelfId: stockForm.shelfId || null,
+            locationId: stockForm.locationId || null,
             quantity: stockForm.quantity,
+            remark: stockForm.remark || null,
           }),
         });
         toast.success('入库成功');
         fetchProductStocks(selectedProduct);
-        setStockForm({ warehouseId: '', shelfId: '', quantity: 1, skuId: '' });
+        setStockForm({ warehouseId: '', zoneId: '', shelfId: '', locationId: '', quantity: 1, remark: '', skuId: '' });
       } catch (error: any) {
         toast.error(error.response?.data?.message || '入库失败');
       }
@@ -451,12 +453,15 @@ export default function ProductsPage() {
 
   const fetchProductStocks = async (product: Product) => {
     setSelectedProduct(product);
+    setSelectedBundle(null);
+    setBundleStocks([]);
     setStockLoading(true);
     try {
       const res = await fetch(`/api/stock/sku/${product.id}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
+      console.log('fetchProductStocks response:', data);
       if (data.success) {
         setProductStocks(data.data);
       }
@@ -925,115 +930,190 @@ export default function ProductsPage() {
               </button>
             </div>
             <div className="p-4">
-              <div className="flex gap-2 mb-4">
-                <select
-                  value={stockForm.warehouseId}
-                  onChange={e => { setStockForm({ ...stockForm, warehouseId: e.target.value, shelfId: '' }); fetchShelves(e.target.value); }}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                >
-                  <option value="">选择仓库</option>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-                {selectedProduct && (
+              <div className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">仓库</label>
                   <select
-                    value={stockForm.skuId}
-                    onChange={e => setStockForm({ ...stockForm, skuId: e.target.value })}
-                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                    value={stockForm.warehouseId}
+                    onChange={e => { setStockForm({ ...stockForm, warehouseId: e.target.value, zoneId: '', shelfId: '', locationId: '' }); setStockZones([]); setStockShelves([]); setStockLocations([]); if (e.target.value) fetchZones(e.target.value); }}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    required
                   >
-                    <option value="">选择规格</option>
-                    {selectedProduct.skus?.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.spec}/{s.packaging}</option>
+                    <option value="">选择仓库</option>
+                    {warehouses.map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
                     ))}
                   </select>
+                </div>
+                <span className="text-gray-400 mt-4">-</span>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">库区</label>
+                  <select
+                    value={stockForm.zoneId}
+                    onChange={e => { setStockForm({ ...stockForm, zoneId: e.target.value, shelfId: '', locationId: '' }); setStockShelves([]); setStockLocations([]); const zone = stockZones.find(z => z.id === e.target.value); if (zone) setStockShelves(zone.shelves || []); }}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    disabled={!stockForm.warehouseId}
+                    required
+                  >
+                    <option value="">选择库区</option>
+                    {stockZones.map(z => (
+                      <option key={z.id} value={z.id}>{z.code}-{z.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <span className="text-gray-400 mt-4">-</span>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">货架</label>
+                  <select
+                    value={stockForm.shelfId}
+                    onChange={e => { setStockForm({ ...stockForm, shelfId: e.target.value, locationId: '' }); setStockLocations([]); const shelf = stockShelves.find(s => s.id === e.target.value); if (shelf) setStockLocations(shelf.locations || []); }}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    disabled={!stockForm.zoneId}
+                    required
+                  >
+                    <option value="">选择货架</option>
+                    {stockShelves.map(s => (
+                      <option key={s.id} value={s.id}>{s.code}</option>
+                    ))}
+                  </select>
+                </div>
+                <span className="text-gray-400 mt-4">-</span>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">库位</label>
+                  <select
+                    value={stockForm.locationId}
+                    onChange={e => setStockForm({ ...stockForm, locationId: e.target.value })}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    disabled={!stockForm.shelfId}
+                    required
+                  >
+                    <option value="">选择库位</option>
+                    {stockLocations.map(l => (
+                      <option key={l.id} value={l.id}>L{l.level}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {selectedProduct && (
+                  <div className="w-48">
+                    <label className="block text-xs text-gray-600 mb-1">规格</label>
+                    <select
+                      value={stockForm.skuId}
+                      onChange={e => setStockForm({ ...stockForm, skuId: e.target.value })}
+                      className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                      required
+                    >
+                      <option value="">选择规格</option>
+                      {selectedProduct.skus?.map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.spec}/{s.packaging}</option>
+                      ))}
+                    </select>
+                  </div>
                 )}
-                <select
-                  value={stockForm.shelfId}
-                  onChange={e => setStockForm({ ...stockForm, shelfId: e.target.value })}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                >
-                  <option value="">选择货架</option>
-                  {shelves.map(s => (
-                    <option key={s.id} value={s.id}>{s.code}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min="1"
-                  value={stockForm.quantity}
-                  onChange={e => setStockForm({ ...stockForm, quantity: parseInt(e.target.value) || 1 })}
-                  className="w-24 px-3 py-2 border rounded-lg text-sm"
-                />
+                <div className="w-24">
+                  <label className="block text-xs text-gray-600 mb-1">数量</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={stockForm.quantity}
+                    onChange={e => setStockForm({ ...stockForm, quantity: parseInt(e.target.value) || 1 })}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-600 mb-1">备注</label>
+                  <input
+                    type="text"
+                    value={stockForm.remark}
+                    onChange={e => setStockForm({ ...stockForm, remark: e.target.value })}
+                    className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                    placeholder="备注"
+                  />
+                </div>
                 <button
                   onClick={handleStockIn}
-                  disabled={!stockForm.warehouseId || stockForm.quantity < 1 || (!!selectedProduct && !stockForm.skuId)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:bg-gray-300"
+                  disabled={!stockForm.warehouseId || !stockForm.locationId || stockForm.quantity < 1 || (!!selectedProduct && !stockForm.skuId)}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:bg-gray-300 mt-4"
                 >
                   入库
                 </button>
               </div>
+            </div>
 
               {stockLoading ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary-600" />
                 </div>
               ) : selectedBundle ? (
-                bundleStocks.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">暂无库存记录</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left">仓库</th>
-                        <th className="px-3 py-2 text-left">货架</th>
-                        <th className="px-3 py-2 text-right">总库存</th>
-                        <th className="px-3 py-2 text-right">可用</th>
-                        <th className="px-3 py-2 text-right">已锁定</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bundleStocks.map(stock => (
-                        <tr key={stock.id} className="border-t">
-                          <td className="px-3 py-2">{stock.warehouse?.name}</td>
-                          <td className="px-3 py-2">{stock.shelf?.code || '-'}</td>
-                          <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
-                          <td className="px-3 py-2 text-right text-green-600">{stock.availableQuantity}</td>
-                          <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
+                <>
+                  {console.log('DEBUG bundleStocks:', bundleStocks)}
+                  {bundleStocks.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">暂无库存记录</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left">仓库</th>
+                          <th className="px-3 py-2 text-left">库位</th>
+                          <th className="px-3 py-2 text-right">总库存</th>
+                          <th className="px-3 py-2 text-right">可用</th>
+                          <th className="px-3 py-2 text-right">已锁定</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
+                      </thead>
+                      <tbody>
+                        {bundleStocks.map(stock => (
+                          <tr key={stock.id} className="border-t">
+                            <td className="px-3 py-2">{stock.warehouse?.code}</td>
+                            <td className="px-3 py-2">
+                              {stock.location ? `${stock.location.shelf?.zone?.code || '-'} - ${stock.location.shelf?.code || '-'} - L${stock.location.level}` : '-'}
+                            </td>
+                            <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
+                            <td className="px-3 py-2 text-right text-green-600">{stock.availableQuantity}</td>
+                            <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </>
               ) : selectedProduct ? (
-                productStocks.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">暂无库存记录</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left">仓库</th>
-                        <th className="px-3 py-2 text-left">货架</th>
-                        <th className="px-3 py-2 text-left">规格</th>
-                        <th className="px-3 py-2 text-right">总库存</th>
-                        <th className="px-3 py-2 text-right">可用</th>
-                        <th className="px-3 py-2 text-right">已锁定</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {productStocks.map(stock => (
-                        <tr key={stock.id} className="border-t">
-                          <td className="px-3 py-2">{stock.warehouse?.name}</td>
-                          <td className="px-3 py-2">{stock.shelf?.code || '-'}</td>
-                          <td className="px-3 py-2">{stock.sku?.spec}/{stock.sku?.packaging}</td>
-                          <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
-                          <td className="px-3 py-2 text-right text-green-600">{stock.availableQuantity}</td>
-                          <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
+                <>
+                  {console.log('DEBUG: selectedProduct=', selectedProduct?.name, 'productStocks=', productStocks.length)}
+                  {productStocks.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">暂无库存记录</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left">仓库</th>
+                          <th className="px-3 py-2 text-left">库位</th>
+                          <th className="px-3 py-2 text-left">规格</th>
+                          <th className="px-3 py-2 text-right">总库存</th>
+                          <th className="px-3 py-2 text-right">可用</th>
+                          <th className="px-3 py-2 text-right">已锁定</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
+                      </thead>
+                      <tbody>
+                        {productStocks.map(stock => (
+                          <tr key={stock.id} className="border-t">
+                            <td className="px-3 py-2">{stock.warehouse?.code}</td>
+                            <td className="px-3 py-2">
+                              {stock.location ? `${stock.location.shelf?.zone?.code || '-'} - ${stock.location.shelf?.code || '-'} - L${stock.location.level}` : '-'}
+                            </td>
+                            <td className="px-3 py-2">{stock.sku?.spec}/{stock.sku?.packaging}</td>
+                            <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
+                            <td className="px-3 py-2 text-right text-green-600">{stock.availableQuantity}</td>
+                            <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8 text-gray-500">请选择一个商品或套装</div>
               )}

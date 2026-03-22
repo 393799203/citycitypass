@@ -259,7 +259,7 @@ export default function WarehousesPage() {
                       </span>
                     </div>
                     <div className="text-xs text-gray-600">
-                      <div>商品库存: {warehouse.totalStock || 0} 件 / {warehouse.skuCount || 0} SKU</div>
+                      <div className="text-blue-600">商品库存: {warehouse.totalStock || 0} 件 / {warehouse.skuCount || 0} SKU</div>
                       {(warehouse.totalBundleStock > 0 || warehouse.bundleCount > 0) && (
                         <div className="text-purple-600 mt-1">
                           套装库存: {warehouse.totalBundleStock || 0} 件 / {warehouse.bundleCount || 0} 款

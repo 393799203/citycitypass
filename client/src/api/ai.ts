@@ -16,20 +16,29 @@ export async function callAI(prompt: string): Promise<string> {
   });
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+
+  if (!response.ok || !data.choices?.[0]?.message?.content) {
+    console.error('AI API error:', data);
+    throw new Error(data.error?.message || 'AI请求失败');
+  }
+
+  return data.choices[0].message.content;
 }
 
 export async function parseAIResponse<T>(prompt: string): Promise<T | null> {
-  const content = await callAI(prompt);
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  
-  if (!jsonMatch) {
-    return null;
-  }
-
   try {
+    const content = await callAI(prompt);
+    console.log('AI response:', content);
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', content);
+      return null;
+    }
+
     return JSON.parse(jsonMatch[0]) as T;
-  } catch {
-    return null;
+  } catch (error) {
+    console.error('parseAIResponse error:', error);
+    throw error;
   }
 }

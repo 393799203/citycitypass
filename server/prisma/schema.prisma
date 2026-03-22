@@ -253,15 +253,15 @@ model BundleStock {
   bundle          BundleSKU @relation(fields: [bundleId], references: [id])
   warehouseId     String
   warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
-  shelfId         String?
-  shelf           Shelf?    @relation(fields: [shelfId], references: [id])
+  locationId      String?
+  location        Location? @relation(fields: [locationId], references: [id])
   totalQuantity   Int       @default(0)
   lockedQuantity  Int       @default(0)
   availableQuantity Int      @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@unique([bundleId, warehouseId, shelfId])
+  @@unique([bundleId, warehouseId, locationId])
 }
 
 model BundleStockLock {
@@ -270,8 +270,8 @@ model BundleStockLock {
   bundle      BundleSKU @relation(fields: [bundleId], references: [id])
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  shelfId     String?
-  shelf       Shelf?   @relation(fields: [shelfId], references: [id])
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   quantity    Int
@@ -285,8 +285,8 @@ model BundleStockIn {
   bundle      BundleSKU @relation(fields: [bundleId], references: [id])
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  shelfId     String?
-  shelf       Shelf?    @relation(fields: [shelfId], references: [id])
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
   quantity    Int
   remark      String?
   createdAt   DateTime  @default(now())
@@ -399,7 +399,7 @@ model Warehouse {
   managerPhone String?        // 管理员电话
   businessStartTime String?   // 营业开始时间
   businessEndTime   String?   // 营业结束时间
-  shelves     Shelf[]
+  zones       Zone[]
   stocks     Stock[]
   stockIns   StockIn[]
   stockLocks StockLock[]
@@ -414,23 +414,49 @@ model Warehouse {
   updatedAt   DateTime        @updatedAt
 }
 
-model Shelf {
+model Zone {
   id          String    @id @default(uuid())
   code        String
-  type        String    @default("1")  // 1-重型货架 2-轻型货架
-  row         Int       // 第几排（必填）
-  column      Int       // 第几列（必填）
-  level       Int       @default(5)   // 货架层数
+  name        String
+  type        String    @default("STORAGE")  // RECEIVING-收货区 STORAGE-存储区 PICKING-拣货区 SHIPPING-发货区 RETURNING-退货区
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  stockIns   StockIn[]
-  stocks     Stock[]
-  stockLocks StockLock[]
-  bundleStocks    BundleStock[]
-  bundleStockLocks BundleStockLock[]
-  bundleStockIns BundleStockIn[]
-  
+  shelves     Shelf[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@unique([warehouseId, code])
+}
+
+model Shelf {
+  id          String    @id @default(uuid())
+  code        String    // 货架编码 R001, R002...
+  name        String?   // 货架名称（如需）
+  type        String    @default("HEAVY")  // HEAVY-重型货架 FLOW-流利架 LIGHT-轻型货架
+  status      String    @default("ACTIVE") // ACTIVE-启用 INACTIVE-禁用
+  zoneId      String
+  zone        Zone      @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  locations   Location[]
+
+  @@unique([zoneId, code])
+  createdAt  DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Location {
+  id        String    @id @default(uuid())
+  shelfId   String
+  shelf     Shelf     @relation(fields: [shelfId], references: [id], onDelete: Cascade)
+  level     Int       // 第几层（必填）
+  position  Int?      // 同一层的第几个位置（可选，更精确时使用）
+  stockIns    StockIn[]
+  stocks      Stock[]
+  stockLocks  StockLock[]
+  bundleStocks     BundleStock[]
+  bundleStockLocks BundleStockLock[]
+  bundleStockIns   BundleStockIn[]
+
+  @@unique([shelfId, level, position])
   createdAt  DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -447,16 +473,16 @@ model Stock {
   sku             ProductSKU @relation(fields: [skuId], references: [id])
   warehouseId     String
   warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
-  shelfId         String?
-  shelf           Shelf?    @relation(fields: [shelfId], references: [id])
+  locationId      String?
+  location        Location? @relation(fields: [locationId], references: [id])
   totalQuantity   Int       @default(0)    // 总库存
   lockedQuantity  Int       @default(0)    // 已锁定库存
   availableQuantity Int     @default(0)    // 可用库存
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  stockIns       StockIn[]
+  stockIns        StockIn[]
 
-  @@unique([skuId, warehouseId, shelfId])
+  @@unique([skuId, warehouseId, locationId])
 }
 
 model StockLock {
@@ -467,8 +493,8 @@ model StockLock {
   order       Order       @relation(fields: [orderId], references: [id])
   warehouseId String
   warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
-  shelfId     String?
-  shelf       Shelf?      @relation(fields: [shelfId], references: [id])
+  locationId  String?
+  location    Location?   @relation(fields: [locationId], references: [id])
   quantity    Int         // 锁定数量
   status      LockStatus  @default(LOCKED)
   createdAt   DateTime    @default(now())
@@ -484,8 +510,8 @@ model StockIn {
   sku         ProductSKU @relation(fields: [skuId], references: [id])
   warehouseId  String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  shelfId     String?
-  shelf       Shelf?    @relation(fields: [shelfId], references: [id])
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
   quantity    Int       // 入库数量
   batchNo     String?   // 批次号
   remark      String?   // 备注
@@ -499,7 +525,7 @@ model StockOut {
   skuId       String?   // 商品SKU（商品出库时）
   bundleId    String?   // 套装（套装出库时）
   warehouseId String
-  shelfId     String?
+  locationId  String?   // 库位（出库库位）
   quantity    Int       // 出库数量
   remark      String?   // 备注
   createdAt   DateTime  @default(now())
@@ -509,6 +535,7 @@ model StockOut {
   @@index([warehouseId])
   @@index([skuId])
   @@index([bundleId])
+  @@index([locationId])
 }
 
 enum VehicleStatus {

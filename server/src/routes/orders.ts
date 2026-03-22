@@ -65,6 +65,32 @@ router.get('/', async (req: Request, res: Response) => {
             bundle: true,
           }
         },
+        stockLocks: {
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: {
+                    zone: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        bundleStockLocks: {
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: {
+                    zone: true
+                  }
+                }
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -236,7 +262,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.stockLock.create({
-                data: { skuId: item.skuId!, warehouseId, shelfId: stock.shelfId, quantity: lockQty, orderId: newOrder.id },
+                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -254,7 +280,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.bundleStockLock.create({
-                data: { bundleId: item.bundleId!, warehouseId, shelfId: bs.shelfId, quantity: lockQty, orderId: newOrder.id },
+                data: { bundleId: item.bundleId!, warehouseId, locationId: bs.locationId, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -468,7 +494,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.stockLock.create({
-            data: { skuId: item.skuId!, warehouseId: data.warehouseId, stockId: stock.id, shelfId: stock.shelfId, quantity: lockQty, orderId: newOrder.id },
+            data: { skuId: item.skuId!, warehouseId: data.warehouseId, stockId: stock.id, locationId: stock.locationId, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -486,7 +512,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.bundleStockLock.create({
-            data: { bundleId: item.bundleId!, warehouseId: data.warehouseId, stockId: bs.id, shelfId: bs.shelfId, quantity: lockQty, orderId: newOrder.id },
+            data: { bundleId: item.bundleId!, warehouseId: data.warehouseId, stockId: bs.id, locationId: bs.locationId, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -557,12 +583,23 @@ router.put('/:id/status', async (req: Request, res: Response) => {
         });
 
         for (const lock of stockLocks) {
-          if (lock.shelfId) {
+          if (lock.locationId) {
             await tx.stock.updateMany({
               where: {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
-                shelfId: lock.shelfId,
+                locationId: lock.locationId,
+              },
+              data: {
+                lockedQuantity: { decrement: lock.quantity },
+                availableQuantity: { increment: lock.quantity },
+              },
+            });
+          } else {
+            await tx.stock.updateMany({
+              where: {
+                skuId: lock.skuId,
+                warehouseId: lock.warehouseId,
               },
               data: {
                 lockedQuantity: { decrement: lock.quantity },
@@ -578,12 +615,12 @@ router.put('/:id/status', async (req: Request, res: Response) => {
         });
 
         for (const lock of bundleStockLocks) {
-          if (lock.shelfId) {
+          if (lock.locationId) {
             await tx.bundleStock.updateMany({
               where: {
                 bundleId: lock.bundleId,
                 warehouseId: lock.warehouseId,
-                shelfId: lock.shelfId,
+                locationId: lock.locationId,
               },
               data: {
                 lockedQuantity: { decrement: lock.quantity },
@@ -612,12 +649,12 @@ router.put('/:id/status', async (req: Request, res: Response) => {
         });
 
         for (const lock of stockLocks) {
-          if (lock.shelfId) {
+          if (lock.locationId) {
             await tx.stock.updateMany({
               where: {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
-                shelfId: lock.shelfId,
+                locationId: lock.locationId,
               },
               data: {
                 totalQuantity: { decrement: lock.quantity },
@@ -630,7 +667,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 orderId: lock.orderId,
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
-                shelfId: lock.shelfId,
+                locationId: lock.locationId,
                 quantity: lock.quantity,
               },
             });
@@ -643,12 +680,12 @@ router.put('/:id/status', async (req: Request, res: Response) => {
         });
 
         for (const lock of bundleStockLocks) {
-          if (lock.shelfId) {
+          if (lock.locationId) {
             await tx.bundleStock.updateMany({
               where: {
                 bundleId: lock.bundleId,
                 warehouseId: lock.warehouseId,
-                shelfId: lock.shelfId,
+                locationId: lock.locationId,
               },
               data: {
                 totalQuantity: { decrement: lock.quantity },
@@ -673,7 +710,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
               orderId: lock.orderId,
               bundleId: lock.bundleId,
               warehouseId: lock.warehouseId,
-              shelfId: lock.shelfId,
+              locationId: lock.locationId,
               quantity: lock.quantity,
             },
           });

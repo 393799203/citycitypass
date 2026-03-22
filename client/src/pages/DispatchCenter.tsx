@@ -154,6 +154,7 @@ export default function DispatchCenterPage() {
 1. 必须优先选择同一仓库的订单
 2. 同一仓库中优先选择订单数量最多的城市/区域
 3. 跨仓库的订单不建议归在一起
+4. 商品存放位置结构为【仓库-库区-货架-库位】
 
 订单列表：
 ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'}, 城市: ${o.province}${o.city}, 地址: ${o.address}`).join('\n')}

@@ -9,7 +9,7 @@ const stockInSchema = z.object({
   skuId: z.string().optional(),
   bundleId: z.string().optional(),
   warehouseId: z.string().min(1, '仓库不能为空'),
-  shelfId: z.string().optional(),
+  locationId: z.string().optional(),
   quantity: z.number().int().positive('数量必须大于0'),
   batchNo: z.string().nullable().optional(),
   remark: z.string().nullable().optional(),
@@ -21,16 +21,16 @@ const stockInSchema = z.object({
 const lockStockSchema = z.object({
   skuId: z.string().min(1, 'SKU不能为空'),
   warehouseId: z.string().min(1, '仓库不能为空'),
-  shelfId: z.string().optional(),
+  locationId: z.string().optional(),
   orderId: z.string().min(1, '订单不能为空'),
   quantity: z.number().int().positive('数量必须大于0'),
 });
 
-function getStockWhere(skuId: string, warehouseId: string, shelfId?: string) {
+function getStockWhere(skuId: string, warehouseId: string, locationId?: string) {
   return {
     skuId,
     warehouseId,
-    shelfId: shelfId || null,
+    locationId: locationId || null,
   };
 }
 
@@ -48,7 +48,15 @@ router.get('/', async (req: Request, res: Response) => {
           include: { product: true }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -71,7 +79,15 @@ router.get('/', async (req: Request, res: Response) => {
           }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -279,7 +295,15 @@ router.get('/stock-in', async (req: Request, res: Response) => {
           include: { product: true }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -299,7 +323,15 @@ router.get('/stock-in', async (req: Request, res: Response) => {
           }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -332,7 +364,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
           where: { 
             bundleId: data.bundleId!, 
             warehouseId: data.warehouseId, 
-            shelfId: data.shelfId || null 
+            locationId: data.locationId || null 
           },
         });
 
@@ -349,7 +381,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
             data: {
               bundleId: data.bundleId!,
               warehouseId: data.warehouseId,
-              shelfId: data.shelfId || null,
+              locationId: data.locationId || null,
               totalQuantity: data.quantity,
               availableQuantity: data.quantity,
             },
@@ -360,7 +392,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
           data: {
             bundleId: data.bundleId!,
             warehouseId: data.warehouseId,
-            shelfId: data.shelfId || null,
+            locationId: data.locationId || null,
             quantity: data.quantity,
             remark: data.remark || null,
           },
@@ -369,7 +401,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
         return bundleStockIn;
       } else {
         let stock = await tx.stock.findFirst({
-          where: getStockWhere(data.skuId!, data.warehouseId, data.shelfId),
+          where: getStockWhere(data.skuId!, data.warehouseId, data.locationId),
         });
 
         if (stock) {
@@ -385,7 +417,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
             data: {
               skuId: data.skuId!,
               warehouseId: data.warehouseId,
-              shelfId: data.shelfId || null,
+              locationId: data.locationId || null,
               totalQuantity: data.quantity,
               availableQuantity: data.quantity,
             },
@@ -396,7 +428,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
           data: {
             skuId: data.skuId!,
             warehouseId: data.warehouseId,
-            shelfId: data.shelfId || null,
+            locationId: data.locationId || null,
             quantity: data.quantity,
             batchNo: data.batchNo || null,
             remark: data.remark || null,
@@ -424,7 +456,7 @@ router.post('/lock', async (req: Request, res: Response) => {
 
     const result = await prisma.$transaction(async (tx) => {
       let stock = await tx.stock.findFirst({
-          where: getStockWhere(data.skuId, data.warehouseId, data.shelfId),
+          where: getStockWhere(data.skuId, data.warehouseId, data.locationId),
         });
 
       if (!stock || stock.availableQuantity < data.quantity) {
@@ -436,7 +468,7 @@ router.post('/lock', async (req: Request, res: Response) => {
           skuId: data.skuId,
           orderId: data.orderId,
           warehouseId: data.warehouseId,
-          shelfId: data.shelfId || null,
+          locationId: data.locationId || null,
           quantity: data.quantity,
           status: 'LOCKED',
         },
@@ -480,7 +512,7 @@ router.post('/unlock', async (req: Request, res: Response) => {
 
       for (const lock of locks) {
         const stock = await tx.stock.findFirst({
-          where: getStockWhere(lock.skuId, lock.warehouseId, lock.shelfId || undefined),
+          where: getStockWhere(lock.skuId, lock.warehouseId, lock.locationId || undefined),
         });
 
         if (stock) {
@@ -523,7 +555,7 @@ router.post('/use', async (req: Request, res: Response) => {
 
       for (const lock of locks) {
         const stock = await tx.stock.findFirst({
-          where: getStockWhere(lock.skuId, lock.warehouseId, lock.shelfId || undefined),
+          where: getStockWhere(lock.skuId, lock.warehouseId, lock.locationId || undefined),
         });
 
         if (stock) {
@@ -540,7 +572,7 @@ router.post('/use', async (req: Request, res: Response) => {
               orderId: lock.orderId,
               skuId: lock.skuId,
               warehouseId: lock.warehouseId,
-              shelfId: lock.shelfId,
+              locationId: lock.locationId,
               quantity: lock.quantity,
             },
           });
@@ -564,14 +596,14 @@ router.post('/use', async (req: Request, res: Response) => {
 
 router.post('/bundle/lock', async (req: Request, res: Response) => {
   try {
-    const { bundleId, warehouseId, shelfId, quantity, orderId } = req.body;
+    const { bundleId, warehouseId, locationId, quantity, orderId } = req.body;
     if (!bundleId || !warehouseId || !quantity || !orderId) {
       return res.status(400).json({ success: false, message: '缺少必要参数' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
       const bundleStock = await tx.bundleStock.findFirst({
-        where: { bundleId, warehouseId, shelfId: shelfId || null },
+        where: { bundleId, warehouseId, locationId: locationId || null },
       });
 
       if (!bundleStock || bundleStock.availableQuantity < quantity) {
@@ -583,7 +615,7 @@ router.post('/bundle/lock', async (req: Request, res: Response) => {
           bundleId,
           orderId,
           warehouseId,
-          shelfId: shelfId || null,
+          locationId: locationId || null,
           quantity,
         },
       });
@@ -626,7 +658,7 @@ router.post('/bundle/unlock', async (req: Request, res: Response) => {
 
       for (const lock of locks) {
         const bundleStock = await tx.bundleStock.findFirst({
-          where: { bundleId: lock.bundleId, warehouseId: lock.warehouseId, shelfId: lock.shelfId || null },
+          where: { bundleId: lock.bundleId, warehouseId: lock.warehouseId, locationId: lock.locationId || null },
         });
 
         if (bundleStock) {
@@ -666,7 +698,7 @@ router.post('/bundle/use', async (req: Request, res: Response) => {
 
       for (const lock of locks) {
         const bundleStock = await tx.bundleStock.findFirst({
-          where: { bundleId: lock.bundleId, warehouseId: lock.warehouseId, shelfId: lock.shelfId || null },
+          where: { bundleId: lock.bundleId, warehouseId: lock.warehouseId, locationId: lock.locationId || null },
         });
 
         if (bundleStock) {
@@ -683,7 +715,7 @@ router.post('/bundle/use', async (req: Request, res: Response) => {
               orderId: lock.orderId,
               bundleId: lock.bundleId,
               warehouseId: lock.warehouseId,
-              shelfId: lock.shelfId,
+              locationId: lock.locationId,
               quantity: lock.quantity,
             },
           });
@@ -722,21 +754,21 @@ router.get('/out', async (req: Request, res: Response) => {
     const warehouseIds = [...new Set(stockOuts.map(s => s.warehouseId))];
     const skuIds = stockOuts.filter(s => s.skuId).map(s => s.skuId);
     const bundleIds = stockOuts.filter(s => s.bundleId).map(s => s.bundleId);
-    const shelfIds = stockOuts.filter(s => s.shelfId).map(s => s.shelfId);
+    const locationIds = stockOuts.filter(s => s.locationId).map(s => s.locationId);
     const orderIds = [...new Set(stockOuts.map(s => s.orderId))];
 
-    const [warehouses, skus, bundles, shelves, orders] = await Promise.all([
+    const [warehouses, skus, bundles, locations, orders] = await Promise.all([
       warehouseIds.length ? prisma.warehouse.findMany({ where: { id: { in: warehouseIds } } }) : [],
       skuIds.length ? prisma.productSKU.findMany({ where: { id: { in: skuIds } }, include: { product: true } }) : [],
       bundleIds.length ? prisma.bundleSKU.findMany({ where: { id: { in: bundleIds } }, include: { items: { include: { sku: { include: { product: true } } } } } }) : [],
-      shelfIds.length ? prisma.shelf.findMany({ where: { id: { in: shelfIds } } }) : [],
+      locationIds.length ? prisma.location.findMany({ where: { id: { in: locationIds } }, include: { shelf: { include: { zone: true } } } }) : [],
       orderIds.length ? prisma.order.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNo: true } }) : [],
     ]);
 
     const warehouseMap = Object.fromEntries(warehouses.map(w => [w.id, w]));
     const skuMap = Object.fromEntries(skus.map(s => [s.id, s]));
     const bundleMap = Object.fromEntries(bundles.map(b => [b.id, b]));
-    const shelfMap = Object.fromEntries(shelves.map(s => [s.id, s]));
+    const locationMap = Object.fromEntries(locations.map(l => [l.id, l]));
     const orderMap = Object.fromEntries(orders.map(o => [o.id, o]));
 
     const result = stockOuts.map(out => ({
@@ -744,7 +776,7 @@ router.get('/out', async (req: Request, res: Response) => {
       warehouse: warehouseMap[out.warehouseId],
       sku: out.skuId ? skuMap[out.skuId] : null,
       bundle: out.bundleId ? bundleMap[out.bundleId] : null,
-      shelf: out.shelfId ? shelfMap[out.shelfId] : null,
+      location: out.locationId ? locationMap[out.locationId] : null,
       order: orderMap[out.orderId] || null,
     }));
 
@@ -777,7 +809,15 @@ router.get('/bundle', async (req: Request, res: Response) => {
           }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -811,7 +851,15 @@ router.get('/bundle/:id', async (req: Request, res: Response) => {
           }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -837,7 +885,15 @@ router.get('/sku/:id', async (req: Request, res: Response) => {
           include: { product: true }
         },
         warehouse: true,
-        shelf: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -851,14 +907,14 @@ router.get('/sku/:id', async (req: Request, res: Response) => {
 
 router.post('/bundle/stock-in', async (req: Request, res: Response) => {
   try {
-    const { bundleId, warehouseId, shelfId, quantity, batchNo, remark } = req.body;
+    const { bundleId, warehouseId, locationId, quantity, batchNo, remark } = req.body;
     if (!bundleId || !warehouseId || !quantity) {
       return res.status(400).json({ success: false, message: '缺少必要参数' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
       let bundleStock = await tx.bundleStock.findFirst({
-        where: { bundleId, warehouseId, shelfId: shelfId || null },
+        where: { bundleId, warehouseId, locationId: locationId || null },
       });
 
       if (bundleStock) {
@@ -874,7 +930,7 @@ router.post('/bundle/stock-in', async (req: Request, res: Response) => {
           data: {
             bundleId,
             warehouseId,
-            shelfId: shelfId || null,
+            locationId: locationId || null,
             totalQuantity: quantity,
             availableQuantity: quantity,
           },
@@ -885,7 +941,7 @@ router.post('/bundle/stock-in', async (req: Request, res: Response) => {
         data: {
           bundleId,
           warehouseId,
-          shelfId: shelfId || null,
+          locationId: locationId || null,
           quantity,
           remark: remark || null,
         },

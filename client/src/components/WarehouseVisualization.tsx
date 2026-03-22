@@ -1,60 +1,79 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 // @ts-ignore
 import * as THREE from 'three';
 // @ts-ignore
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+interface Location {
+  id: string;
+  level: number;
+  position?: number;
+}
+
 interface Shelf {
   id: string;
   code: string;
   type: string;
-  row: number;
-  column: number;
-  level: number;
+  locations?: Location[];
+}
+
+interface Zone {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  shelves?: Shelf[];
 }
 
 interface WarehouseVisualizationProps {
-  shelves: Shelf[];
+  zones: Zone[];
   selectedShelfId?: string | null;
   showResetButton?: boolean;
   resetTrigger?: number;
 }
 
-export default function WarehouseVisualization({ shelves, selectedShelfId, showResetButton, resetTrigger }: WarehouseVisualizationProps) {
+const zoneColors: Record<string, number> = {
+  RECEIVING: 0x3b82f6,
+  STORAGE: 0x6b7280,
+  PICKING: 0xeab308,
+  SHIPPING: 0x22c55e,
+  RETURNING: 0xef4444,
+};
+
+export default function WarehouseVisualization({ zones, selectedShelfId, showResetButton, resetTrigger }: WarehouseVisualizationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const [isZoomed, setIsZoomed] = useState(false);
-  const prevSelectedShelfIdRef = useRef<string | null | undefined>(null);
-
-  const shelfStats = useMemo(() => {
-    if (shelves.length === 0) return { maxRow: 1, maxColumn: 1, maxLevel: 1 };
-    const maxRow = Math.max(...shelves.map(s => s.row));
-    const maxColumn = Math.max(...shelves.map(s => s.column));
-    const maxLevel = Math.max(...shelves.map(s => s.level));
-    return { maxRow, maxColumn, maxLevel };
-  }, [shelves]);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || shelves.length === 0) return;
+    if (!containerRef.current) return;
+
+    const validZones = zones.filter(z => z.shelves && z.shelves.length > 0);
+    if (validZones.length === 0) return;
 
     const container = containerRef.current;
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
     const width = container.clientWidth;
     const height = container.clientHeight || 550;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f4f8);
 
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+    camera.position.set(0, 12, 18);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -62,218 +81,188 @@ export default function WarehouseVisualization({ shelves, selectedShelfId, showR
     controls.dampingFactor = 0.05;
     controls.minPolarAngle = 0.1;
     controls.maxPolarAngle = Math.PI / 2 - 0.1;
+    controls.target.set(0, 3, 0);
+    controls.update();
     controlsRef.current = controls;
     sceneRef.current = scene;
     cameraRef.current = camera;
-    
-    controls.target.set(0, 3, 0);
-    camera.position.set(0, 12, 18);
-    controls.update();
+    rendererRef.current = renderer;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
     const mainLight = new THREE.DirectionalLight(0xffffff, 1);
-    mainLight.position.set(20, 30, 20);
+    mainLight.position.set(20, 40, 20);
     mainLight.castShadow = true;
     mainLight.shadow.mapSize.width = 2048;
     mainLight.shadow.mapSize.height = 2048;
     mainLight.shadow.camera.near = 0.5;
     mainLight.shadow.camera.far = 100;
-    mainLight.shadow.camera.left = -30;
-    mainLight.shadow.camera.right = 30;
-    mainLight.shadow.camera.top = 30;
-    mainLight.shadow.camera.bottom = -30;
-    mainLight.shadow.bias = -0.0001;
+    mainLight.shadow.camera.left = -40;
+    mainLight.shadow.camera.right = 40;
+    mainLight.shadow.camera.top = 40;
+    mainLight.shadow.camera.bottom = -40;
     scene.add(mainLight);
 
-    const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
-    fillLight.position.set(-15, 10, -15);
-    scene.add(fillLight);
+    const zoneWidth = 8;
+    const zoneDepth = 6;
+    const zoneGap = 3;
+    const shelfWidth = 2;
+    const shelfDepth = 1.5;
+    const levelHeight = 0.8;
 
-    const rimLight = new THREE.DirectionalLight(0xff8844, 0.2);
-    rimLight.position.set(10, 5, -20);
-    scene.add(rimLight);
+    let offsetX = -((validZones.length - 1) * (zoneWidth + zoneGap)) / 2;
 
-    const floorSize = Math.max(shelfStats.maxColumn, shelfStats.maxRow) * 4 + 4;
-    const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize);
-    const floorMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0xffffff,
-      roughness: 0.9,
-      metalness: 0.1
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, 0, 0);
-    scene.add(floor);
+    validZones.forEach((zone, zoneIndex) => {
+      const zoneGroup = new THREE.Group();
+      const zoneX = offsetX + zoneIndex * (zoneWidth + zoneGap);
+      zoneGroup.position.set(zoneX, 0, 0);
 
-    const unitWidth = 3;
-    const unitDepth = 2.5;
-    const levelHeight = 1.2;
-    const rowGap = 5;
-    const colGap = 0.3;
-
-    const rows = new Map<number, Shelf[]>();
-    shelves.forEach(shelf => {
-      if (!rows.has(shelf.row)) {
-        rows.set(shelf.row, []);
-      }
-      rows.get(shelf.row)!.push(shelf);
-    });
-
-    rows.forEach((rowShelves, rowNum) => {
-      const maxCol = Math.max(...rowShelves.map(s => s.column));
-      const maxLevel = Math.max(...rowShelves.map(s => s.level));
-      
-      const rowType = rowShelves[0]?.type;
-      const isHeavy = String(rowType) === '1';
-      const beamColor = isHeavy ? 0x1e40af : 0xea580c;
-      
-      const offsetX = -((shelfStats.maxColumn - 1) * (unitWidth + colGap)) / 2;
-      const rowZ = (rowNum - 1) * rowGap - ((shelfStats.maxRow - 1) * rowGap) / 2;
-
-      const cabinetGroup = new THREE.Group();
-      cabinetGroup.position.set(offsetX, 0, rowZ);
-
-      const columnColor = 0x374151;
-      const columnMaterial = new THREE.MeshStandardMaterial({ 
-        color: columnColor,
-        roughness: 0.3,
-        metalness: 0.7
+      const zoneColor = zoneColors[zone.type] || 0x6b7280;
+      const zoneMaterial = new THREE.MeshStandardMaterial({
+        color: zoneColor,
+        transparent: true,
+        opacity: 0.2,
+        roughness: 0.8,
       });
+      const zoneFloor = new THREE.Mesh(
+        new THREE.BoxGeometry(zoneWidth, 0.1, zoneDepth),
+        zoneMaterial
+      );
+      zoneFloor.position.set(0, 0.05, 0);
+      zoneFloor.receiveShadow = true;
+      zoneGroup.add(zoneFloor);
 
-      const beamMaterial = new THREE.MeshStandardMaterial({ 
-        color: beamColor,
-        roughness: 0.3,
-        metalness: 0.5
-      });
+      const zoneBorder = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(zoneWidth, 0.2, zoneDepth)),
+        new THREE.LineBasicMaterial({ color: zoneColor, linewidth: 2 })
+      );
+      zoneBorder.position.set(0, 0.1, 0);
+      zoneGroup.add(zoneBorder);
 
-      const deckMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x9ca3af,
-        roughness: 0.4,
-        metalness: 0.5
-      });
+      const zoneLabel = createTextSprite(zone.name, zoneColor);
+      zoneLabel.position.set(0, 0.5, -zoneDepth / 2 - 0.5);
+      zoneGroup.add(zoneLabel);
 
-      const totalHeight = maxLevel * levelHeight;
-      
-      for (let col = 1; col <= maxCol; col++) {
-        const shelf = rowShelves.find(s => s.column === col);
-        if (!shelf) continue;
+      const shelves = zone.shelves || [];
+      const shelfGap = shelfWidth * 0.6;
+      let shelfOffsetX = -(shelves.length - 1) * shelfGap / 2;
 
-        const xPos = col * (unitWidth + colGap) - colGap;
-        const levelCount = shelf.level;
-        
-        const columnWidth = 0.25;
-        const columnDepth = 0.15;
-        
-        const frontLeftCol = new THREE.Mesh(
-          new THREE.BoxGeometry(columnWidth, totalHeight, columnDepth),
-          columnMaterial
+      shelves.forEach((shelf, shelfIndex) => {
+        const shelfGroup = new THREE.Group();
+        const shelfX = shelfOffsetX + shelfIndex * shelfGap;
+        const locations = shelf.locations || [];
+        const maxLevel = Math.max(...locations.map(l => l.level), 1);
+        const totalHeight = maxLevel * levelHeight;
+        const isSelected = shelf.id === selectedShelfId;
+
+        const shelfColor = isSelected ? 0xf97316 : 0x1e3a5f;
+        const shelfMaterial = new THREE.MeshStandardMaterial({
+          color: shelfColor,
+          roughness: 0.2,
+          metalness: 0.8,
+          envMapIntensity: 1,
+        });
+
+        const leftCol = new THREE.Mesh(
+          new THREE.BoxGeometry(0.15, totalHeight, shelfDepth),
+          shelfMaterial
         );
-        frontLeftCol.position.set(xPos - unitWidth / 2, totalHeight / 2, unitDepth / 2);
-        cabinetGroup.add(frontLeftCol);
+        leftCol.position.set(-shelfWidth / 2, totalHeight / 2 + 0.1, 0);
+        leftCol.castShadow = true;
+        shelfGroup.add(leftCol);
 
-        const frontRightCol = new THREE.Mesh(
-          new THREE.BoxGeometry(columnWidth, totalHeight, columnDepth),
-          columnMaterial
+        const rightCol = new THREE.Mesh(
+          new THREE.BoxGeometry(0.15, totalHeight, shelfDepth),
+          shelfMaterial
         );
-        frontRightCol.position.set(xPos + unitWidth / 2, totalHeight / 2, unitDepth / 2);
-        cabinetGroup.add(frontRightCol);
+        rightCol.position.set(shelfWidth / 2, totalHeight / 2 + 0.1, 0);
+        rightCol.castShadow = true;
+        shelfGroup.add(rightCol);
 
-        const backLeftCol = new THREE.Mesh(
-          new THREE.BoxGeometry(columnWidth, totalHeight, columnDepth),
-          columnMaterial
+        const backCol = new THREE.Mesh(
+          new THREE.BoxGeometry(shelfWidth, totalHeight, 0.1),
+          shelfMaterial
         );
-        backLeftCol.position.set(xPos - unitWidth / 2, totalHeight / 2, -unitDepth / 2);
-        cabinetGroup.add(backLeftCol);
+        backCol.position.set(0, totalHeight / 2 + 0.1, -shelfDepth / 2 + 0.05);
+        backCol.castShadow = true;
+        shelfGroup.add(backCol);
 
-        const backRightCol = new THREE.Mesh(
-          new THREE.BoxGeometry(columnWidth, totalHeight, columnDepth),
-          columnMaterial
-        );
-        backRightCol.position.set(xPos + unitWidth / 2, totalHeight / 2, -unitDepth / 2);
-        cabinetGroup.add(backRightCol);
+        locations.forEach((loc) => {
+          const levelY = loc.level * levelHeight;
 
-        for (let l = 0; l < totalHeight / levelHeight; l++) {
-          const braceY = l * levelHeight;
-          
-          const hBrace = new THREE.Mesh(
-            new THREE.BoxGeometry(0.02, levelHeight - 0.1, 0.02),
-            columnMaterial
+          const deck = new THREE.Mesh(
+            new THREE.BoxGeometry(shelfWidth - 0.2, 0.06, shelfDepth - 0.2),
+            new THREE.MeshStandardMaterial({
+              color: isSelected ? 0xfbbf24 : 0x9ca3af,
+              roughness: 0.5,
+              metalness: 0.3,
+            })
           );
-          hBrace.position.set(xPos - unitWidth / 2 + columnWidth / 2, braceY + levelHeight / 2, -unitDepth / 2 + columnDepth / 2);
-          cabinetGroup.add(hBrace);
+          deck.position.set(0, levelY, 0);
+          deck.castShadow = true;
+          deck.receiveShadow = true;
+          shelfGroup.add(deck);
 
-          const hBrace2 = new THREE.Mesh(
-            new THREE.BoxGeometry(0.02, levelHeight - 0.1, 0.02),
-            columnMaterial
+          const deckEdge = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(shelfWidth - 0.2, 0.06, shelfDepth - 0.2)),
+            new THREE.LineBasicMaterial({ color: isSelected ? 0xfbbf24 : 0x6b7280 })
           );
-          hBrace2.position.set(xPos + unitWidth / 2 - columnWidth / 2, braceY + levelHeight / 2, -unitDepth / 2 + columnDepth / 2);
-          cabinetGroup.add(hBrace2);
-        }
+          deckEdge.position.set(0, levelY, 0);
+          shelfGroup.add(deckEdge);
 
-        for (let level = 1; level <= levelCount; level++) {
-          const levelY = level * levelHeight;
-
-          const frontBeam = new THREE.Mesh(
-            new THREE.BoxGeometry(unitWidth - 0.05, 0.1, 0.05),
-            beamMaterial
-          );
-          frontBeam.position.set(xPos, levelY - 0.05, unitDepth / 2 - 0.02);
-          cabinetGroup.add(frontBeam);
-
-          const backBeam = new THREE.Mesh(
-            new THREE.BoxGeometry(unitWidth - 0.05, 0.1, 0.05),
-            beamMaterial
-          );
-          backBeam.position.set(xPos, levelY - 0.05, -unitDepth / 2 + 0.02);
-          cabinetGroup.add(backBeam);
-
-          const deckPlate = new THREE.Mesh(
-            new THREE.BoxGeometry(unitWidth - 0.15, 0.04, unitDepth - 0.1),
-            deckMaterial
-          );
-          deckPlate.position.set(xPos, levelY - 0.08, 0);
-          cabinetGroup.add(deckPlate);
-
-          for (let i = 0; i < 3; i++) {
-            const deckWire = new THREE.Mesh(
-              new THREE.BoxGeometry(unitWidth - 0.2, 0.015, 0.015),
-              columnMaterial
+          if (loc.position !== null && loc.position !== undefined) {
+            const posMarker = new THREE.Mesh(
+              new THREE.BoxGeometry(0.15, 0.12, 0.15),
+              new THREE.MeshStandardMaterial({
+                color: 0x22c55e,
+                roughness: 0.3,
+                metalness: 0.6,
+                emissive: 0x166534,
+                emissiveIntensity: 0.3,
+              })
             );
-            deckWire.position.set(xPos, levelY - 0.05, -unitDepth / 3 + i * (unitDepth / 3));
-            cabinetGroup.add(deckWire);
+            posMarker.position.set(
+              -shelfWidth / 4 + (loc.position - 1) * 0.4,
+              levelY + 0.1,
+              0
+            );
+            shelfGroup.add(posMarker);
           }
+        });
+
+        if (isSelected) {
+          const highlight = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(shelfWidth + 0.2, totalHeight + 0.3, shelfDepth + 0.2)),
+            new THREE.LineBasicMaterial({ color: 0xf97316, linewidth: 3 })
+          );
+          highlight.position.set(0, totalHeight / 2 + 0.1, 0);
+          shelfGroup.add(highlight);
         }
 
-        if (shelf.id === selectedShelfId) {
-          const outlineMaterial = new THREE.MeshBasicMaterial({
-            color: 0xFFD700,
-            side: THREE.BackSide,
-            transparent: true,
-            opacity: 0.8
-          });
-          const outlineGeometry = new THREE.BoxGeometry(unitWidth + 0.1, totalHeight + 0.1, unitDepth + 0.1);
-          const outline = new THREE.Mesh(outlineGeometry, outlineMaterial);
-          outline.position.set(xPos, totalHeight / 2, 0);
-          cabinetGroup.add(outline);
-        }
-      }
+        const shelfLabel = createTextSprite(shelf.code, shelfColor);
+        shelfLabel.position.set(0, totalHeight + 0.5, 0);
+        shelfLabel.scale.set(2, 1, 1);
+        shelfGroup.add(shelfLabel);
 
-      scene.add(cabinetGroup);
+        shelfGroup.position.set(shelfX, 0.1, 0);
+        zoneGroup.add(shelfGroup);
+      });
+
+      scene.add(zoneGroup);
     });
 
     const animate = () => {
-      const id = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
-      (window as any).vizAnimationId = id;
     };
     animate();
 
     const handleResize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight || 550;
+      if (!containerRef.current) return;
+      const w = containerRef.current.clientWidth;
+      const h = containerRef.current.clientHeight || 550;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -282,199 +271,58 @@ export default function WarehouseVisualization({ shelves, selectedShelfId, showR
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame((window as any).vizAnimationId);
       renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
+      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [shelves, shelfStats, selectedShelfId]);
+  }, [zones, selectedShelfId, resetTrigger]);
 
   useEffect(() => {
-    if (!selectedShelfId || !controlsRef.current || !cameraRef.current || shelves.length === 0) return;
-
-    const shelf = shelves.find(s => s.id === selectedShelfId);
-    if (!shelf) return;
-
-    const offsetX = -((shelfStats.maxColumn - 1) * 4) / 2;
-    const offsetZ = -((shelfStats.maxRow - 1) * 5) / 2;
-    
-    const targetX = ((shelf.column - 1) * 4) + offsetX;
-    const targetZ = ((shelf.row - 1) * 5) + offsetZ;
-    const targetY = shelf.level * 0.9 / 2;
-
-    const controls = controlsRef.current;
-    const camera = cameraRef.current;
-
-    const startTarget = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
-    const endTarget = { x: targetX + 1.5, y: targetY, z: targetZ };
-    
-    const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
-    const endPos = { x: targetX + 1, y: targetY + 3, z: targetZ + 4 };
-
-    const duration = 800;
-    const startTime = performance.now();
-
-    const animate = () => {
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      controls.target.x = startTarget.x + (endTarget.x - startTarget.x) * eased;
-      controls.target.y = startTarget.y + (endTarget.y - startTarget.y) * eased;
-      controls.target.z = startTarget.z + (endTarget.z - startTarget.z) * eased;
-
-      camera.position.x = startPos.x + (endPos.x - startPos.x) * eased;
-      camera.position.y = startPos.y + (endPos.y - startPos.y) * eased;
-      camera.position.z = startPos.z + (endPos.z - startPos.z) * eased;
-
-      controls.update();
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    animate();
-    setIsZoomed(true);
-  }, [selectedShelfId, shelves, resetTrigger]);
-
-  useEffect(() => {
-    const prev = prevSelectedShelfIdRef.current;
-    if (prev !== null && prev !== undefined && (selectedShelfId === null || selectedShelfId === undefined)) {
-      if (!controlsRef.current || !cameraRef.current || shelves.length === 0) return;
-      
-      const controls = controlsRef.current;
-      const camera = cameraRef.current;
-      
-      const startTarget = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
-      const endTarget = { x: 0, y: 3, z: 0 };
-      
-      const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
-      const endPos = { x: 0, y: 12, z: 18 };
-      
-      const duration = 800;
-      const startTime = performance.now();
-      
-      const animate = () => {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        
-        controls.target.x = startTarget.x + (endTarget.x - startTarget.x) * eased;
-        controls.target.y = startTarget.y + (endTarget.y - startTarget.y) * eased;
-        controls.target.z = startTarget.z + (endTarget.z - startTarget.z) * eased;
-        
-        camera.position.x = startPos.x + (endPos.x - startPos.x) * eased;
-        camera.position.y = startPos.y + (endPos.y - startPos.y) * eased;
-        camera.position.z = startPos.z + (endPos.z - startPos.z) * eased;
-        
-        controls.update();
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
+    if (selectedShelfId && cameraRef.current && controlsRef.current && sceneRef.current) {
+      let targetShelf: THREE.Object3D | null = null;
+      sceneRef.current.traverse((obj) => {
+        if ((obj as any).userData?.shelfId === selectedShelfId) {
+          targetShelf = obj;
         }
-      };
-      
-      animate();
+      });
+      if (targetShelf) {
+        const box = new THREE.Box3().setFromObject(targetShelf);
+        const center = box.getCenter(new THREE.Vector3());
+        controlsRef.current.target.copy(center);
+        setIsZoomed(true);
+      }
+    }
+  }, [selectedShelfId]);
+
+  const handleReset = () => {
+    if (cameraRef.current && controlsRef.current) {
+      controlsRef.current.target.set(0, 3, 0);
+      cameraRef.current.position.set(0, 12, 18);
+      controlsRef.current.update();
       setIsZoomed(false);
     }
-    prevSelectedShelfIdRef.current = selectedShelfId ?? null;
-  }, [selectedShelfId, shelves, resetTrigger]);
-  
-  useEffect(() => {
-    if (selectedShelfId !== null || !controlsRef.current || !cameraRef.current || shelves.length === 0) return;
-
-    const controls = controlsRef.current;
-    const camera = cameraRef.current;
-
-    const startTarget = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
-    const endTarget = { x: 0, y: 3, z: 0 };
-    
-    const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
-    const endPos = { x: 0, y: 12, z: 18 };
-
-    const duration = 800;
-    const startTime = performance.now();
-
-    const animate = () => {
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      controls.target.x = startTarget.x + (endTarget.x - startTarget.x) * eased;
-      controls.target.y = startTarget.y + (endTarget.y - startTarget.y) * eased;
-      controls.target.z = startTarget.z + (endTarget.z - startTarget.z) * eased;
-
-      camera.position.x = startPos.x + (endPos.x - startPos.x) * eased;
-      camera.position.y = startPos.y + (endPos.y - startPos.y) * eased;
-      camera.position.z = startPos.z + (endPos.z - startPos.z) * eased;
-
-      controls.update();
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setIsZoomed(false);
-      }
-    };
-
-    animate();
-  }, [selectedShelfId, shelves, resetTrigger]);
-
-  const resetToOverview = () => {
-    if (!controlsRef.current || !cameraRef.current || shelves.length === 0) return;
-
-    const controls = controlsRef.current;
-    const camera = cameraRef.current;
-
-    const startTarget = { x: controls.target.x, y: controls.target.y, z: controls.target.z };
-    const endTarget = { x: 0, y: 3, z: 0 };
-    
-    const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
-    const endPos = { x: 0, y: 12, z: 18 };
-
-    const duration = 800;
-    const startTime = performance.now();
-
-    const animate = () => {
-      const elapsed = performance.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      controls.target.x = startTarget.x + (endTarget.x - startTarget.x) * eased;
-      controls.target.y = startTarget.y + (endTarget.y - startTarget.y) * eased;
-      controls.target.z = startTarget.z + (endTarget.z - startTarget.z) * eased;
-
-      camera.position.x = startPos.x + (endPos.x - startPos.x) * eased;
-      camera.position.y = startPos.y + (endPos.y - startPos.y) * eased;
-      camera.position.z = startPos.z + (endPos.z - startPos.z) * eased;
-
-      controls.update();
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    animate();
-    setIsZoomed(false);
   };
 
-  if (shelves.length === 0) {
+  if (zones.filter(z => z.shelves && z.shelves.length > 0).length === 0) {
     return (
-      <div className="h-[550px] flex items-center justify-center text-gray-400 text-sm">
-        暂无货架数据
+      <div className="flex items-center justify-center h-[550px] bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <div className="text-center text-gray-500">
+          <div className="text-4xl mb-2">📦</div>
+          <div>暂无货架数据</div>
+          <div className="text-sm">请先添加库区和货架</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[550px] rounded-lg overflow-hidden">
+    <div className="relative">
+      <div ref={containerRef} className="w-full h-[550px] rounded-lg overflow-hidden" />
       {showResetButton && isZoomed && (
         <button
-          onClick={resetToOverview}
-          className="absolute top-3 right-3 z-10 px-3 py-1.5 bg-white/90 hover:bg-white text-gray-700 text-sm rounded-lg shadow-md flex items-center gap-1.5 transition-colors"
+          onClick={handleReset}
+          className="absolute bottom-4 right-4 px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 text-sm rounded-lg shadow-lg flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -482,10 +330,40 @@ export default function WarehouseVisualization({ shelves, selectedShelfId, showR
           全局
         </button>
       )}
-      <div 
-        ref={containerRef} 
-        className="h-full w-full"
-      />
+      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur rounded-lg p-3 shadow text-xs">
+        <div className="font-medium mb-2">图例</div>
+        {Object.entries({
+          RECEIVING: { label: '收货区', color: 'bg-blue-500' },
+          STORAGE: { label: '存储区', color: 'bg-gray-500' },
+          PICKING: { label: '拣货区', color: 'bg-yellow-500' },
+          SHIPPING: { label: '发货区', color: 'bg-green-500' },
+          RETURNING: { label: '退货区', color: 'bg-red-500' },
+        }).map(([key, val]) => (
+          <div key={key} className="flex items-center gap-2 mb-1">
+            <div className={`w-3 h-3 rounded ${val.color}`} />
+            <span>{val.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
+}
+
+function createTextSprite(text: string, color: number): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  canvas.width = 128;
+  canvas.height = 64;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = 'bold 28px Arial';
+  ctx.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(2, 1, 1);
+  return sprite;
 }

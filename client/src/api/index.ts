@@ -93,8 +93,17 @@ export const warehouseApi = {
   create: (data: any) => api.post('/warehouses', data),
   update: (id: string, data: any) => api.put(`/warehouses/${id}`, data),
   delete: (id: string) => api.delete(`/warehouses/${id}`),
-  createShelf: (warehouseId: string, data: any) => api.post(`/warehouses/${warehouseId}/shelves`, data),
+  createZone: (warehouseId: string, data: any) => api.post(`/warehouses/${warehouseId}/zones`, data),
+  updateZone: (id: string, data: any) => api.put(`/warehouses/zones/${id}`, data),
+  deleteZone: (id: string) => api.delete(`/warehouses/zones/${id}`),
+  listZones: (warehouseId: string) => api.get(`/warehouses/${warehouseId}/zones`),
+  createShelf: (zoneId: string, data: any) => api.post(`/warehouses/zones/${zoneId}/shelves`, data),
+  updateShelf: (id: string, data: any) => api.put(`/warehouses/shelves/${id}`, data),
   deleteShelf: (id: string) => api.delete(`/warehouses/shelves/${id}`),
+  listLocations: (warehouseId: string) => api.get(`/warehouses/${warehouseId}/locations`),
+  createLocation: (shelfId: string, data: any) => api.post(`/warehouses/shelves/${shelfId}/locations`, data),
+  updateLocation: (id: string, data: any) => api.put(`/warehouses/locations/${id}`, data),
+  deleteLocation: (id: string) => api.delete(`/warehouses/locations/${id}`),
 };
 
 export const stockApi = {

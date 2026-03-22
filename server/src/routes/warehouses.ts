@@ -32,11 +32,12 @@ router.get('/', async (req: Request, res: Response) => {
       where,
       include: {
         owner: true,
-        _count: {
-          select: { shelves: true },
-        },
-        shelves: {
-          orderBy: { code: 'asc' },
+        zones: {
+          include: {
+            shelves: {
+              orderBy: { code: 'asc' },
+            },
+          },
         },
         stocks: {
           select: {
@@ -58,6 +59,7 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     const warehousesWithStock = warehouses.map(w => {
+      const allShelves = w.zones.flatMap(z => z.shelves);
       const skuStockMap: Record<string, number> = {};
       const bundleStockMap: Record<string, number> = {};
       w.stocks.forEach((s: any) => {
@@ -72,8 +74,9 @@ router.get('/', async (req: Request, res: Response) => {
       });
       return {
         ...w,
-        totalStock: w.stocks.reduce((sum: number, s: any) => sum + (Number(s.totalQuantity) || 0), 0),
-        totalBundleStock: w.bundleStocks.reduce((sum: number, b: any) => sum + (Number(b.totalQuantity) || 0), 0),
+        shelves: allShelves,
+        totalStock: Object.values(skuStockMap).reduce((a, b) => a + b, 0),
+        totalBundleStock: Object.values(bundleStockMap).reduce((a, b) => a + b, 0),
         skuCount: Object.keys(skuStockMap).length,
         bundleCount: Object.keys(bundleStockMap).length,
       };
@@ -93,29 +96,15 @@ router.get('/:id', async (req: Request, res: Response) => {
       where: { id },
       include: {
         owner: true,
-        shelves: {
-          orderBy: { code: 'asc' },
+        zones: {
           include: {
-            stocks: {
+            shelves: {
+              orderBy: { code: 'asc' },
               include: {
-                sku: {
-                  include: { product: true }
-                }
-              }
-            },
-            bundleStocks: {
-              include: {
-                bundle: {
-                  include: {
-                    items: {
-                      include: {
-                        sku: {
-                          include: { product: true }
-                        }
-                      }
-                    }
-                  }
-                }
+                zone: true,
+                locations: {
+                  orderBy: { level: 'asc' },
+                },
               }
             }
           }
@@ -126,6 +115,46 @@ router.get('/:id', async (req: Request, res: Response) => {
     if (!warehouse) {
       return res.status(404).json({ success: false, message: '仓库不存在' });
     }
+
+    const allShelves = warehouse.zones.flatMap(z => z.shelves);
+    const shelfIds = allShelves.map(s => s.id);
+
+    const stocks = await prisma.stock.findMany({
+      where: { warehouseId: id, location: { shelfId: { in: shelfIds } } },
+      include: { sku: { include: { product: true } }, location: true }
+    });
+
+    const bundleStocks = await prisma.bundleStock.findMany({
+      where: { warehouseId: id, location: { shelfId: { in: shelfIds } } },
+      include: { bundle: true, location: true }
+    });
+
+    const shelfStocksMap: Record<string, any[]> = {};
+    const shelfBundleStocksMap: Record<string, any[]> = {};
+
+    for (const stock of stocks) {
+      if (stock.location?.shelfId) {
+        if (!shelfStocksMap[stock.location.shelfId]) {
+          shelfStocksMap[stock.location.shelfId] = [];
+        }
+        shelfStocksMap[stock.location.shelfId].push(stock);
+      }
+    }
+
+    for (const stock of bundleStocks) {
+      if (stock.location?.shelfId) {
+        if (!shelfBundleStocksMap[stock.location.shelfId]) {
+          shelfBundleStocksMap[stock.location.shelfId] = [];
+        }
+        shelfBundleStocksMap[stock.location.shelfId].push(stock);
+      }
+    }
+
+    const shelvesWithStocks = allShelves.map(shelf => ({
+      ...shelf,
+      stocks: shelfStocksMap[shelf.id] || [],
+      bundleStocks: shelfBundleStocksMap[shelf.id] || [],
+    }));
 
     const stockStats = await prisma.stock.aggregate({
       where: { warehouseId: id },
@@ -152,10 +181,11 @@ router.get('/:id', async (req: Request, res: Response) => {
     const availableBundleStock = bundleStockStats._sum.availableQuantity || 0;
     const lockedBundleStock = bundleStockStats._sum.lockedQuantity || 0;
 
-    res.json({ success: true, data: { 
-      ...warehouse, 
-      totalStock, 
-      availableStock, 
+    res.json({ success: true, data: {
+      ...warehouse,
+      shelves: shelvesWithStocks,
+      totalStock,
+      availableStock,
       lockedStock,
       totalBundleStock,
       availableBundleStock,
@@ -285,13 +315,34 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/:id/shelves', async (req: Request, res: Response) => {
+router.get('/:id/zones', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { type = '1', row, column, level = 5 } = req.body;
+    const zones = await prisma.zone.findMany({
+      where: { warehouseId: id },
+      include: {
+        shelves: {
+          include: {
+            locations: { orderBy: { level: 'asc' } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: zones });
+  } catch (error) {
+    console.error('List zones error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
 
-    if (row === undefined || column === undefined) {
-      return res.status(400).json({ success: false, message: '排和列不能为空' });
+router.post('/:id/zones', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { code, name, type = 'NORMAL' } = req.body;
+
+    if (!code || !name) {
+      return res.status(400).json({ success: false, message: '库区编码和名称不能为空' });
     }
 
     const warehouse = await prisma.warehouse.findUnique({ where: { id } });
@@ -299,30 +350,141 @@ router.post('/:id/shelves', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '仓库不存在' });
     }
 
-    const code = `${warehouse.code}-0${row}${column}`;
-
-    const existing = await prisma.shelf.findFirst({
+    const existing = await prisma.zone.findFirst({
       where: { warehouseId: id, code },
     });
 
     if (existing) {
-      return res.status(400).json({ success: false, message: '该位置已存在货架' });
+      return res.status(400).json({ success: false, message: '该库区编码已存在' });
+    }
+
+    const zone = await prisma.zone.create({
+      data: { code, name, type, warehouseId: id },
+    });
+
+    res.json({ success: true, data: zone });
+  } catch (error) {
+    console.error('Create zone error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/zones/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, type } = req.body;
+
+    const existing = await prisma.zone.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: '库区不存在' });
+    }
+
+    const zone = await prisma.zone.update({
+      where: { id },
+      data: { name, type },
+    });
+
+    res.json({ success: true, data: zone });
+  } catch (error) {
+    console.error('Update zone error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.delete('/zones/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.zone.findUnique({ where: { id }, include: { shelves: true } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: '库区不存在' });
+    }
+
+    if (existing.shelves.length > 0) {
+      return res.status(400).json({ success: false, message: '该库区下有货架，无法删除' });
+    }
+
+    await prisma.zone.delete({ where: { id } });
+
+    res.json({ success: true, message: '库区已删除' });
+  } catch (error) {
+    console.error('Delete zone error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.post('/zones/:zoneId/shelves', async (req: Request, res: Response) => {
+  try {
+    const { zoneId } = req.params;
+    const { code, name, type = 'HEAVY', status = 'ACTIVE', levels = 5 } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: '货架编码不能为空' });
+    }
+
+    const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
+    if (!zone) {
+      return res.status(404).json({ success: false, message: '库区不存在' });
+    }
+
+    const existing = await prisma.shelf.findFirst({
+      where: { zoneId, code },
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: '该编码已存在' });
     }
 
     const shelf = await prisma.shelf.create({
       data: {
         code,
+        name,
         type,
-        row,
-        column,
-        level,
-        warehouseId: id,
+        status,
+        zoneId,
       },
     });
+
+    const locations = [];
+    for (let level = 1; level <= levels; level++) {
+      locations.push({ shelfId: shelf.id, level });
+    }
+    await prisma.location.createMany({ data: locations });
 
     res.json({ success: true, data: shelf });
   } catch (error) {
     console.error('Create shelf error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/shelves/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { code, name, type, status } = req.body;
+
+    const existing = await prisma.shelf.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: '货架不存在' });
+    }
+
+    if (code && code !== existing.code) {
+      const codeExists = await prisma.shelf.findFirst({
+        where: { zoneId: existing.zoneId, code, id: { not: id } },
+      });
+      if (codeExists) {
+        return res.status(400).json({ success: false, message: '该编码已存在' });
+      }
+    }
+
+    const shelf = await prisma.shelf.update({
+      where: { id },
+      data: { code, name, type, status },
+    });
+
+    res.json({ success: true, data: shelf });
+  } catch (error) {
+    console.error('Update shelf error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -336,26 +498,117 @@ router.delete('/shelves/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '货架不存在' });
     }
 
-    await prisma.stock.updateMany({
-      where: { shelfId: id },
-      data: { shelfId: null },
-    });
-
-    await prisma.stockLock.updateMany({
-      where: { shelfId: id },
-      data: { shelfId: null },
-    });
-
-    await prisma.stockIn.updateMany({
-      where: { shelfId: id },
-      data: { shelfId: null },
-    });
-
     await prisma.shelf.delete({ where: { id } });
 
     res.json({ success: true, message: '货架已删除' });
   } catch (error) {
     console.error('Delete shelf error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.post('/shelves/:shelfId/locations', async (req: Request, res: Response) => {
+  try {
+    const { shelfId } = req.params;
+    const { level, position } = req.body;
+
+    if (!level) {
+      return res.status(400).json({ success: false, message: '层数不能为空' });
+    }
+
+    const shelf = await prisma.shelf.findUnique({ where: { id: shelfId } });
+    if (!shelf) {
+      return res.status(404).json({ success: false, message: '货架不存在' });
+    }
+
+    const existing = await prisma.location.findFirst({
+      where: { shelfId, level, position },
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: '该库位已存在' });
+    }
+
+    const location = await prisma.location.create({
+      data: { shelfId, level, position },
+    });
+
+    res.json({ success: true, data: location });
+  } catch (error) {
+    console.error('Create location error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/locations/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { level, position } = req.body;
+
+    const existing = await prisma.location.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: '库位不存在' });
+    }
+
+    const location = await prisma.location.update({
+      where: { id },
+      data: { level, position },
+    });
+
+    res.json({ success: true, data: location });
+  } catch (error) {
+    console.error('Update location error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.delete('/locations/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.location.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: '库位不存在' });
+    }
+
+    await prisma.location.delete({ where: { id } });
+
+    res.json({ success: true, message: '库位已删除' });
+  } catch (error) {
+    console.error('Delete location error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.get('/:warehouseId/locations', async (req: Request, res: Response) => {
+  try {
+    const { warehouseId } = req.params;
+
+    const locations = await prisma.location.findMany({
+      where: {
+        shelf: {
+          zone: {
+            warehouseId,
+          },
+        },
+      },
+      include: {
+        shelf: {
+          include: {
+            zone: true,
+          },
+        },
+      },
+      orderBy: [
+        { shelf: { code: 'asc' } },
+        { level: 'asc' },
+        { position: 'asc' },
+      ],
+    });
+
+    res.json({ success: true, data: locations });
+  } catch (error) {
+    console.error('Get locations error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });

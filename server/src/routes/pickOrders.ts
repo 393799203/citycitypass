@@ -74,7 +74,9 @@ router.post('/', async (req: Request, res: Response) => {
         const stockLocks = await tx.stockLock.findMany({
           where: { orderId },
           include: {
-            shelf: true,
+            location: {
+              include: { shelf: true }
+            },
             sku: {
               include: { product: true },
             },
@@ -85,7 +87,9 @@ router.post('/', async (req: Request, res: Response) => {
         const bundleStockLocks = await tx.bundleStockLock.findMany({
           where: { orderId },
           include: {
-            shelf: true,
+            location: {
+              include: { shelf: true }
+            },
             bundle: {
               include: {
                 items: {
@@ -234,6 +238,32 @@ router.get('/', async (req: Request, res: Response) => {
                   }
                 }
               },
+              stockLock: {
+                include: {
+                  location: {
+                    include: {
+                      shelf: {
+                        include: {
+                          zone: true
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              bundleStockLock: {
+                include: {
+                  location: {
+                    include: {
+                      shelf: {
+                        include: {
+                          zone: true
+                        }
+                      }
+                    }
+                  }
+                }
+              },
             },
           },
         },
@@ -257,6 +287,19 @@ router.get('/', async (req: Request, res: Response) => {
                 sku: true,
                 bundle: true,
               },
+            },
+            stockLocks: {
+              include: {
+                location: {
+                  include: {
+                    shelf: {
+                      include: {
+                        zone: true
+                      }
+                    }
+                  }
+                }
+              }
             },
           },
         });
