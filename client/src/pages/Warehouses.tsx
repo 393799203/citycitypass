@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { warehouseApi, ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Building2, MapPin, Search, X, Package, Phone, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Clock } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -121,8 +121,8 @@ export default function WarehousesPage() {
       ownerId: warehouse.ownerId || '',
       manager: warehouse.manager || '',
       managerPhone: warehouse.managerPhone || '',
-      businessStartTime: warehouse.businessHours?.split('-')[0] || '',
-      businessEndTime: warehouse.businessHours?.split('-')[1] || '',
+      businessStartTime: warehouse.businessStartTime || '',
+      businessEndTime: warehouse.businessEndTime || '',
     });
     setShowModal(true);
   };
@@ -239,7 +239,7 @@ export default function WarehousesPage() {
                     <span className="text-gray-500">营业时间</span>
                     <div className="flex items-center gap-1 text-gray-700">
                       <Clock className="w-3 h-3" />
-                      {warehouse.businessStartTime || '--'}-{warehouse.businessEndTime || '--'}
+                      {warehouse.businessStartTime || '--'} - {warehouse.businessEndTime || '--'}
                     </div>
                   </div>
                 )}

@@ -117,7 +117,6 @@ const colorMap: Record<string, string> = {
   BAILEYS: '#8B4513',
   COINTREAU: '#FFA500',
   JAGERMEISTER: '#000000',
-  KAHLUA: '#8B4513',
 };
 
 const sizeMap = {

@@ -15,6 +15,7 @@ const typeMap: Record<string, string> = {
   PICKING: '拣货区',
   SHIPPING: '发货区',
   RETURNING: '退货区',
+  DAMAGED: '残次品区',
 };
 
 const statusMap: Record<string, string> = {
@@ -55,21 +56,25 @@ export default function WarehouseDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    warehouseApi.get(id).then(res => {
+    const warehouseId = id;
+    warehouseApi.get(warehouseId).then(res => {
       if (res.data.success) {
         setWarehouse(res.data.data);
         const fetchedZones = res.data.data.zones || [];
         const warehouseShelves = res.data.data.shelves || [];
         if (warehouseShelves.length > 0) {
-          const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+          const shelvesMap = new Map<any, any>(warehouseShelves.map((s: any) => [s.id, s]));
           const mergedZones = fetchedZones.map((z: any) => ({
             ...z,
-            shelves: (z.shelves || []).map((shelf: any) => ({
-              ...shelf,
-              stocks: shelvesMap.get(shelf.id)?.stocks || [],
-              bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
-              totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
-            })),
+            shelves: (z.shelves || []).map((shelf: any) => {
+              const shelfData = shelvesMap.get(shelf.id) || {};
+              return {
+                ...shelf,
+                stocks: shelfData.stocks || [],
+                bundleStocks: shelfData.bundleStocks || [],
+                totalStock: (shelfData.stocks || []).reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0),
+              };
+            }),
           }));
           setZones(mergedZones);
         } else {
@@ -94,22 +99,30 @@ export default function WarehouseDetailPage() {
       toast.success('货架已创建');
       setShowShelfModal(false);
       setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' });
-      const res = await warehouseApi.get(id);
+      const res = await warehouseApi.get(id!);
       if (res.data.success) {
-        setWarehouse(res.data.data);
-        const fetchedZones = res.data.data.zones || [];
-        const warehouseShelves = res.data.data.shelves || [];
-        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
-        const mergedZones = fetchedZones.map((z: any) => ({
-          ...z,
-          shelves: (z.shelves || []).map((shelf: any) => ({
-            ...shelf,
-            stocks: shelvesMap.get(shelf.id)?.stocks || [],
-            bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
-            totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
-          })),
-        }));
-        setZones(mergedZones);
+        const data = res.data.data;
+        setWarehouse(data);
+        const fetchedZones = data?.zones || [];
+        const warehouseShelves = data?.shelves || [];
+        if (warehouseShelves.length > 0) {
+          const shelvesMap = new Map<any, any>(warehouseShelves.map((s: any) => [s.id, s]));
+          const mergedZones = fetchedZones.map((z: any) => ({
+            ...z,
+            shelves: (z.shelves || []).map((shelf: any) => {
+              const shelfData = shelvesMap.get(shelf.id) || {};
+              return {
+                ...shelf,
+                stocks: shelfData.stocks || [],
+                bundleStocks: shelfData.bundleStocks || [],
+                totalStock: shelfData.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+              };
+            }),
+          }));
+          setZones(mergedZones);
+        } else {
+          setZones(fetchedZones);
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
@@ -122,22 +135,30 @@ export default function WarehouseDetailPage() {
     try {
       await warehouseApi.deleteShelf(shelfId);
       toast.success('货架已删除');
-      const res = await warehouseApi.get(id);
+      const res = await warehouseApi.get(id!);
       if (res.data.success) {
-        setWarehouse(res.data.data);
-        const fetchedZones = res.data.data.zones || [];
-        const warehouseShelves = res.data.data.shelves || [];
-        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
-        const mergedZones = fetchedZones.map((z: any) => ({
-          ...z,
-          shelves: (z.shelves || []).map((shelf: any) => ({
-            ...shelf,
-            stocks: shelvesMap.get(shelf.id)?.stocks || [],
-            bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
-            totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
-          })),
-        }));
-        setZones(mergedZones);
+        const data = res.data.data;
+        setWarehouse(data);
+        const fetchedZones = data?.zones || [];
+        const warehouseShelves = data?.shelves || [];
+        if (warehouseShelves.length > 0) {
+          const shelvesMap = new Map<any, any>(warehouseShelves.map((s: any) => [s.id, s]));
+          const mergedZones = fetchedZones.map((z: any) => ({
+            ...z,
+            shelves: (z.shelves || []).map((shelf: any) => {
+              const shelfData = shelvesMap.get(shelf.id) || {};
+              return {
+                ...shelf,
+                stocks: shelfData.stocks || [],
+                bundleStocks: shelfData.bundleStocks || [],
+                totalStock: shelfData.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+              };
+            }),
+          }));
+          setZones(mergedZones);
+        } else {
+          setZones(fetchedZones);
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
@@ -166,12 +187,12 @@ export default function WarehouseDetailPage() {
       setShowShelfModal(false);
       setEditingShelf(null);
       setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' });
-      const res = await warehouseApi.get(id);
+      const res = await warehouseApi.get(id!);
       if (res.data.success) {
         setWarehouse(res.data.data);
         const fetchedZones = res.data.data.zones || [];
         const warehouseShelves = res.data.data.shelves || [];
-        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+        const shelvesMap = new Map<any, any>(warehouseShelves.map((s: any) => [s.id, s]));
         const mergedZones = fetchedZones.map((z: any) => ({
           ...z,
           shelves: (z.shelves || []).map((shelf: any) => ({
@@ -207,12 +228,12 @@ export default function WarehouseDetailPage() {
       setShowZoneModal(false);
       setEditingZone(null);
       setZoneFormData({ code: '', name: '', type: 'STORAGE' });
-      const res = await warehouseApi.get(id);
+      const res = await warehouseApi.get(id!);
       if (res.data.success) {
         setWarehouse(res.data.data);
         const fetchedZones = res.data.data.zones || [];
         const warehouseShelves = res.data.data.shelves || [];
-        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+        const shelvesMap = new Map<any, any>(warehouseShelves.map((s: any) => [s.id, s]));
         const mergedZones = fetchedZones.map((z: any) => ({
           ...z,
           shelves: (z.shelves || []).map((shelf: any) => ({
@@ -240,7 +261,7 @@ export default function WarehouseDetailPage() {
       toast.success('库区已创建');
       setShowZoneModal(false);
       setZoneFormData({ code: '', name: '', type: 'STORAGE' });
-      const res = await warehouseApi.get(id);
+      const res = await warehouseApi.get(id!);
       if (res.data.success) {
         setWarehouse(res.data.data);
         setZones(res.data.data.zones || []);
@@ -256,7 +277,7 @@ export default function WarehouseDetailPage() {
     try {
       await warehouseApi.deleteZone(zoneId);
       toast.success('库区已删除');
-      const res = await warehouseApi.get(id);
+      const res = await warehouseApi.get(id!);
       if (res.data.success) {
         setWarehouse(res.data.data);
         setZones(res.data.data.zones || []);
@@ -351,7 +372,8 @@ export default function WarehouseDetailPage() {
                     zone.type === 'STORAGE' ? 'bg-gray-500' :
                     zone.type === 'PICKING' ? 'bg-yellow-500' :
                     zone.type === 'SHIPPING' ? 'bg-green-500' :
-                    zone.type === 'RETURNING' ? 'bg-red-500' : 'bg-gray-400'
+                    zone.type === 'RETURNING' ? 'bg-red-500' :
+                    zone.type === 'DAMAGED' ? 'bg-orange-500' : 'bg-gray-400'
                   }`} />
                   {zone.code} {zone.name}
                 </button>
@@ -414,7 +436,8 @@ export default function WarehouseDetailPage() {
                                 zone.type === 'STORAGE' ? 'bg-gray-100 text-gray-700' :
                                 zone.type === 'PICKING' ? 'bg-yellow-100 text-yellow-700' :
                                 zone.type === 'SHIPPING' ? 'bg-green-100 text-green-700' :
-                                zone.type === 'RETURNING' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                                zone.type === 'RETURNING' ? 'bg-red-100 text-red-700' :
+                                zone.type === 'DAMAGED' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'
                               }`}>
                                 {typeMap[zone.type] || zone.type}
                               </span>
@@ -439,36 +462,44 @@ export default function WarehouseDetailPage() {
                           <td className="px-3 py-2">
                             {(shelf.stocks?.length > 0 || shelf.bundleStocks?.length > 0) ? (
                               <div className="text-xs space-y-1">
-                                {shelf.stocks?.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => (
-                                  <div key={s.id}>
-                                    <span className="text-blue-600">{s.sku?.product?.name}</span>
-                                    <span className="text-gray-400 mx-1"></span>
-                                    <span className="text-gray-600">{s.sku?.spec}</span>
-                                    <span className="text-gray-400 mx-1">/</span>
-                                    <span className="text-gray-600">{s.sku?.packaging}</span>
-                                    <span className="text-gray-400 mx-1">×</span>
-                                    <span className="text-green-600 font-medium">{s.availableQuantity || 0}</span>
-                                    <span className="text-gray-400">件</span>
-                                  </div>
-                                ))}
-                                {shelf.bundleStocks?.filter((b: any) => (b.availableQuantity || 0) > 0).map((b: any) => (
-                                  <div key={b.id} className="flex items-center gap-1">
-                                    <span className="text-purple-700">[套装] {b.bundle?.name}</span>
-                                    {b.bundle?.items && (
-                                      <button
-                                        onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                        onMouseLeave={() => setTooltip(null)}
-                                        onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                        className="p-0.5 hover:bg-gray-100 rounded"
-                                      >
-                                        <Info className="w-3 h-3 text-purple-500 cursor-help" />
-                                      </button>
-                                    )}
-                                    <span className="text-gray-400 mx-1">×</span>
-                                    <span className="text-green-600 font-medium">{b.availableQuantity || 0}</span>
-                                    <span className="text-gray-400">套</span>
-                                  </div>
-                                ))}
+                                {shelf.stocks?.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => {
+                                  const isReturnZone = s.location?.shelf?.zone?.type === 'RETURNING';
+                                  return (
+                                    <div key={s.id} className={isReturnZone ? 'text-gray-400' : ''}>
+                                      <span className={isReturnZone ? 'text-gray-500' : 'text-blue-600'}>{isReturnZone ? '[退] ' : '[商品] '}{s.sku?.product?.name}</span>
+                                      <span className="text-gray-400 mx-1">/</span>
+                                      <span className="text-gray-500">{s.sku?.spec}</span>
+                                      <span className="text-gray-400 mx-1">/</span>
+                                      <span className="text-gray-500">{s.sku?.packaging}</span>
+                                      <span className="text-gray-400 mx-1">×</span>
+                                      <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{s.availableQuantity || 0}</span>
+                                      <span className="text-gray-400">件</span>
+                                      {isReturnZone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">待迁移</span>}
+                                    </div>
+                                  );
+                                })}
+                                {shelf.bundleStocks?.filter((b: any) => (b.availableQuantity || 0) > 0).map((b: any) => {
+                                  const isReturnZone = b.location?.shelf?.zone?.type === 'RETURNING';
+                                  return (
+                                    <div key={b.id} className={`flex items-center gap-1 ${isReturnZone ? 'text-gray-400' : ''}`}>
+                                      <span className={isReturnZone ? 'text-gray-500' : 'text-purple-700'}>{isReturnZone ? '[退] ' : '[套装] '}{b.bundle?.name}</span>
+                                      {b.bundle?.items && (
+                                        <button
+                                          onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                          onMouseLeave={() => setTooltip(null)}
+                                          onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                          className="p-0.5 hover:bg-gray-100 rounded"
+                                        >
+                                          <Info className={`w-3 h-3 ${isReturnZone ? 'text-gray-400' : 'text-purple-500'} cursor-help`} />
+                                        </button>
+                                      )}
+                                      <span className="text-gray-400 mx-1">×</span>
+                                      <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{b.availableQuantity || 0}</span>
+                                      <span className="text-gray-400">套</span>
+                                      {isReturnZone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">待迁移</span>}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             ) : (
                               <span className="text-xs text-gray-400">-</span>
@@ -568,7 +599,8 @@ export default function WarehouseDetailPage() {
                         zone.type === 'STORAGE' ? 'bg-gray-500' :
                         zone.type === 'PICKING' ? 'bg-yellow-500' :
                         zone.type === 'SHIPPING' ? 'bg-green-500' :
-                        zone.type === 'RETURNING' ? 'bg-red-500' : 'bg-gray-400'
+                        zone.type === 'RETURNING' ? 'bg-red-500' :
+                        zone.type === 'DAMAGED' ? 'bg-orange-500' : 'bg-gray-400'
                       }`} />
                       <span className="font-medium">{zone.code} {zone.name}</span>
                     </div>
@@ -641,6 +673,7 @@ export default function WarehouseDetailPage() {
                   <option value="PICKING">拣货区</option>
                   <option value="SHIPPING">发货区</option>
                   <option value="RETURNING">退货区</option>
+                  <option value="DAMAGED">残次品区</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-2">

@@ -105,7 +105,6 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
   const [productStocks, setProductStocks] = useState<any[]>([]);
-  const [allLocations, setAllLocations] = useState<any[]>([]);
   const [stockLoading, setStockLoading] = useState(false);
   const [stockForm, setStockForm] = useState({ warehouseId: '', zoneId: '', shelfId: '', locationId: '', quantity: 1, remark: '', skuId: '' });
   const [stockZones, setStockZones] = useState<any[]>([]);
@@ -473,12 +472,6 @@ export default function ProductsPage() {
     } finally {
       setStockLoading(false);
     }
-  };
-
-  const getSkuInfo = (skuId: string) => {
-    const sku = skus.find(s => s.id === skuId);
-    if (!sku) return '未知商品';
-    return `${sku.product.name} - ${sku.spec}/${sku.packaging}`;
   };
 
   return (

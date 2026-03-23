@@ -4,7 +4,7 @@ import { orderApi, pickOrderApi } from '../api';
 import { parseAIResponse } from '../api/ai';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Loader2, Package, CheckCircle, ClipboardList, Truck, RefreshCw, Sparkles, Info, Phone, MapPin, ShoppingCart } from 'lucide-react';
+import { Loader2, Package, CheckCircle, ClipboardList, RefreshCw, Sparkles, Info, Phone, MapPin, ShoppingCart } from 'lucide-react';
 import { formatPhone, formatAddress } from '../utils/format';
 
 const pickStatusMap: Record<string, string> = {
@@ -94,7 +94,7 @@ export default function OutboundPage() {
           const locationStr = loc
             ? `${o.order?.warehouse?.name || '仓库'}-${zone?.code || '?'}-${loc.shelf?.code || '?'}-L${loc.level}`
             : '';
-          return `${item.bundleId ? '[套装] ' : ''}${item.productName} ${item.spec || ''} ${item.packaging || ''} x${item.quantity}${locationStr ? ` 库位: ${locationStr}` : ''}`;
+          return `${item.bundleId ? '[套装] ' : '[商品] '}${item.productName} ${item.spec || ''} ${item.packaging || ''} x${item.quantity}${locationStr ? ` 库位: ${locationStr}` : ''}`;
         }) || [];
         return {
           id: o.order?.id,
@@ -408,7 +408,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           return (
                             <div key={item.id} className="text-sm mb-1 flex items-center">
                               <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
-                                {item.bundleId && <span className="text-purple-500">[套装]</span>}
+                                {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
                                 {item.productName}
                                 {item.spec && `(${item.spec})`}
                                 {item.bundleId && item.bundle?.items?.length > 0 && (
@@ -530,7 +530,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           <tr key={item.id} className="border-t border-gray-200">
                             <td className="py-2 align-top">
                               <div className="flex items-center gap-1">
-                                {item.bundleId && <span className="text-purple-600 font-medium">[套装]</span>}
+                                {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
                                 <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
                                 {item.bundleId && item.bundle?.items?.length > 0 && (
                                   <button
@@ -576,7 +576,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                             <div>
                               {o.items?.map((item: any) => (
                                 <span key={item.id} className="mr-2 inline-flex items-center">
-                                  {item.bundleId && <span className="text-purple-600">[套装]</span>}
+                                  {item.bundleId ? <span className="text-purple-600">[套装]</span> : <span className="text-blue-600">[商品]</span>}
                                   <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
                                   {item.bundleId && item.bundle?.items?.length > 0 && (
                                     <button

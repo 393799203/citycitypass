@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Filter, Users, FileText, MapPin, Phone, Clock, Shield, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Users, FileText, MapPin, Phone, Clock } from 'lucide-react';
 import AddressInput from '../components/AddressInput';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
@@ -20,8 +20,8 @@ interface Customer {
   city: string;
   district: string;
   address: string;
-  latitude: number;
-  longitude: number;
+  latitude: string;
+  longitude: string;
   deliveryStartTime: string;
   deliveryEndTime: string;
   specialRequirements: string;
@@ -52,12 +52,13 @@ interface Contract {
   fileSize?: number;
 }
 
-const defaultFormData = {
+const defaultFormData: Customer = {
+  id: '',
   code: '',
   name: '',
   channel: '',
   region: '',
-  level: 'NORMAL' as const,
+  level: 'NORMAL',
   contact: '',
   phone: '',
   province: '',
@@ -72,8 +73,9 @@ const defaultFormData = {
   inspectionRequired: true,
   certificateRequired: false,
   signatureNote: '',
-  status: 'ACTIVE' as const,
+  status: 'ACTIVE',
   remark: '',
+  contracts: [],
 };
 
 export default function CustomersPage() {
@@ -162,27 +164,29 @@ export default function CustomersPage() {
 
   const handleEdit = (customer: Customer) => {
     setFormData({
+      id: customer.id,
       code: customer.code,
       name: customer.name,
       channel: customer.channel || '',
       region: customer.region || '',
-      level: customer.level,
+      level: customer.level as 'NORMAL' | 'VIP' | 'POTENTIAL',
       contact: customer.contact,
       phone: customer.phone,
       province: customer.province,
       city: customer.city,
       district: customer.district || '',
       address: customer.address,
-      latitude: customer.latitude,
-      longitude: customer.longitude,
+      latitude: String(customer.latitude || ''),
+      longitude: String(customer.longitude || ''),
       deliveryStartTime: customer.deliveryStartTime || '',
       deliveryEndTime: customer.deliveryEndTime || '',
       specialRequirements: customer.specialRequirements || '',
       inspectionRequired: customer.inspectionRequired,
       certificateRequired: customer.certificateRequired,
       signatureNote: customer.signatureNote || '',
-      status: customer.status,
+      status: customer.status as 'ACTIVE' | 'INACTIVE' | 'BLACKLISTED',
       remark: customer.remark || '',
+      contracts: customer.contracts || [],
     });
     setEditingId(customer.id);
     setShowModal(true);
@@ -231,8 +235,11 @@ export default function CustomersPage() {
           pricingTerms: '',
           serviceTerms: '',
           specialTerms: '',
-          status: 'DRAFT',
+          status: 'DRAFT' as const,
           autoRenew: false,
+          fileUrl: '',
+          fileName: '',
+          fileSize: 0,
         });
         fetchCustomers();
       }
@@ -252,8 +259,8 @@ export default function CustomersPage() {
       pricingTerms: contract.pricingTerms ? JSON.stringify(contract.pricingTerms) : '',
       serviceTerms: contract.serviceTerms || '',
       specialTerms: contract.specialTerms || '',
-      status: contract.status,
-      autoRenew: contract.autoRenew,
+      status: contract.status as 'DRAFT',
+      autoRenew: contract.autoRenew || false,
       fileUrl: contract.fileUrl || '',
       fileName: contract.fileName || '',
       fileSize: contract.fileSize || 0,
@@ -478,7 +485,6 @@ export default function CustomersPage() {
                     value={formData.phone}
                     onChange={(val) => setFormData({ ...formData, phone: val })}
                     className="w-full"
-                    required
                   />
                 </div>
               </div>
@@ -598,7 +604,7 @@ export default function CustomersPage() {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-lg font-bold">合同管理 {selectedCustomer && `- ${selectedCustomer.name}`}</h2>
-              <button onClick={() => { setShowContractModal(false); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT', autoRenew: false }); }}>
+              <button onClick={() => { setShowContractModal(false); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
                 <X className="w-5 h-5" />
               </button>
             </div>

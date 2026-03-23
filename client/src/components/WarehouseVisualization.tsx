@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState, memo, useMemo } from 'react';
 // @ts-ignore
 import * as THREE from 'three';
 // @ts-ignore
@@ -38,9 +38,10 @@ const zoneColors: Record<string, number> = {
   PICKING: 0xeab308,
   SHIPPING: 0x22c55e,
   RETURNING: 0xef4444,
+  DAMAGED: 0xf97316,
 };
 
-export default memo(function WarehouseVisualization({ zones, selectedShelfId, showResetButton, resetTrigger }: WarehouseVisualizationProps) {
+export default memo(function WarehouseVisualization({ zones, selectedShelfId, showResetButton }: WarehouseVisualizationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);

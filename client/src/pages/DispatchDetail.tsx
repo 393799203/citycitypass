@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Truck, MapPin, Package, Clock, CheckCircle, User } from 'lucide-react';
+import { ArrowLeft, Truck, MapPin, Package, User } from 'lucide-react';
 import { dispatchApi } from '../api';
 import { formatPhone, formatAddress } from '../utils/format';
 

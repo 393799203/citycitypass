@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Truck, Package, MapPin, Clock, CheckCircle, X, Plus, RefreshCw, Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import { Truck, Package, X, Plus, RefreshCw, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../api';
 import { parseAIResponse } from '../api/ai';
 import { formatPhone, formatAddress } from '../utils/format';

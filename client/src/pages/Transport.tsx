@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Truck, Plus, Trash2, Edit2, User, Phone, Car, X, MapPin } from 'lucide-react';
+import { Truck, Plus, Trash2, Edit2, User, Car, X, MapPin } from 'lucide-react';
 import { vehicleApi, driverApi, geocodeApi } from '../api';
 import LicensePlateInput from '../components/LicensePlateInput';
 import PhoneInput from '../components/PhoneInput';

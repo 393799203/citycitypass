@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { orderApi, pickOrderApi, returnApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, Calendar, Building2, PackageCheck, ClipboardList, Pencil, Trash2, Ban, RotateCcw, Clock, ChevronRight, AlertTriangle, FileText, DollarSign, Search, Plus, Filter, X, Warehouse, XCircle } from 'lucide-react';
+import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, Calendar, Building2, ClipboardList, Pencil, Trash2, Ban, RotateCcw, XCircle } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -69,30 +69,6 @@ export default function OrderDetail() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getNextStatus = (currentStatus: string): string | null => {
-    const flow: Record<string, string> = {
-      PENDING: 'PICKING',
-      PICKING: 'OUTBOUND_REVIEW',
-      OUTBOUND_REVIEW: 'DISPATCHING',
-      DISPATCHING: 'DISPATCHED',
-      DISPATCHED: 'IN_TRANSIT',
-      IN_TRANSIT: 'DELIVERED',
-    };
-    return flow[currentStatus] || null;
-  };
-
-  const getStatusButtonText = (status: string): string => {
-    const textMap: Record<string, string> = {
-      PENDING: '开始拣货',
-      PICKING: '拣货完成',
-      OUTBOUND_REVIEW: '审核通过',
-      DISPATCHING: '开始调度',
-      DISPATCHED: '开始运输',
-      IN_TRANSIT: '确认送达',
-    };
-    return textMap[status] || statusMap[status] || '';
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -695,7 +671,7 @@ export default function OrderDetail() {
                             </div>
                           </div>
                         ) : (
-                          <span className="font-medium text-blue-600">{item.productName}</span>
+                          <span className="font-medium text-blue-600">[商品] {item.productName}</span>
                         )}
                       </div>
                     </td>

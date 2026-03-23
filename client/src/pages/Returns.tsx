@@ -4,7 +4,7 @@ import { returnApi } from '../api/returns';
 import { orderApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Package, Truck, CheckCircle, XCircle, Warehouse, DollarSign, Clock, Search, Phone, X, Info, FileText, Pencil } from 'lucide-react';
+import { Truck, CheckCircle, Warehouse, DollarSign, Clock, Search, Phone, X, Info, Pencil } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
 import ReturnStockInModal from '../components/ReturnStockInModal';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -99,18 +99,6 @@ export default function Returns() {
   useEffect(() => {
     fetchReturns();
   }, [page, statusFilter]);
-
-  const handleOpenDetail = async (id: string) => {
-    try {
-      const res = await returnApi.get(id);
-      if (res.data.success) {
-        setSelectedReturn(res.data.data);
-        setShowDetailModal(true);
-      }
-    } catch (error) {
-      toast.error('获取退货详情失败');
-    }
-  };
 
   const handleCreate = async () => {
     if (!createForm.orderId || !createForm.reason) {
@@ -568,7 +556,7 @@ export default function Returns() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-blue-600">{item.productName || item.sku?.product?.name || '未知商品'}</span>
+                                  <span className="text-blue-600">[商品] {item.productName || item.sku?.product?.name || '-'}</span>
                                 )}
                               </td>
                               <td className="px-6 py-4 text-base text-gray-500">{item.packaging} · {item.spec}</td>

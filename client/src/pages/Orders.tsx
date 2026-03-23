@@ -26,6 +26,9 @@ interface Order {
   status: string;
   items: OrderItem[];
   createdAt: string;
+  warehouse?: { id: string; name: string };
+  latitude?: number;
+  longitude?: number;
 }
 
 interface OrderItem {
