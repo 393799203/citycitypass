@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, X, Loader2, Filter, Users, FileText, MapPin, Phon
 import AddressInput from '../components/AddressInput';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
 
 interface Customer {
   id: string;
@@ -76,6 +77,7 @@ const defaultFormData = {
 };
 
 export default function CustomersPage() {
+  const { confirm } = useConfirm();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -187,7 +189,8 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除该客户吗？')) return;
+    const ok = await confirm({ message: '确定要删除该客户吗？' });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/customers/${id}`, {
         method: 'DELETE',
@@ -260,7 +263,8 @@ export default function CustomersPage() {
   };
 
   const handleDeleteContract = async (id: string) => {
-    if (!confirm('确定要删除该合同吗？')) return;
+    const ok = await confirm({ message: '确定要删除该合同吗？' });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/contracts/${id}`, {
         method: 'DELETE',

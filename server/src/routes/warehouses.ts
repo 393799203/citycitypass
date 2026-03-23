@@ -126,7 +126,20 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const bundleStocks = await prisma.bundleStock.findMany({
       where: { warehouseId: id, location: { shelfId: { in: shelfIds } } },
-      include: { bundle: true, location: true }
+      include: {
+        bundle: {
+          include: {
+            items: {
+              include: {
+                sku: {
+                  include: { product: true }
+                }
+              }
+            }
+          }
+        },
+        location: true
+      }
     });
 
     const shelfStocksMap: Record<string, any[]> = {};

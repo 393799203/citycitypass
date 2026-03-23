@@ -3,6 +3,7 @@ import { productApi, bundleApi, warehouseApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmProvider';
 
 interface Product {
   id: string;
@@ -87,6 +88,7 @@ const defaultBundlePackagings = ['礼盒', '纸盒', '简装'];
 const defaultBundleSpecs = ['单品', '组合'];
 
 export default function ProductsPage() {
+  const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<'product' | 'bundle'>('product');
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
@@ -271,7 +273,8 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除?')) return;
+    const ok = await confirm({ message: '确定删除?' });
+    if (!ok) return;
     try {
       await productApi.delete(id);
       toast.success('删除成功');
@@ -282,7 +285,8 @@ export default function ProductsPage() {
   };
 
   const handleBundleDelete = async (id: string) => {
-    if (!confirm('确定删除?')) return;
+    const ok = await confirm({ message: '确定删除?' });
+    if (!ok) return;
     try {
       await bundleApi.delete(id);
       toast.success('删除成功');
@@ -303,11 +307,10 @@ export default function ProductsPage() {
     setEditingId(null);
   };
 
-  const handleSpecChange = (newSpec: string) => {
+  const handleSpecChange = async (newSpec: string) => {
     if (bundleFormData.spec === '组合' && newSpec === '单品' && bundleFormData.items.length > 1) {
-      if (!confirm('切换为单品将只保留第一个商品，确定要切换吗？')) {
-        return;
-      }
+      const ok = await confirm({ message: '切换为单品将只保留第一个商品，确定要切换吗？' });
+      if (!ok) return;
       setBundleFormData({ ...bundleFormData, spec: newSpec, items: [bundleFormData.items[0]] });
     } else {
       setBundleFormData({ ...bundleFormData, spec: newSpec });

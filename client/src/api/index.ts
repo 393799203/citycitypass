@@ -131,6 +131,17 @@ export const bundleStockApi = {
   stockIn: (data: any) => api.post('/stock/bundle/stock-in', data),
 };
 
+export const returnApi = {
+  list: (params?: any) => api.get('/returns', { params }),
+  get: (id: string) => api.get(`/returns/${id}`),
+  create: (data: any) => api.post('/returns', data),
+  receive: (id: string, data: any) => api.put(`/returns/${id}/receive`, data),
+  qualify: (id: string, data: any) => api.put(`/returns/${id}/qualify`, data),
+  stockIn: (id: string, data: any) => api.put(`/returns/${id}/stock-in`, data),
+  refund: (id: string, data: any) => api.put(`/returns/${id}/refund`, data),
+  cancel: (id: string, reason?: string) => api.put(`/returns/${id}/cancel`, { reason }),
+};
+
 export const vehicleApi = {
   list: (params?: any) => api.get('/vehicles', { params }),
   create: (data: any) => api.post('/vehicles', data),

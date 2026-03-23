@@ -211,6 +211,32 @@ export default function DispatchDetailPage() {
             </h1>
             <p className="text-gray-500 mt-1">配送单号: {dispatch.dispatchNo}</p>
           </div>
+          <div className="flex items-center gap-3">
+            {dispatch.status === 'PENDING' && (
+              <button
+                onClick={() => handleStatusChange('IN_TRANSIT')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                发车
+              </button>
+            )}
+            {dispatch.status === 'IN_TRANSIT' && (
+              <button
+                onClick={() => handleStatusChange('COMPLETED')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                完成配送
+              </button>
+            )}
+            {(dispatch.status === 'PENDING' || dispatch.status === 'IN_TRANSIT') && (
+              <button
+                onClick={() => handleStatusChange('CANCELLED')}
+                className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
+              >
+                取消配送
+              </button>
+            )}
+          </div>
           <span className={`px-3 py-1 text-sm rounded-full ${
             dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
             dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
@@ -400,33 +426,6 @@ export default function DispatchDetailPage() {
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div className="flex gap-3">
-          {dispatch.status === 'PENDING' && (
-            <button
-              onClick={() => handleStatusChange('IN_TRANSIT')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              发车
-            </button>
-          )}
-          {dispatch.status === 'IN_TRANSIT' && (
-            <button
-              onClick={() => handleStatusChange('COMPLETED')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              完成配送
-            </button>
-          )}
-          {(dispatch.status === 'PENDING' || dispatch.status === 'IN_TRANSIT') && (
-            <button
-              onClick={() => handleStatusChange('CANCELLED')}
-              className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
-            >
-              取消配送
-            </button>
-          )}
         </div>
       </div>
     </div>

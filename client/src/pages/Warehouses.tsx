@@ -7,6 +7,7 @@ import AddressInput from '../components/AddressInput';
 import { ArrowLeft, Plus, Pencil, Trash2, Loader2, Building2, MapPin, Search, X, Package, Phone, Clock } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -21,6 +22,7 @@ const statusMap: Record<string, string> = {
 
 export default function WarehousesPage() {
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,8 @@ export default function WarehousesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除该仓库吗？')) return;
+    const ok = await confirm({ message: '确定要删除该仓库吗？' });
+    if (!ok) return;
     try {
       await warehouseApi.delete(id);
       toast.success('仓库已删除');
@@ -244,7 +247,7 @@ export default function WarehousesPage() {
                   <span className="text-gray-500">货架数</span>
                   <span className="text-gray-700 flex items-center gap-1">
                     <Package className="w-3 h-3" />
-                    {warehouse._count?.shelves || 0}
+                    {warehouse.zones?.length || 0} 个库区 / {warehouse.shelves?.length || 0} 个货架
                   </span>
                 </div>
                 {(warehouse.province || warehouse.city || warehouse.address) && (

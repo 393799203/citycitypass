@@ -4,6 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { UserPlus, Pencil, Trash2, X, Loader2, Shield, Filter } from 'lucide-react';
 import { formatPhone } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
 
 const roleMap: Record<string, string> = {
   ADMIN: '管理员',
@@ -35,6 +36,7 @@ interface User {
 }
 
 export default function UsersPage() {
+  const { confirm } = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -126,7 +128,8 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除该用户吗？')) return;
+    const ok = await confirm({ message: '确定要删除该用户吗？' });
+    if (!ok) return;
     try {
       await userApi.delete(id);
       toast.success('用户已删除');

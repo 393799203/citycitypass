@@ -62,9 +62,20 @@ router.get('/', async (req: Request, res: Response) => {
         items: {
           include: {
             sku: true,
-            bundle: true,
+            bundle: {
+              include: {
+                items: {
+                  include: {
+                    sku: {
+                      include: { product: true }
+                    }
+                  }
+                }
+              }
+            },
           }
         },
+        returnOrders: true,
         stockLocks: {
           include: {
             location: {
@@ -135,6 +146,9 @@ router.get('/:id', async (req: Request, res: Response) => {
               },
             },
           },
+        },
+        returnOrders: {
+          orderBy: { createdAt: 'desc' },
         },
       },
     });

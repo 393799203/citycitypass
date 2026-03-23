@@ -6,6 +6,7 @@ import { Truck, Package, MapPin, Clock, CheckCircle, X, Plus, RefreshCw, Sparkle
 import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../api';
 import { parseAIResponse } from '../api/ai';
 import { formatPhone, formatAddress } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
 
 const orderStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -26,6 +27,7 @@ const dispatchStatusMap: Record<string, string> = {
 };
 
 export default function DispatchCenterPage() {
+  const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<'pending' | 'dispatches'>('pending');
   const [orders, setOrders] = useState<any[]>([]);
   const [dispatches, setDispatches] = useState<any[]>([]);
@@ -325,7 +327,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
             }`}
           >
             <Package className="w-4 h-4 inline mr-2" />
-            待调度订单 ({orders.length})
+            待调度订单
           </button>
           <button
             onClick={() => setActiveTab('dispatches')}
@@ -346,7 +348,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
           ) : activeTab === 'pending' ? (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">已选择 {selectedOrders.length} 个订单</span>
+                <span className="text-gray-600">已选择 {selectedOrders.length} 个订单，共 {orders.length} 个订单</span>
                 <div className="flex gap-2">
                   <button
                     onClick={handleAICreateDispatch}
@@ -512,7 +514,8 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                         {(dispatch.status === 'CANCELLED') && (
                           <button
                             onClick={async () => {
-                              if (confirm('确定要删除此配送单吗？')) {
+                              const ok = await confirm({ message: '确定要删除此配送单吗？' });
+                              if (ok) {
                                 try {
                                   await dispatchApi.delete(dispatch.id);
                                   toast.success('删除成功');

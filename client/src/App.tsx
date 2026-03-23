@@ -12,9 +12,12 @@ import Outbound from './pages/Outbound';
 import Transport from './pages/Transport';
 import DispatchCenter from './pages/DispatchCenter';
 import DispatchDetail from './pages/DispatchDetail';
+import Returns from './pages/Returns';
+import ReturnDetail from './pages/ReturnDetail';
 import Owners from './pages/Owners';
 import Users from './pages/Users';
 import Customers from './pages/Customers';
+import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -28,17 +31,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
+      <ConfirmProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
           <Route index element={<Navigate to="/orders" replace />} />
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />
@@ -51,12 +55,15 @@ function App() {
           <Route path="transport" element={<Transport />} />
           <Route path="dispatch" element={<DispatchCenter />} />
           <Route path="dispatch/:id" element={<DispatchDetail />} />
+          <Route path="returns" element={<Returns />} />
+          <Route path="returns/:id" element={<ReturnDetail />} />
           <Route path="carriers" element={<div className="text-gray-500">运力管理</div>} />
           <Route path="owners" element={<Owners />} />
           <Route path="users" element={<Users />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+        </Routes>
+      </ConfirmProvider>
     </BrowserRouter>
   );
 }

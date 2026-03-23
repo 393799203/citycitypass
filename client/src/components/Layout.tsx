@@ -17,6 +17,7 @@ import {
   Building2,
   Route,
   FileText,
+  RotateCcw,
 } from 'lucide-react';
 
 const roleMap: Record<string, string> = {
@@ -42,6 +43,7 @@ const businessMenuItems = [
   { path: '/orders', icon: ShoppingCart, label: '订单中心' },
   { path: '/outbound', icon: ArrowUpFromLine, label: '发货管理' },
   { path: '/dispatch', icon: Route, label: '运力调度' },
+  { path: '/returns', icon: RotateCcw, label: '退货管理' },
 ];
 
 const adminMenuItems = [

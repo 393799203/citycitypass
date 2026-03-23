@@ -7,6 +7,7 @@ import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { provinces, provinceCities } from '../data/region';
 import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff, MapPin, Phone } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmProvider';
 
 const defaultProductTags = ['电子产品', '服装', '食品', '建材', '化工', '医药', '生鲜', '家电', '家具'];
 
@@ -27,6 +28,7 @@ interface Owner {
 }
 
 export default function OwnersPage() {
+  const { confirm } = useConfirm();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -123,7 +125,8 @@ export default function OwnersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除该货主吗？')) return;
+    const ok = await confirm({ message: '确定要删除该货主吗？' });
+    if (!ok) return;
     try {
       await ownerApi.delete(id);
       toast.success('货主已删除');
@@ -136,7 +139,8 @@ export default function OwnersPage() {
   const handleToggleStatus = async (owner: Owner) => {
     const newStatus = owner.status === 'SERVING' ? 'STOPPED' : 'SERVING';
     const action = newStatus === 'STOPPED' ? '停止服务' : '开启服务';
-    if (!confirm(`确定要${action}该货主吗？`)) return;
+    const ok = await confirm({ message: `确定要${action}该货主吗？` });
+    if (!ok) return;
     try {
       await ownerApi.update(owner.id, { status: newStatus });
       toast.success(`${action}成功`);

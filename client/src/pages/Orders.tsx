@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi } from '../api';
+import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
+import ReturnTrackingModal from '../components/ReturnTrackingModal';
 import { formatPhone, formatAddress } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
 
 
 interface Order {
@@ -82,6 +84,9 @@ const statusMap: Record<string, string> = {
   DISPATCHED: '已调度',
   IN_TRANSIT: '运输中',
   DELIVERED: '已送达',
+  COMPLETED: '已完成',
+  RETURNING: '退货中',
+  RETURNED: '已退货退款',
   CANCELLED: '已取消',
 };
 
@@ -93,10 +98,20 @@ const statusOptions = [
   { value: 'DISPATCHED', label: '已调度' },
   { value: 'IN_TRANSIT', label: '运输中' },
   { value: 'DELIVERED', label: '已送达' },
+  { value: 'COMPLETED', label: '已完成' },
+  { value: 'RETURNING', label: '退货中' },
   { value: 'CANCELLED', label: '已取消' },
 ];
 
 export default function OrdersPage() {
+  const navigate = useNavigate();
+  const { confirm } = useConfirm();
+  const getLatestActiveReturn = (order: any) => {
+    if (!order.returnOrders?.length) return null;
+    return order.returnOrders
+      .filter((r: any) => r.status !== 'CANCELLED')
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  };
   const [orders, setOrders] = useState<Order[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -125,6 +140,11 @@ export default function OrdersPage() {
   const [bundles, setBundles] = useState<any[]>([]);
   const [ownerStockSummary, setOwnerStockSummary] = useState<any>(null);
   const [splitPreview, setSplitPreview] = useState<{show: boolean; allocations: Record<string, any[]>} | null>(null);
+  const [returnModal, setReturnModal] = useState<{ show: boolean; orderId: string; orderNo: string } | null>(null);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnTrackingModal, setReturnTrackingModal] = useState<{ show: boolean; returnId: string; returnNo: string } | null>(null);
+  const [returnTrackingNo, setReturnTrackingNo] = useState('');
+  const [returnLogisticsCompany, setReturnLogisticsCompany] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -270,6 +290,8 @@ export default function OrdersPage() {
               '已调度': 'DISPATCHED',
               '运输中': 'IN_TRANSIT',
               '已送达': 'DELIVERED',
+              '已完成': 'COMPLETED',
+              '退货中': 'RETURNING',
               '已取消': 'CANCELLED',
             };
             const status = statusMapReverse[statusText] || 'PENDING';
@@ -603,7 +625,8 @@ export default function OrdersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除该订单吗？')) return;
+    const ok = await confirm({ message: '确定要删除该订单吗？' });
+    if (!ok) return;
     try {
       await orderApi.delete(id);
       toast.success('订单已删除');
@@ -681,7 +704,73 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       <ToastContainer />
-      
+
+      {returnModal?.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <h2 className="text-lg font-bold mb-4">申请退货</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">订单</label>
+                <div className="w-full border rounded-lg px-3 py-2 bg-gray-50">
+                  {returnModal.orderNo}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">退货原因</label>
+                <textarea
+                  value={returnReason}
+                  onChange={e => setReturnReason(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                  rows={3}
+                  placeholder="请输入退货原因"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setReturnModal(null)} className="px-4 py-2 border rounded-lg">取消</button>
+              <button
+                onClick={async () => {
+                  if (!returnReason.trim()) {
+                    toast.error('请输入退货原因');
+                    return;
+                  }
+                  try {
+                    await returnApi.create({ orderId: returnModal.orderId, reason: returnReason });
+                    toast.success('退货申请已提交');
+                    setReturnModal(null);
+                    fetchOrders();
+                  } catch (error: any) {
+                    toast.error(error.response?.data?.message || '创建失败');
+                  }
+                }}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+              >
+                提交
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {returnTrackingModal?.show && (
+        <ReturnTrackingModal
+          open={true}
+          returnId={returnTrackingModal.returnId}
+          returnNo={returnTrackingModal.returnNo}
+          initialCompany={returnLogisticsCompany}
+          initialTrackingNo={returnTrackingNo}
+          onClose={() => {
+            setReturnTrackingModal(null);
+            fetchOrders();
+          }}
+          onSave={async (data, apiData) => {
+            await returnApi.receive(data.returnId!, apiData);
+            toast.success('快递单号已保存');
+          }}
+        />
+      )}
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">订单中心</h1>
         <div className="flex gap-2">
@@ -799,7 +888,7 @@ export default function OrdersPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">订单编号</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">下单时间</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">货主</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">货主/仓库</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">收货人</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">收货地址</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">商品总数</th>
@@ -815,11 +904,22 @@ export default function OrdersPage() {
                     <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                       {order.orderNo}
                     </Link>
+                    {(() => {
+                      const latestReturn = getLatestActiveReturn(order as any);
+                      return latestReturn ? (
+                        <div className="text-gray-400 text-sm mt-0.5">
+                          退单: <Link to={`/returns/${latestReturn.id}`} className="text-gray-500 hover:underline">{latestReturn.returnNo}</Link>
+                        </div>
+                      ) : null;
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">
                     {new Date(order.createdAt).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.owner.name}</td>
+                  <td className="px-6 py-4 text-base text-gray-500">
+                    <div>{order.owner?.name}</div>
+                    <div className="text-sm text-gray-400 mt-0.5">{order.warehouse?.name}</div>
+                  </td>
                   <td className="px-6 py-4 text-base">
                     <div>{order.receiver}</div>
                     <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
@@ -852,7 +952,10 @@ export default function OrdersPage() {
                       order.status === 'DISPATCHED' ? 'bg-cyan-600 text-white' :
                       order.status === 'IN_TRANSIT' ? 'bg-purple-600 text-white' :
                       order.status === 'DELIVERED' ? 'bg-green-600 text-white' :
-                      'bg-red-600 text-white'
+                      order.status === 'COMPLETED' ? 'bg-emerald-500 text-white' :
+                      order.status === 'RETURNING' ? 'bg-orange-500 text-white' :
+                      order.status === 'RETURNED' ? 'bg-pink-500 text-white' :
+                      'bg-gray-500 text-white'
                     }`}>
                       {statusMap[order.status]}
                     </span>
@@ -892,8 +995,9 @@ export default function OrdersPage() {
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm('确定要取消该订单吗？')) {
+                          onClick={async () => {
+                            const ok = await confirm({ message: '确定要取消该订单吗？' });
+                            if (ok) {
                               handleStatusChange(order.id, 'CANCELLED');
                             }
                           }}
@@ -906,8 +1010,9 @@ export default function OrdersPage() {
                     )}
                     {order.status === 'CANCELLED' && (
                       <button
-                        onClick={() => {
-                          if (confirm('确定要删除该订单吗？')) {
+                        onClick={async () => {
+                          const ok = await confirm({ message: '确定要删除该订单吗？' });
+                          if (ok) {
                             handleDelete(order.id);
                           }
                         }}
@@ -916,6 +1021,89 @@ export default function OrdersPage() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
+                    )}
+                    {order.status === 'DELIVERED' && (
+                      <>
+                        <button
+                          onClick={async () => {
+                            const ok = await confirm({ message: '确认已收到货？' });
+                            if (ok) {
+                              handleStatusChange(order.id, 'COMPLETED');
+                            }
+                          }}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+                          title="确认收货"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                            setReturnReason('');
+                          }}
+                          className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
+                          title="申请退货"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'COMPLETED' && (
+                      <button
+                        onClick={() => {
+                          setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                          setReturnReason('');
+                        }}
+                        className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
+                        title="申请退货"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
+                    {order.status === 'RETURNING' && (
+                      <>
+                        {(() => {
+                          const orderData = order as any;
+                          const returnOrder = getLatestActiveReturn(orderData);
+                          if (!returnOrder) return null;
+                          return (
+                            <>
+                              {returnOrder.status === 'RETURN_REQUESTED' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
+                                      setReturnTrackingNo('');
+                                      setReturnLogisticsCompany('');
+                                    }}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                    title="填写快递单号"
+                                  >
+                                    <Truck className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                                      if (ok) {
+                                        returnApi.cancel(returnOrder.id).then(() => {
+                                          toast.success('已取消退货');
+                                          fetchOrders();
+                                        }).catch((err: any) => {
+                                          toast.error(err.response?.data?.message || '取消失败');
+                                        });
+                                      }
+                                    }}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                                    title="取消退货"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </>
                     )}
                   </td>
                 </tr>

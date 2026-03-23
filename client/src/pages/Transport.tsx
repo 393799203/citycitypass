@@ -7,6 +7,7 @@ import LicensePlateInput from '../components/LicensePlateInput';
 import PhoneInput from '../components/PhoneInput';
 import LicenseNoInput from '../components/LicenseNoInput';
 import { formatPhone } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
 
 const licenseTypeColors: Record<string, { bg: string; text: string; border: string }> = {
   '小面': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
@@ -65,6 +66,7 @@ interface Driver {
 }
 
 export default function TransportPage() {
+  const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<'vehicle' | 'driver'>('vehicle');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -184,7 +186,8 @@ export default function TransportPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除吗？')) return;
+    const ok = await confirm({ message: '确定要删除吗？' });
+    if (!ok) return;
     try {
       if (activeTab === 'vehicle') {
         await vehicleApi.delete(id);

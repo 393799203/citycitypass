@@ -75,7 +75,7 @@ router.post('/', async (req: Request, res: Response) => {
           where: { orderId },
           include: {
             location: {
-              include: { shelf: true }
+              include: { shelf: { include: { zone: true } } }
             },
             sku: {
               include: { product: true },
@@ -88,7 +88,7 @@ router.post('/', async (req: Request, res: Response) => {
           where: { orderId },
           include: {
             location: {
-              include: { shelf: true }
+              include: { shelf: { include: { zone: true } } }
             },
             bundle: {
               include: {
@@ -123,7 +123,7 @@ router.post('/', async (req: Request, res: Response) => {
             packaging: lock.sku.packaging,
             spec: lock.sku.spec,
             quantity: lock.quantity,
-            warehouseLocation: lock.shelf?.code || lock.sku.warehouseLocation || '',
+            warehouseLocation: `${lock.location?.shelf?.zone?.code || ''}-${lock.location?.shelf?.code || ''}-L${lock.location?.level || ''}` || lock.sku.warehouseLocation || '',
             stockLockId: lock.id,
             bundleStockLockId: null,
           });
@@ -131,7 +131,7 @@ router.post('/', async (req: Request, res: Response) => {
       }
 
       for (const lock of allBundleStockLocks) {
-        const key = `bundle-${lock.bundleId}-${lock.shelf?.code || ''}`;
+        const key = `bundle-${lock.bundleId}-${lock.location?.shelf?.code || ''}`;
         const existing = mergedItems.find(m => m.key === key && m.isBundle);
         if (existing) {
           existing.quantity += lock.quantity;
@@ -145,7 +145,7 @@ router.post('/', async (req: Request, res: Response) => {
             packaging: lock.bundle.packaging,
             spec: lock.bundle.spec,
             quantity: lock.quantity,
-            warehouseLocation: lock.shelf?.code || '',
+            warehouseLocation: `${lock.location?.shelf?.zone?.code || ''}-${lock.location?.shelf?.code || ''}-L${lock.location?.level || ''}` || '',
             stockLockId: null,
             bundleStockLockId: lock.id,
             bundleItems: lock.bundle.items,
@@ -285,7 +285,17 @@ router.get('/', async (req: Request, res: Response) => {
             items: {
               include: { 
                 sku: true,
-                bundle: true,
+                bundle: {
+                  include: {
+                    items: {
+                      include: {
+                        sku: {
+                          include: { product: true }
+                        }
+                      }
+                    }
+                  }
+                },
               },
             },
             stockLocks: {
@@ -340,6 +350,32 @@ router.get('/:id', async (req: Request, res: Response) => {
                 }
               }
             },
+            stockLock: {
+              include: {
+                location: {
+                  include: {
+                    shelf: {
+                      include: {
+                        zone: true
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            bundleStockLock: {
+              include: {
+                location: {
+                  include: {
+                    shelf: {
+                      include: {
+                        zone: true
+                      }
+                    }
+                  }
+                }
+              }
+            },
           },
         },
       },
@@ -352,7 +388,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const orderIds = pickOrder.orderIds.split(',');
     const orders = await prisma.order.findMany({
       where: { id: { in: orderIds } },
-      include: { owner: true, warehouse: true },
+      include: { owner: true, warehouse: true, items: { include: { sku: true, bundle: true } } },
     });
 
     res.json({ success: true, data: { ...pickOrder, orders } });

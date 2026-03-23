@@ -18,8 +18,6 @@ const pickStatusMap: Record<string, string> = {
 export default function OutboundPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'pick' | 'review'>('pending');
   const [pickOrders, setPickOrders] = useState<any[]>([]);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [pickCount, setPickCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -31,19 +29,8 @@ export default function OutboundPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    orderApi.list({ status: 'PENDING', pageSize: 1 }).then(res => {
-      if (res.data.success) {
-        const count = res.data.data.filter((o: any) => !o.pickOrder).length;
-        setPendingCount(count);
-      }
-    });
-    
-    pickOrderApi.list({ status: 'PICKING', pageSize: 1 }).then(res => {
-      if (res.data.success) {
-        setPickCount(res.data.total || 0);
-      }
-    });
-  }, []);
+    fetchData();
+  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -58,6 +45,8 @@ export default function OutboundPage() {
             status: 'PENDING',
             order: o,
             items: o.items || [],
+            stockLocks: o.stockLocks || [],
+            bundleStockLocks: o.bundleStockLocks || [],
           })));
         }
       } else {
@@ -68,9 +57,13 @@ export default function OutboundPage() {
               o.status === 'PICKING' || o.status === 'CANCELLED'
             );
             setPickOrders(pickOrders);
-            setPickCount(pickOrders.length);
           } else if (activeTab === 'review') {
             const reviewOrders = res.data.data.filter((o: any) => o.status === 'PICKED' || o.status === 'COMPLETED');
+            reviewOrders.sort((a: any, b: any) => {
+              if (a.status === 'PICKED' && b.status !== 'PICKED') return -1;
+              if (a.status !== 'PICKED' && b.status === 'PICKED') return 1;
+              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+            });
             setPickOrders(reviewOrders);
           }
         }
@@ -242,11 +235,6 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     setAiRecommendOrders(null);
                     setSelectedOrders([]);
                     fetchData();
-                    orderApi.list({ status: 'PENDING', pageSize: 1 }).then(res => {
-                      if (res.data.success) {
-                        setPendingCount(res.data.data.filter((o: any) => !o.pickOrder).length);
-                      }
-                    });
                   } catch (error: any) {
                     toast.error(error.response?.data?.message || '批量生成失败');
                   }
@@ -286,7 +274,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                待拣货 ({pendingCount})
+                待拣货
               </div>
             </button>
             <button
@@ -299,7 +287,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5" />
-                拣货单 ({pickCount})
+                拣货单
               </div>
             </button>
             <button
@@ -333,7 +321,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                 <div className="flex gap-2">
                   <button
                     onClick={handleAICreatePickOrders}
-                    disabled={aiLoading || pendingCount === 0}
+                    disabled={aiLoading}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -346,11 +334,6 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                         toast.success(`已生成 1 个合并拣货单`);
                         setSelectedOrders([]);
                         fetchData();
-                        orderApi.list({ status: 'PENDING', pageSize: 1 }).then(res => {
-                          if (res.data.success) {
-                            setPendingCount(res.data.data.filter((o: any) => !o.pickOrder).length);
-                          }
-                        });
                       } catch (error: any) {
                         toast.error(error.response?.data?.message || '批量生成失败');
                       }
@@ -385,7 +368,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     <th className="pb-3">下单时间</th>
                     <th className="pb-3">货主</th>
                     <th className="pb-3">仓库</th>
-                    <th className="pb-3">商品</th>
+                    <th className="pb-3">商品[库位]</th>
                     <th className="pb-3 text-right">操作</th>
                   </tr>
                 </thead>
@@ -417,12 +400,38 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                       <td className="py-3">{order.order?.owner?.name}</td>
                       <td className="py-3 text-blue-600">{order.order?.warehouse?.name}</td>
                       <td className="py-3">
-                        {order.items?.map((item: any) => (
-                          <span key={item.id} className="inline-block mr-2 text-sm">
-                            {item.bundleId && <span className="text-purple-600">[套装]</span>}
-                            <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec && `(${item.spec})`} {item.packaging && `· ${item.packaging}`} x{item.quantity}
-                          </span>
-                        ))}
+                        {order.items?.map((item: any) => {
+                          const lock = item.bundleId
+                            ? order.bundleStockLocks?.find((l: any) => l.bundleId === item.bundleId)
+                            : order.stockLocks?.find((l: any) => l.skuId === item.skuId);
+                          const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
+                          return (
+                            <div key={item.id} className="text-sm mb-1 flex items-center">
+                              <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                                {item.bundleId && <span className="text-purple-500">[套装]</span>}
+                                {item.productName}
+                                {item.spec && `(${item.spec})`}
+                                {item.bundleId && item.bundle?.items?.length > 0 && (
+                                   <button
+                                     type="button"
+                                     onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                     onMouseLeave={() => setTooltip(null)}
+                                     onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                     className="hover:bg-gray-100 rounded ml-1"
+                                   >
+                                     <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
+                                   </button>
+                                 )}
+                              </span>
+                              <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{item.quantity}</span>
+                              {locationStr && (
+                                <span className="ml-1 text-orange-500 text-sm">
+                                  [{locationStr}]
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </td>
                       <td className="py-3 text-right">
                         <button
@@ -431,11 +440,6 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                               await pickOrderApi.create({ orderId: order.order?.id });
                               toast.success('拣货单已生成');
                               fetchData();
-                              orderApi.list({ status: 'PENDING', pageSize: 1 }).then(res => {
-                                if (res.data.success) {
-                                  setPendingCount(res.data.data.filter((o: any) => !o.pickOrder).length);
-                                }
-                              });
                             } catch (error) {
                               toast.error('生成拣货单失败');
                             }
@@ -512,53 +516,41 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     </div>
                   </div>
                   <div className="overflow-x-visible bg-gray-50 rounded-lg p-3">
-                    <table className="w-full">
+                    <table className="w-full table-fixed">
                       <thead>
                         <tr className="text-xs text-gray-500">
-                          <th className="text-left py-1">商品</th>
-                          <th className="text-left py-1">包装/规格</th>
-                          <th className="text-left py-1">数量</th>
-                          <th className="text-left py-1">库位(货位)</th>
+                          <th className="text-left py-1 w-1/4">商品</th>
+                          <th className="text-left py-1 w-1/4">包装/规格</th>
+                          <th className="text-left py-1 w-12">数量</th>
+                          <th className="text-left py-1 w-1/4">库位(货位)</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
                         {(pickOrder.items || []).map((item: any) => (
                           <tr key={item.id} className="border-t border-gray-200">
-                            <td className="py-2">
-                              {item.bundleId ? (
-                                <div className="flex items-center p-1 gap-1">
-                                  <span className="text-purple-600 font-medium">[套装] {item.productName}</span>
-                                  {item.bundle?.items?.length > 0 && (
-                                    <button
-                                      type="button"
-                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                      onMouseLeave={() => setTooltip(null)}
-                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                      className="p-0.5 hover:bg-gray-100 rounded"
-                                    >
-                                      <Info className="w-3 h-3 text-gray-400 cursor-help" />
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="rounded-lg p-1">
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium text-blue-600">{item.productName}</span>
-                                    {item.categoryName && (
-                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded">
-                                        {item.categoryName}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
+                            <td className="py-2 align-top">
+                              <div className="flex items-center gap-1">
+                                {item.bundleId && <span className="text-purple-600 font-medium">[套装]</span>}
+                                <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
+                                {item.bundleId && item.bundle?.items?.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                    onMouseLeave={() => setTooltip(null)}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                    className="p-0.5 hover:bg-gray-100 rounded"
+                                  >
+                                    <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
-                            <td className="py-2 text-gray-500">{item.packaging} · {item.spec}</td>
-                            <td className="py-2 text-left">{item.quantity}</td>
-                            <td className="py-2 text-gray-500">
+                            <td className="py-2 align-top text-gray-500">{item.packaging} · {item.spec}</td>
+                            <td className="py-2 align-top">{item.quantity}</td>
+                            <td className="py-2 align-top text-gray-500">
                               {item.stockLock?.location ? `${item.stockLock.location.shelf?.zone?.code}-${item.stockLock.location.shelf?.code}-L${item.stockLock.location.level}` :
                                item.bundleStockLock?.location ? `${item.bundleStockLock.location.shelf?.zone?.code}-${item.bundleStockLock.location.shelf?.code}-L${item.bundleStockLock.location.level}` :
-                               item.warehouseLocation || '-'}
+                               item.warehouseLocation ? `${item.warehouseLocation} (已出库)` : '-'}
                               {pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && ' (已退回)'}
                             </td>
                           </tr>
@@ -583,9 +575,21 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                             <ShoppingCart className="w-4 h-4 mt-0.5" />
                             <div>
                               {o.items?.map((item: any) => (
-                                <span key={item.id} className="mr-2">
+                                <span key={item.id} className="mr-2 inline-flex items-center">
                                   {item.bundleId && <span className="text-purple-600">[套装]</span>}
-                                  <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging} x{item.quantity}
+                                  <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
+                                  {item.bundleId && item.bundle?.items?.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      onMouseLeave={() => setTooltip(null)}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      className="p-0.5 hover:bg-gray-100 rounded mx-1"
+                                    >
+                                      <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                    </button>
+                                  )}
+                                  x{item.quantity}
                                 </span>
                               ))}
                             </div>

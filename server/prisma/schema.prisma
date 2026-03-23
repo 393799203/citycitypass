@@ -128,6 +128,9 @@ enum OrderStatus {
   DISPATCHED    // 已调度
   IN_TRANSIT    // 运输中
   DELIVERED     // 已送达
+  COMPLETED     // 已完成
+  RETURNING     // 退货中
+  RETURNED      // 已退货退款
   CANCELLED     // 已取消
 }
 
@@ -161,6 +164,7 @@ model Owner {
   updatedAt       DateTime @updatedAt
   orders          Order[]
   warehouses      Warehouse[]
+  returnOrders    ReturnOrder[]
 }
 
 model ProductCategory {
@@ -211,6 +215,7 @@ model ProductSKU {
   updatedAt   DateTime @updatedAt
   orderItems  OrderItem[]
   pickOrderItems PickOrderItem[]
+  returnItems  ReturnItem[]
   stocks     Stock[]
   stockLocks StockLock[]
   stockIns   StockIn[]
@@ -228,6 +233,7 @@ model BundleSKU {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   items       BundleSKUItem[]
+  returnItems ReturnItem[]
   stocks      BundleStock[]
   stockLocks  BundleStockLock[]
   stockIns   BundleStockIn[]
@@ -312,6 +318,7 @@ model Order {
   stockLocks StockLock[]
   bundleStockLocks BundleStockLock[]
   dispatchOrders DispatchOrder[]
+  returnOrders ReturnOrder[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -407,6 +414,7 @@ model Warehouse {
   vehicles   Vehicle[]
   drivers    Driver[]
   dispatches Dispatch[]
+  returnOrders ReturnOrder[]
   bundleStocks    BundleStock[]
   bundleStockLocks BundleStockLock[]
   bundleStockIns BundleStockIn[]
@@ -639,4 +647,109 @@ model DispatchOrder {
   status      DispatchOrderStatus @default(PENDING)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
+}
+
+// ============== 退货相关模型 ==============
+
+enum ReturnStatus {
+  RETURN_REQUESTED   // 客户发起退货申请
+  RETURN_SHIPPED     // 客户已发货/等待仓库收货
+  RETURN_RECEIVING   // 仓库收货中
+  RETURN_QUALIFIED   // 验收合格
+  RETURN_REJECTED    // 验收拒收（可退款）
+  RETURN_STOCK_IN    // 退货入库完成
+  REFUNDED           // 已完成退款
+  CANCELLED          // 已取消
+}
+
+enum RefundStatus {
+  PENDING    // 待退款
+  PROCESSING // 退款中
+  COMPLETED  // 已退款
+  FAILED     // 退款失败
+}
+
+model ReturnOrder {
+  id           String       @id @default(uuid())
+  returnNo     String       @unique // 退货单号
+  orderId      String       // 原订单ID
+  order        Order        @relation(fields: [orderId], references: [id])
+
+  ownerId      String
+  owner        Owner        @relation(fields: [ownerId], references: [id])
+
+  warehouseId  String
+  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
+
+  status      ReturnStatus @default(RETURN_REQUESTED)
+  reason      String       // 退货原因
+
+  refundAmount Decimal?    @db.Decimal(12, 2) // 退款金额
+  refundStatus RefundStatus @default(PENDING)
+
+  receiverName String?     // 收货人
+  receiverPhone String?   // 收货电话
+  receiverAddress String? // 收货地址
+
+  trackingNo String?     // 快递单号
+  logisticsCompany String? // 物流公司
+
+  operatorName String?     // 操作人
+
+  items       ReturnItem[]
+  logs        ReturnLog[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ReturnItem {
+  id               String      @id @default(uuid())
+  returnOrderId    String
+  returnOrder     ReturnOrder @relation(fields: [returnOrderId], references: [id], onDelete: Cascade)
+
+  orderItemId     String      // 原订单商品ID
+  skuId           String?
+  sku             ProductSKU? @relation(fields: [skuId], references: [id])
+  bundleId        String?
+  bundle          BundleSKU?  @relation(fields: [bundleId], references: [id])
+
+  productName     String       // 商品名称（冗余）
+  packaging      String       // 包装
+  spec           String       // 规格
+
+  quantity       Int          // 退货数量
+  qualifiedQuantity Int       @default(0) // 合格数量
+  rejectedQuantity Int       @default(0) // 拒收数量
+
+  remark         String?      // 备注
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum ReturnAction {
+  CREATE           // 创建退货单
+  SHIPPED          // 客户发货
+  RECEIVE          // 仓库收货
+  QUALIFY          // 验收确认
+  REJECT           // 拒收
+  STOCK_IN         // 退货入库
+  REFUND           // 退款
+  CANCEL           // 取消
+}
+
+model ReturnLog {
+  id            String       @id @default(uuid())
+  returnOrderId String
+  returnOrder   ReturnOrder  @relation(fields: [returnOrderId], references: [id], onDelete: Cascade)
+
+  action       ReturnAction
+  beforeStatus String?
+  afterStatus  String?
+
+  operatorName String?
+  remark       String?
+
+  createdAt    DateTime     @default(now())
 }

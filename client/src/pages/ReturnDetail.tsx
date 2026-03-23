@@ -1,0 +1,514 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { returnApi } from '../api';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { ArrowLeft, Package, Truck, CheckCircle, Warehouse, DollarSign, Phone, FileText, Clock, Pencil } from 'lucide-react';
+import ReturnTrackingModal from '../components/ReturnTrackingModal';
+import ReturnStockInModal from '../components/ReturnStockInModal';
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+  RETURN_REQUESTED: { label: '待发货', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+  RETURN_SHIPPED: { label: '已发货', color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  RETURN_RECEIVING: { label: '收货中', color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  RETURN_QUALIFIED: { label: '已验收', color: 'text-green-600', bgColor: 'bg-green-50' },
+  RETURN_REJECTED: { label: '已拒收', color: 'text-red-600', bgColor: 'bg-red-50' },
+  RETURN_STOCK_IN: { label: '已入库', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  REFUNDED: { label: '已退款', color: 'text-pink-600', bgColor: 'bg-pink-50' },
+  CANCELLED: { label: '已取消', color: 'text-gray-600', bgColor: 'bg-gray-50' },
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  CREATE: '创建退货',
+  SHIPPED: '客户发货',
+  RECEIVE: '仓库收货',
+  QUALIFY: '验收合格',
+  REJECT: '验收拒收',
+  STOCK_IN: '退货入库',
+  REFUND: '退款完成',
+  CANCEL: '取消',
+};
+
+const returnStatusFlow = [
+  { key: 'RETURN_REQUESTED', label: '申请退货' },
+  { key: 'RETURN_SHIPPED', label: '买家发货' },
+  { key: 'RETURN_RECEIVING', label: '仓库收货' },
+  { key: 'RETURN_QUALIFIED', label: '验收' },
+  { key: 'RETURN_STOCK_IN', label: '入库' },
+  { key: 'REFUNDED', label: '退款完成' },
+];
+
+export default function ReturnDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [returnOrder, setReturnOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [returnTrackingModal, setReturnTrackingModal] = useState<{ show: boolean; returnId: string; returnNo: string } | null>(null);
+  const [returnTrackingNo, setReturnTrackingNo] = useState('');
+  const [returnLogisticsCompany, setReturnLogisticsCompany] = useState('');
+
+  const [qualifyItems, setQualifyItems] = useState<any[]>([]);
+  const [showQualifyModal, setShowQualifyModal] = useState(false);
+  const [showStockInModal, setShowStockInModal] = useState(false);
+  const [refundModal, setRefundModal] = useState<{ show: boolean; refundAmount: number } | null>(null);
+
+  const fetchReturn = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await returnApi.get(id);
+      if (res.data.success) {
+        setReturnOrder(res.data.data);
+        setQualifyItems(res.data.data.items?.map((item: any) => ({
+          ...item,
+          qualifiedQuantity: item.qualifiedQuantity || item.quantity,
+          rejectedQuantity: item.rejectedQuantity || 0,
+        })) || []);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReturn();
+  }, [id]);
+
+  const getReturnStepStatus = (returnStatus: string, stepKey: string) => {
+    if (!returnStatus) return 'pending';
+    if (returnStatus === 'CANCELLED') return 'cancelled';
+    if (returnStatus === 'REFUNDED') {
+      const stepIndex = returnStatusFlow.findIndex(s => s.key === stepKey);
+      const refundedIndex = returnStatusFlow.findIndex(s => s.key === 'REFUNDED');
+      if (stepIndex <= refundedIndex) return 'completed';
+      return 'pending';
+    }
+    const currentIndex = returnStatusFlow.findIndex(s => s.key === returnStatus);
+    const stepIndex = returnStatusFlow.findIndex(s => s.key === stepKey);
+    if (stepIndex < currentIndex) return 'completed';
+    if (stepIndex === currentIndex) return 'current';
+    return 'pending';
+  };
+
+  const handleReceive = async () => {
+    if (!returnOrder) return;
+    try {
+      await returnApi.receive(returnOrder.id, {
+        trackingNo: returnTrackingNo,
+        logisticsCompany: returnLogisticsCompany,
+      });
+      toast.success('快递单号已保存');
+      setReturnTrackingModal(null);
+      fetchReturn();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '保存失败');
+    }
+  };
+
+  const openQualifyModal = (ret: any) => {
+    setQualifyItems(ret.items?.map((item: any) => ({
+      ...item,
+      qualifiedQuantity: item.qualifiedQuantity || item.quantity,
+      rejectedQuantity: item.rejectedQuantity || 0,
+    })) || []);
+    setShowQualifyModal(true);
+  };
+
+  const handleQualify = async () => {
+    if (!returnOrder) return;
+    try {
+      await returnApi.qualify(returnOrder.id, { items: qualifyItems });
+      toast.success('验收确认成功');
+      setShowQualifyModal(false);
+      fetchReturn();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '验收失败');
+    }
+  };
+
+  const openStockInModal = () => {
+    setShowStockInModal(true);
+  };
+
+  const handleStockIn = async (locationId: string) => {
+    if (!returnOrder) return;
+    try {
+      await returnApi.stockIn(returnOrder.id, {
+        locationId,
+        items: qualifyItems.map((item: any) => ({
+          id: item.id,
+          qualifiedQuantity: item.qualifiedQuantity,
+        })),
+      });
+      toast.success('入库成功');
+      setShowStockInModal(false);
+      fetchReturn();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '入库失败');
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!returnOrder || !refundModal) return;
+    try {
+      await returnApi.refund(returnOrder.id, { refundAmount: refundModal.refundAmount });
+      toast.success('退款确认成功');
+      setRefundModal(null);
+      fetchReturn();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '操作失败');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    );
+  }
+
+  if (!returnOrder) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">退货单不存在</div>
+      </div>
+    );
+  }
+
+  const statusConfig = STATUS_CONFIG[returnOrder.status] || { label: returnOrder.status, color: 'text-gray-600', bgColor: 'bg-gray-50' };
+
+  return (
+    <div className="p-6">
+      <ToastContainer />
+
+      <div className="mb-6">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
+          <ArrowLeft className="w-5 h-5" />
+          <span>返回</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">退货单详情</h1>
+                <div className="flex items-center gap-4 mt-1">
+                  <p className="text-gray-500">退货单号: {returnOrder.returnNo}</p>
+                  <span className={`px-3 py-1.5 text-sm rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}>
+                    {statusConfig.label}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">退货流程</h2>
+              <div className="flex items-center">
+                {returnStatusFlow.map((step, index) => {
+                  const stepStatus = getReturnStepStatus(returnOrder.status, step.key);
+                  const isLast = index === returnStatusFlow.length - 1;
+                  return (
+                    <div key={step.key} className="flex items-center flex-1">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          stepStatus === 'completed' ? 'bg-green-500 text-white' :
+                          stepStatus === 'current' ? 'bg-orange-500 text-white' :
+                          'bg-gray-100 text-gray-400'
+                        }`}>
+                          {stepStatus === 'completed' ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : stepStatus === 'current' ? (
+                            <div className="w-4 h-4 border-2 border-white rounded-full animate-pulse" />
+                          ) : (
+                            <span className="text-xs font-medium">{index + 1}</span>
+                          )}
+                        </div>
+                        <div className="mt-2 text-center">
+                          <div className={`text-xs font-medium ${
+                            stepStatus === 'completed' || stepStatus === 'current' ? 'text-gray-800' : 'text-gray-400'
+                          }`}>
+                            {step.label}
+                          </div>
+                        </div>
+                      </div>
+                      {!isLast && (
+                        <div className={`flex-1 h-0.5 mx-1 -mt-4 ${
+                          stepStatus === 'completed' ? 'bg-green-500' : 'bg-gray-200'
+                        }`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className={`grid ${(returnOrder.trackingNo || returnOrder.logisticsCompany) ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">退货人</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-base">{returnOrder.receiverName}</div>
+                    <div className="flex items-center gap-1 text-gray-500 text-sm">
+                      <Phone className="w-4 h-4" />
+                      {returnOrder.receiverPhone}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-2 mb-1">退货人地址</div>
+                  <div className="text-base">{returnOrder.receiverAddress}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500 mb-1">收货仓</div>
+                  <div className="text-base">{returnOrder.warehouse?.name}</div>
+                  <div className="text-sm text-gray-500 mt-2 mb-1">收货仓地址</div>
+                  <div className="text-base">{returnOrder.warehouse?.address}</div>
+                </div>
+                {(returnOrder.trackingNo || returnOrder.logisticsCompany) && (
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">退货快递</div>
+                    <div className="text-base">{returnOrder.logisticsCompany || '-'}</div>
+                    <div className="text-sm text-gray-500 mt-2 mb-1">快递单号</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base text-gray-600">{returnOrder.trackingNo || '-'}</span>
+                      {returnOrder.trackingNo && returnOrder.logisticsCompany && (
+                        <a
+                          href={`https://www.kuaidi100.com/chaxun?com=${encodeURIComponent(returnOrder.logisticsCompany)}&nu=${returnOrder.trackingNo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          查询
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-6 mt-6">
+              <div className="text-sm text-gray-500 mb-1">退货原因</div>
+              <div className="text-base">{returnOrder.reason}</div>
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">退货商品</h3>
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">包装</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">规格</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">退货数量</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">合格数量</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">拒收数量</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {returnOrder.items?.map((item: any) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3 text-base">{item.productName}</td>
+                      <td className="px-4 py-3 text-base text-gray-500">{item.packaging}</td>
+                      <td className="px-4 py-3 text-base text-gray-500">{item.spec}</td>
+                      <td className="px-4 py-3 text-right text-base">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-base text-green-600">{item.qualifiedQuantity}</td>
+                      <td className="px-4 py-3 text-right text-base text-red-600">{item.rejectedQuantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {!['REFUNDED', 'CANCELLED'].includes(returnOrder.status) && (
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">操作</h3>
+              <div className="space-y-3">
+                {returnOrder.status === 'RETURN_REQUESTED' && (
+                  <button
+                    onClick={() => {
+                      setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
+                      setReturnTrackingNo('');
+                      setReturnLogisticsCompany('');
+                    }}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <Pencil className="w-4 h-4" /> 填写快递单号
+                  </button>
+                )}
+                {returnOrder.status === 'RETURN_SHIPPED' && (
+                  <button onClick={handleReceive} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> 确认收货
+                  </button>
+                )}
+                {returnOrder.status === 'RETURN_RECEIVING' && (
+                  <button
+                    onClick={() => openQualifyModal(returnOrder)}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" /> 验收确认
+                  </button>
+                )}
+                {returnOrder.status === 'RETURN_QUALIFIED' && (
+                  <button
+                    onClick={() => openStockInModal()}
+                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <Warehouse className="w-4 h-4" /> 退货入库
+                  </button>
+                )}
+                {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(returnOrder.status) && returnOrder.refundStatus !== 'COMPLETED' && (
+                  <button
+                    onClick={() => {
+                      const totalRefund = (returnOrder.items || [])
+                        .filter((item: any) => item.qualifiedQuantity > 0)
+                        .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * item.qualifiedQuantity, 0);
+                      setRefundModal({ show: true, refundAmount: totalRefund });
+                    }}
+                    className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <DollarSign className="w-4 h-4" /> 确认退款
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5 text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-800">操作日志</h3>
+            </div>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {returnOrder.logs?.map((log: any) => (
+                <div key={log.id} className="flex gap-3">
+                  <div className="w-16 text-xs text-gray-400 flex-shrink-0 pt-1">
+                    {new Date(log.createdAt).toLocaleDateString()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-700 text-sm">{ACTION_LABELS[log.action] || log.action}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{log.remark}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {returnTrackingModal?.show && (
+        <ReturnTrackingModal
+          open={true}
+          returnId={returnTrackingModal.returnId}
+          returnNo={returnTrackingModal.returnNo}
+          initialCompany={returnLogisticsCompany}
+          initialTrackingNo={returnTrackingNo}
+          onClose={() => setReturnTrackingModal(null)}
+          onSave={async (data, apiData) => {
+            if (!returnOrder) return;
+            await returnApi.receive(returnOrder.id, apiData);
+            toast.success('快递单号已保存');
+            fetchReturn();
+          }}
+        />
+      )}
+
+      {showQualifyModal && !['RETURN_REQUESTED', 'RETURN_SHIPPED', 'CANCELLED', 'REFUNDED'].includes(returnOrder.status) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
+            <h3 className="text-lg font-semibold mb-4">验收确认</h3>
+            <table className="w-full mb-4">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs">商品</th>
+                  <th className="px-4 py-2 text-right text-xs">退货数</th>
+                  <th className="px-4 py-2 text-right text-xs">合格数</th>
+                  <th className="px-4 py-2 text-right text-xs">拒收数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {qualifyItems.map((item, idx) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2 text-sm">{item.productName}</td>
+                    <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
+                    <td className="px-4 py-2 text-right">
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.quantity}
+                        value={item.qualifiedQuantity}
+                        onChange={(e) => {
+                          const newItems = [...qualifyItems];
+                          newItems[idx].qualifiedQuantity = parseInt(e.target.value) || 0;
+                          newItems[idx].rejectedQuantity = item.quantity - newItems[idx].qualifiedQuantity;
+                          setQualifyItems(newItems);
+                        }}
+                        className="w-20 border rounded px-2 py-1 text-right"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right text-red-500">{item.rejectedQuantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowQualifyModal(false)} className="px-4 py-2 border rounded-lg">取消</button>
+              <button onClick={handleQualify} className="px-4 py-2 bg-green-600 text-white rounded-lg">确认验收</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStockInModal && returnOrder && (
+        <ReturnStockInModal
+          open={true}
+          warehouseId={returnOrder.warehouseId}
+          items={qualifyItems}
+          onClose={() => setShowStockInModal(false)}
+          onConfirm={handleStockIn}
+        />
+      )}
+
+      {refundModal?.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">确认退款</h3>
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-gray-500 mb-2">退款金额</div>
+                <div className="text-2xl font-bold text-green-600">¥{refundModal.refundAmount.toFixed(2)}</div>
+              </div>
+              <div className="text-sm text-gray-600">
+                仅退款通过验收的商品
+              </div>
+              <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
+                {(returnOrder.items || [])
+                  .filter((item: any) => item.qualifiedQuantity > 0)
+                  .map((item: any) => (
+                    <div key={item.id} className="flex justify-between items-center px-3 py-2">
+                      <div>
+                        <div className="text-sm">{item.productName}</div>
+                        <div className="text-xs text-gray-500">×{item.qualifiedQuantity}</div>
+                      </div>
+                      <div className="text-sm text-green-600">¥{((item.unitPrice || 0) * item.qualifiedQuantity).toFixed(2)}</div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setRefundModal(null)} className="px-4 py-2 border rounded-lg">取消</button>
+              <button onClick={handleRefund} className="px-4 py-2 bg-yellow-600 text-white rounded-lg">确认退款</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

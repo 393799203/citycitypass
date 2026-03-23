@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { warehouseApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X, Phone, Clock, Edit3 } from 'lucide-react';
-import WarehouseVisualization from '../components/WarehouseVisualization';
+import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X, Phone, Clock, Edit3, Info } from 'lucide-react';
 import { formatPhone, formatAddress } from '../utils/format';
+import { useConfirm } from '../components/ConfirmProvider';
+
+const WarehouseVisualization = lazy(() => import('../components/WarehouseVisualization'));
 
 const typeMap: Record<string, string> = {
   RECEIVING: '收货区',
@@ -24,6 +26,7 @@ const statusMap: Record<string, string> = {
 export default function WarehouseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const [warehouse, setWarehouse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showShelfModal, setShowShelfModal] = useState(false);
@@ -32,14 +35,13 @@ export default function WarehouseDetailPage() {
   const [editingZone, setEditingZone] = useState<any>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [zones, setZones] = useState<any[]>([]);
-
-  const shelvesWithStocks = warehouse?.shelves || [];
   const [selectedShelfId, setSelectedShelfId] = useState<string | null>(null);
   const [resetViewKey, setResetViewKey] = useState(0);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [shelfFormData, setShelfFormData] = useState({
     code: '',
     name: '',
-    type: 'HEAVY',
+    type: 'LIGHT',
     status: 'ACTIVE',
     levels: 5,
     zoneId: ''
@@ -51,24 +53,35 @@ export default function WarehouseDetailPage() {
   });
 
   useEffect(() => {
-    fetchWarehouse();
-    fetchZones();
-  }, [id]);
-
-  const fetchWarehouse = async () => {
     if (!id) return;
     setLoading(true);
-    try {
-      const res = await warehouseApi.get(id);
+    warehouseApi.get(id).then(res => {
       if (res.data.success) {
         setWarehouse(res.data.data);
+        const fetchedZones = res.data.data.zones || [];
+        const warehouseShelves = res.data.data.shelves || [];
+        if (warehouseShelves.length > 0) {
+          const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+          const mergedZones = fetchedZones.map((z: any) => ({
+            ...z,
+            shelves: (z.shelves || []).map((shelf: any) => ({
+              ...shelf,
+              stocks: shelvesMap.get(shelf.id)?.stocks || [],
+              bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+              totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+            })),
+          }));
+          setZones(mergedZones);
+        } else {
+          setZones(fetchedZones);
+        }
       }
-    } catch (error) {
-      console.error('Fetch warehouse error:', error);
-    } finally {
+    }).catch(err => {
+      console.error('Fetch warehouse error:', err);
+    }).finally(() => {
       setLoading(false);
-    }
-  };
+    });
+  }, [id]);
 
   const handleCreateShelf = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,21 +93,52 @@ export default function WarehouseDetailPage() {
       await warehouseApi.createShelf(shelfFormData.zoneId, shelfFormData);
       toast.success('货架已创建');
       setShowShelfModal(false);
-      setShelfFormData({ code: '', name: '', type: 'HEAVY', status: 'ACTIVE', levels: 5, zoneId: '' });
-      fetchWarehouse();
-      fetchZones();
+      setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' });
+      const res = await warehouseApi.get(id);
+      if (res.data.success) {
+        setWarehouse(res.data.data);
+        const fetchedZones = res.data.data.zones || [];
+        const warehouseShelves = res.data.data.shelves || [];
+        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+        const mergedZones = fetchedZones.map((z: any) => ({
+          ...z,
+          shelves: (z.shelves || []).map((shelf: any) => ({
+            ...shelf,
+            stocks: shelvesMap.get(shelf.id)?.stocks || [],
+            bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+            totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+          })),
+        }));
+        setZones(mergedZones);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
   };
 
   const handleDeleteShelf = async (shelfId: string) => {
-    if (!confirm('确定要删除该货架吗？')) return;
+    const ok = await confirm({ message: '确定要删除该货架吗？' });
+    if (!ok) return;
     try {
       await warehouseApi.deleteShelf(shelfId);
       toast.success('货架已删除');
-      fetchWarehouse();
-      fetchZones();
+      const res = await warehouseApi.get(id);
+      if (res.data.success) {
+        setWarehouse(res.data.data);
+        const fetchedZones = res.data.data.zones || [];
+        const warehouseShelves = res.data.data.shelves || [];
+        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+        const mergedZones = fetchedZones.map((z: any) => ({
+          ...z,
+          shelves: (z.shelves || []).map((shelf: any) => ({
+            ...shelf,
+            stocks: shelvesMap.get(shelf.id)?.stocks || [],
+            bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+            totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+          })),
+        }));
+        setZones(mergedZones);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
@@ -121,9 +165,24 @@ export default function WarehouseDetailPage() {
       toast.success('货架已更新');
       setShowShelfModal(false);
       setEditingShelf(null);
-      setShelfFormData({ code: '', name: '', type: 'HEAVY', status: 'ACTIVE', levels: 5, zoneId: '' });
-      fetchWarehouse();
-      fetchZones();
+      setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' });
+      const res = await warehouseApi.get(id);
+      if (res.data.success) {
+        setWarehouse(res.data.data);
+        const fetchedZones = res.data.data.zones || [];
+        const warehouseShelves = res.data.data.shelves || [];
+        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+        const mergedZones = fetchedZones.map((z: any) => ({
+          ...z,
+          shelves: (z.shelves || []).map((shelf: any) => ({
+            ...shelf,
+            stocks: shelvesMap.get(shelf.id)?.stocks || [],
+            bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+            totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+          })),
+        }));
+        setZones(mergedZones);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
@@ -148,47 +207,75 @@ export default function WarehouseDetailPage() {
       setShowZoneModal(false);
       setEditingZone(null);
       setZoneFormData({ code: '', name: '', type: 'STORAGE' });
-      fetchZones();
+      const res = await warehouseApi.get(id);
+      if (res.data.success) {
+        setWarehouse(res.data.data);
+        const fetchedZones = res.data.data.zones || [];
+        const warehouseShelves = res.data.data.shelves || [];
+        const shelvesMap = new Map(warehouseShelves.map((s: any) => [s.id, s]));
+        const mergedZones = fetchedZones.map((z: any) => ({
+          ...z,
+          shelves: (z.shelves || []).map((shelf: any) => ({
+            ...shelf,
+            stocks: shelvesMap.get(shelf.id)?.stocks || [],
+            bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+            totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
+          })),
+        }));
+        setZones(mergedZones);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
   };
 
-  const fetchZones = async () => {
-    if (!id) return;
-    try {
-      const res = await warehouseApi.listZones(id);
-      if (res.data.success) {
-        setZones(res.data.data);
-      }
-    } catch (error) {
-      console.error('Fetch zones error:', error);
-    }
-  };
-
   const handleCreateZone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!warehouse?.id) {
+      toast.error('仓库不存在');
+      return;
+    }
     try {
-      await warehouseApi.createZone(id, zoneFormData);
+      await warehouseApi.createZone(warehouse.id, zoneFormData);
       toast.success('库区已创建');
       setShowZoneModal(false);
       setZoneFormData({ code: '', name: '', type: 'STORAGE' });
-      fetchZones();
+      const res = await warehouseApi.get(id);
+      if (res.data.success) {
+        setWarehouse(res.data.data);
+        setZones(res.data.data.zones || []);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
   };
 
   const handleDeleteZone = async (zoneId: string) => {
-    if (!confirm('确定要删除该库区吗？')) return;
+    const ok = await confirm({ message: '确定要删除该库区吗？' });
+    if (!ok) return;
     try {
       await warehouseApi.deleteZone(zoneId);
       toast.success('库区已删除');
-      fetchZones();
+      const res = await warehouseApi.get(id);
+      if (res.data.success) {
+        setWarehouse(res.data.data);
+        setZones(res.data.data.zones || []);
+      }
+      if (selectedZoneId === zoneId) setSelectedZoneId(null);
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
+  };
+
+  const filteredZones = selectedZoneId ? zones.filter(z => z.id === selectedZoneId) : zones;
+
+  const handleShelfClick = (shelfId: string) => {
+    setSelectedShelfId(prev => prev === shelfId ? null : shelfId);
+  };
+
+  const handleResetView = () => {
+    setSelectedShelfId(null);
+    setResetViewKey(prev => prev + 1);
   };
 
   if (loading) {
@@ -201,244 +288,311 @@ export default function WarehouseDetailPage() {
 
   if (!warehouse) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        仓库不存在
+      <div className="text-center py-12">
+        <div className="text-gray-500">仓库不存在</div>
+        <Link to="/warehouses" className="text-primary-600 hover:underline mt-2 inline-block">
+          返回仓库列表
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-6">
       <ToastContainer />
-      
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/warehouses')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            返回仓库列表
-          </button>
-        </div>
-      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-gray-900">{warehouse.name}</h1>
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  warehouse.type === 'COLD' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                }`}>
-                  {typeMap[warehouse.type]}
-                </span>
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  warehouse.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                  warehouse.status === 'INACTIVE' ? 'bg-red-100 text-red-700' :
-                  'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {statusMap[warehouse.status]}
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-500">仓库编号: {warehouse.code}</span>
-                {warehouse.owner && (
-                  <span className="text-xs text-primary-600">货主: {warehouse.owner.name}</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 items-end">
-            {(warehouse.manager || warehouse.managerPhone) && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700 flex items-center gap-1 w-fit">
-                <Phone className="w-3 h-3" />
-                {warehouse.manager} {warehouse.managerPhone && formatPhone(warehouse.managerPhone)}
-              </span>
-            )}
-            {(warehouse.businessStartTime || warehouse.businessEndTime) && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-700 flex items-center gap-1 w-fit">
-                <Clock className="w-3 h-3" />
-                {warehouse.businessStartTime || '--'}-{warehouse.businessEndTime || '--'}
-              </span>
-            )}
-          </div>
+      {tooltip && (
+        <div
+          className="fixed bg-gray-900 text-white text-xs rounded-xl p-3 min-w-[220px] shadow-xl z-[9999] pointer-events-none"
+          style={{ left: tooltip.x, top: tooltip.y - 30 }}
+        >
+          {tooltip.content}
         </div>
-        {(warehouse.province || warehouse.city || warehouse.address) && (
-          <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {formatAddress(warehouse.province, warehouse.city, warehouse.address)}
-              {warehouse.latitude && warehouse.longitude && (
-                <span className="ml-1">({warehouse.latitude},{warehouse.longitude})</span>
-              )}
-            </div>
-            <div className="text-green-600 font-medium">
-              商品: {warehouse.totalStock || 0} / 冻结: {warehouse.lockedStock || 0} / 可用: {warehouse.availableStock || 0}
-              {(warehouse.totalBundleStock > 0) && (
-                <span className="ml-3 text-purple-600">
-                  套装: {warehouse.totalBundleStock || 0} / 冻结: {warehouse.lockedBundleStock || 0} / 可用: {warehouse.availableBundleStock || 0}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
-      <div className="bg-white rounded-xl shadow-sm border p-4">
-        <div className="flex items-center gap-4 border-b mb-4">
-          <button
-            onClick={() => setSelectedZoneId(null)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${selectedZoneId === null ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            全部货架 ({shelvesWithStocks.length})
-          </button>
-          {zones.map((zone: any) => (
-            <div
-              key={zone.id}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 cursor-pointer ${selectedZoneId === zone.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setSelectedZoneId(zone.id)}
-            >
-              {zone.name}
-              <span className={`ml-1 px-1 py-0.5 text-xs rounded ${
-                zone.type === 'RECEIVING' ? 'bg-blue-100 text-blue-700' :
-                zone.type === 'STORAGE' ? 'bg-gray-100 text-gray-700' :
-                zone.type === 'PICKING' ? 'bg-yellow-100 text-yellow-700' :
-                zone.type === 'SHIPPING' ? 'bg-green-100 text-green-700' :
-                'bg-red-100 text-red-700'
-              }`}>
-                {zone.type === 'RECEIVING' ? '收货' : zone.type === 'STORAGE' ? '存储' : zone.type === 'PICKING' ? '拣货' : zone.type === 'SHIPPING' ? '发货' : '退货'}
-              </span>
-              <span
-                onClick={(e) => { e.stopPropagation(); handleEditZone(zone); }}
-                className="p-0.5 hover:bg-blue-100 rounded cursor-pointer ml-1"
-              >
-                <Edit3 className="w-3 h-3 text-blue-500" />
-              </span>
-              <span
-                onClick={(e) => { e.stopPropagation(); handleDeleteZone(zone.id); }}
-                className="p-0.5 hover:bg-red-100 rounded cursor-pointer"
-              >
-                <X className="w-3 h-3 text-red-500" />
-              </span>
-            </div>
-          ))}
+      <div className="flex items-center gap-4 mb-6">
+        <button onClick={() => navigate('/warehouses')} className="p-2 hover:bg-gray-100 rounded-lg">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold">{warehouse.name}</h1>
+        </div>
+        <div className="ml-auto flex gap-2">
           <button
             onClick={() => setShowZoneModal(true)}
-            className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg flex items-center gap-1"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             添加库区
           </button>
-          {selectedZoneId && (
-            <button
-              onClick={() => {
-                setShelfFormData({ ...shelfFormData, zoneId: selectedZoneId });
-                setShowShelfModal(true);
-              }}
-              className="px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50 rounded-lg flex items-center gap-1 ml-auto"
-            >
-              <Plus className="w-4 h-4" />
-              添加货架
-            </button>
-          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">库区概览</h2>
+              {selectedZoneId && (
+                <button onClick={() => setSelectedZoneId(null)} className="text-sm text-primary-600 hover:underline">
+                  查看全部
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {zones.map(zone => (
+                <button
+                  key={zone.id}
+                  onClick={() => setSelectedZoneId(zone.id)}
+                  className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 ${selectedZoneId === zone.id ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 hover:bg-gray-200'}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${
+                    zone.type === 'RECEIVING' ? 'bg-blue-500' :
+                    zone.type === 'STORAGE' ? 'bg-gray-500' :
+                    zone.type === 'PICKING' ? 'bg-yellow-500' :
+                    zone.type === 'SHIPPING' ? 'bg-green-500' :
+                    zone.type === 'RETURNING' ? 'bg-red-500' : 'bg-gray-400'
+                  }`} />
+                  {zone.code} {zone.name}
+                </button>
+              ))}
+              {zones.length === 0 && <span className="text-gray-400 text-sm">暂无库区</span>}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold">货架列表</h2>
+              <div className="flex gap-2">
+                {selectedZoneId && (
+                  <button
+                    onClick={() => { setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: selectedZoneId }); setShowShelfModal(true); }}
+                    className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    添加货架
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {filteredZones.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <div>暂无库区</div>
+                <div className="text-sm mt-1">请先添加库区</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货架编码</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货架名称</th>
+                      {!selectedZoneId && <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">库区</th>}
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">类型</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">状态</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货物</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filteredZones.map(zone => (
+                      zone.shelves?.map((shelf: any) => (
+                        <tr key={shelf.id} className={`hover:bg-gray-50 cursor-pointer ${selectedShelfId === shelf.id ? 'bg-primary-50' : ''}`} onClick={() => handleShelfClick(shelf.id)}>
+                          <td className="px-3 py-2">
+                            <div className="text-sm font-medium text-primary-600">{zone.code}-{shelf.code}</div>
+                            <div className="text-xs text-gray-400">库位: {shelf.locations?.length || 0}</div>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-700">
+                            {shelf.name || '-'}
+                          </td>
+                          {!selectedZoneId && (
+                            <td className="px-3 py-2 text-sm">
+                              <span className={`px-1.5 py-0.5 text-xs rounded-full ${
+                                zone.type === 'RECEIVING' ? 'bg-blue-100 text-blue-700' :
+                                zone.type === 'STORAGE' ? 'bg-gray-100 text-gray-700' :
+                                zone.type === 'PICKING' ? 'bg-yellow-100 text-yellow-700' :
+                                zone.type === 'SHIPPING' ? 'bg-green-100 text-green-700' :
+                                zone.type === 'RETURNING' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {typeMap[zone.type] || zone.type}
+                              </span>
+                            </td>
+                          )}
+                          <td className="px-3 py-2">
+                            <span className={`px-1.5 py-0.5 text-xs rounded-full ${
+                              shelf.type === 'HEAVY' ? 'bg-gray-100 text-gray-700' :
+                              shelf.type === 'FLOW' ? 'bg-blue-100 text-blue-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {shelf.type === 'HEAVY' ? '重型' : shelf.type === 'FLOW' ? '流利架' : '轻型'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`px-1.5 py-0.5 text-xs rounded-full ${
+                              shelf.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {shelf.status === 'ACTIVE' ? '启用' : '禁用'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {(shelf.stocks?.length > 0 || shelf.bundleStocks?.length > 0) ? (
+                              <div className="text-xs space-y-1">
+                                {shelf.stocks?.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => (
+                                  <div key={s.id}>
+                                    <span className="text-blue-600">{s.sku?.product?.name}</span>
+                                    <span className="text-gray-400 mx-1"></span>
+                                    <span className="text-gray-600">{s.sku?.spec}</span>
+                                    <span className="text-gray-400 mx-1">/</span>
+                                    <span className="text-gray-600">{s.sku?.packaging}</span>
+                                    <span className="text-gray-400 mx-1">×</span>
+                                    <span className="text-green-600 font-medium">{s.availableQuantity || 0}</span>
+                                    <span className="text-gray-400">件</span>
+                                  </div>
+                                ))}
+                                {shelf.bundleStocks?.filter((b: any) => (b.availableQuantity || 0) > 0).map((b: any) => (
+                                  <div key={b.id} className="flex items-center gap-1">
+                                    <span className="text-purple-700">[套装] {b.bundle?.name}</span>
+                                    {b.bundle?.items && (
+                                      <button
+                                        onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                        onMouseLeave={() => setTooltip(null)}
+                                        onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                        className="p-0.5 hover:bg-gray-100 rounded"
+                                      >
+                                        <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                      </button>
+                                    )}
+                                    <span className="text-gray-400 mx-1">×</span>
+                                    <span className="text-green-600 font-medium">{b.availableQuantity || 0}</span>
+                                    <span className="text-gray-400">套</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleEditShelf(shelf)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg">
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteShelf(shelf.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg ml-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ))}
+                    {filteredZones.every(z => !z.shelves?.length) && (
+                      <tr>
+                        <td colSpan={selectedZoneId ? 6 : 7} className="px-3 py-8 text-center text-gray-500">
+                          暂无货架
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货架编码</th>
-                {!selectedZoneId && <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">库区</th>}
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">类型</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货物</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {shelvesWithStocks.filter((s: any) => !selectedZoneId || s.zoneId === selectedZoneId).map((shelf: any) => {
-                return (
-                  <tr
-                    key={shelf.id}
-                    className={`hover:bg-gray-50 cursor-pointer ${selectedShelfId === shelf.id ? 'bg-primary-50' : ''}`}
-                    onClick={() => setSelectedShelfId(selectedShelfId === shelf.id ? null : shelf.id)}
-                  >
-                    <td className="px-3 py-2">
-                      <div className="text-sm font-medium text-primary-600">{shelf.zone?.code || ''}-{shelf.code}</div>
-                      <div className="text-xs text-gray-400">库位: {shelf.locations?.length || 0}</div>
-                    </td>
-                    {!selectedZoneId && (
-                      <td className="px-3 py-2">
-                        {shelf.zone ? (
-                          <span className="px-1.5 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700">{shelf.zone.name}</span>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-3 py-2">
-                      <span className={`px-1.5 py-0.5 text-xs rounded-full ${
-                        shelf.type === 'HEAVY' ? 'bg-gray-100 text-gray-700' :
-                        shelf.type === 'FLOW' ? 'bg-blue-100 text-blue-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {shelf.type === 'HEAVY' ? '重型' : shelf.type === 'FLOW' ? '流利架' : '轻型'}
-                      </span>
-                      <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
-                        shelf.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {shelf.status === 'ACTIVE' ? '启用' : '禁用'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      {(shelf.stocks && shelf.stocks.filter((s: any) => (s.availableQuantity || 0) > 0).length > 0) || (shelf.bundleStocks && shelf.bundleStocks.filter((b: any) => (b.availableQuantity || 0) > 0).length > 0) ? (
-                        <div className="text-sm">
-                          {shelf.stocks?.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => (
-                            <div key={s.id} className="text-xs">
-                              <span className="text-gray-700">{s.sku?.product?.name} / {s.sku?.spec} / {s.sku?.packaging}</span>
-                              <span className="text-gray-400 mx-1">/</span>
-                              <span className="text-green-600 font-medium">{s.availableQuantity || 0}</span>
-                              <span className="text-gray-400">件</span>
-                            </div>
-                          ))}
-                          {shelf.bundleStocks?.filter((b: any) => (b.availableQuantity || 0) > 0).map((b: any) => (
-                            <div key={b.id} className="text-xs flex items-center gap-1">
-                              <span className="text-purple-700">{b.bundle?.name}</span>
-                              <span className="text-gray-400 mx-1">/</span>
-                              <span className="text-green-600 font-medium">{b.availableQuantity || 0}</span>
-                              <span className="text-gray-400">套</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEditShelf(shelf); }}
-                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteShelf(shelf.id); }}
-                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">仓库信息</h2>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">仓库编码</span>
+                <span className="font-medium">{warehouse.code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">仓库类型</span>
+                <span className="font-medium">{warehouse.type === 'NORMAL' ? '普通仓库' : warehouse.type}</span>
+              </div>
+              {formatAddress(warehouse.province, warehouse.city, warehouse.address, warehouse.district) !== '-' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">仓库地址</span>
+                  <span className="font-medium text-right max-w-[200px] truncate">
+                    {formatAddress(warehouse.province, warehouse.city, warehouse.address, warehouse.district)}
+                  </span>
+                </div>
+              )}
+              {(warehouse.manager || warehouse.managerPhone) && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">联系方式</span>
+                  <div className="flex items-center gap-2">
+                    {warehouse.manager && <span className="font-medium">{warehouse.manager}</span>}
+                    {warehouse.manager && warehouse.managerPhone && <span className="text-gray-300">|</span>}
+                    {warehouse.managerPhone && <span className="font-medium flex items-center gap-1"><Phone className="w-3 h-3" />{formatPhone(warehouse.managerPhone)}</span>}
+                  </div>
+                </div>
+              )}
+              {(warehouse.businessStartTime || warehouse.businessEndTime) && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">营业时间</span>
+                  <span className="font-medium">
+                    {warehouse.businessStartTime || ''}{warehouse.businessStartTime && warehouse.businessEndTime ? ' - ' : ''}{warehouse.businessEndTime || ''}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-gray-500">库区数量</span>
+                <span className="font-medium">{(warehouse.zones || []).length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">货架数量</span>
+                <span className="font-medium">{(warehouse.zones || []).reduce((sum: number, z: any) => sum + (z.shelves?.length || 0), 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">创建时间</span>
+                <span className="font-medium">{new Date(warehouse.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold">库区管理</h2>
+            </div>
+            <div className="divide-y">
+              {zones.map(zone => (
+                <div key={zone.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-3 h-3 rounded-full ${
+                        zone.type === 'RECEIVING' ? 'bg-blue-500' :
+                        zone.type === 'STORAGE' ? 'bg-gray-500' :
+                        zone.type === 'PICKING' ? 'bg-yellow-500' :
+                        zone.type === 'SHIPPING' ? 'bg-green-500' :
+                        zone.type === 'RETURNING' ? 'bg-red-500' : 'bg-gray-400'
+                      }`} />
+                      <span className="font-medium">{zone.code} {zone.name}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleEditZone(zone)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteZone(zone.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {typeMap[zone.type] || zone.type} · {zone.shelves?.length || 0} 个货架
+                  </div>
+                </div>
+              ))}
+              {zones.length === 0 && (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  暂无库区
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -457,7 +611,7 @@ export default function WarehouseDetailPage() {
                 <input
                   type="text"
                   value={zoneFormData.code}
-                  onChange={(e) => setZoneFormData({ ...zoneFormData, code: e.target.value })}
+                  onChange={(e) => setZoneFormData({ ...zoneFormData, code: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder="如 A"
                   disabled={!!editingZone}
@@ -471,8 +625,7 @@ export default function WarehouseDetailPage() {
                   value={zoneFormData.name}
                   onChange={(e) => setZoneFormData({ ...zoneFormData, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如 A区-收货区"
-                  required
+                  placeholder="如 收货区"
                 />
               </div>
               <div>
@@ -481,6 +634,7 @@ export default function WarehouseDetailPage() {
                   value={zoneFormData.type}
                   onChange={(e) => setZoneFormData({ ...zoneFormData, type: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
+                  disabled={!!editingZone}
                 >
                   <option value="RECEIVING">收货区</option>
                   <option value="STORAGE">存储区</option>
@@ -507,7 +661,7 @@ export default function WarehouseDetailPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editingShelf ? '编辑货架' : '添加货架'}</h3>
-              <button onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'HEAVY', status: 'ACTIVE', levels: 5, zoneId: '' }); }} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' }); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -517,7 +671,7 @@ export default function WarehouseDetailPage() {
                 <input
                   type="text"
                   value={shelfFormData.code}
-                  onChange={(e) => setShelfFormData({ ...shelfFormData, code: e.target.value })}
+                  onChange={(e) => setShelfFormData({ ...shelfFormData, code: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder="如 R001"
                   disabled={!!editingShelf}
@@ -531,65 +685,63 @@ export default function WarehouseDetailPage() {
                   value={shelfFormData.name}
                   onChange={(e) => setShelfFormData({ ...shelfFormData, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="可选"
+                  placeholder="如 重型货架A"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">所属库区</label>
-                <select
-                  value={shelfFormData.zoneId}
-                  onChange={(e) => setShelfFormData({ ...shelfFormData, zoneId: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  disabled={!!editingShelf}
-                  required
-                >
-                  <option value="">请选择库区</option>
-                  {zones.map((zone: any) => (
-                    <option key={zone.id} value={zone.id}>{zone.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">货架类型</label>
-                  <select
-                    value={shelfFormData.type}
-                    onChange={(e) => setShelfFormData({ ...shelfFormData, type: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="HEAVY">重型货架</option>
-                    <option value="FLOW">流利架</option>
-                    <option value="LIGHT">轻型货架</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-                  <select
-                    value={shelfFormData.status}
-                    onChange={(e) => setShelfFormData({ ...shelfFormData, status: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="ACTIVE">启用</option>
-                    <option value="INACTIVE">禁用</option>
-                  </select>
-                </div>
               </div>
               {!editingShelf && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">库位层数</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={shelfFormData.levels}
-                    onChange={(e) => setShelfFormData({ ...shelfFormData, levels: parseInt(e.target.value) })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">所属库区</label>
+                  <select
+                    value={shelfFormData.zoneId}
+                    onChange={(e) => setShelfFormData({ ...shelfFormData, zoneId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                     required
-                  />
+                  >
+                    <option value="">选择库区</option>
+                    {zones.map(z => (
+                      <option key={z.id} value={z.id}>{z.code} - {z.name}</option>
+                    ))}
+                  </select>
                 </div>
               )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">货架类型</label>
+                <select
+                  value={shelfFormData.type}
+                  onChange={(e) => setShelfFormData({ ...shelfFormData, type: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="LIGHT">轻型货架</option>
+                  <option value="HEAVY">重型货架</option>
+                  <option value="FLOW">流利架</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                <select
+                  value={shelfFormData.status}
+                  onChange={(e) => setShelfFormData({ ...shelfFormData, status: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="ACTIVE">启用</option>
+                  <option value="INACTIVE">停用</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">库位层数</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={shelfFormData.levels}
+                  onChange={(e) => setShelfFormData({ ...shelfFormData, levels: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  disabled={!!editingShelf}
+                  required
+                />
+              </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'HEAVY', status: 'ACTIVE', levels: 5, zoneId: '' }); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                <button type="button" onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' }); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
                   取消
                 </button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
@@ -600,29 +752,6 @@ export default function WarehouseDetailPage() {
           </div>
         </div>
       )}
-
-      <div className="bg-white rounded-xl shadow-sm border p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold">仓库可视化</h2>
-          {selectedShelfId && (
-            <button
-              onClick={() => setResetViewKey(k => k + 1)}
-              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg flex items-center gap-1.5 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              全局
-            </button>
-          )}
-        </div>
-        <WarehouseVisualization 
-          zones={warehouse.zones || []} 
-          selectedShelfId={selectedShelfId}
-          showResetButton={false}
-          resetTrigger={resetViewKey}
-        />
-      </div>
     </div>
   );
 }
