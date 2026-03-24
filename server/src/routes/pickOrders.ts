@@ -109,7 +109,7 @@ router.post('/', async (req: Request, res: Response) => {
       const mergedItems: any[] = [];
       
       for (const lock of allStockLocks) {
-        const key = `${lock.skuId}-${lock.shelf?.code || lock.sku.warehouseLocation || ''}`;
+        const key = `${lock.skuId}-${lock.location?.shelf?.zone?.code || ''}-${lock.location?.shelf?.code || ''}-L${lock.location?.level || ''}`;
         const existing = mergedItems.find(m => m.key === key && !m.isBundle);
         if (existing) {
           existing.quantity += lock.quantity;
@@ -131,7 +131,7 @@ router.post('/', async (req: Request, res: Response) => {
       }
 
       for (const lock of allBundleStockLocks) {
-        const key = `bundle-${lock.bundleId}-${lock.location?.shelf?.code || ''}`;
+        const key = `bundle-${lock.bundleId}-${lock.location?.shelf?.zone?.code || ''}-${lock.location?.shelf?.code || ''}-L${lock.location?.level || ''}`;
         const existing = mergedItems.find(m => m.key === key && m.isBundle);
         if (existing) {
           existing.quantity += lock.quantity;

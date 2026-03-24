@@ -159,6 +159,32 @@ router.get('/:id', async (req: Request, res: Response) => {
             },
           },
         },
+        stockLocks: {
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: { zone: true }
+                }
+              }
+            },
+            sku: {
+              include: { product: true }
+            },
+          },
+        },
+        bundleStockLocks: {
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: { zone: true }
+                }
+              }
+            },
+            bundle: true,
+          },
+        },
         dispatchOrders: {
           include: {
             dispatch: {

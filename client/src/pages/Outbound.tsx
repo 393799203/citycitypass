@@ -400,37 +400,52 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                       <td className="py-3">{order.order?.owner?.name}</td>
                       <td className="py-3 text-blue-600">{order.order?.warehouse?.name}</td>
                       <td className="py-3">
-                        {order.items?.map((item: any) => {
-                          const lock = item.bundleId
-                            ? order.bundleStockLocks?.find((l: any) => l.bundleId === item.bundleId)
-                            : order.stockLocks?.find((l: any) => l.skuId === item.skuId);
-                          const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
-                          return (
-                            <div key={item.id} className="text-sm mb-1 flex items-center">
-                              <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
-                                {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
-                                {item.productName}
-                                {item.spec && `(${item.spec})`}
-                                {item.bundleId && item.bundle?.items?.length > 0 && (
-                                   <button
-                                     type="button"
-                                     onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                     onMouseLeave={() => setTooltip(null)}
-                                     onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                     className="hover:bg-gray-100 rounded ml-1"
-                                   >
-                                     <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
-                                   </button>
-                                 )}
-                              </span>
-                              <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{item.quantity}</span>
-                              {locationStr && (
-                                <span className="ml-1 text-orange-500 text-sm">
-                                  [{locationStr}]
+                        {order.items?.flatMap((item: any) => {
+                          const locks = item.bundleId
+                            ? order.bundleStockLocks?.filter((l: any) => l.bundleId === item.bundleId)
+                            : order.stockLocks?.filter((l: any) => l.skuId === item.skuId);
+                          if (!locks || locks.length === 0) {
+                            return [
+                              <div key={item.id} className="text-sm mb-1 flex items-center">
+                                <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                                  {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
+                                  {item.productName}
+                                  {item.spec && `(${item.spec})`}
                                 </span>
-                              )}
-                            </div>
-                          );
+                                <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{item.quantity}</span>
+                              </div>
+                            ];
+                          }
+                          return locks.map((lock: any, idx: number) => {
+                            const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
+                            const showInfo = item.bundleId && item.bundle?.items?.length > 0;
+                            return (
+                              <div key={`${item.id}-${idx}`} className="text-sm mb-1 flex items-center">
+                                <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                                  {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
+                                  {item.productName}
+                                  {item.spec && `(${item.spec})`}
+                                  {showInfo && idx === 0 && (
+                                    <button
+                                      type="button"
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      onMouseLeave={() => setTooltip(null)}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      className="hover:bg-gray-100 rounded ml-1"
+                                    >
+                                      <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
+                                    </button>
+                                  )}
+                                </span>
+                                <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{lock.quantity}</span>
+                                {locationStr && (
+                                  <span className="ml-1 text-orange-500 text-sm">
+                                    [{locationStr}]
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          });
                         })}
                       </td>
                       <td className="py-3 text-right">
