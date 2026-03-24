@@ -42,6 +42,7 @@ interface Contract {
   startDate: string;
   endDate: string;
   amount: number;
+  discount?: number;
   pricingTerms: any;
   serviceTerms: string;
   specialTerms: string;
@@ -94,6 +95,7 @@ export default function CustomersPage() {
     startDate: '',
     endDate: '',
     amount: '',
+    discount: '',
     pricingTerms: '',
     serviceTerms: '',
     specialTerms: '',
@@ -232,6 +234,7 @@ export default function CustomersPage() {
           startDate: '',
           endDate: '',
           amount: '',
+          discount: '',
           pricingTerms: '',
           serviceTerms: '',
           specialTerms: '',
@@ -256,6 +259,7 @@ export default function CustomersPage() {
       startDate: contract.startDate?.split('T')[0] || '',
       endDate: contract.endDate?.split('T')[0] || '',
       amount: contract.amount?.toString() || '',
+      discount: contract.discount?.toString() || '',
       pricingTerms: contract.pricingTerms ? JSON.stringify(contract.pricingTerms) : '',
       serviceTerms: contract.serviceTerms || '',
       specialTerms: contract.specialTerms || '',
@@ -604,20 +608,17 @@ export default function CustomersPage() {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-lg font-bold">合同管理 {selectedCustomer && `- ${selectedCustomer.name}`}</h2>
-              <button onClick={() => { setShowContractModal(false); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
+              <button onClick={() => { setShowContractModal(false); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', discount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleContractSubmit} className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">合同编号 *</label>
+                <div className="hidden">
                   <input
                     type="text"
                     value={contractForm.contractNo}
                     onChange={(e) => setContractForm({ ...contractForm, contractNo: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
                   />
                 </div>
                 <div>
@@ -629,6 +630,20 @@ export default function CustomersPage() {
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">状态</label>
+                  <select
+                    value={contractForm.status}
+                    onChange={(e) => setContractForm({ ...contractForm, status: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="DRAFT">草稿</option>
+                    <option value="PENDING">待生效</option>
+                    <option value="ACTIVE">生效中</option>
+                    <option value="EXPIRED">已过期</option>
+                    <option value="TERMINATED">已终止</option>
+                  </select>
                 </div>
               </div>
 
@@ -657,7 +672,7 @@ export default function CustomersPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">合同金额</label>
+                  <label className="block text-sm font-medium mb-1">合同金额（元）</label>
                   <input
                     type="number"
                     value={contractForm.amount}
@@ -666,18 +681,17 @@ export default function CustomersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">状态</label>
-                  <select
-                    value={contractForm.status}
-                    onChange={(e) => setContractForm({ ...contractForm, status: e.target.value as any })}
+                  <label className="block text-sm font-medium mb-1">合同折扣（如 0.85 表示 85 折）</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={contractForm.discount}
+                    onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="DRAFT">草稿</option>
-                    <option value="PENDING">待生效</option>
-                    <option value="ACTIVE">生效中</option>
-                    <option value="EXPIRED">已过期</option>
-                    <option value="TERMINATED">已终止</option>
-                  </select>
+                    placeholder="不填则不打折"
+                  />
                 </div>
               </div>
 

@@ -251,13 +251,15 @@ export default function OrderDetail() {
             </span>
             {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
               <>
-                <button
-                  onClick={() => navigate('/orders', { state: { editingOrder: order } })}
-                  className="flex items-center gap-2 px-3 py-1.5 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg"
-                >
-                  <Pencil className="w-4 h-4" />
-                  修改
-                </button>
+                {(order as any).customerId ? null : (
+                  <button
+                    onClick={() => navigate('/orders', { state: { editingOrder: order } })}
+                    className="flex items-center gap-2 px-3 py-1.5 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    修改
+                  </button>
+                )}
                 <button
                   onClick={async () => {
                     const ok = await confirm({ message: '确定要取消该订单吗？' });
@@ -492,7 +494,17 @@ export default function OrderDetail() {
               </div>
               <div className="flex items-center gap-3 text-gray-600">
                 <User className="w-5 h-5 text-gray-400" />
-                <span>{order.receiver}</span>
+                {(order as any).customerId && (order as any).customer ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{(order as any).customer.name}</span>
+                    {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
+                      <span className="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">VIP</span>
+                    )}
+                    <span className="text-gray-400">（{order.receiver}）</span>
+                  </div>
+                ) : (
+                  <span>{order.receiver}</span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-gray-600">
                 <Phone className="w-5 h-5 text-gray-400" />
@@ -524,6 +536,9 @@ export default function OrderDetail() {
               </div>
               <div className="flex items-center gap-3 text-lg font-medium text-primary-600">
                 <span>订单金额: ¥{Number(order.totalAmount).toLocaleString()}</span>
+                {(order as any).customerId && (order as any).contractDiscount && (
+                  <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
+                )}
               </div>
             </div>
           </div>

@@ -60,14 +60,17 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const data = req.body;
 
+    const contractNo = `C${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
     const contract = await prisma.contract.create({
       data: {
-        contractNo: data.contractNo,
+        contractNo,
         name: data.name,
         customerId: data.customerId,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
-        amount: data.amount,
+        amount: data.amount ? parseFloat(data.amount) : null,
+        discount: data.discount ? parseFloat(data.discount) : null,
         pricingTerms: data.pricingTerms,
         serviceTerms: data.serviceTerms,
         specialTerms: data.specialTerms,

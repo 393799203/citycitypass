@@ -37,6 +37,7 @@ const orderItemSchema = z.object({
 const orderSchema = z.object({
   ownerId: z.string(),
   warehouseId: z.string(),
+  customerId: z.string().optional(),
   receiver: z.string(),
   phone: z.string(),
   province: z.string(),
@@ -47,6 +48,7 @@ const orderSchema = z.object({
   items: z.array(orderItemSchema).min(1),
   status: z.string().optional(),
   orderNo: z.string().optional(),
+  contractDiscount: z.number().optional(),
 });
 
 function generateOrderNo(): string {
@@ -77,6 +79,7 @@ router.get('/', async (req: Request, res: Response) => {
       include: {
         owner: true,
         warehouse: true,
+        customer: true,
         items: {
           include: {
             sku: true,
@@ -139,6 +142,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       include: {
         owner: true,
         warehouse: true,
+        customer: true,
         items: {
           include: {
             sku: true,
@@ -223,6 +227,10 @@ router.post('/', async (req: Request, res: Response) => {
       totalAmount += item.price * item.quantity;
     }
 
+    if (data.contractDiscount && data.contractDiscount > 0 && data.contractDiscount <= 1) {
+      totalAmount = totalAmount * data.contractDiscount;
+    }
+
     const skuItems = data.items.filter(i => i.skuId);
     const bundleItems = data.items.filter(i => i.bundleId);
 
@@ -248,13 +256,21 @@ router.post('/', async (req: Request, res: Response) => {
 
     const orders = await prisma.$transaction(async (tx: any) => {
       const createdOrders = [];
-      for (const [warehouseId, allocationItems] of Object.entries(allocation.allocations!)) {
-        const warehouseTotalAmount = allocationItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+      const warehouseEntries = Object.entries(allocation.allocations!);
+      const lastWarehouseId = warehouseEntries.length > 0 ? warehouseEntries[warehouseEntries.length - 1][0] : null;
+
+      for (const [warehouseId, allocationItems] of warehouseEntries) {
+        const isLastWarehouse = warehouseId === lastWarehouseId;
+        let warehouseTotalAmount = allocationItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+        if (data.contractDiscount && data.contractDiscount > 0 && data.contractDiscount <= 1) {
+          warehouseTotalAmount = warehouseTotalAmount * data.contractDiscount;
+        }
         const newOrder = await tx.order.create({
           data: {
             orderNo: data.orderNo || generateOrderNo(),
             ownerId: data.ownerId,
             warehouseId,
+            customerId: data.customerId,
             receiver: data.receiver,
             phone: data.phone,
             province: data.province,
@@ -263,6 +279,7 @@ router.post('/', async (req: Request, res: Response) => {
             latitude: data.latitude,
             longitude: data.longitude,
             totalAmount: warehouseTotalAmount,
+            contractDiscount: data.contractDiscount,
             status: 'PENDING',
             items: {
               create: allocationItems.map((item: any) => ({
@@ -281,6 +298,12 @@ router.post('/', async (req: Request, res: Response) => {
 
         for (const item of allocationItems) {
           if (item.skuId) {
+            const stockOrderBy = isLastWarehouse
+              ? [
+                  { location: { shelf: { zone: { type: 'asc' } } } },
+                  { availableQuantity: 'desc' }
+                ]
+              : [{ availableQuantity: 'desc' }];
             const allStocks = await tx.stock.findMany({
               where: {
                 skuId: item.skuId!,
@@ -294,7 +317,18 @@ router.post('/', async (req: Request, res: Response) => {
                   }
                 }
               },
-              orderBy: { availableQuantity: 'desc' },
+              include: isLastWarehouse ? {
+                location: {
+                  include: {
+                    shelf: {
+                      include: {
+                        zone: true
+                      }
+                    }
+                  }
+                }
+              } : undefined,
+              orderBy: stockOrderBy,
             });
             let remainingQuantity = item.quantity;
             for (const stock of allStocks) {
@@ -310,6 +344,12 @@ router.post('/', async (req: Request, res: Response) => {
               remainingQuantity -= lockQty;
             }
           } else if (item.bundleId) {
+            const bundleStockOrderBy = isLastWarehouse
+              ? [
+                  { location: { shelf: { zone: { type: 'asc' } } } },
+                  { availableQuantity: 'desc' }
+                ]
+              : [{ availableQuantity: 'desc' }];
             const bundleStocks = await tx.bundleStock.findMany({
               where: {
                 bundleId: item.bundleId!,
@@ -323,7 +363,18 @@ router.post('/', async (req: Request, res: Response) => {
                   }
                 }
               },
-              orderBy: { availableQuantity: 'desc' },
+              include: isLastWarehouse ? {
+                location: {
+                  include: {
+                    shelf: {
+                      include: {
+                        zone: true
+                      }
+                    }
+                  }
+                }
+              } : undefined,
+              orderBy: bundleStockOrderBy,
             });
             let remainingQuantity = item.quantity;
             for (const bs of bundleStocks) {
@@ -529,6 +580,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
         orderNo: data.orderNo || generateOrderNo(),
         ownerId: data.ownerId,
         warehouseId: data.warehouseId,
+        customerId: data.customerId,
         receiver: data.receiver,
         phone: data.phone,
         province: data.province,
@@ -537,6 +589,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
         latitude: data.latitude,
         longitude: data.longitude,
         totalAmount,
+        contractDiscount: data.contractDiscount,
         status: data.status || 'PENDING',
         items: {
           create: data.items.map((item: any) => ({
@@ -556,8 +609,33 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
     for (const item of data.items) {
       if (item.skuId) {
         const allStocks = await tx.stock.findMany({
-          where: { skuId: item.skuId!, warehouseId: data.warehouseId, availableQuantity: { gt: 0 } },
-          orderBy: { availableQuantity: 'desc' },
+          where: {
+            skuId: item.skuId!,
+            warehouseId: data.warehouseId,
+            availableQuantity: { gt: 0 },
+            location: {
+              shelf: {
+                zone: {
+                  type: { in: ['STORAGE', 'PICKING'] }
+                }
+              }
+            }
+          },
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: {
+                    zone: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: [
+            { location: { shelf: { zone: { type: 'asc' } } } },
+            { availableQuantity: 'desc' }
+          ],
         });
         let remainingQuantity = item.quantity;
         for (const stock of allStocks) {
@@ -574,8 +652,33 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
         }
       } else if (item.bundleId) {
         const bundleStocks = await tx.bundleStock.findMany({
-          where: { bundleId: item.bundleId!, warehouseId: data.warehouseId, availableQuantity: { gt: 0 } },
-          orderBy: { availableQuantity: 'desc' },
+          where: {
+            bundleId: item.bundleId!,
+            warehouseId: data.warehouseId,
+            availableQuantity: { gt: 0 },
+            location: {
+              shelf: {
+                zone: {
+                  type: { in: ['STORAGE', 'PICKING'] }
+                }
+              }
+            }
+          },
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: {
+                    zone: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: [
+            { location: { shelf: { zone: { type: 'asc' } } } },
+            { availableQuantity: 'desc' }
+          ],
         });
         let remainingQuantity = item.quantity;
         for (const bs of bundleStocks) {
@@ -600,7 +703,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { receiver, phone, province, city, address, latitude, longitude } = req.body;
+    const { receiver, phone, province, city, address, latitude, longitude, customerId } = req.body;
 
     const order = await prisma.order.update({
       where: { id },
@@ -612,6 +715,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         address,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
+        customerId: customerId || null,
       },
     });
 

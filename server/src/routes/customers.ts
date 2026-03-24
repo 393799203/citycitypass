@@ -63,6 +63,20 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id/contracts', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const contracts = await prisma.contract.findMany({
+      where: { customerId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: contracts });
+  } catch (error) {
+    console.error('Get customer contracts error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.post('/', async (req: Request, res: Response) => {
   try {
     const data = req.body;
@@ -125,8 +139,8 @@ router.put('/:id', async (req: Request, res: Response) => {
         city: data.city,
         district: data.district,
         address: data.address,
-        latitude: data.latitude,
-        longitude: data.longitude,
+        latitude: data.latitude ? parseFloat(data.latitude) : null,
+        longitude: data.longitude ? parseFloat(data.longitude) : null,
         deliveryStartTime: data.deliveryStartTime,
         deliveryEndTime: data.deliveryEndTime,
         specialRequirements: data.specialRequirements,

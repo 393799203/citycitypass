@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi } from '../api';
+import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle } from 'lucide-react';
@@ -135,6 +135,7 @@ export default function OrdersPage() {
     latitude: '',
     longitude: '',
     items: [] as OrderFormItem[],
+    contractDiscount: undefined as number | undefined,
   });
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSku, setSelectedSku] = useState('');
@@ -149,6 +150,55 @@ export default function OrdersPage() {
   const [returnTrackingNo, setReturnTrackingNo] = useState('');
   const [returnLogisticsCompany, setReturnLogisticsCompany] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [customerType, setCustomerType] = useState<'RETAIL' | 'CORPORATE'>('RETAIL');
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+
+  useEffect(() => {
+    if (customerType === 'CORPORATE') {
+      customerApi.list({ status: 'ACTIVE' }).then(res => {
+        if (res.data.success) {
+          setCustomers(res.data.data || []);
+        }
+      }).catch(() => setCustomers([]));
+    } else {
+      setCustomers([]);
+      setSelectedCustomerId('');
+    }
+  }, [customerType]);
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      customerApi.get(selectedCustomerId).then(res => {
+        if (res.data.success && res.data.data) {
+          const customer = res.data.data;
+          setFormData(prev => ({
+            ...prev,
+            receiver: customer.contact || '',
+            phone: customer.phone || '',
+            province: customer.province || '',
+            city: customer.city || '',
+            address: customer.address || '',
+          }));
+        }
+      });
+
+      customerApi.getContracts(selectedCustomerId).then(res => {
+        if (res.data.success && res.data.data.length > 0) {
+          const activeContract = res.data.data.find((c: any) => c.status === 'ACTIVE');
+          if (activeContract?.discount) {
+            setFormData(prev => ({ ...prev, contractDiscount: parseFloat(activeContract.discount) }));
+          } else {
+            setFormData(prev => ({ ...prev, contractDiscount: undefined }));
+          }
+        } else {
+          setFormData(prev => ({ ...prev, contractDiscount: undefined }));
+        }
+      }).catch(() => {
+        setFormData(prev => ({ ...prev, contractDiscount: undefined }));
+      });
+    }
+  }, [selectedCustomerId]);
 
   useEffect(() => {
     if (formData.ownerId) {
@@ -562,6 +612,7 @@ export default function OrdersPage() {
       const data = {
         ...formData,
         warehouseId: formData.warehouseId || '',
+        customerId: customerType === 'CORPORATE' ? selectedCustomerId : undefined,
         latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
         longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       };
@@ -651,9 +702,12 @@ export default function OrdersPage() {
       latitude: '',
       longitude: '',
       items: [],
+      contractDiscount: undefined,
     });
     setSelectedProduct('');
     setSelectedSku('');
+    setCustomerType('RETAIL');
+    setSelectedCustomerId('');
   };
 
   const addItem = () => {
@@ -886,66 +940,86 @@ export default function OrdersPage() {
         ) : orders.length === 0 ? (
           <div className="text-center py-12 text-gray-500">暂无数据</div>
         ) : (
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">订单编号</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">下单时间</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">货主/仓库</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">收货人</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">收货地址</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">商品总数</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">总金额</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">状态</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500 uppercase">操作</th>
+                <th className="pl-4 pr-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
+                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
+                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-24">货主/仓库</th>
+                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
+                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
+                <th className="px-2 py-3 text-right text-base font-medium text-gray-500 uppercase w-16">金额</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
+                <th className="pr-4 pl-2 py-3 text-right text-base font-medium text-gray-500 uppercase w-16">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-base font-medium">
+                  <td className="pl-4 pr-2 py-4 whitespace-nowrap text-base font-medium w-40">
                     <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                       {order.orderNo}
                     </Link>
                     {(() => {
                       const latestReturn = getLatestActiveReturn(order as any);
                       return latestReturn ? (
-                        <div className="text-gray-400 text-sm mt-0.5">
-                          退单: <Link to={`/returns/${latestReturn.id}`} className="text-gray-500 hover:underline">{latestReturn.returnNo}</Link>
+                        <div className="text-orange-500 text-sm mt-0.5">
+                          退: <Link to={`/returns/${latestReturn.id}`} className="text-orange-500 hover:underline">{latestReturn.returnNo}</Link>
                         </div>
                       ) : null;
                     })()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-base text-gray-500">
-                    <div>{order.owner?.name}</div>
-                    <div className="text-sm text-gray-400 mt-0.5">{order.warehouse?.name}</div>
-                  </td>
-                  <td className="px-6 py-4 text-base">
-                    <div>{order.receiver}</div>
-                    <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
-                      <Phone className="w-4 h-4" />
-                      {formatPhone(order.phone)}
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20">
+                    <div className="flex flex-col">
+                      <span>{new Date(order.createdAt).toLocaleTimeString()}</span>
+                      <span className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-base">
-                    <div className="flex flex-col gap-1 text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        {formatAddress(order.province, order.city, order.address)}
-                      </div>
-                      {order.latitude && order.longitude && (
-                        <div className="text-xs text-gray-400">
-                          坐标: {order.latitude}, {order.longitude}
+                  <td className="px-2 py-4 text-base text-gray-500 w-24">
+                    <div className="truncate">{order.owner?.name}</div>
+                    <div className="text-sm text-gray-400 truncate">{order.warehouse?.name}</div>
+                  </td>
+                  <td className="px-2 py-4 text-base w-32">
+                    {(order as any).customerId && (order as any).customer ? (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <span className="truncate font-medium">{(order as any).customer.name}</span>
+                          {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
+                            <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">VIP</span>
+                          )}
                         </div>
-                      )}
+                        <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
+                          <Phone className="w-4 h-4 shrink-0" />
+                          <span>{order.receiver}</span>
+                          <span className="text-gray-300">|</span>
+                          <span>{formatPhone(order.phone)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="truncate">{order.receiver}</div>
+                        <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
+                          <Phone className="w-4 h-4 shrink-0" />
+                          {formatPhone(order.phone)}
+                        </div>
+                      </>
+                    )}
+                  </td>
+                  <td className="px-2 py-4 text-base w-48">
+                    <div className="flex items-center gap-1 text-gray-500">
+                      <MapPin className="w-4 h-4 shrink-0 text-gray-400" />
+                      <span className="whitespace-normal">{formatAddress(order.province, order.city, order.address)}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-primary-600 font-medium">¥{Number(order.totalAmount).toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-12 text-center">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-primary-600 font-medium w-16 text-right">
+                    <div>¥{Number(order.totalAmount).toLocaleString()}</div>
+                    {(order as any).customerId && (order as any).contractDiscount && (
+                      <span className="inline-block px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-4 whitespace-nowrap w-14 text-center">
                     <span className={`px-2 py-1 text-sm rounded-full ${
                       order.status === 'PENDING' ? 'bg-yellow-500 text-white' :
                       order.status === 'APPROVED' ? 'bg-blue-600 text-white' :
@@ -963,82 +1037,101 @@ export default function OrdersPage() {
                       {statusMap[order.status]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-base">
-                    {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
-                      <>
-                        <button
-                          onClick={() => {
-                            const orderData = order as any;
-                            setEditingId(order.id);
-                            setFormData({
-                              ownerId: orderData.ownerId,
-                              warehouseId: orderData.warehouseId,
-                              receiver: orderData.receiver,
-                              phone: orderData.phone,
-                              province: orderData.province,
-                              city: orderData.city,
-                              address: orderData.address,
-                              latitude: orderData.latitude?.toString() || '',
-                              longitude: orderData.longitude?.toString() || '',
-                              items: (orderData.items || []).map((item: any) => ({
-                                skuId: item.skuId,
-                                bundleId: item.bundleId,
-                                productName: item.productName,
-                                packaging: item.packaging,
-                                spec: item.spec,
-                                price: item.price,
-                                quantity: item.quantity,
-                              })),
-                            });
-                            setShowModal(true);
-                          }}
-                          className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg"
-                          title="修改"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
+                  <td className="px-2 py-4 whitespace-nowrap text-right text-base w-24">
+                    {order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW' ? (
+                        <>
+                          {(order as any).customerId ? null : (
+                            <button
+                              onClick={() => {
+                                const orderData = order as any;
+
+                                setEditingId(order.id);
+                                setCustomerType(orderData.customerId ? 'CORPORATE' : 'RETAIL');
+                                setSelectedCustomerId(orderData.customerId || '');
+                                setFormData({
+                                  ownerId: orderData.ownerId,
+                                  warehouseId: orderData.warehouseId,
+                                  receiver: orderData.receiver,
+                                  phone: orderData.phone,
+                                  province: orderData.province,
+                                  city: orderData.city,
+                                  address: orderData.address,
+                                  latitude: orderData.latitude?.toString() || '',
+                                  longitude: orderData.longitude?.toString() || '',
+                                  items: (orderData.items || []).map((item: any) => ({
+                                    skuId: item.skuId,
+                                    bundleId: item.bundleId,
+                                    productName: item.productName,
+                                    packaging: item.packaging,
+                                    spec: item.spec,
+                                    price: item.price,
+                                    quantity: item.quantity,
+                                  })),
+                                  contractDiscount: orderData.contractDiscount,
+                                });
+                                setShowModal(true);
+                              }}
+                              className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg"
+                              title="修改"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              const ok = await confirm({ message: '确定要取消该订单吗？' });
+                              if (ok) {
+                                handleStatusChange(order.id, 'CANCELLED');
+                              }
+                            }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="取消"
+                          >
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : null}
+                      {order.status === 'CANCELLED' && (
                         <button
                           onClick={async () => {
-                            const ok = await confirm({ message: '确定要取消该订单吗？' });
+                            const ok = await confirm({ message: '确定要删除该订单吗？' });
                             if (ok) {
-                              handleStatusChange(order.id, 'CANCELLED');
+                              handleDelete(order.id);
                             }
                           }}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="取消"
+                          title="删除"
                         >
-                          <Ban className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                      </>
-                    )}
-                    {order.status === 'CANCELLED' && (
-                      <button
-                        onClick={async () => {
-                          const ok = await confirm({ message: '确定要删除该订单吗？' });
-                          if (ok) {
-                            handleDelete(order.id);
-                          }
-                        }}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                        title="删除"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    {order.status === 'DELIVERED' && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            const ok = await confirm({ message: '确认已收到货？' });
-                            if (ok) {
-                              handleStatusChange(order.id, 'COMPLETED');
-                            }
-                          }}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
-                          title="确认收货"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
+                      )}
+                      {order.status === 'DELIVERED' && (
+                        <>
+                          <button
+                            onClick={async () => {
+                              const ok = await confirm({ message: '确认已收到货？' });
+                              if (ok) {
+                                handleStatusChange(order.id, 'COMPLETED');
+                              }
+                            }}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+                            title="确认收货"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                              setReturnReason('');
+                            }}
+                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
+                            title="申请退货"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {order.status === 'COMPLETED' && (
                         <button
                           onClick={() => {
                             setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
@@ -1049,23 +1142,10 @@ export default function OrdersPage() {
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
-                      </>
-                    )}
-                    {order.status === 'COMPLETED' && (
-                      <button
-                        onClick={() => {
-                          setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
-                          setReturnReason('');
-                        }}
-                        className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
-                        title="申请退货"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                    )}
-                    {order.status === 'RETURNING' && (
-                      <>
-                        {(() => {
+                      )}
+                      {order.status === 'RETURNING' && (
+                        <>
+                          {(() => {
                           const orderData = order as any;
                           const returnOrder = getLatestActiveReturn(orderData);
                           if (!returnOrder) return null;
@@ -1417,41 +1497,100 @@ export default function OrdersPage() {
               <div className="w-1/2 flex flex-col">
                 <div className="p-4 border-b bg-gray-50">
                   <div className="text-sm font-medium text-gray-700 mb-3">收货人信息</div>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <input
-                      type="text"
-                      value={formData.receiver}
-                      onChange={(e) => setFormData({ ...formData, receiver: e.target.value })}
-                      placeholder="收货人"
-                      className="px-3 py-2 border rounded-lg text-sm"
-                      required
-                    />
-                    <PhoneInput
-                      value={formData.phone}
-                      onChange={(val) => setFormData({ ...formData, phone: val })}
-                      className="px-3 py-2 border rounded-lg text-sm"
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium mb-1">配送地址</label>
-                    <AddressInput
-                      value={{
-                        province: formData.province,
-                        city: formData.city,
-                        address: formData.address,
-                        latitude: formData.latitude,
-                        longitude: formData.longitude,
-                      }}
-                      onChange={(val) => setFormData({
-                        ...formData,
-                        province: val.province || '',
-                        city: val.city || '',
-                        address: val.address || '',
-                        latitude: val.latitude || '',
-                        longitude: val.longitude || '',
-                      })}
-                    />
-                  </div>
+                  {!editingId && (
+                    <div className="mb-3">
+                      <div className="flex gap-4 mb-3">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="customerType"
+                            checked={customerType === 'RETAIL'}
+                            onChange={() => {
+                              setCustomerType('RETAIL');
+                              setSelectedCustomerId('');
+                              setFormData(prev => ({ ...prev, receiver: '', phone: '', province: '', city: '', address: '', contractDiscount: undefined }));
+                            }}
+                          />
+                          <span className="text-sm">自然人订单</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="customerType"
+                            checked={customerType === 'CORPORATE'}
+                            onChange={() => setCustomerType('CORPORATE')}
+                          />
+                          <span className="text-sm">大客户订单</span>
+                        </label>
+                      </div>
+                      {customerType === 'CORPORATE' && (
+                        <select
+                          value={selectedCustomerId}
+                          onChange={(e) => setSelectedCustomerId(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100"
+                          disabled={!!editingId}
+                        >
+                          <option value="">选择客户</option>
+                          {customers.map(c => (
+                            <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+                  {formData.contractDiscount && (
+                    <div className="mb-3 text-sm text-green-600 bg-green-50 px-3 py-2 rounded">
+                      已应用客户折扣：{formData.contractDiscount * 10}折
+                    </div>
+                  )}
+                  {customerType !== 'CORPORATE' && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <input
+                        type="text"
+                        value={formData.receiver}
+                        onChange={(e) => setFormData({ ...formData, receiver: e.target.value })}
+                        placeholder="收货人"
+                        className="px-3 py-2 border rounded-lg text-sm"
+                        required
+                      />
+                      <PhoneInput
+                        value={formData.phone}
+                        onChange={(val) => setFormData({ ...formData, phone: val })}
+                        className="px-3 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                  )}
+                  {customerType !== 'CORPORATE' ? (
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium mb-1">配送地址</label>
+                      <AddressInput
+                        value={{
+                          province: formData.province,
+                          city: formData.city,
+                          address: formData.address,
+                          latitude: formData.latitude,
+                          longitude: formData.longitude,
+                        }}
+                        onChange={(val) => setFormData({
+                          ...formData,
+                          province: val.province || '',
+                          city: val.city || '',
+                          address: val.address || '',
+                          latitude: val.latitude || '',
+                          longitude: val.longitude || '',
+                        })}
+                      />
+                    </div>
+                  ) : selectedCustomerId ? (
+                    <div className="px-3 py-1.5 bg-gray-50 rounded text-sm">
+                      <span className="text-gray-500">配送至：</span>
+                      <span className="font-medium text-gray-800">{formData.receiver}</span>
+                      <span className="mx-2 text-gray-400">|</span>
+                      <span className="text-gray-600">{formatPhone(formData.phone)}</span>
+                      <span className="mx-2 text-gray-400">|</span>
+                      <span className="text-gray-500">{formatAddress(formData.province, formData.city, formData.address)}</span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
@@ -1505,8 +1644,13 @@ export default function OrdersPage() {
                 <div className="border-t p-4 bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm text-gray-600">总金额: </span>
-                      <span className="text-xl font-bold text-primary-600">¥{formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                      {formData.contractDiscount && formData.contractDiscount < 1 && (
+                        <div className="text-sm text-gray-500 mb-1">
+                          原价: ¥{formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()} × {formData.contractDiscount * 10}折
+                        </div>
+                      )}
+                      <span className="text-sm text-gray-600">应付: </span>
+                      <span className="text-xl font-bold text-primary-600">¥{(formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * (formData.contractDiscount || 1)).toLocaleString()}</span>
                     </div>
                     <div className="flex gap-2">
                       <button

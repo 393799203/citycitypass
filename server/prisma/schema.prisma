@@ -38,6 +38,7 @@ model Customer {
 
   // 关联
   contracts    Contract[]
+  orders       Order[]
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -68,6 +69,7 @@ model Contract {
   startDate    DateTime
   endDate      DateTime
   amount       Decimal?    @db.Decimal(12, 2)  // 合同金额
+  discount     Decimal?    @db.Decimal(5, 2)   // 合同折扣（如 0.85 表示 85 折）
   
   // 计价条款
   pricingTerms Json?       // 差异化计价条款（JSON格式）
@@ -309,6 +311,8 @@ model Order {
   owner       Owner       @relation(fields: [ownerId], references: [id])
   warehouseId String
   warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
+  customerId  String?
+  customer    Customer?   @relation(fields: [customerId], references: [id])
   receiver    String
   phone       String
   province    String
@@ -317,6 +321,7 @@ model Order {
   latitude    Float?      // 纬度
   longitude   Float?      // 经度
   totalAmount Decimal     @db.Decimal(12, 2)
+  contractDiscount Float?  // 客户协议折扣，如 0.8 表示 8折
   status      OrderStatus @default(PENDING)
   items       OrderItem[]
   stockLocks StockLock[]

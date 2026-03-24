@@ -55,6 +55,13 @@ export const ownerApi = {
   create: (data: any) => api.post('/owners', data),
   update: (id: string, data: any) => api.put(`/owners/${id}`, data),
   delete: (id: string) => api.delete(`/owners/${id}`),
+  getContracts: (ownerId: string) => api.get(`/owners/${ownerId}/contracts`),
+};
+
+export const customerApi = {
+  list: (params?: any) => api.get('/customers', { params }),
+  get: (id: string) => api.get(`/customers/${id}`),
+  getContracts: (customerId: string) => api.get(`/customers/${customerId}/contracts`),
 };
 
 export const productApi = {

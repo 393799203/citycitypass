@@ -64,6 +64,21 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id/contracts', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const contracts = await prisma.contract.findMany({
+      where: { customerId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ success: true, data: contracts });
+  } catch (error) {
+    console.error('Get owner contracts error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.post('/', async (req: Request, res: Response) => {
   try {
     const data = ownerSchema.parse(req.body);
