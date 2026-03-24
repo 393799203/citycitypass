@@ -13,15 +13,19 @@ export async function logOperation(
   detail?: string,
   ip?: string
 ) {
-  await prisma.operationLog.create({
-    data: {
-      userId,
-      username,
-      module,
-      action,
-      resource,
-      detail,
-      ip,
-    },
-  });
+  try {
+    await (prisma as any).operationLog.create({
+      data: {
+        userId,
+        username,
+        module,
+        action,
+        resource,
+        detail,
+        ip,
+      },
+    });
+  } catch {
+    // operationLog model may not exist
+  }
 }

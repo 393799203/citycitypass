@@ -8,6 +8,7 @@ import Products from './pages/Products';
 import Warehouses from './pages/Warehouses';
 import WarehouseDetail from './pages/WarehouseDetail';
 import StockIns from './pages/StockIns';
+import StockTransfers from './pages/StockTransfers';
 import Outbound from './pages/Outbound';
 import Transport from './pages/Transport';
 import DispatchCenter from './pages/DispatchCenter';
@@ -51,6 +52,7 @@ function App() {
           <Route path="warehouses" element={<Warehouses />} />
           <Route path="warehouses/:id" element={<WarehouseDetail />} />
           <Route path="inbound" element={<StockIns />} />
+          <Route path="stock-transfers" element={<StockTransfers />} />
           <Route path="outbound" element={<Outbound />} />
           <Route path="transport" element={<Transport />} />
           <Route path="dispatch" element={<DispatchCenter />} />

@@ -70,7 +70,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     const owner = await prisma.owner.create({
       data: {
-        name: data.name,
+        name: data.name!,
         contact: data.contact,
         phone: data.phone,
         productTags: data.productTags || [],

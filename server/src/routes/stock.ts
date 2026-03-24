@@ -36,12 +36,20 @@ function getStockWhere(skuId: string, warehouseId: string, locationId?: string) 
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, skuId, bundleId } = req.query;
-    
+    const { warehouseId, skuId, bundleId, inventoryType } = req.query;
+
+    let zoneTypeFilter: object;
+    if (inventoryType === 'sales') {
+      zoneTypeFilter = { type: { in: ['STORAGE', 'PICKING'] } };
+    } else {
+      zoneTypeFilter = {};
+    }
+
     const productStocks = await prisma.stock.findMany({
       where: {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
         ...(skuId ? { skuId: skuId as string } : {}),
+        ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
       },
       include: {
         sku: {
@@ -65,6 +73,7 @@ router.get('/', async (req: Request, res: Response) => {
       where: {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
         ...(bundleId ? { bundleId: bundleId as string } : {}),
+        ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
       },
       include: {
         bundle: {
@@ -92,9 +101,39 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    const isSalesZoneType = (zoneType: string) => zoneType === 'STORAGE' || zoneType === 'PICKING';
+
+    const processStocks = (stocks: any[]) => {
+      return stocks.map(s => {
+        const zoneType = s.location?.shelf?.zone?.type;
+        const isSales = isSalesZoneType(zoneType);
+        return {
+          ...s,
+          type: 'product',
+          totalQuantity: s.totalQuantity,
+          lockedQuantity: isSales ? s.lockedQuantity : 0,
+          availableQuantity: isSales ? s.availableQuantity : 0,
+        };
+      });
+    };
+
+    const processBundleStocks = (stocks: any[]) => {
+      return stocks.map(b => {
+        const zoneType = b.location?.shelf?.zone?.type;
+        const isSales = isSalesZoneType(zoneType);
+        return {
+          ...b,
+          type: 'bundle',
+          totalQuantity: b.totalQuantity,
+          lockedQuantity: isSales ? b.lockedQuantity : 0,
+          availableQuantity: isSales ? b.availableQuantity : 0,
+        };
+      });
+    };
+
     const result = {
-      productStocks: productStocks.map(s => ({ ...s, type: 'product' })),
-      bundleStocks: bundleStocks.map(b => ({ ...b, type: 'bundle' })),
+      productStocks: processStocks(productStocks),
+      bundleStocks: processBundleStocks(bundleStocks),
     };
 
     res.json({ success: true, data: result });
@@ -149,13 +188,22 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
     });
 
     if (warehouses.length === 0) {
-      return res.json({ success: true, data: [] });
+      return res.json({ success: true, data: { products: [], bundles: [] } });
     }
 
     const warehouseIds = warehouses.map(w => w.id);
 
     const stocks = await prisma.stock.findMany({
-      where: { warehouseId: { in: warehouseIds } },
+      where: {
+        warehouseId: { in: warehouseIds },
+        location: {
+          shelf: {
+            zone: {
+              type: { in: ['STORAGE', 'PICKING'] }
+            }
+          }
+        }
+      },
       include: {
         sku: {
           include: {
@@ -168,7 +216,16 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
     });
 
     const bundleStocks = await prisma.bundleStock.findMany({
-      where: { warehouseId: { in: warehouseIds } },
+      where: {
+        warehouseId: { in: warehouseIds },
+        location: {
+          shelf: {
+            zone: {
+              type: { in: ['STORAGE', 'PICKING'] }
+            }
+          }
+        }
+      },
       include: {
         bundle: {
           include: {
@@ -360,34 +417,6 @@ router.post('/stock-in', async (req: Request, res: Response) => {
 
     const result = await prisma.$transaction(async (tx) => {
       if (data.type === 'bundle') {
-        let bundleStock = await tx.bundleStock.findFirst({
-          where: { 
-            bundleId: data.bundleId!, 
-            warehouseId: data.warehouseId, 
-            locationId: data.locationId || null 
-          },
-        });
-
-        if (bundleStock) {
-          bundleStock = await tx.bundleStock.update({
-            where: { id: bundleStock.id },
-            data: {
-              totalQuantity: { increment: data.quantity },
-              availableQuantity: { increment: data.quantity },
-            },
-          });
-        } else {
-          bundleStock = await tx.bundleStock.create({
-            data: {
-              bundleId: data.bundleId!,
-              warehouseId: data.warehouseId,
-              locationId: data.locationId || null,
-              totalQuantity: data.quantity,
-              availableQuantity: data.quantity,
-            },
-          });
-        }
-
         const bundleStockIn = await tx.bundleStockIn.create({
           data: {
             bundleId: data.bundleId!,
@@ -395,35 +424,11 @@ router.post('/stock-in', async (req: Request, res: Response) => {
             locationId: data.locationId || null,
             quantity: data.quantity,
             remark: data.remark || null,
+            status: 'PENDING',
           },
         });
-
-        return bundleStockIn;
+        return { type: 'bundle', data: bundleStockIn };
       } else {
-        let stock = await tx.stock.findFirst({
-          where: getStockWhere(data.skuId!, data.warehouseId, data.locationId),
-        });
-
-        if (stock) {
-          stock = await tx.stock.update({
-            where: { id: stock.id },
-            data: {
-              totalQuantity: stock.totalQuantity + data.quantity,
-              availableQuantity: stock.availableQuantity + data.quantity,
-            },
-          });
-        } else {
-          stock = await tx.stock.create({
-            data: {
-              skuId: data.skuId!,
-              warehouseId: data.warehouseId,
-              locationId: data.locationId || null,
-              totalQuantity: data.quantity,
-              availableQuantity: data.quantity,
-            },
-          });
-        }
-
         const stockIn = await tx.stockIn.create({
           data: {
             skuId: data.skuId!,
@@ -433,10 +438,10 @@ router.post('/stock-in', async (req: Request, res: Response) => {
             batchNo: data.batchNo || null,
             remark: data.remark || null,
             operator: data.operator || null,
+            status: 'PENDING',
           },
         });
-
-        return stockIn;
+        return { type: 'product', data: stockIn };
       }
     });
 
@@ -447,6 +452,344 @@ router.post('/stock-in', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: error.errors[0].message });
     }
     res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.post('/inbound-order', async (req: Request, res: Response) => {
+  try {
+    const { warehouseId, remark, items } = req.body;
+
+    if (!warehouseId) {
+      return res.status(400).json({ success: false, message: '仓库不能为空' });
+    }
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: '入库项不能为空' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const inboundNo = `IN${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      const inboundOrder = await tx.inboundOrder.create({
+        data: {
+          inboundNo,
+          warehouseId,
+          remark: remark || null,
+          status: 'PENDING',
+        },
+      });
+
+      await tx.inboundOrderItem.createMany({
+        data: items.map((item: any) => ({
+          inboundId: inboundOrder.id,
+          type: item.type,
+          skuId: item.skuId || null,
+          bundleId: item.bundleId || null,
+          locationId: item.locationId || null,
+          quantity: item.quantity,
+        })),
+      });
+
+      return inboundOrder;
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Create inbound order error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.get('/inbound-orders', async (req: Request, res: Response) => {
+  try {
+    const { warehouseId, status } = req.query;
+
+    const where: any = {};
+    if (warehouseId) where.warehouseId = warehouseId as string;
+    if (status) where.status = status as string;
+
+    const orders = await prisma.inboundOrder.findMany({
+      where,
+      include: {
+        warehouse: true,
+        items: {
+          include: {
+            location: {
+              include: {
+                shelf: {
+                  include: {
+                    zone: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const ordersWithDetails = await Promise.all(
+      orders.map(async (order) => {
+        const itemsWithDetails = await Promise.all(
+          order.items.map(async (item) => {
+            if (item.type === 'product' && item.skuId) {
+              const sku = await prisma.productSKU.findUnique({
+                where: { id: item.skuId },
+                include: { product: true },
+              });
+              return { ...item, sku, product: sku?.product };
+            } else if (item.type === 'bundle' && item.bundleId) {
+              const bundle = await prisma.bundleSKU.findUnique({
+                where: { id: item.bundleId },
+              });
+              return { ...item, bundle };
+            }
+            return item;
+          })
+        );
+        return { ...order, items: itemsWithDetails };
+      })
+    );
+
+    res.json({ success: true, data: ordersWithDetails });
+  } catch (error) {
+    console.error('Get inbound orders error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.inboundOrder.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: '入库单不存在' });
+    }
+    if (order.status !== 'PENDING') {
+      return res.status(400).json({ success: false, message: '入库单已处理' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of order.items) {
+        if (item.type === 'product' && item.skuId && item.locationId) {
+          let stock = await tx.stock.findFirst({
+            where: {
+              skuId: item.skuId,
+              warehouseId: order.warehouseId,
+              locationId: item.locationId,
+            },
+          });
+
+          if (stock) {
+            await tx.stock.update({
+              where: { id: stock.id },
+              data: {
+                totalQuantity: { increment: item.quantity },
+                availableQuantity: { increment: item.quantity },
+              },
+            });
+          } else {
+            await tx.stock.create({
+              data: {
+                skuId: item.skuId,
+                warehouseId: order.warehouseId,
+                locationId: item.locationId,
+                totalQuantity: item.quantity,
+                availableQuantity: item.quantity,
+              },
+            });
+          }
+
+          await tx.stockIn.create({
+            data: {
+              skuId: item.skuId,
+              warehouseId: order.warehouseId,
+              locationId: item.locationId,
+              quantity: item.quantity,
+              status: 'PENDING',
+            },
+          });
+        } else if (item.type === 'bundle' && item.bundleId && item.locationId) {
+          let bundleStock = await tx.bundleStock.findFirst({
+            where: {
+              bundleId: item.bundleId,
+              warehouseId: order.warehouseId,
+              locationId: item.locationId,
+            },
+          });
+
+          if (bundleStock) {
+            await tx.bundleStock.update({
+              where: { id: bundleStock.id },
+              data: {
+                totalQuantity: { increment: item.quantity },
+                availableQuantity: { increment: item.quantity },
+              },
+            });
+          } else {
+            await tx.bundleStock.create({
+              data: {
+                bundleId: item.bundleId,
+                warehouseId: order.warehouseId,
+                locationId: item.locationId,
+                totalQuantity: item.quantity,
+                availableQuantity: item.quantity,
+              },
+            });
+          }
+
+          await tx.bundleStockIn.create({
+            data: {
+              bundleId: item.bundleId,
+              warehouseId: order.warehouseId,
+              locationId: item.locationId,
+              quantity: item.quantity,
+              status: 'PENDING',
+            },
+          });
+        }
+      }
+
+      await tx.inboundOrder.update({
+        where: { id },
+        data: { status: 'COMPLETED' },
+      });
+    });
+
+    res.json({ success: true, message: '执行成功' });
+  } catch (error) {
+    console.error('Execute inbound order error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/stock-in/:id/execute', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      if (type === 'bundle') {
+        const stockIn = await tx.bundleStockIn.findUnique({ where: { id } });
+        if (!stockIn) throw new Error('入库单不存在');
+        if (stockIn.status !== 'PENDING') throw new Error('入库单已处理');
+
+        let bundleStock = await tx.bundleStock.findFirst({
+          where: {
+            bundleId: stockIn.bundleId,
+            warehouseId: stockIn.warehouseId,
+            locationId: stockIn.locationId,
+          },
+        });
+
+        if (bundleStock) {
+          bundleStock = await tx.bundleStock.update({
+            where: { id: bundleStock.id },
+            data: {
+              totalQuantity: { increment: stockIn.quantity },
+              availableQuantity: { increment: stockIn.quantity },
+            },
+          });
+        } else {
+          bundleStock = await tx.bundleStock.create({
+            data: {
+              bundleId: stockIn.bundleId,
+              warehouseId: stockIn.warehouseId,
+              locationId: stockIn.locationId,
+              totalQuantity: stockIn.quantity,
+              availableQuantity: stockIn.quantity,
+            },
+          });
+        }
+
+        const updated = await tx.bundleStockIn.update({
+          where: { id },
+          data: { status: 'COMPLETED', executedAt: new Date() },
+        });
+
+        return { type: 'bundle', data: updated, stockId: bundleStock.id };
+      } else {
+        const stockIn = await tx.stockIn.findUnique({ where: { id } });
+        if (!stockIn) throw new Error('入库单不存在');
+        if (stockIn.status !== 'PENDING') throw new Error('入库单已处理');
+
+        let stock = await tx.stock.findFirst({
+          where: getStockWhere(stockIn.skuId, stockIn.warehouseId, stockIn.locationId || undefined),
+        });
+
+        if (stock) {
+          stock = await tx.stock.update({
+            where: { id: stock.id },
+            data: {
+              totalQuantity: { increment: stockIn.quantity },
+              availableQuantity: { increment: stockIn.quantity },
+            },
+          });
+        } else {
+          stock = await tx.stock.create({
+            data: {
+              skuId: stockIn.skuId,
+              warehouseId: stockIn.warehouseId,
+              locationId: stockIn.locationId,
+              totalQuantity: stockIn.quantity,
+              availableQuantity: stockIn.quantity,
+            },
+          });
+        }
+
+        const updated = await tx.stockIn.update({
+          where: { id },
+          data: { status: 'COMPLETED', executedAt: new Date(), stockId: stock.id },
+        });
+
+        return { type: 'product', data: updated, stockId: stock.id };
+      }
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Execute stock-in error:', error);
+    res.status(400).json({ success: false, message: error.message || '服务器错误' });
+  }
+});
+
+router.put('/stock-in/:id/cancel', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      if (type === 'bundle') {
+        const stockIn = await tx.bundleStockIn.findUnique({ where: { id } });
+        if (!stockIn) throw new Error('入库单不存在');
+        if (stockIn.status !== 'PENDING') throw new Error('入库单已处理');
+
+        const updated = await tx.bundleStockIn.update({
+          where: { id },
+          data: { status: 'CANCELLED' },
+        });
+        return { type: 'bundle', data: updated };
+      } else {
+        const stockIn = await tx.stockIn.findUnique({ where: { id } });
+        if (!stockIn) throw new Error('入库单不存在');
+        if (stockIn.status !== 'PENDING') throw new Error('入库单已处理');
+
+        const updated = await tx.stockIn.update({
+          where: { id },
+          data: { status: 'CANCELLED' },
+        });
+        return { type: 'product', data: updated };
+      }
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Cancel stock-in error:', error);
+    res.status(400).json({ success: false, message: error.message || '服务器错误' });
   }
 });
 
@@ -758,10 +1101,10 @@ router.get('/out', async (req: Request, res: Response) => {
     const orderIds = [...new Set(stockOuts.map(s => s.orderId))];
 
     const [warehouses, skus, bundles, locations, orders] = await Promise.all([
-      warehouseIds.length ? prisma.warehouse.findMany({ where: { id: { in: warehouseIds } } }) : [],
-      skuIds.length ? prisma.productSKU.findMany({ where: { id: { in: skuIds } }, include: { product: true } }) : [],
-      bundleIds.length ? prisma.bundleSKU.findMany({ where: { id: { in: bundleIds } }, include: { items: { include: { sku: { include: { product: true } } } } } }) : [],
-      locationIds.length ? prisma.location.findMany({ where: { id: { in: locationIds } }, include: { shelf: { include: { zone: true } } } }) : [],
+      warehouseIds.length ? prisma.warehouse.findMany({ where: { id: { in: warehouseIds as string[] } } }) : [],
+      skuIds.length ? prisma.productSKU.findMany({ where: { id: { in: skuIds as string[] } }, include: { product: true } }) : [],
+      bundleIds.length ? prisma.bundleSKU.findMany({ where: { id: { in: bundleIds as string[] } }, include: { items: { include: { sku: { include: { product: true } } } } } }) : [],
+      locationIds.length ? prisma.location.findMany({ where: { id: { in: locationIds as string[] } }, include: { shelf: { include: { zone: true } } } }) : [],
       orderIds.length ? prisma.order.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNo: true } }) : [],
     ]);
 
@@ -822,7 +1165,19 @@ router.get('/bundle', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ success: true, data: stocks });
+    const processedStocks = stocks.map(stock => {
+      const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
+      if (!isSalesZone) {
+        return {
+          ...stock,
+          availableQuantity: 0,
+          lockedQuantity: 0,
+        };
+      }
+      return stock;
+    });
+
+    res.json({ success: true, data: processedStocks });
   } catch (error) {
     console.error('Get bundle stock error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
@@ -833,7 +1188,9 @@ router.get('/bundle/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { warehouseId } = req.query;
-    const where: any = { bundleId: id };
+    const where: any = {
+      bundleId: id,
+    };
     if (warehouseId) where.warehouseId = warehouseId as string;
 
     const stocks = await prisma.bundleStock.findMany({
@@ -864,7 +1221,19 @@ router.get('/bundle/:id', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ success: true, data: stocks });
+    const processedStocks = stocks.map(stock => {
+      const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
+      if (!isSalesZone) {
+        return {
+          ...stock,
+          availableQuantity: 0,
+          lockedQuantity: 0,
+        };
+      }
+      return stock;
+    });
+
+    res.json({ success: true, data: processedStocks });
   } catch (error) {
     console.error('Get bundle stock error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
@@ -875,7 +1244,9 @@ router.get('/sku/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { warehouseId } = req.query;
-    const where: any = { sku: { productId: id } };
+    const where: any = {
+      sku: { productId: id },
+    };
     if (warehouseId) where.warehouseId = warehouseId as string;
 
     const stocks = await prisma.stock.findMany({
@@ -898,7 +1269,19 @@ router.get('/sku/:id', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ success: true, data: stocks });
+    const processedStocks = stocks.map(stock => {
+      const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
+      if (!isSalesZone) {
+        return {
+          ...stock,
+          availableQuantity: 0,
+          lockedQuantity: 0,
+        };
+      }
+      return stock;
+    });
+
+    res.json({ success: true, data: processedStocks });
   } catch (error) {
     console.error('Get sku stock error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

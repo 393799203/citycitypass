@@ -97,6 +97,7 @@ export const warehouseApi = {
   updateZone: (id: string, data: any) => api.put(`/warehouses/zones/${id}`, data),
   deleteZone: (id: string) => api.delete(`/warehouses/zones/${id}`),
   listZones: (warehouseId: string) => api.get(`/warehouses/${warehouseId}/zones`),
+  getZones: (warehouseId: string) => api.get(`/warehouses/${warehouseId}/zones`),
   createShelf: (zoneId: string, data: any) => api.post(`/warehouses/zones/${zoneId}/shelves`, data),
   updateShelf: (id: string, data: any) => api.put(`/warehouses/shelves/${id}`, data),
   deleteShelf: (id: string) => api.delete(`/warehouses/shelves/${id}`),
@@ -116,6 +117,11 @@ export const stockApi = {
   lock: (data: any) => api.post('/stock/lock', data),
   unlock: (orderId: string) => api.post('/stock/unlock', { orderId }),
   use: (orderId: string) => api.post('/stock/use', { orderId }),
+  executeStockIn: (id: string, type: string) => api.put(`/stock/stock-in/${id}/execute`, { type }),
+  cancelStockIn: (id: string, type: string) => api.put(`/stock/stock-in/${id}/cancel`, { type }),
+  createInboundOrder: (data: any) => api.post('/stock/inbound-order', data),
+  getInboundOrders: (params?: any) => api.get('/stock/inbound-orders', { params }),
+  executeInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/execute`),
 };
 
 export const bundleApi = {
@@ -129,6 +135,18 @@ export const bundleApi = {
 export const bundleStockApi = {
   list: (params?: any) => api.get('/stock/bundle', { params }),
   stockIn: (data: any) => api.post('/stock/bundle/stock-in', data),
+};
+
+export const stockTransferApi = {
+  list: (params?: any) => api.get('/stock-transfers', { params }),
+  get: (id: string) => api.get(`/stock-transfers/${id}`),
+  create: (data: any) => api.post('/stock-transfers', data),
+  execute: (id: string) => api.put(`/stock-transfers/${id}/execute`),
+  cancel: (id: string, reason?: string) => api.put(`/stock-transfers/${id}/cancel`, { reason }),
+  getZoneStocks: (warehouseId: string, zoneType?: string) =>
+    api.get(`/stock-transfers/zone-stocks/${warehouseId}`, { params: { zoneType } }),
+  getAllStocks: (warehouseId: string) =>
+    api.get(`/stock/all-stocks/${warehouseId}`),
 };
 
 export const returnApi = {

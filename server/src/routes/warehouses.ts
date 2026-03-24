@@ -63,13 +63,13 @@ router.get('/', async (req: Request, res: Response) => {
       const skuStockMap: Record<string, number> = {};
       const bundleStockMap: Record<string, number> = {};
       w.stocks.forEach((s: any) => {
-        if (s.skuId && (s.totalQuantity || 0) > 0) {
-          skuStockMap[s.skuId] = (s.totalQuantity || 0);
+        if (s.skuId) {
+          skuStockMap[s.skuId] = (skuStockMap[s.skuId] || 0) + (s.totalQuantity || 0);
         }
       });
       w.bundleStocks.forEach((b: any) => {
-        if (b.bundleId && (b.totalQuantity || 0) > 0) {
-          bundleStockMap[b.bundleId] = (b.totalQuantity || 0);
+        if (b.bundleId) {
+          bundleStockMap[b.bundleId] = (bundleStockMap[b.bundleId] || 0) + (b.totalQuantity || 0);
         }
       });
       return {
@@ -121,7 +121,16 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const stocks = await prisma.stock.findMany({
       where: { warehouseId: id, location: { shelfId: { in: shelfIds } } },
-      include: { sku: { include: { product: true } }, location: true }
+      include: {
+        sku: { include: { product: true } },
+        location: {
+          include: {
+            shelf: {
+              include: { zone: true }
+            }
+          }
+        }
+      }
     });
 
     const bundleStocks = await prisma.bundleStock.findMany({
@@ -138,7 +147,13 @@ router.get('/:id', async (req: Request, res: Response) => {
             }
           }
         },
-        location: true
+        location: {
+          include: {
+            shelf: {
+              include: { zone: true }
+            }
+          }
+        }
       }
     });
 
@@ -170,7 +185,9 @@ router.get('/:id', async (req: Request, res: Response) => {
     }));
 
     const stockStats = await prisma.stock.aggregate({
-      where: { warehouseId: id },
+      where: { 
+        warehouseId: id,
+      },
       _sum: {
         totalQuantity: true,
         availableQuantity: true,
@@ -179,7 +196,9 @@ router.get('/:id', async (req: Request, res: Response) => {
     });
 
     const bundleStockStats = await prisma.bundleStock.aggregate({
-      where: { warehouseId: id },
+      where: { 
+        warehouseId: id,
+      },
       _sum: {
         totalQuantity: true,
         availableQuantity: true,

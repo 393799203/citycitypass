@@ -327,7 +327,7 @@ router.put('/:id/qualify', async (req, res) => {
       return res.status(400).json(error('当前状态不允许验收'));
     }
 
-    let newStatus = 'RETURN_QUALIFIED';
+    let newStatus: string = 'RETURN_QUALIFIED';
     let hasRejection = false;
 
     for (const item of items || []) {
@@ -351,7 +351,7 @@ router.put('/:id/qualify', async (req, res) => {
     const updated = await prisma.returnOrder.update({
       where: { id },
       data: {
-        status: newStatus,
+        status: newStatus as any,
         logs: {
           create: {
             action: hasRejection ? 'REJECT' : 'QUALIFY',

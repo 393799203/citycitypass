@@ -13,7 +13,7 @@ router.get('/', async (req: Request, res: Response) => {
     const response = await fetch(
       `https://restapi.amap.com/v3/geocode/geo?key=${amapKey}&address=${encodeURIComponent(String(address))}`
     );
-    const data = await response.json();
+    const data = await response.json() as { status: string; geocodes?: { location: string; province: string; city: string; district: string }[] };
 
     if (data.status === '1' && data.geocodes && data.geocodes.length > 0) {
       const geocode = data.geocodes[0];

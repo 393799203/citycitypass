@@ -349,13 +349,6 @@ export default function StockInsPage() {
         <div className="flex justify-between items-center flex-wrap">
           <div className="flex gap-2 items-center">
             <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
-            >
-              <Plus className="w-4 h-4" />
-              入库
-            </button>
-            <button
               onClick={() => setShowStockInModal(true)}
               className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
             >

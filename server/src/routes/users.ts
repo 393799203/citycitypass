@@ -54,7 +54,6 @@ router.get('/:id', async (req: Request, res: Response) => {
         role: true,
         phone: true,
         email: true,
-        ownerId: true,
         createdAt: true,
         updatedAt: true,
       },

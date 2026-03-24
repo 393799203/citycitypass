@@ -4,6 +4,24 @@ import prisma from '../lib/prisma';
 
 const router = Router();
 
+async function cleanupEmptyStockLocations(tx: any, locationId: string) {
+  const stock = await tx.stock.findFirst({
+    where: { locationId },
+  });
+  if (stock) {
+    await tx.stock.delete({ where: { id: stock.id } });
+  }
+}
+
+async function cleanupEmptyBundleStockLocations(tx: any, locationId: string) {
+  const bundleStock = await tx.bundleStock.findFirst({
+    where: { locationId },
+  });
+  if (bundleStock) {
+    await tx.bundleStock.delete({ where: { id: bundleStock.id } });
+  }
+}
+
 const orderItemSchema = z.object({
   skuId: z.string().nullable(),
   bundleId: z.string().nullable(),
@@ -228,7 +246,7 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: allocation.error });
     }
 
-    const orders = await prisma.$transaction(async (tx: typeof prisma) => {
+    const orders = await prisma.$transaction(async (tx: any) => {
       const createdOrders = [];
       for (const [warehouseId, allocationItems] of Object.entries(allocation.allocations!)) {
         const warehouseTotalAmount = allocationItems.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
@@ -264,7 +282,18 @@ router.post('/', async (req: Request, res: Response) => {
         for (const item of allocationItems) {
           if (item.skuId) {
             const allStocks = await tx.stock.findMany({
-              where: { skuId: item.skuId!, warehouseId, availableQuantity: { gt: 0 } },
+              where: {
+                skuId: item.skuId!,
+                warehouseId,
+                availableQuantity: { gt: 0 },
+                location: {
+                  shelf: {
+                    zone: {
+                      type: { in: ['STORAGE', 'PICKING'] }
+                    }
+                  }
+                }
+              },
               orderBy: { availableQuantity: 'desc' },
             });
             let remainingQuantity = item.quantity;
@@ -282,7 +311,18 @@ router.post('/', async (req: Request, res: Response) => {
             }
           } else if (item.bundleId) {
             const bundleStocks = await tx.bundleStock.findMany({
-              where: { bundleId: item.bundleId!, warehouseId, availableQuantity: { gt: 0 } },
+              where: {
+                bundleId: item.bundleId!,
+                warehouseId,
+                availableQuantity: { gt: 0 },
+                location: {
+                  shelf: {
+                    zone: {
+                      type: { in: ['STORAGE', 'PICKING'] }
+                    }
+                  }
+                }
+              },
               orderBy: { availableQuantity: 'desc' },
             });
             let remainingQuantity = item.quantity;
@@ -321,7 +361,17 @@ async function allocateItemsToWarehouses(prisma: any, warehouses: any[], skuItem
   const bundleStockMap = new Map<string, Map<string, number>>();
 
   const stocks = await prisma.stock.findMany({
-    where: { warehouseId: { in: warehouseIds }, availableQuantity: { gt: 0 } },
+    where: {
+      warehouseId: { in: warehouseIds },
+      availableQuantity: { gt: 0 },
+      location: {
+        shelf: {
+          zone: {
+            type: { in: ['STORAGE', 'PICKING'] }
+          }
+        }
+      }
+    },
   });
 
   for (const stock of stocks) {
@@ -333,7 +383,17 @@ async function allocateItemsToWarehouses(prisma: any, warehouses: any[], skuItem
   }
 
   const bundleStocks = await prisma.bundleStock.findMany({
-    where: { warehouseId: { in: warehouseIds }, availableQuantity: { gt: 0 } },
+    where: {
+      warehouseId: { in: warehouseIds },
+      availableQuantity: { gt: 0 },
+      location: {
+        shelf: {
+          zone: {
+            type: { in: ['STORAGE', 'PICKING'] }
+          }
+        }
+      }
+    },
   });
 
   for (const bs of bundleStocks) {
@@ -570,10 +630,10 @@ router.put('/:id/status', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const order = await prisma.$transaction(async (tx: typeof prisma) => {
+    const order = await prisma.$transaction(async (tx: any) => {
       const existingOrder = await tx.order.findUnique({
         where: { id },
-        include: { 
+        include: {
           items: true,
           stockLocks: true,
           bundleStockLocks: true,
@@ -585,13 +645,6 @@ router.put('/:id/status', async (req: Request, res: Response) => {
       }
 
       if (status === 'CANCELLED' && existingOrder.status !== 'CANCELLED' && existingOrder.status !== 'DELIVERED' && existingOrder.status !== 'IN_TRANSIT') {
-        if (existingOrder.pickOrder && existingOrder.pickOrder.status !== 'PICKED') {
-          await tx.pickOrder.update({
-            where: { id: existingOrder.pickOrder.id },
-            data: { status: 'CANCELLED' },
-          });
-        }
-
         const stockLocks = await tx.stockLock.findMany({
           where: { orderId: existingOrder.id },
         });
@@ -685,6 +738,10 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 quantity: lock.quantity,
               },
             });
+
+            if (lock.locationId) {
+              await cleanupEmptyStockLocations(tx, lock.locationId);
+            }
           }
           await tx.stockLock.delete({ where: { id: lock.id } });
         }
@@ -706,6 +763,10 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 lockedQuantity: { decrement: lock.quantity },
               },
             });
+
+            if (lock.locationId) {
+              await cleanupEmptyBundleStockLocations(tx, lock.locationId);
+            }
           } else {
             await tx.bundleStock.updateMany({
               where: {
@@ -755,7 +816,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    await prisma.$transaction(async (tx: typeof prisma) => {
+    await prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findUnique({ where: { id } });
       
       if (!order) {
@@ -771,12 +832,12 @@ router.delete('/:id', async (req: Request, res: Response) => {
       });
 
       for (const lock of stockLocks) {
-        if (lock.shelfId) {
+        if (lock.locationId) {
           await tx.stock.updateMany({
             where: {
               skuId: lock.skuId,
               warehouseId: lock.warehouseId,
-              shelfId: lock.shelfId,
+              locationId: lock.locationId,
             },
             data: {
               lockedQuantity: { decrement: lock.quantity },

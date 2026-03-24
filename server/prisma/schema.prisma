@@ -220,6 +220,7 @@ model ProductSKU {
   stockLocks StockLock[]
   stockIns   StockIn[]
   bundleItems BundleSKUItem[]
+  transferItems StockTransferItem[]
 }
 
 model BundleSKU {
@@ -239,6 +240,7 @@ model BundleSKU {
   stockIns   BundleStockIn[]
   pickOrderItems PickOrderItem[]
   orderItems  OrderItem[]
+  transferItems StockTransferItem[]
 }
 
 model BundleSKUItem {
@@ -295,7 +297,9 @@ model BundleStockIn {
   location    Location? @relation(fields: [locationId], references: [id])
   quantity    Int
   remark      String?
+  status      String    @default("PENDING")
   createdAt   DateTime  @default(now())
+  executedAt  DateTime?
 }
 
 model Order {
@@ -418,6 +422,8 @@ model Warehouse {
   bundleStocks    BundleStock[]
   bundleStockLocks BundleStockLock[]
   bundleStockIns BundleStockIn[]
+  stockTransfers StockTransfer[]
+  inboundOrders InboundOrder[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -426,10 +432,12 @@ model Zone {
   id          String    @id @default(uuid())
   code        String
   name        String
-  type        String    @default("STORAGE")  // RECEIVING-收货区 STORAGE-存储区 PICKING-拣货区 SHIPPING-发货区 RETURNING-退货区
+  type        String    @default("STORAGE")  // RECEIVING-收货区 STORAGE-存储区 PICKING-拣货区 SHIPPING-发货区 RETURNING-退货区 DAMAGED-残次品区
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   shelves     Shelf[]
+  transfersFrom StockTransfer[] @relation("TransferFromZone")
+  transfersTo   StockTransfer[] @relation("TransferToZone")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -463,6 +471,9 @@ model Location {
   bundleStocks     BundleStock[]
   bundleStockLocks BundleStockLock[]
   bundleStockIns   BundleStockIn[]
+  transferFrom StockTransferItem[] @relation("TransferFromLocation")
+  transferTo   StockTransferItem[] @relation("TransferToLocation")
+  inboundOrderItems InboundOrderItem[]
 
   @@unique([shelfId, level, position])
   createdAt  DateTime  @default(now())
@@ -473,6 +484,65 @@ enum LockStatus {
   LOCKED      // 已锁定（待拣货）
   RELEASED    // 已释放（订单取消）
   USED        // 已使用（拣货完成）
+}
+
+enum ItemType {
+  PRODUCT  // 商品
+  BUNDLE   // 套装
+}
+
+enum TransferStatus {
+  PENDING      // 待移库
+  IN_TRANSIT   // 移库中
+  COMPLETED    // 已完成
+  CANCELLED    // 已取消
+}
+
+enum TransferType {
+  ZONE_TRANSFER     // 库区调拨
+  QUALITY_INSPECT   // 质检移库
+  DAMAGED          // 报废
+}
+
+model StockTransfer {
+  id              String         @id @default(uuid())
+  transferNo      String         @unique
+  warehouseId     String
+  warehouse       Warehouse      @relation(fields: [warehouseId], references: [id])
+  type            TransferType   @default(ZONE_TRANSFER)
+  fromZoneId      String?
+  fromZone        Zone?          @relation("TransferFromZone", fields: [fromZoneId], references: [id])
+  toZoneId        String?
+  toZone          Zone?          @relation("TransferToZone", fields: [toZoneId], references: [id])
+  status          TransferStatus @default(PENDING)
+  remark          String?
+  operator        String?
+  items           StockTransferItem[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  executedAt      DateTime?
+  @@index([warehouseId])
+  @@index([status])
+}
+
+model StockTransferItem {
+  id              String         @id @default(uuid())
+  transferId      String
+  transfer        StockTransfer  @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  itemType        ItemType       @default(PRODUCT)
+  skuId           String?
+  sku             ProductSKU?    @relation(fields: [skuId], references: [id])
+  bundleId        String?
+  bundle          BundleSKU?     @relation(fields: [bundleId], references: [id])
+  fromLocationId  String?
+  fromLocation    Location?      @relation("TransferFromLocation", fields: [fromLocationId], references: [id])
+  toLocationId    String?
+  toLocation      Location?      @relation("TransferToLocation", fields: [toLocationId], references: [id])
+  quantity        Int
+  createdAt       DateTime       @default(now())
+  @@index([transferId])
+  @@index([skuId])
+  @@index([bundleId])
 }
 
 model Stock {
@@ -523,8 +593,40 @@ model StockIn {
   quantity    Int       // 入库数量
   batchNo     String?   // 批次号
   remark      String?   // 备注
+  status      String    @default("PENDING") // PENDING, COMPLETED, CANCELLED
   createdAt   DateTime  @default(now())
+  executedAt  DateTime?
   operator    String?   // 操作人
+}
+
+model InboundOrder {
+  id          String    @id @default(uuid())
+  inboundNo   String    @unique
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  remark      String?
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  items       InboundOrderItem[]
+
+  @@index([warehouseId])
+  @@index([status])
+}
+
+model InboundOrderItem {
+  id          String    @id @default(uuid())
+  inboundId   String
+  inbound     InboundOrder @relation(fields: [inboundId], references: [id], onDelete: Cascade)
+  type        String    // 'product' or 'bundle'
+  skuId       String?
+  bundleId    String?
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
+  quantity    Int
+
+  @@index([inboundId])
 }
 
 model StockOut {

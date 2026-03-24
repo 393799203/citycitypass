@@ -6,8 +6,9 @@ import {
   ShoppingCart,
   Package,
   Warehouse,
-  ArrowDownToLine,
+  Boxes,
   ArrowUpFromLine,
+  ArrowRightLeft,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -35,7 +36,8 @@ const configMenuItems = [
   { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
   { path: '/products', icon: Package, label: '商品管理' },
   { path: '/customers', icon: Users, label: '客户管理' },
-  { path: '/inbound', icon: ArrowDownToLine, label: '库存管理' },
+  { path: '/inbound', icon: Boxes, label: '库存管理' },
+  { path: '/stock-transfers', icon: ArrowRightLeft, label: '入库移库' },
   { path: '/transport', icon: Truck, label: '运力管理' },
 ];
 
