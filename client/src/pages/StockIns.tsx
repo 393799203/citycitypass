@@ -72,24 +72,30 @@ export default function StockInsPage() {
   const [filterShelf, setFilterShelf] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterBundle, setFilterBundle] = useState('');
+  const [inventoryType, setInventoryType] = useState<'all' | 'sales'>('sales');
   const [zones, setZones] = useState<any[]>([]);
   const [filterShelfOptions, setFilterShelfOptions] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [inventoryType]);
 
   useEffect(() => {
     if (filterWarehouse) {
       warehouseApi.listZones(filterWarehouse).then(res => {
         if (res.data.success) {
-          setZones(res.data.data);
+          const allZones = res.data.data;
+          if (inventoryType === 'sales') {
+            setZones(allZones.filter((z: any) => z.type === 'STORAGE' || z.type === 'PICKING'));
+          } else {
+            setZones(allZones);
+          }
         }
       });
     } else {
       setZones([]);
     }
-  }, [filterWarehouse]);
+  }, [filterWarehouse, inventoryType]);
 
   useEffect(() => {
     if (filterZone) {
@@ -153,7 +159,7 @@ export default function StockInsPage() {
       const [productRes, warehouseRes, stockRes, bundleRes, ownerRes] = await Promise.all([
         productApi.list(),
         warehouseApi.list({ status: 'ACTIVE' }),
-        stockApi.list(),
+        stockApi.list({ inventoryType }),
         bundleApi.list(),
         ownerApi.list(),
       ]);
@@ -313,12 +319,42 @@ export default function StockInsPage() {
       <ToastContainer />
 
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-          <Package className="w-5 h-5" />
-          库存列表
-        </h2>
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            库存列表
+          </h2>
+          <div className="flex gap-2 items-center">
+            {inventoryType === 'sales' && (
+              <span className="text-orange-500 text-sm">存储区与拣货区库存为销售库存！</span>
+            )}
+            <span className="text-sm text-gray-500">库存类型：</span>
+            <div className="flex rounded-lg overflow-hidden border">
+              <button
+                onClick={() => { setInventoryType('sales'); }}
+                className={`px-3 py-1.5 text-sm ${inventoryType === 'sales' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                销售库存
+              </button>
+              <button
+                onClick={() => { setInventoryType('all'); }}
+                className={`px-3 py-1.5 text-sm ${inventoryType === 'all' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                全部库存
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center flex-wrap">
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              入库
+            </button>
             <button
               onClick={() => setShowStockInModal(true)}
               className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
@@ -340,19 +376,12 @@ export default function StockInsPage() {
               <Package className="w-4 h-4" />
               出库记录
             </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
-            >
-              <Plus className="w-4 h-4" />
-              入库
-            </button>
           </div>
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <select
               value={filterOwner}
               onChange={(e) => { setFilterOwner(e.target.value); setFilterWarehouse(''); setFilterZone(''); setFilterShelf(''); setFilterProduct(''); }}
-              className="px-3 py-2 border rounded text-sm w-36"
+              className="px-3 py-1.5 border rounded text-sm w-36"
             >
               <option value="">全部货主</option>
               {owners.filter(o => o.status !== 'STOPPED').map(o => (
@@ -378,7 +407,7 @@ export default function StockInsPage() {
             >
               <option value="">全部货区</option>
               {zones.map(z => {
-                const typeMap: Record<string, string> = { PICKING: '拣货区', STORAGE: '存储区', RETURNING: '退货区', RECEIVING: '收货区' };
+                const typeMap: Record<string, string> = { PICKING: '拣货区', STORAGE: '存储区', RETURNING: '退货区', RECEIVING: '收货区', DAMAGED: '损坏区' };
                 return <option key={z.id} value={z.id}>{z.code}-{typeMap[z.type] || z.type}</option>;
               })}
             </select>
@@ -425,7 +454,7 @@ export default function StockInsPage() {
             </select>
             <button
               onClick={() => { setFilterOwner(''); setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); }}
-              className="px-3 py-2 border border-gray-300 text-gray-600 rounded text-sm"
+              className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded text-sm"
             >
               重置
             </button>
@@ -483,6 +512,7 @@ export default function StockInsPage() {
                   }
                   acc[key].shelves.push({
                     code: `${stock.location?.shelf?.zone?.code || '-'}-${stock.location?.shelf?.code || '-'}-L${stock.location?.level}`,
+                    zoneType: stock.location?.shelf?.zone?.type || '',
                     total: stock.totalQuantity,
                     locked: stock.lockedQuantity,
                     available: stock.availableQuantity,
@@ -564,13 +594,8 @@ export default function StockInsPage() {
                             )}
                           </div>
                           <div className="shrink-0 flex items-center gap-3 text-xs">
-                            {stock.shelves.length === 1 && (
-                              <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2 py-1">
-                                <MapPin className="w-3 h-3 text-gray-400" />
-                                <span className="font-mono text-gray-600 text-xs">{stock.shelves[0].code}</span>
-                              </div>
-                            )}
-                            {stock.shelves.length > 1 && (
+                         
+                            {(
                               <div className="flex items-center gap-1.5">
                                 {stock.shelves.map((shelf: any, idx: number) => (
                                   <div key={idx} className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
@@ -578,10 +603,14 @@ export default function StockInsPage() {
                                     <span className="font-mono text-gray-600 text-xs">{shelf.code}</span>
                                     <span className="text-gray-300">|</span>
                                     <span className="text-gray-500">库<span className="text-gray-700">{shelf.total}</span></span>
-                                    <span className="text-gray-300">|</span>
-                                    <span className="text-orange-500">冻<span className="text-gray-700">{shelf.locked}</span></span>
-                                    <span className="text-gray-300">|</span>
-                                    <span className="text-green-600">可<span className="text-gray-700">{shelf.available}</span></span>
+                                    {shelf.zoneType === 'STORAGE' || shelf.zoneType === 'PICKING' ? (
+                                      <>
+                                        <span className="text-gray-300">|</span>
+                                        <span className="text-orange-500">冻<span className="text-gray-700">{shelf.locked}</span></span>
+                                        <span className="text-gray-300">|</span>
+                                        <span className="text-green-600">可<span className="text-gray-700">{shelf.available}</span></span>
+                                      </>
+                                    ) : null}
                                   </div>
                                 ))}
                               </div>

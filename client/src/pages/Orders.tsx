@@ -1183,6 +1183,9 @@ export default function OrdersPage() {
                       const filteredProducts = Object.entries(groupedProducts).filter(([_, skus]) =>
                         skus.some((sku: any) => sku.totalAvailable > 0)
                       );
+                      if (filteredProducts.length === 0) {
+                        return <div className="text-center text-gray-400 py-10">该货主暂无商品</div>;
+                      }
                       return (
                         <div className="space-y-3">
                           {filteredProducts.map(([productName, skus]: [string, any[]]) => {

@@ -462,7 +462,7 @@ export default function WarehouseDetailPage() {
                           <td className="px-3 py-2">
                             {(shelf.stocks?.length > 0 || shelf.bundleStocks?.length > 0) ? (
                               <div className="text-xs space-y-1">
-                                {shelf.stocks?.filter((s: any) => (s.availableQuantity || 0) > 0).map((s: any) => {
+                                {shelf.stocks?.filter((s: any) => (s.totalQuantity || 0) > 0).map((s: any) => {
                                   const isReturnZone = s.location?.shelf?.zone?.type === 'RETURNING';
                                   return (
                                     <div key={s.id} className={isReturnZone ? 'text-gray-400' : ''}>
@@ -472,13 +472,13 @@ export default function WarehouseDetailPage() {
                                       <span className="text-gray-400 mx-1">/</span>
                                       <span className="text-gray-500">{s.sku?.packaging}</span>
                                       <span className="text-gray-400 mx-1">×</span>
-                                      <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{s.availableQuantity || 0}</span>
+                                      <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{s.totalQuantity || 0}</span>
                                       <span className="text-gray-400">件</span>
                                       {isReturnZone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">待迁移</span>}
                                     </div>
                                   );
                                 })}
-                                {shelf.bundleStocks?.filter((b: any) => (b.availableQuantity || 0) > 0).map((b: any) => {
+                                {shelf.bundleStocks?.filter((b: any) => (b.totalQuantity || 0) > 0).map((b: any) => {
                                   const isReturnZone = b.location?.shelf?.zone?.type === 'RETURNING';
                                   return (
                                     <div key={b.id} className={`flex items-center gap-1 ${isReturnZone ? 'text-gray-400' : ''}`}>
@@ -494,7 +494,7 @@ export default function WarehouseDetailPage() {
                                         </button>
                                       )}
                                       <span className="text-gray-400 mx-1">×</span>
-                                      <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{b.availableQuantity || 0}</span>
+                                      <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{b.totalQuantity || 0}</span>
                                       <span className="text-gray-400">套</span>
                                       {isReturnZone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">待迁移</span>}
                                     </div>
