@@ -229,6 +229,90 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/quick-create', async (req: Request, res: Response) => {
+  try {
+    const { code, name, ...warehouseData } = req.body;
+
+    if (!code || !name) {
+      return res.status(400).json({ success: false, message: '仓库编码和名称不能为空' });
+    }
+
+    const existing = await prisma.warehouse.findUnique({ where: { code } });
+    if (existing) {
+      return res.status(400).json({ success: false, message: '仓库编码已存在' });
+    }
+
+    const defaultZones = [
+      { code: 'IN', name: '入库区', type: 'INBOUND' },
+      { code: 'ST', name: '存储区', type: 'STORAGE' },
+      { code: 'PK', name: '拣货区', type: 'PICKING' },
+      { code: 'RT', name: '退货区', type: 'RETURNING' },
+      { code: 'DM', name: '报废区', type: 'DAMAGED' },
+    ];
+
+    const result = await prisma.$transaction(async (tx) => {
+      const warehouse = await tx.warehouse.create({
+        data: {
+          code,
+          name,
+          type: warehouseData.type || 'NORMAL',
+          status: 'ACTIVE',
+          province: warehouseData.province,
+          city: warehouseData.city,
+          address: warehouseData.address,
+          latitude: warehouseData.latitude,
+          longitude: warehouseData.longitude,
+          manager: warehouseData.manager,
+          managerPhone: warehouseData.managerPhone,
+          businessStartTime: warehouseData.businessStartTime,
+          businessEndTime: warehouseData.businessEndTime,
+          owner: warehouseData.ownerId ? { connect: { id: warehouseData.ownerId } } : undefined,
+        },
+      });
+
+      const zones = [];
+      for (const zoneData of defaultZones) {
+        const zone = await tx.zone.create({
+          data: {
+            code: zoneData.code,
+            name: zoneData.name,
+            type: zoneData.type,
+            warehouseId: warehouse.id,
+          },
+        });
+
+        const shelf = await tx.shelf.create({
+          data: {
+            code: 'R001',
+            name: '默认货架',
+            type: 'LIGHT',
+            status: 'ACTIVE',
+            zoneId: zone.id,
+          },
+        });
+
+        for (let level = 1; level <= 5; level++) {
+          await tx.location.create({
+            data: {
+              shelfId: shelf.id,
+              level,
+            },
+          });
+        }
+
+        zones.push(zone);
+      }
+
+      return { warehouse, zones };
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Quick create warehouse error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.post('/', async (req: Request, res: Response) => {
   try {
     const data = warehouseSchema.parse(req.body);
@@ -332,10 +416,24 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const existing = await prisma.warehouse.findUnique({ where: { id } });
+    const existing = await prisma.warehouse.findUnique({
+      where: { id },
+      include: {
+        zones: {
+          include: {
+            shelves: true,
+          },
+        },
+      },
+    });
 
     if (!existing) {
       return res.status(404).json({ success: false, message: '仓库不存在' });
+    }
+
+    const hasShelves = existing.zones.some(zone => zone.shelves.length > 0);
+    if (hasShelves) {
+      return res.status(400).json({ success: false, message: '该仓库下有货架，无法删除' });
     }
 
     await prisma.warehouse.delete({ where: { id } });

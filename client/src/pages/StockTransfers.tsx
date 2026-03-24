@@ -286,7 +286,7 @@ export default function StockTransfers() {
   const [batchNo, setBatchNo] = useState('');
   const [remark, setRemark] = useState('');
 
-  const uniqueZones = zones.map((z: any) => ({ id: z.id, name: z.name }));
+  const uniqueZones = zones.map((z: any) => ({ id: z.id, name: z.name, code: z.code }));
   const zoneShelves: any[] = toZoneId ? (zones.find((z: any) => z.id === toZoneId)?.shelves || []) : [];
   const shelfLocations: any[] = toShelfId ? (zoneShelves.find((s: any) => s.id === toShelfId)?.locations || []) : [];
 
@@ -438,11 +438,10 @@ export default function StockTransfers() {
     }
 
     const location = shelfLocations.find((l: any) => l.id === toLocationId);
-    const warehouse = warehouses.find(w => w.id === inboundWarehouseId);
     const zone = uniqueZones.find(z => z.id === toZoneId);
     const shelf = zoneShelves.find(s => s.id === toShelfId);
     const locationCode = location
-      ? `${warehouse?.name || ''}-${zone?.name || ''}-${shelf?.code || ''}-L${location.level}`
+      ? `${zone?.code || ''}-${shelf?.code || ''}-L${location.level}`
       : '-';
 
     if (selectedSku) {
@@ -679,9 +678,10 @@ export default function StockTransfers() {
             skuId: s.sku?.id || s.skuId,
             locationId: s.locationId,
             locationCode: shelf?.code ? `${shelf.code}-L${s.location.level}` : s.locationId,
-            locationFullCode: shelf?.code ? `${zone?.name || ''}-${shelf.code}-L${s.location.level}` : s.locationId,
+            locationFullCode: shelf?.code ? `${zone?.code || ''}-${shelf.code}-L${s.location.level}` : s.locationId,
             zoneId: zone?.id || s.zoneId,
             zoneName: zone?.name || '',
+            zoneCode: zone?.code || '',
             zoneType: zone?.type || '',
             productName: s.sku?.product?.name || '',
             spec: s.sku?.spec || '',
@@ -697,9 +697,10 @@ export default function StockTransfers() {
             bundleId: s.bundle?.id || s.bundleId,
             locationId: s.locationId,
             locationCode: shelf?.code ? `${shelf.code}-L${s.location.level}` : s.locationId,
-            locationFullCode: shelf?.code ? `${zone?.name || ''}-${shelf.code}-L${s.location.level}` : s.locationId,
+            locationFullCode: shelf?.code ? `${zone?.code || ''}-${shelf.code}-L${s.location.level}` : s.locationId,
             zoneId: zone?.id || s.zoneId,
             zoneName: zone?.name || '',
+            zoneCode: zone?.code || '',
             zoneType: zone?.type || '',
             bundleName: s.bundle?.name || '',
             type: 'bundle',
@@ -735,8 +736,9 @@ export default function StockTransfers() {
           shelf.locations?.forEach((loc: any) => {
             locs.push({
               id: loc.id,
-              code: `${zone.name}-${shelf.code}-L${loc.level}`,
+              code: `${zone.code}-${shelf.code}-L${loc.level}`,
               zoneName: zone.name,
+              zoneCode: zone.code,
             });
           });
         });
@@ -1488,12 +1490,6 @@ export default function StockTransfers() {
                             >
                               添加
                             </button>
-                            <button
-                              onClick={() => { setSelectedSku(''); setSelectedBundle(''); }}
-                              className="px-2 py-1 text-gray-500 hover:text-gray-700 text-xs"
-                            >
-                              取消
-                            </button>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
@@ -1506,7 +1502,7 @@ export default function StockTransfers() {
                           >
                             <option value="">选库区</option>
                             {uniqueZones.map(z => (
-                              <option key={z.id} value={z.id}>{z.name}</option>
+                              <option key={z.id} value={z.id}>{z.name}({z.code})</option>
                             ))}
                           </select>
                           {toZoneId && (
@@ -1517,7 +1513,7 @@ export default function StockTransfers() {
                             >
                               <option value="">选货架</option>
                               {zoneShelves.map(s => (
-                                <option key={s.id} value={s.id}>{s.code}</option>
+                                <option key={s.id} value={s.id}>{s.name || s.code}({s.code})</option>
                               ))}
                             </select>
                           )}
@@ -1711,12 +1707,6 @@ export default function StockTransfers() {
                             >
                               添加
                             </button>
-                            <button
-                              onClick={() => setSelectedStock(null)}
-                              className="px-2 py-1 text-gray-500 hover:text-gray-700 text-xs"
-                            >
-                              取消
-                            </button>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
@@ -1730,7 +1720,7 @@ export default function StockTransfers() {
                           >
                             <option value="">选库区</option>
                             {uniqueZones.map(z => (
-                              <option key={z.id} value={z.id}>{z.name}</option>
+                              <option key={z.id} value={z.id}>{z.name}({z.code})</option>
                             ))}
                           </select>
                           {toZoneId && (
@@ -1741,7 +1731,7 @@ export default function StockTransfers() {
                             >
                               <option value="">选货架</option>
                               {zoneShelves.map(s => (
-                                <option key={s.id} value={s.id}>{s.code}</option>
+                                <option key={s.id} value={s.id}>{s.name || s.code}({s.code})</option>
                               ))}
                             </select>
                           )}

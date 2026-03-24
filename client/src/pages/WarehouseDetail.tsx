@@ -7,10 +7,8 @@ import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X, Phone,
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 
-const WarehouseVisualization = lazy(() => import('../components/WarehouseVisualization'));
-
 const typeMap: Record<string, string> = {
-  RECEIVING: '收货区',
+  INBOUND: '入库区',
   STORAGE: '存储区',
   PICKING: '拣货区',
   SHIPPING: '发货区',
@@ -50,7 +48,7 @@ export default function WarehouseDetailPage() {
   const [zoneFormData, setZoneFormData] = useState({
     code: '',
     name: '',
-    type: 'STORAGE'
+    type: 'INBOUND'
   });
 
   useEffect(() => {

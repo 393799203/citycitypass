@@ -920,7 +920,7 @@ export default function ProductsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-bold">{selectedBundle ? `${selectedBundle.name} - 库存管理` : selectedProduct ? `${selectedProduct.name} - 库存管理` : '库存管理'}</h2>
+              <h2 className="text-lg font-bold">{selectedBundle ? `${selectedBundle.name} - 库存看板` : selectedProduct ? `${selectedProduct.name} - 库存看板` : '库存看板'}</h2>
               <button onClick={() => { setShowStockModal(false); setSelectedBundle(null); setSelectedProduct(null); }}>
                 <X className="w-5 h-5" />
               </button>

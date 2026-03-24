@@ -4,7 +4,7 @@ import { warehouseApi, ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
-import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Clock, Zap } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -103,6 +103,34 @@ export default function WarehousesPage() {
       fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
+    }
+  };
+
+  const handleQuickCreate = async () => {
+    if (!formData.code || !formData.name) {
+      toast.error('请填写仓库编码和名称');
+      return;
+    }
+
+    const ok = await confirm({
+      message: `确认创建仓库 "${formData.name}" 及其默认库区和货架？\n\n将创建：\n- 入库区（IN）\n- 存储区（ST）\n- 拣货区（PK）\n- 退货区（RT）\n- 报废区（DM）\n\n每个库区包含 1 个默认货架 R001`,
+    });
+    if (!ok) return;
+
+    try {
+      const data = {
+        ...formData,
+        ownerId: formData.ownerId || undefined,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+      };
+      await warehouseApi.quickCreate(data);
+      toast.success('仓库及默认配置创建成功！');
+      setShowModal(false);
+      resetForm();
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '创建失败');
     }
   };
 
@@ -435,6 +463,16 @@ export default function WarehousesPage() {
                 >
                   取消
                 </button>
+                {!editingId && (
+                  <button
+                    type="button"
+                    onClick={handleQuickCreate}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    <Zap className="w-4 h-4 inline mr-1" />
+                    一键创建
+                  </button>
+                )}
                 <button
                   type="submit"
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"

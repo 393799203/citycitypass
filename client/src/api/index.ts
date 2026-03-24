@@ -91,6 +91,7 @@ export const warehouseApi = {
   list: (params?: any) => api.get('/warehouses', { params }),
   get: (id: string) => api.get(`/warehouses/${id}`),
   create: (data: any) => api.post('/warehouses', data),
+  quickCreate: (data: any) => api.post('/warehouses/quick-create', data),
   update: (id: string, data: any) => api.put(`/warehouses/${id}`, data),
   delete: (id: string) => api.delete(`/warehouses/${id}`),
   createZone: (warehouseId: string, data: any) => api.post(`/warehouses/${warehouseId}/zones`, data),

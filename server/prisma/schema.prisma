@@ -432,7 +432,7 @@ model Zone {
   id          String    @id @default(uuid())
   code        String
   name        String
-  type        String    @default("STORAGE")  // RECEIVING-收货区 STORAGE-存储区 PICKING-拣货区 SHIPPING-发货区 RETURNING-退货区 DAMAGED-残次品区
+  type        String    @default("STORAGE")  // INBOUND-入库区 STORAGE-存储区 PICKING-拣货区 SHIPPING-发货区 RETURNING-退货区 DAMAGED-残次品区
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   shelves     Shelf[]

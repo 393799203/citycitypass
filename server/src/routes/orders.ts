@@ -6,7 +6,7 @@ const router = Router();
 
 async function cleanupEmptyStockLocations(tx: any, locationId: string) {
   const stock = await tx.stock.findFirst({
-    where: { locationId },
+    where: { locationId, totalQuantity: 0 },
   });
   if (stock) {
     await tx.stock.delete({ where: { id: stock.id } });
@@ -15,7 +15,7 @@ async function cleanupEmptyStockLocations(tx: any, locationId: string) {
 
 async function cleanupEmptyBundleStockLocations(tx: any, locationId: string) {
   const bundleStock = await tx.bundleStock.findFirst({
-    where: { locationId },
+    where: { locationId, totalQuantity: 0 },
   });
   if (bundleStock) {
     await tx.bundleStock.delete({ where: { id: bundleStock.id } });
