@@ -132,6 +132,7 @@ export const stockApi = {
   updateInboundOrder: (id: string, data: any) => api.put(`/stock/inbound-order/${id}`, data),
   executeInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/execute`),
   cancelInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/cancel`),
+  batchList: () => api.get('/stock/batch/list'),
   batchTrace: (batchNo: string) => api.get(`/stock/batch/${batchNo}/trace`),
 };
 

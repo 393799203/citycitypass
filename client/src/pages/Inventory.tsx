@@ -46,9 +46,6 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showStockInModal, setShowStockInModal] = useState(false);
-  const [showBatchTraceModal, setShowBatchTraceModal] = useState(false);
-  const [batchTraceInput, setBatchTraceInput] = useState('');
-  const [batchTraceModalBatchNo, setBatchTraceModalBatchNo] = useState('');
   const [itemType, setItemType] = useState<'product' | 'bundle'>('product');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSku, setSelectedSku] = useState('');
@@ -345,12 +342,6 @@ export default function InventoryPage() {
                 className={`px-3 py-1.5 text-sm ${inventoryType === 'all' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               >
                 全部库存
-              </button>
-              <button
-                onClick={() => { setShowBatchTraceModal(true); }}
-                className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
-              >
-                批次追踪
               </button>
             </div>
           </div>
@@ -865,42 +856,6 @@ export default function InventoryPage() {
         >
           {tooltip.content}
         </div>
-      )}
-
-      {showBatchTraceModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">批次追踪</h2>
-              <button onClick={() => setShowBatchTraceModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-4">输入批次号进行追踪查询</p>
-            <input
-              type="text"
-              value={batchTraceInput}
-              onChange={(e) => setBatchTraceInput(e.target.value)}
-              placeholder="请输入批次号"
-              className="w-full px-4 py-2 border rounded-lg mb-4"
-              onKeyDown={(e) => { if (e.key === 'Enter' && batchTraceInput.trim()) { setBatchTraceModalBatchNo(batchTraceInput.trim()); setShowBatchTraceModal(false); } }}
-            />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowBatchTraceModal(false)} className="px-4 py-2 border rounded-lg">取消</button>
-              <button
-                onClick={() => { if (batchTraceInput.trim()) { setBatchTraceModalBatchNo(batchTraceInput.trim()); setShowBatchTraceModal(false); } }}
-                disabled={!batchTraceInput.trim()}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-              >
-                查询
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {batchTraceModalBatchNo && (
-        <Navigate to={`/batch-trace/${batchTraceModalBatchNo}`} />
       )}
     </div>
   );

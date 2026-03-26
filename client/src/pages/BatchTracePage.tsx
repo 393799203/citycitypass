@@ -63,14 +63,27 @@ export default function BatchTracePage() {
   const { batchNo } = useParams<{ batchNo: string }>();
   const navigate = useNavigate();
   const [inputBatchNo, setInputBatchNo] = useState('');
+  const [batchList, setBatchList] = useState<string[]>([]);
   const [traceData, setTraceData] = useState<TraceData | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    loadBatchList();
     if (batchNo) {
       loadTraceData(batchNo);
     }
   }, [batchNo]);
+
+  const loadBatchList = async () => {
+    try {
+      const res = await stockApi.batchList();
+      if (res.data.success) {
+        setBatchList(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load batch list', error);
+    }
+  };
 
   const loadTraceData = async (batch: string) => {
     if (!batch.trim()) {
@@ -102,38 +115,56 @@ export default function BatchTracePage() {
 
   if (!batchNo) {
     return (
-      <div className="p-6">
-        <div className="max-w-xl mx-auto mt-20">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">批次追踪</h1>
-          <p className="text-gray-500 mb-8">输入批次号追踪货物流向</p>
+      <div className="min-h-[calc(100vh-120px)] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center p-8">
+        <h1 className="text-5xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">批次追踪</h1>
+        <p className="text-white/80 mb-10 text-lg">输入批次号追踪货物流向</p>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={inputBatchNo}
-                onChange={(e) => setInputBatchNo(e.target.value)}
-                placeholder="请输入批次号"
-                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-              />
-              <button
-                onClick={handleSearch}
-                disabled={!inputBatchNo.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                <Search className="w-5 h-5" />
-                查询
-              </button>
-            </div>
-
-            {loading && (
-              <div className="mt-4 text-center">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500" />
-                <p className="mt-2 text-gray-500">加载中...</p>
-              </div>
-            )}
+        <div className="w-full max-w-2xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+          <div className="flex gap-4 mb-8">
+            <input
+              type="text"
+              value={inputBatchNo}
+              onChange={(e) => setInputBatchNo(e.target.value)}
+              placeholder="请输入批次号"
+              className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+            />
+            <button
+              onClick={handleSearch}
+              disabled={!inputBatchNo.trim()}
+              className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 flex items-center gap-2 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+            >
+              <Search className="w-6 h-6" />
+              查询
+            </button>
           </div>
+
+          {loading && (
+            <div className="mt-4 text-center">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
+              <p className="mt-2 text-gray-500">加载中...</p>
+            </div>
+          )}
+
+          {!loading && batchList.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">最近批次</h3>
+              <div className="flex flex-wrap gap-3">
+                {batchList.slice(0, 30).map((batch) => (
+                  <button
+                    key={batch}
+                    onClick={() => navigate(`/batch-trace/${batch}`)}
+                    className="px-5 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 rounded-xl text-base font-mono text-gray-700 border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all"
+                  >
+                    {batch}
+                  </button>
+                ))}
+              </div>
+              {batchList.length > 30 && (
+                <p className="text-sm text-gray-400 mt-4">还有 {batchList.length - 30} 个批次...</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

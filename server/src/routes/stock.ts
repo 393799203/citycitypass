@@ -1606,11 +1606,42 @@ router.post('/bundle/stock-in', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/batch/list', async (_req: Request, res: Response) => {
+  try {
+    const stockIns = await prisma.stockIn.findMany({
+      select: { batchNo: true },
+      distinct: ['batchNo'],
+      where: { batchNo: { not: null } },
+    });
+    const bundleStockIns = await prisma.bundleStockIn.findMany({
+      select: { batchNo: true },
+      distinct: ['batchNo'],
+      where: { batchNo: { not: null } },
+    });
+    const stockOuts = await prisma.stockOut.findMany({
+      select: { batchNo: true },
+      distinct: ['batchNo'],
+      where: { batchNo: { not: null } },
+    });
+
+    const allBatchNos = [...stockIns, ...bundleStockIns, ...stockOuts]
+      .map(r => r.batchNo)
+      .filter(Boolean) as string[];
+
+    const uniqueBatchNos = [...new Set(allBatchNos)].sort().reverse();
+
+    res.json({ success: true, data: uniqueBatchNos });
+  } catch (error) {
+    console.error('Batch list error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
   try {
     const { batchNo } = req.params;
 
-    const stockIns = await prisma.stockIn.findMany({
+    const stockIns: any[] = await prisma.stockIn.findMany({
       where: { batchNo },
       include: {
         sku: { include: { product: true } },
@@ -1619,7 +1650,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
       },
     });
 
-    const bundleStockIns = await prisma.bundleStockIn.findMany({
+    const bundleStockIns: any[] = await prisma.bundleStockIn.findMany({
       where: { batchNo },
       include: {
         bundle: true,
