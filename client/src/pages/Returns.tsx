@@ -264,7 +264,7 @@ export default function Returns() {
                     {ret.status === 'RETURN_SHIPPED' && (
                       <button
                         onClick={async () => {
-                          const ok = await confirm({ message: '确认收货？' });
+                          const ok = await confirm({ message: '确认收到退货？' });
                           if (ok) {
                             try {
                               await returnApi.receive(ret.id, {});
@@ -276,7 +276,7 @@ export default function Returns() {
                           }
                         }}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        title="确认收货"
+                        title="确认收到退货"
                       >
                         <CheckCircle className="w-4 h-4" />
                       </button>
@@ -580,7 +580,7 @@ export default function Returns() {
               <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                 {selectedReturn.status === 'RETURN_SHIPPED' && (
                   <button onClick={handleReceive} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> 确认收货
+                    <Truck className="w-4 h-4" /> 确认收到退货
                   </button>
                 )}
                 {selectedReturn.status === 'RETURN_RECEIVING' && (

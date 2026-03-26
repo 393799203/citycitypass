@@ -361,7 +361,7 @@ export default function ReturnDetail() {
                 )}
                 {returnOrder.status === 'RETURN_SHIPPED' && (
                   <button onClick={handleReceive} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2">
-                    <CheckCircle className="w-4 h-4" /> 确认收货
+                    <CheckCircle className="w-4 h-4" /> 确认收到退货
                   </button>
                 )}
                 {returnOrder.status === 'RETURN_RECEIVING' && (

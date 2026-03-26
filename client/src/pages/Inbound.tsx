@@ -350,26 +350,41 @@ export default function InboundPage() {
     const selectedZone = zones.find(z => z.id === toZoneId);
     const fullLocationCode = `${selectedZone?.code || ''}-${selectedShelf?.code || ''}-L${selectedLocation?.level || ''}`;
 
-    const item: InboundItemInput = {
-      type: productType === 'BUNDLE' ? 'BUNDLE' : 'PRODUCT',
-      ...(productType === 'BUNDLE'
-        ? { bundleId: selectedBundleId }
-        : { skuId: selectedSkuId }
-      ),
-      productName: productType === 'BUNDLE'
-        ? bundles.find(b => b.bundleId === selectedBundleId)?.bundleName || ''
-        : products.find(p => p.skuId === selectedSkuId)?.productName || '',
-      spec: productType === 'SKU' ? products.find(p => p.skuId === selectedSkuId)?.spec : undefined,
-      packaging: productType === 'SKU' ? products.find(p => p.skuId === selectedSkuId)?.packaging : undefined,
-      locationId: toLocationId,
-      locationCode: fullLocationCode,
-      quantity,
-      batchNo,
-      expiryDate,
-      snManagement: formSnManagement,
-    };
+    const existingIndex = inboundItems.findIndex(item =>
+      item.locationId === toLocationId &&
+      (productType === 'BUNDLE' ? item.bundleId === selectedBundleId : item.skuId === selectedSkuId)
+    );
 
-    setInboundItems([...inboundItems, item]);
+    if (existingIndex !== -1) {
+      const updatedItems = [...inboundItems];
+      updatedItems[existingIndex] = {
+        ...updatedItems[existingIndex],
+        quantity: updatedItems[existingIndex].quantity + quantity,
+      };
+      setInboundItems(updatedItems);
+      toast.success('已合并到同库位商品');
+    } else {
+      const item: InboundItemInput = {
+        type: productType === 'BUNDLE' ? 'BUNDLE' : 'PRODUCT',
+        ...(productType === 'BUNDLE'
+          ? { bundleId: selectedBundleId }
+          : { skuId: selectedSkuId }
+        ),
+        productName: productType === 'BUNDLE'
+          ? bundles.find(b => b.bundleId === selectedBundleId)?.bundleName || ''
+          : products.find(p => p.skuId === selectedSkuId)?.productName || '',
+        spec: productType === 'SKU' ? products.find(p => p.skuId === selectedSkuId)?.spec : undefined,
+        packaging: productType === 'SKU' ? products.find(p => p.skuId === selectedSkuId)?.packaging : undefined,
+        locationId: toLocationId,
+        locationCode: fullLocationCode,
+        quantity,
+        batchNo,
+        expiryDate,
+        snManagement: formSnManagement,
+      };
+      setInboundItems([...inboundItems, item]);
+    }
+
     setSelectedSkuId('');
     setSelectedBundleId('');
     setQuantity(1);
@@ -1295,7 +1310,7 @@ export default function InboundPage() {
                             placeholder="批次号"
                             value={batchNo}
                             onChange={(e) => setBatchNo(e.target.value)}
-                            className="px-2 py-1 border rounded text-xs w-32"
+                            className="px-3 py-1 border rounded text-xs w-56 font-mono"
                           />
                         </div>
                       </div>
@@ -1598,7 +1613,7 @@ export default function InboundPage() {
                               newItems[idx].batchNo = e.target.value;
                               setArrivalItems(newItems);
                             }}
-                            className={`w-24 border rounded px-2 py-1 ${!item.batchNo ? 'border-red-400 bg-red-50' : ''}`}
+                            className={`w-56 border rounded px-2 py-1 font-mono ${!item.batchNo ? 'border-red-400 bg-red-50' : ''}`}
                             placeholder="必填"
                           />
                           <button

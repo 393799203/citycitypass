@@ -570,7 +570,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                             <td className="py-2 align-top text-gray-500">
                               {item.stockLock?.location ? `${item.stockLock.location.shelf?.zone?.code}-${item.stockLock.location.shelf?.code}-L${item.stockLock.location.level}` :
                                item.bundleStockLock?.location ? `${item.bundleStockLock.location.shelf?.zone?.code}-${item.bundleStockLock.location.shelf?.code}-L${item.bundleStockLock.location.level}` :
-                               item.warehouseLocation ? `${item.warehouseLocation} (已出库)` : '-'}
+                               item.warehouseLocation ? `${item.warehouseLocation}${pickOrder.status === 'CANCELLED' ? '' : ' (已出库)'}` : '-'}
                               {(item.batchNo || item.stockLock?.batchNo || item.bundleStockLock?.batchNo) && (
                                 <span className="text-purple-500 ml-1">
                                   批:{item.batchNo || item.stockLock?.batchNo || item.bundleStockLock?.batchNo}

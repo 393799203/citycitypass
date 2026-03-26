@@ -838,6 +838,125 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           }
           await tx.bundleStockLock.delete({ where: { id: lock.id } });
         }
+
+        const pickOrders = await tx.pickOrder.findMany({
+          where: {
+            status: { in: ['PENDING', 'PICKING', 'PICKED'] },
+          },
+        });
+        for (const pickOrder of pickOrders) {
+          const orderIds: string[] = pickOrder.orderIds.split(',').filter((id: string) => !!id);
+          if (orderIds.includes(existingOrder.id)) {
+            if (pickOrder.status === 'PICKED') {
+              const pickItems = await tx.pickOrderItem.findMany({
+                where: {
+                  pickOrderId: pickOrder.id,
+                  stockLock: { orderId: existingOrder.id },
+                },
+              });
+              for (const item of pickItems) {
+                if (item.stockLockId) {
+                  const stockLock = await tx.stockLock.findFirst({
+                    where: { id: item.stockLockId },
+                  });
+                  if (stockLock) {
+                    await tx.stock.updateMany({
+                      where: {
+                        skuId: stockLock.skuId,
+                        bundleId: stockLock.bundleId,
+                        warehouseId: stockLock.warehouseId,
+                        locationId: stockLock.locationId,
+                      },
+                      data: {
+                        lockedQuantity: { decrement: stockLock.quantity },
+                        availableQuantity: { increment: stockLock.quantity },
+                      },
+                    });
+                    await tx.stockLock.delete({ where: { id: stockLock.id } });
+                  }
+                }
+                await tx.pickOrderItem.delete({ where: { id: item.id } });
+              }
+              const remainingOrderIds = orderIds.filter((id: string) => id !== existingOrder.id);
+              if (remainingOrderIds.length === 0) {
+                await tx.pickOrder.update({
+                  where: { id: pickOrder.id },
+                  data: { status: 'CANCELLED' },
+                });
+              } else {
+                await tx.pickOrder.update({
+                  where: { id: pickOrder.id },
+                  data: { orderIds: remainingOrderIds.join(',') },
+                });
+              }
+            } else if (orderIds.length === 1) {
+              await tx.pickOrder.update({
+                where: { id: pickOrder.id },
+                data: { status: 'CANCELLED' },
+              });
+              const pickItems = await tx.pickOrderItem.findMany({
+                where: { pickOrderId: pickOrder.id },
+              });
+              for (const item of pickItems) {
+                if (item.stockLockId) {
+                  const stockLock = await tx.stockLock.findFirst({
+                    where: { id: item.stockLockId },
+                  });
+                  if (stockLock) {
+                    await tx.stock.updateMany({
+                      where: {
+                        skuId: stockLock.skuId,
+                        bundleId: stockLock.bundleId,
+                        warehouseId: stockLock.warehouseId,
+                        locationId: stockLock.locationId,
+                      },
+                      data: {
+                        lockedQuantity: { decrement: stockLock.quantity },
+                        availableQuantity: { increment: stockLock.quantity },
+                      },
+                    });
+                    await tx.stockLock.delete({ where: { id: stockLock.id } });
+                  }
+                }
+              }
+            } else {
+              const pickItems = await tx.pickOrderItem.findMany({
+                where: {
+                  pickOrderId: pickOrder.id,
+                  stockLock: { orderId: existingOrder.id },
+                },
+              });
+              for (const item of pickItems) {
+                if (item.stockLockId) {
+                  const stockLock = await tx.stockLock.findFirst({
+                    where: { id: item.stockLockId },
+                  });
+                  if (stockLock) {
+                    await tx.stock.updateMany({
+                      where: {
+                        skuId: stockLock.skuId,
+                        bundleId: stockLock.bundleId,
+                        warehouseId: stockLock.warehouseId,
+                        locationId: stockLock.locationId,
+                      },
+                      data: {
+                        lockedQuantity: { decrement: stockLock.quantity },
+                        availableQuantity: { increment: stockLock.quantity },
+                      },
+                    });
+                    await tx.stockLock.delete({ where: { id: stockLock.id } });
+                  }
+                }
+                await tx.pickOrderItem.delete({ where: { id: item.id } });
+              }
+              const remainingOrderIds = orderIds.filter((id: string) => id !== existingOrder.id);
+              await tx.pickOrder.update({
+                where: { id: pickOrder.id },
+                data: { orderIds: remainingOrderIds.join(',') },
+              });
+            }
+          }
+        }
       }
 
       if (status === 'DISPATCHING') {
