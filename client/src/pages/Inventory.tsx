@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
 import { stockApi, productApi, warehouseApi, bundleApi, ownerApi } from '../api';
@@ -37,7 +37,7 @@ interface Shelf {
   level: number;
 }
 
-export default function StockInsPage() {
+export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -46,6 +46,9 @@ export default function StockInsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showStockInModal, setShowStockInModal] = useState(false);
+  const [showBatchTraceModal, setShowBatchTraceModal] = useState(false);
+  const [batchTraceInput, setBatchTraceInput] = useState('');
+  const [batchTraceModalBatchNo, setBatchTraceModalBatchNo] = useState('');
   const [itemType, setItemType] = useState<'product' | 'bundle'>('product');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSku, setSelectedSku] = useState('');
@@ -72,6 +75,7 @@ export default function StockInsPage() {
   const [filterShelf, setFilterShelf] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterBundle, setFilterBundle] = useState('');
+  const [filterBatchNo, setFilterBatchNo] = useState('');
   const [inventoryType, setInventoryType] = useState<'all' | 'sales'>('sales');
   const [zones, setZones] = useState<any[]>([]);
   const [filterShelfOptions, setFilterShelfOptions] = useState<any[]>([]);
@@ -342,6 +346,12 @@ export default function StockInsPage() {
               >
                 全部库存
               </button>
+              <button
+                onClick={() => { setShowBatchTraceModal(true); }}
+                className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                批次追踪
+              </button>
             </div>
           </div>
         </div>
@@ -446,11 +456,29 @@ export default function StockInsPage() {
               }
             </select>
             <button
-              onClick={() => { setFilterOwner(''); setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); }}
+              onClick={() => { setFilterOwner(''); setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); setFilterBatchNo(''); }}
               className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded text-sm"
             >
               重置
             </button>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="批号筛选"
+                value={filterBatchNo}
+                onChange={(e) => setFilterBatchNo(e.target.value)}
+                className="px-3 py-1.5 pr-7 border border-gray-300 rounded text-sm w-32"
+              />
+              {filterBatchNo && (
+                <button
+                  onClick={() => setFilterBatchNo('')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full text-xs"
+                  title="清空"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
         </div>
         {(() => {
@@ -468,6 +496,7 @@ export default function StockInsPage() {
                 return false;
               }
             }
+            if (filterBatchNo && stock.batchNo?.toLowerCase().indexOf(filterBatchNo.toLowerCase()) === -1) return false;
             return true;
           });
           const groupedStocks = filteredStocks.reduce((acc: any, stock: any) => {
@@ -501,6 +530,7 @@ export default function StockInsPage() {
                       totalQuantity: 0,
                       lockedQuantity: 0,
                       availableQuantity: 0,
+                      batchNos: [],
                     };
                   }
                   acc[key].shelves.push({
@@ -509,10 +539,14 @@ export default function StockInsPage() {
                     total: stock.totalQuantity,
                     locked: stock.lockedQuantity,
                     available: stock.availableQuantity,
+                    batchNo: stock.batchNo,
                   });
                   acc[key].totalQuantity += stock.totalQuantity;
                   acc[key].lockedQuantity += stock.lockedQuantity;
                   acc[key].availableQuantity += stock.availableQuantity;
+                  if (stock.batchNo && !acc[key].batchNos.includes(stock.batchNo)) {
+                    acc[key].batchNos.push(stock.batchNo);
+                  }
                   return acc;
                 }, {});
 
@@ -554,11 +588,16 @@ export default function StockInsPage() {
                     {skuList.map((stock: any) => (
                       <div key={stock.id} className="hover:bg-gray-50/50 transition-colors">
                         <div className="px-4 py-3 flex items-center gap-3">
-                          <span className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded ${
-                            stock.type === 'bundle'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-blue-100 text-blue-700'
-                          }`}>
+                          <span
+                            className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded cursor-help ${
+                              stock.type === 'bundle'
+                                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            }`}
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseLeave={() => setTooltip(null)}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}</div> : <div className="text-gray-400">无批号</div> })}
+                          >
                             {stock.type === 'bundle' ? '套装' : '商品'}
                           </span>
                           <div className="flex-1 min-w-0">
@@ -591,7 +630,13 @@ export default function StockInsPage() {
                             {(
                               <div className="flex items-center gap-1.5">
                                 {stock.shelves.map((shelf: any, idx: number) => (
-                                  <div key={idx} className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1"
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: shelf.batchNo ? <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo}</span></div> : <div className="text-gray-400">无批号</div> })}
+                                    onMouseLeave={() => setTooltip(null)}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: shelf.batchNo ? <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo}</span></div> : <div className="text-gray-400">无批号</div> })}
+                                  >
                                     <MapPin className="w-3 h-3 text-gray-400" />
                                     <span className="font-mono text-gray-600 text-xs">{shelf.code}</span>
                                     <span className="text-gray-300">|</span>
@@ -639,302 +684,7 @@ export default function StockInsPage() {
         })()}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
-            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h2 className="text-lg font-bold">{itemType === 'product' ? '商品入库' : '套装入库'}</h2>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-200 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-4">
-              <div className="flex border-b mb-4">
-                <button
-                  type="button"
-                  onClick={() => { setItemType('product'); setSelectedBundle(''); }}
-                  className={`flex-1 py-2 text-sm font-medium border-b-2 ${
-                    itemType === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
-                  }`}
-                >
-                  商品入库
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setItemType('bundle'); setSelectedProduct(''); setSelectedSku(''); }}
-                  className={`flex-1 py-2 text-sm font-medium border-b-2 ${
-                    itemType === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
-                  }`}
-                >
-                  套装入库
-                </button>
-              </div>
 
-              {itemType === 'product' ? (
-                <>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">商品</label>
-                      <select
-                        value={selectedProduct}
-                        onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSku(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        required
-                      >
-                        <option value="">选择商品</option>
-                        {products.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">规格</label>
-                      <select
-                        value={selectedSku}
-                        onChange={(e) => setSelectedSku(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedProduct}
-                        required
-                      >
-                        <option value="">选择规格</option>
-                        {selectedProductSkus.map(sku => (
-                          <option key={sku.id} value={sku.id}>
-                            {sku.spec} / {sku.packaging}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">入库数量</label>
-                      <input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        min="1"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-3">
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">仓库</label>
-                      <select
-                        value={selectedWarehouse}
-                        onChange={(e) => { setSelectedWarehouse(e.target.value); setSelectedZone(''); setSelectedShelf(''); setSelectedLocation(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        required
-                      >
-                        <option value="">选择仓库</option>
-                        {warehouses.map(w => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-gray-400 mt-4">-</span>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">库区</label>
-                      <select
-                        value={selectedZone}
-                        onChange={(e) => { setSelectedZone(e.target.value); setSelectedShelf(''); setSelectedLocation(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedWarehouse}
-                        required
-                      >
-                        <option value="">选择库区</option>
-                        {zones.map(z => (
-                          <option key={z.id} value={z.id}>{z.code}-{z.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-gray-400 mt-4">-</span>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">货架</label>
-                      <select
-                        value={selectedShelf}
-                        onChange={(e) => { setSelectedShelf(e.target.value); setSelectedLocation(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedZone}
-                        required
-                      >
-                        <option value="">选择货架</option>
-                        {shelves.map(s => (
-                          <option key={s.id} value={s.id}>{s.code}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-gray-400 mt-4">-</span>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">库位</label>
-                      <select
-                        value={selectedLocation}
-                        onChange={(e) => setSelectedLocation(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedShelf}
-                        required
-                      >
-                        <option value="">选择库位</option>
-                        {locations.map(l => (
-                          <option key={l.id} value={l.id}>L{l.level}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mt-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">批次号（可选）</label>
-                      <input
-                        type="text"
-                        value={batchNo}
-                        onChange={(e) => setBatchNo(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        placeholder="批次号"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">备注（可选）</label>
-                      <input
-                        type="text"
-                        value={remark}
-                        onChange={(e) => setRemark(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        placeholder="备注"
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">套装</label>
-                      <select
-                        value={selectedBundle}
-                        onChange={(e) => setSelectedBundle(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        required
-                      >
-                        <option value="">选择套装</option>
-                        {bundles.map(b => (
-                          <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">入库数量</label>
-                      <input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        min="1"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-3">
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">仓库</label>
-                      <select
-                        value={selectedWarehouse}
-                        onChange={(e) => { setSelectedWarehouse(e.target.value); setSelectedZone(''); setSelectedShelf(''); setSelectedLocation(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        required
-                      >
-                        <option value="">选择仓库</option>
-                        {warehouses.map(w => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-gray-400 mt-4">-</span>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">库区</label>
-                      <select
-                        value={selectedZone}
-                        onChange={(e) => { setSelectedZone(e.target.value); setSelectedShelf(''); setSelectedLocation(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedWarehouse}
-                        required
-                      >
-                        <option value="">选择库区</option>
-                        {zones.map(z => (
-                          <option key={z.id} value={z.id}>{z.code}-{z.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-gray-400 mt-4">-</span>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">货架</label>
-                      <select
-                        value={selectedShelf}
-                        onChange={(e) => { setSelectedShelf(e.target.value); setSelectedLocation(''); }}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedZone}
-                        required
-                      >
-                        <option value="">选择货架</option>
-                        {shelves.map(s => (
-                          <option key={s.id} value={s.id}>{s.code}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-gray-400 mt-4">-</span>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">库位</label>
-                      <select
-                        value={selectedLocation}
-                        onChange={(e) => setSelectedLocation(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                        disabled={!selectedShelf}
-                        required
-                      >
-                        <option value="">选择库位</option>
-                        {locations.map(l => (
-                          <option key={l.id} value={l.id}>L{l.level}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="mt-3">
-                    <label className="block text-xs text-gray-600 mb-1">备注（可选）</label>
-                    <input
-                      type="text"
-                      value={remark}
-                      onChange={(e) => setRemark(e.target.value)}
-                      className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                      placeholder="备注"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="flex gap-2 mt-4">
-                <button
-                  type="button"
-                  onClick={() => { setShowModal(false); resetForm(); }}
-                  className="flex-1 py-2 border rounded-lg text-sm hover:bg-gray-50"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700"
-                >
-                  确认入库
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {showStockInModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -993,8 +743,11 @@ export default function StockInsPage() {
                                   </div>
                                 : getSkuInfo(item.skuId)}
                             </td>
-                            <td className="px-3 py-2">{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</td>
-                            <td className="px-3 py-2 text-right">+{item.quantity}</td>
+                            <td className="px-3 py-2">
+                              <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
+                              {item.batchNo && <div className="text-purple-600 text-xs">批:{item.batchNo}</div>}
+                            </td>
+                            <td className="px-3 py-2 text-right text-green-600">+{item.quantity}</td>
                             <td className="px-3 py-2 text-gray-500">
                               {new Date(item.createdAt).toLocaleString()}
                             </td>
@@ -1005,7 +758,7 @@ export default function StockInsPage() {
                   })()}
                   {stockIns.length === 0 && !stockInLoading && (
                     <tr>
-                      <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+                      <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
                         暂无入库记录
                       </td>
                     </tr>
@@ -1082,7 +835,10 @@ export default function StockInsPage() {
                             </div>
                           )}
                       </td>
-                      <td className="px-3 py-2">{out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}</td>
+                      <td className="px-3 py-2">
+                        <div>{out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}</div>
+                        {out.batchNo && <div className="text-purple-600 text-xs">批:{out.batchNo}</div>}
+                      </td>
                       <td className="px-3 py-2 text-right text-red-600">-{out.quantity}</td>
                       <td className="px-3 py-2 text-gray-500">
                         {new Date(out.createdAt).toLocaleString()}
@@ -1109,6 +865,42 @@ export default function StockInsPage() {
         >
           {tooltip.content}
         </div>
+      )}
+
+      {showBatchTraceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">批次追踪</h2>
+              <button onClick={() => setShowBatchTraceModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">输入批次号进行追踪查询</p>
+            <input
+              type="text"
+              value={batchTraceInput}
+              onChange={(e) => setBatchTraceInput(e.target.value)}
+              placeholder="请输入批次号"
+              className="w-full px-4 py-2 border rounded-lg mb-4"
+              onKeyDown={(e) => { if (e.key === 'Enter' && batchTraceInput.trim()) { setBatchTraceModalBatchNo(batchTraceInput.trim()); setShowBatchTraceModal(false); } }}
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowBatchTraceModal(false)} className="px-4 py-2 border rounded-lg">取消</button>
+              <button
+                onClick={() => { if (batchTraceInput.trim()) { setBatchTraceModalBatchNo(batchTraceInput.trim()); setShowBatchTraceModal(false); } }}
+                disabled={!batchTraceInput.trim()}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                查询
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {batchTraceModalBatchNo && (
+        <Navigate to={`/batch-trace/${batchTraceModalBatchNo}`} />
       )}
     </div>
   );

@@ -21,6 +21,8 @@ import geocodeRoutes from './routes/geocode';
 import customerRoutes from './routes/customers';
 import contractRoutes from './routes/contracts';
 import uploadRoutes from './routes/upload';
+import supplierRoutes from './routes/suppliers';
+import supplierContractRoutes from './routes/supplierContracts';
 
 dotenv.config();
 
@@ -49,6 +51,8 @@ app.use('/api/geocode', geocodeRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/supplier-contracts', supplierContractRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

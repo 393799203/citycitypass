@@ -365,7 +365,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.stockLock.create({
-                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, quantity: lockQty, orderId: newOrder.id },
+                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -411,7 +411,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.bundleStockLock.create({
-                data: { bundleId: item.bundleId!, warehouseId, locationId: bs.locationId, quantity: lockQty, orderId: newOrder.id },
+                data: { bundleId: item.bundleId!, warehouseId, locationId: bs.locationId, batchNo: bs.batchNo, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -672,7 +672,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.stockLock.create({
-            data: { skuId: item.skuId!, warehouseId: data.warehouseId, stockId: stock.id, locationId: stock.locationId, quantity: lockQty, orderId: newOrder.id },
+            data: { skuId: item.skuId!, warehouseId: data.warehouseId, stockId: stock.id, locationId: stock.locationId, batchNo: stock.batchNo, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -715,7 +715,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.bundleStockLock.create({
-            data: { bundleId: item.bundleId!, warehouseId: data.warehouseId, stockId: bs.id, locationId: bs.locationId, quantity: lockQty, orderId: newOrder.id },
+            data: { bundleId: item.bundleId!, warehouseId: data.warehouseId, stockId: bs.id, locationId: bs.locationId, batchNo: bs.batchNo, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -865,6 +865,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
                 locationId: lock.locationId,
+                batchNo: lock.batchNo,
                 quantity: lock.quantity,
               },
             });
@@ -916,6 +917,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
               bundleId: lock.bundleId,
               warehouseId: lock.warehouseId,
               locationId: lock.locationId,
+              batchNo: lock.batchNo,
               quantity: lock.quantity,
             },
           });

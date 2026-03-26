@@ -19,6 +19,7 @@ import {
   Route,
   FileText,
   RotateCcw,
+  GitBranch,
 } from 'lucide-react';
 
 const roleMap: Record<string, string> = {
@@ -36,8 +37,9 @@ const configMenuItems = [
   { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
   { path: '/products', icon: Package, label: '商品管理' },
   { path: '/customers', icon: Users, label: '客户管理' },
-  { path: '/inbound', icon: Boxes, label: '库存看板' },
-  { path: '/stock-transfers', icon: ArrowRightLeft, label: '入库移库' },
+  { path: '/suppliers', icon: Users, label: '供应商管理' },
+  { path: '/stock-transfers', icon: ArrowRightLeft, label: '移库管理' },
+  { path: '/inbound', icon: Package, label: '入库管理' },
   { path: '/transport', icon: Truck, label: '运力管理' },
 ];
 
@@ -46,6 +48,8 @@ const businessMenuItems = [
   { path: '/outbound', icon: ArrowUpFromLine, label: '发货管理' },
   { path: '/dispatch', icon: Route, label: '运力调度' },
   { path: '/returns', icon: RotateCcw, label: '退货管理' },
+  { path: '/inventory', icon: Boxes, label: '库存看板' },
+  { path: '/batch-trace', icon: GitBranch, label: '批次追踪' },
 ];
 
 const adminMenuItems = [

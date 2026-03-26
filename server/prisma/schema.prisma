@@ -99,6 +99,39 @@ model Contract {
   updatedAt   DateTime    @updatedAt
 }
 
+model SupplierContract {
+  id           String      @id @default(uuid())
+  contractNo   String      @unique
+  name         String      // 合同名称
+
+  // 关联供应商
+  supplierId   String
+  supplier     Supplier    @relation(fields: [supplierId], references: [id])
+
+  // 合同信息
+  startDate    DateTime?
+  endDate      DateTime?
+  amount       Decimal?    @db.Decimal(12, 2)  // 合同金额
+  discount     Decimal?    @db.Decimal(5, 2)   // 合同折扣
+
+  // 条款
+  serviceTerms String?     // 服务条款描述
+  specialTerms String?     // 特殊条款
+
+  // 状态
+  status       ContractStatus @default(DRAFT)
+
+  // 合同附件
+  fileUrl      String?     // 合同文件URL
+  fileName     String?     // 合同文件名
+  fileSize     Int?        // 合同文件大小
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([supplierId])
+}
+
 enum ContractStatus {
   DRAFT       // 草稿
   PENDING     // 待生效
@@ -174,10 +207,22 @@ model ProductCategory {
   code      String   @unique
   name      String
   sortOrder Int      @default(0)
+  subCategories ProductSubCategory[]
   brands    ProductBrand[]
   products  Product[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProductSubCategory {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  name       String
+  categoryId String
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+  products   Product[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model ProductBrand {
@@ -185,31 +230,103 @@ model ProductBrand {
   code        String   @unique
   name        String
   categoryId  String
-  subCategory String?
   category    ProductCategory @relation(fields: [categoryId], references: [id])
   description String?
   products    Product[]
+  packagings  BrandPackaging[]
+  specs       BrandSpec[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+model PackagingOption {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  brandPackagings BrandPackaging[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SpecOption {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  brandSpecs BrandSpec[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BrandPackaging {
+  id          String   @id @default(uuid())
+  brandId     String
+  packagingId String
+  brand       ProductBrand @relation(fields: [brandId], references: [id])
+  packaging   PackagingOption @relation(fields: [packagingId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([brandId, packagingId])
+}
+
+model BrandSpec {
+  id          String   @id @default(uuid())
+  brandId     String
+  specId      String
+  brand       ProductBrand @relation(fields: [brandId], references: [id])
+  spec        SpecOption @relation(fields: [specId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([brandId, specId])
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  contact     String?
+  phone       String?
+  email       String?
+  address     String?
+  province    String?
+  city        String?
+  district    String?
+  productTags String[]
+  status      SupplierStatus @default(ACTIVE)
+  remark      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  inboundOrders  InboundOrder[]
+  contracts      SupplierContract[]
+}
+
+enum SupplierStatus {
+  ACTIVE      // 启用
+  INACTIVE    // 停用
+}
+
 model Product {
-  id         String   @id @default(uuid())
-  name       String
-  brandId    String
-  brand      ProductBrand @relation(fields: [brandId], references: [id])
-  categoryId String
-  category   ProductCategory @relation(fields: [categoryId], references: [id])
-  status     String   @default("ACTIVE")
-  skus       ProductSKU[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String   @id @default(uuid())
+  name           String
+  brandId        String
+  brand          ProductBrand @relation(fields: [brandId], references: [id])
+  categoryId     String
+  category       ProductCategory @relation(fields: [categoryId], references: [id])
+  subCategoryId  String?
+  subCategory    ProductSubCategory? @relation(fields: [subCategoryId], references: [id])
+  status         String   @default("ACTIVE")
+  skus           ProductSKU[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model ProductSKU {
   id          String   @id @default(uuid())
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  skuCode     String   @unique  // 自动生成的 SKU 编码
   packaging   String
   spec        String
   price       Decimal  @db.Decimal(10, 2)
@@ -228,6 +345,7 @@ model ProductSKU {
 model BundleSKU {
   id          String   @id @default(uuid())
   name        String
+  skuCode     String   @unique  // 自动生成的 SKU 编码，格式：B_品类码(4位) + 包装码(1位) + 序号(4位)
   packaging   String
   spec        String
   price       Decimal  @db.Decimal(10, 2)
@@ -265,13 +383,14 @@ model BundleStock {
   warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
   locationId      String?
   location        Location? @relation(fields: [locationId], references: [id])
+  batchNo         String?   // 批次号
   totalQuantity   Int       @default(0)
   lockedQuantity  Int       @default(0)
   availableQuantity Int      @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@unique([bundleId, warehouseId, locationId])
+  @@unique([bundleId, warehouseId, locationId, batchNo])
 }
 
 model BundleStockLock {
@@ -282,6 +401,7 @@ model BundleStockLock {
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
+  batchNo     String?   // 批次号
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   quantity    Int
@@ -298,6 +418,7 @@ model BundleStockIn {
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
   quantity    Int
+  batchNo     String?   // 批次号
   remark      String?
   status      String    @default("PENDING")
   createdAt   DateTime  @default(now())
@@ -380,6 +501,7 @@ model PickOrderItem {
   packaging  String
   spec       String
   quantity   Int
+  batchNo    String?     // 批次号
   warehouseLocation String
   stockLockId String?
   stockLock  StockLock? @relation(fields: [stockLockId], references: [id])
@@ -544,6 +666,7 @@ model StockTransferItem {
   toLocationId    String?
   toLocation      Location?      @relation("TransferToLocation", fields: [toLocationId], references: [id])
   quantity        Int
+  batchNo         String?
   createdAt       DateTime       @default(now())
   @@index([transferId])
   @@index([skuId])
@@ -558,6 +681,7 @@ model Stock {
   warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
   locationId      String?
   location        Location? @relation(fields: [locationId], references: [id])
+  batchNo         String?   // 批次号
   totalQuantity   Int       @default(0)    // 总库存
   lockedQuantity  Int       @default(0)    // 已锁定库存
   availableQuantity Int     @default(0)    // 可用库存
@@ -565,7 +689,7 @@ model Stock {
   updatedAt       DateTime  @updatedAt
   stockIns        StockIn[]
 
-  @@unique([skuId, warehouseId, locationId])
+  @@unique([skuId, warehouseId, locationId, batchNo])
 }
 
 model StockLock {
@@ -578,6 +702,7 @@ model StockLock {
   warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
   locationId  String?
   location    Location?   @relation(fields: [locationId], references: [id])
+  batchNo     String?     // 批次号
   quantity    Int         // 锁定数量
   status      LockStatus  @default(LOCKED)
   createdAt   DateTime    @default(now())
@@ -604,13 +729,49 @@ model StockIn {
   operator    String?   // 操作人
 }
 
+enum InboundSource {
+  PURCHASE    // 采购入库
+  RETURN      // 退货入库
+  TRANSFER    // 调拨入库
+  OTHER       // 其他入库
+}
+
+enum InboundStatus {
+  PENDING       // 待收货
+  ARRIVED       // 已到货（到货登记）
+  RECEIVING     // 收货中（验收中）
+  RECEIVED      // 已收货（验收完成）
+  PUTAWAY       // 上架中
+  COMPLETED     // 已完成
+  CANCELLED     // 已取消
+}
+
 model InboundOrder {
   id          String    @id @default(uuid())
   inboundNo   String    @unique
+  source     InboundSource @default(PURCHASE)  // 来源
+  supplierId  String?
+  supplier    Supplier?  @relation(fields: [supplierId], references: [id])
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   remark      String?
-  status      String    @default("PENDING")
+  snManagement Boolean @default(false) // 是否SN管理
+
+  // 到货信息
+  arrivalQuantity Int?    // 到货数量
+  palletNo       String? // 托盘号
+  vehicleNo      String? // 车牌号
+  arrivedAt       DateTime? // 到货时间
+
+  // 执行信息
+  receivedAt DateTime? // 验收完成时间
+  putawayAt  DateTime? // 上架完成时间
+
+  // ERP 回传
+  erpSyncStatus String?  // PENDING / SYNCED / FAILED
+  erpSyncAt    DateTime?
+
+  status      InboundStatus @default(PENDING)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -618,17 +779,38 @@ model InboundOrder {
 
   @@index([warehouseId])
   @@index([status])
+  @@index([supplierId])
 }
 
 model InboundOrderItem {
   id          String    @id @default(uuid())
   inboundId   String
   inbound     InboundOrder @relation(fields: [inboundId], references: [id], onDelete: Cascade)
-  type        String    // 'product' or 'bundle'
+  type        ItemType  // 使用现有的 ItemType enum
   skuId       String?
   bundleId    String?
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
+
+  // 数量
+  expectedQuantity Int?   // 计划数量
+  receivedQuantity Int?   // 实收数量
+
+  // 批次和效期
+  batchNo     String?   // 批次号
+  expiryDate  DateTime? // 效期
+
+  // SN 管理
+  snManagement Boolean @default(false) // 是否SN管理
+  snCodes      String[] // 序列号数组
+
+  // 验收结果
+  inspectionResult String? // OK / SHORT / DAMAGED
+  inspectionNote  String? // 验收备注
+
+  // 上架状态
+  putawayStatus   String? // PENDING / IN_PROGRESS / COMPLETED
+
   quantity    Int
 
   @@index([inboundId])
@@ -641,6 +823,7 @@ model StockOut {
   bundleId    String?   // 套装（套装出库时）
   warehouseId String
   locationId  String?   // 库位（出库库位）
+  batchNo     String?   // 批次号
   quantity    Int       // 出库数量
   remark      String?   // 备注
   createdAt   DateTime  @default(now())
@@ -762,8 +945,9 @@ enum ReturnStatus {
   RETURN_REQUESTED   // 客户发起退货申请
   RETURN_SHIPPED     // 客户已发货/等待仓库收货
   RETURN_RECEIVING   // 仓库收货中
-  RETURN_QUALIFIED   // 验收合格
-  RETURN_REJECTED    // 验收拒收（可退款）
+  RETURN_QUALIFIED   // 验收合格（全部合格）
+  RETURN_PARTIAL_QUALIFIED // 部分合格
+  RETURN_REJECTED    // 验收拒收（全部不合格）
   RETURN_STOCK_IN    // 退货入库完成
   REFUNDED           // 已完成退款
   CANCELLED          // 已取消
@@ -826,6 +1010,7 @@ model ReturnItem {
   spec           String       // 规格
 
   quantity       Int          // 退货数量
+  stockOutId     String?      // 对应出库记录ID
   qualifiedQuantity Int       @default(0) // 合格数量
   rejectedQuantity Int       @default(0) // 拒收数量
 
@@ -839,8 +1024,9 @@ enum ReturnAction {
   CREATE           // 创建退货单
   SHIPPED          // 客户发货
   RECEIVE          // 仓库收货
-  QUALIFY          // 验收确认
-  REJECT           // 拒收
+  QUALIFY          // 验收确认（全部合格）
+  PARTIAL          // 部分合格
+  REJECT           // 拒收（全部不合格）
   STOCK_IN         // 退货入库
   REFUND           // 退款
   CANCEL           // 取消

@@ -18,6 +18,7 @@ interface Product {
 
 interface SKU {
   id: string;
+  skuCode?: string;
   packaging: string;
   spec: string;
   price: string;
@@ -26,6 +27,7 @@ interface SKU {
 interface Bundle {
   id: string;
   name: string;
+  skuCode?: string;
   packaging: string;
   spec: string;
   price: string;
@@ -64,6 +66,7 @@ interface Brand {
 
 interface SKUWithProduct {
   id: string;
+  skuCode?: string;
   packaging: string;
   spec: string;
   price: string;
@@ -82,8 +85,6 @@ interface Warehouse {
   code: string;
 }
 
-const defaultProductPackagings = ['单瓶', '双瓶', '箱(6瓶)', '箱(12瓶)'];
-const defaultProductSpecs = ['100ml', '250ml', '500ml', '1L'];
 const defaultBundlePackagings = ['礼盒', '纸盒', '简装'];
 const defaultBundleSpecs = ['单品', '组合'];
 
@@ -95,6 +96,10 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [filteredBrands, setFilteredBrands] = useState<Brand[]>([]);
+  const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [filteredSubCategories, setFilteredSubCategories] = useState<any[]>([]);
+  const [brandPackagings, setBrandPackagings] = useState<any[]>([]);
+  const [brandSpecs, setBrandSpecs] = useState<any[]>([]);
   const [skus, setSkus] = useState<SKUWithProduct[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +120,7 @@ export default function ProductsPage() {
     name: '',
     brandId: '',
     categoryId: '',
+    subCategoryId: '',
     status: 'ACTIVE',
     skus: [{ packaging: '', spec: '', price: '' }],
   });
@@ -145,6 +151,57 @@ export default function ProductsPage() {
     }
   }, [formData.categoryId, brands]);
 
+  // 品类变化时过滤二级分类
+  useEffect(() => {
+    if (formData.categoryId) {
+      const filtered = subCategories.filter(sc => sc.categoryId === formData.categoryId);
+      setFilteredSubCategories(filtered);
+      if (!filtered.find(sc => sc.id === formData.subCategoryId)) {
+        setFormData(f => ({ ...f, subCategoryId: '' }));
+      }
+    } else {
+      setFilteredSubCategories([]);
+      setFormData(f => ({ ...f, subCategoryId: '' }));
+    }
+  }, [formData.categoryId, subCategories]);
+
+  // 品类变化时过滤品牌列表（二级分类不影响品牌列表）
+  useEffect(() => {
+    if (formData.categoryId) {
+      const filtered = brands.filter(b => b.categoryId === formData.categoryId);
+      setFilteredBrands(filtered);
+      if (!filtered.find(b => b.id === formData.brandId)) {
+        setFormData(f => ({ ...f, brandId: '' }));
+      }
+    } else {
+      setFilteredBrands([]);
+      setFormData(f => ({ ...f, brandId: '' }));
+    }
+  }, [formData.categoryId, brands]);
+
+  // 品牌变化时加载对应的包装和规格选项
+  useEffect(() => {
+    const fetchBrandOptions = async () => {
+      if (formData.brandId) {
+        const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+        try {
+          const res = await fetch(`/api/products/brands/${formData.brandId}/options`, { headers });
+          const data = await res.json();
+          if (data.success) {
+            setBrandPackagings(data.data.packagings || []);
+            setBrandSpecs(data.data.specs || []);
+          }
+        } catch (error) {
+          console.error('Fetch brand options error:', error);
+        }
+      } else {
+        setBrandPackagings([]);
+        setBrandSpecs([]);
+      }
+    };
+    fetchBrandOptions();
+  }, [formData.brandId]);
+
   const fetchBrands = async (categoryId?: string) => {
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
@@ -163,14 +220,15 @@ export default function ProductsPage() {
     setLoading(true);
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
-      const [productsRes, bundlesRes, categoriesRes, brandsRes, warehousesRes] = await Promise.all([
+      const [productsRes, bundlesRes, categoriesRes, brandsRes, subCategoriesRes, warehousesRes] = await Promise.all([
         productApi.list(),
         bundleApi.list(),
         fetch('/api/products/categories', { headers }).then(r => r.json()),
         fetch('/api/products/brands', { headers }).then(r => r.json()),
+        fetch('/api/products/sub-categories', { headers }).then(r => r.json()),
         warehouseApi.list(),
       ]);
-      
+
       if (productsRes.data.success) {
         setProducts(productsRes.data.data);
         const allSkus: SKUWithProduct[] = [];
@@ -184,6 +242,7 @@ export default function ProductsPage() {
       if (bundlesRes.data.success) setBundles(bundlesRes.data.data);
       if (categoriesRes.success) setCategories(categoriesRes.data);
       if (brandsRes.success) setBrands(brandsRes.data);
+      if (subCategoriesRes.success) setSubCategories(subCategoriesRes.data);
       if (warehousesRes.data.success) setWarehouses(warehousesRes.data.data);
     } catch (error) {
       console.error(error);
@@ -241,6 +300,7 @@ export default function ProductsPage() {
       name: product.name,
       brandId: product.brandId,
       categoryId: product.categoryId,
+      subCategoryId: (product as any).subCategoryId || '',
       status: product.status,
       skus: product.skus.length > 0 ? product.skus : [{ packaging: '', spec: '', price: '' }],
     });
@@ -296,8 +356,9 @@ export default function ProductsPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', brandId: '', categoryId: '', status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
+    setFormData({ name: '', brandId: '', categoryId: '', subCategoryId: '', status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
     setFilteredBrands([]);
+    setFilteredSubCategories([]);
     setEditingId(null);
   };
 
@@ -556,7 +617,7 @@ export default function ProductsPage() {
                     <div className="mt-2 text-xs max-h-16 overflow-y-auto text-gray-600">
                       {product.skus.map(s => (
                         <div key={s.id} className="flex justify-between">
-                          <span>{s.spec} / {s.packaging}</span>
+                          <span>{s.spec} / {s.packaging} <span className="text-gray-400">({s.skuCode})</span></span>
                           <span className="font-bold">¥{s.price}</span>
                         </div>
                       ))}
@@ -601,6 +662,7 @@ export default function ProductsPage() {
                     <div className="flex items-center gap-2">
                       <Package className="w-5 h-5 text-purple-500" />
                       <h3 className="font-bold text-lg">{bundle.name}</h3>
+                      {bundle.skuCode && <span className="text-xs text-gray-400">({bundle.skuCode})</span>}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">{bundle.packaging} · {bundle.spec}</p>
                   </div>
@@ -674,18 +736,32 @@ export default function ProductsPage() {
             {activeTab === 'product' ? (
               <form onSubmit={handleSubmit} className="p-4 space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">分类</label>
                       <select
                         value={formData.categoryId}
-                        onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
+                        onChange={e => setFormData({ ...formData, categoryId: e.target.value, brandId: '', subCategoryId: '' })}
                         className="w-full px-3 py-2 border rounded-lg"
                         required
                       >
                         <option value="">选择分类</option>
                         {categories.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">二级分类</label>
+                      <select
+                        value={formData.subCategoryId}
+                        onChange={e => setFormData({ ...formData, subCategoryId: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        disabled={!formData.categoryId}
+                      >
+                        <option value="">选择二级分类</option>
+                        {filteredSubCategories.map(sc => (
+                          <option key={sc.id} value={sc.id}>{sc.name}（{sc.code}）</option>
                         ))}
                       </select>
                     </div>
@@ -730,8 +806,8 @@ export default function ProductsPage() {
                         className="flex-1 px-2 py-2 border rounded-lg text-sm bg-white"
                       >
                         <option value="">选择包装</option>
-                        {defaultProductPackagings.map(p => (
-                          <option key={p} value={p}>{p}</option>
+                        {brandPackagings.map((p: any) => (
+                          <option key={p.id} value={p.name}>{p.name}</option>
                         ))}
                       </select>
                       <select
@@ -740,8 +816,8 @@ export default function ProductsPage() {
                         className="flex-1 px-2 py-2 border rounded-lg text-sm bg-white"
                       >
                         <option value="">选择规格</option>
-                        {defaultProductSpecs.map(s => (
-                          <option key={s} value={s}>{s}</option>
+                        {brandSpecs.map((s: any) => (
+                          <option key={s.id} value={s.name}>{s.name}</option>
                         ))}
                       </select>
                       <div className="flex items-center gap-1">
@@ -1004,7 +1080,7 @@ export default function ProductsPage() {
                     >
                       <option value="">选择规格</option>
                       {selectedProduct.skus?.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.spec}/{s.packaging}</option>
+                        <option key={s.id} value={s.id}>{s.spec}/{s.packaging} ({s.skuCode})</option>
                       ))}
                     </select>
                   </div>

@@ -15,9 +15,177 @@ const productSchema = z.object({
   name: z.string().min(1),
   brandId: z.string().min(1),
   categoryId: z.string().min(1),
+  subCategoryId: z.string().optional(),
   status: z.string().optional(),
   skus: skuSchema.array().optional(),
 });
+
+// 二级分类 API
+router.get('/sub-categories', async (req: Request, res: Response) => {
+  try {
+    const { categoryId } = req.query;
+    const where = categoryId ? { categoryId: categoryId as string } : {};
+    const subCategories = await prisma.productSubCategory.findMany({
+      where,
+      orderBy: { id: 'asc' },
+    });
+    res.json({ success: true, data: subCategories });
+  } catch (error) {
+    console.error('List sub-categories error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.post('/sub-categories', async (req: Request, res: Response) => {
+  try {
+    const { code, name, categoryId } = req.body;
+    if (!code || !name || !categoryId) {
+      return res.status(400).json({ success: false, message: '缺少必填字段' });
+    }
+    const subCategory = await prisma.productSubCategory.create({
+      data: { code, name, categoryId },
+    });
+    res.json({ success: true, data: subCategory });
+  } catch (error) {
+    console.error('Create sub-category error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/sub-categories/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { code, name } = req.body;
+    const subCategory = await prisma.productSubCategory.update({
+      where: { id },
+      data: { code, name },
+    });
+    res.json({ success: true, data: subCategory });
+  } catch (error) {
+    console.error('Update sub-category error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.delete('/sub-categories/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.productSubCategory.delete({ where: { id } });
+    res.json({ success: true, message: '删除成功' });
+  } catch (error) {
+    console.error('Delete sub-category error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// 获取品牌关联的包装和规格选项
+router.get('/brands/:brandId/options', async (req: Request, res: Response) => {
+  try {
+    const { brandId } = req.params;
+    const brand = await prisma.productBrand.findUnique({
+      where: { id: brandId },
+      include: {
+        packagings: {
+          include: { packaging: true },
+          orderBy: { packaging: { sortOrder: 'asc' } }
+        },
+        specs: {
+          include: { spec: true },
+          orderBy: { spec: { sortOrder: 'asc' } }
+        }
+      }
+    });
+    res.json({
+      success: true,
+      data: {
+        packagings: brand?.packagings.map(bp => bp.packaging) || [],
+        specs: brand?.specs.map(bs => bs.spec) || []
+      }
+    });
+  } catch (error) {
+    console.error('Get brand options error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// 包装选项 API
+router.get('/packagings', async (req: Request, res: Response) => {
+  try {
+    const packagings = await prisma.packagingOption.findMany({
+      orderBy: { sortOrder: 'asc' }
+    });
+    res.json({ success: true, data: packagings });
+  } catch (error) {
+    console.error('List packagings error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// 规格选项 API
+router.get('/specs', async (req: Request, res: Response) => {
+  try {
+    const specs = await prisma.specOption.findMany({
+      orderBy: { sortOrder: 'asc' }
+    });
+    res.json({ success: true, data: specs });
+  } catch (error) {
+    console.error('List specs error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// SKU 编码生成函数
+// 格式: 品牌码(2位) + 二级分类码(2位) + 规格码(3位) + 包装码(1位) = 8位
+async function generateSkuCode(productId: string, packaging: string, spec: string): Promise<string> {
+  // 获取产品及其关联的品牌和二级分类
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      brand: true,
+      subCategory: true
+    }
+  });
+
+  if (!product) {
+    throw new Error('Product not found');
+  }
+
+  // 品牌编码（2位）
+  const brandCode = product.brand.code.toUpperCase().slice(0, 2);
+
+  // 二级分类编码（2位），从商品的 subCategory 获取
+  const subCategoryCode = product.subCategory?.code.toUpperCase().slice(0, 2) || 'XX';
+
+  // 规格编码（3位）：从规格中提取数字，不足3位前补0，超过3位截断
+  const specNumbers = spec.replace(/\D/g, '').slice(0, 3).padStart(3, '0');
+
+  // 包装编码（1位）
+  const packagingCode = getPackagingCode(packaging);
+
+  return `${brandCode}${subCategoryCode}${specNumbers}${packagingCode}`;
+}
+
+// 包装编码映射
+function getPackagingCode(packaging: string): string {
+  const p = packaging.toLowerCase();
+  if (p.includes('箱')) {
+    const match = p.match(/(\d+)/);
+    if (match) {
+      return `C${match[1]}`;
+    }
+    return 'C';
+  }
+  if (p.includes('罐') || p.includes('a')) {
+    return 'A';
+  }
+  if (p.includes('盒') || p.includes('h')) {
+    return 'H';
+  }
+  if (p.includes('双瓶')) {
+    return 'D';
+  }
+  return 'P';
+}
 
 router.get('/categories', async (req: Request, res: Response) => {
   try {
@@ -46,12 +214,24 @@ router.post('/categories', async (req: Request, res: Response) => {
 
 router.get('/brands', async (req: Request, res: Response) => {
   try {
-    const { categoryId, name } = req.query;
+    const { categoryId, subCategoryId, name } = req.query;
     const where: any = {};
     if (categoryId) where.categoryId = String(categoryId);
     if (name) where.name = String(name);
 
-    const brands = await prisma.productBrand.findMany({ where });
+    // 如果选择了香型(二级分类)，过滤出有该香型商品的品牌
+    if (subCategoryId) {
+      where.products = {
+        some: {
+          subCategoryId: String(subCategoryId)
+        }
+      };
+    }
+
+    const brands = await prisma.productBrand.findMany({
+      where,
+      orderBy: { name: 'asc' }
+    });
     res.json({ success: true, data: brands });
   } catch (error) {
     console.error('List brands error:', error);
@@ -191,27 +371,49 @@ router.post('/', async (req: Request, res: Response) => {
     console.log('Received product data:', req.body);
     const data = productSchema.parse(req.body);
 
+    // 先创建商品
     const product = await prisma.product.create({
       data: {
         name: data.name,
         brandId: data.brandId,
         categoryId: data.categoryId,
-        skus: data.skus ? {
-          create: data.skus.map(sku => ({
-            packaging: sku.packaging,
-            spec: sku.spec,
-            price: sku.price,
-          }))
-        } : undefined,
+        subCategoryId: data.subCategoryId || null,
       },
       include: {
         category: true,
         brand: true,
+        subCategory: true,
+      },
+    });
+
+    // 如果有 SKU，批量创建并生成编码
+    if (data.skus && data.skus.length > 0) {
+      for (const sku of data.skus) {
+        const skuCode = await generateSkuCode(product.id, sku.packaging, sku.spec);
+        await prisma.productSKU.create({
+          data: {
+            productId: product.id,
+            skuCode: skuCode,
+            packaging: sku.packaging,
+            spec: sku.spec,
+            price: sku.price,
+          },
+        });
+      }
+    }
+
+    // 重新查询包含 SKU 的完整商品信息
+    const fullProduct = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: {
+        category: true,
+        brand: true,
+        subCategory: true,
         skus: true,
       },
     });
 
-    res.json({ success: true, data: product });
+    res.json({ success: true, data: fullProduct });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, message: '参数错误', errors: error.errors });
@@ -248,30 +450,52 @@ router.put('/:id', async (req: Request, res: Response) => {
         brandId: data.brandId,
         categoryId: data.categoryId,
         status: data.status,
-        skus: data.skus ? {
-          upsert: data.skus.map(sku => ({
-            where: { id: sku.id || '' },
-            create: {
-              packaging: sku.packaging,
-              spec: sku.spec,
-              price: sku.price,
-            },
-            update: {
-              packaging: sku.packaging,
-              spec: sku.spec,
-              price: sku.price,
-            },
-          })),
-        } : undefined,
       },
       include: {
         category: true,
         brand: true,
+        subCategory: true,
         skus: true,
       },
     });
 
-    res.json({ success: true, data: product });
+    if (data.skus) {
+      for (const sku of data.skus) {
+        if (sku.id) {
+          await prisma.productSKU.update({
+            where: { id: sku.id },
+            data: {
+              packaging: sku.packaging,
+              spec: sku.spec,
+              price: sku.price,
+            },
+          });
+        } else {
+          const skuCode = await generateSkuCode(id, sku.packaging, sku.spec);
+          await prisma.productSKU.create({
+            data: {
+              productId: id,
+              skuCode: skuCode,
+              packaging: sku.packaging,
+              spec: sku.spec,
+              price: sku.price,
+            },
+          });
+        }
+      }
+    }
+
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        brand: true,
+        subCategory: true,
+        skus: true,
+      },
+    });
+
+    res.json({ success: true, data: updatedProduct });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, message: '参数错误', errors: error.errors });
@@ -298,9 +522,13 @@ router.post('/:id/skus', async (req: Request, res: Response) => {
     const { id } = req.params;
     const data = skuSchema.parse(req.body);
 
+    // 自动生成 SKU 编码
+    const skuCode = await generateSkuCode(id, data.packaging, data.spec);
+
     const sku = await prisma.productSKU.create({
       data: {
         productId: id,
+        skuCode: skuCode,
         packaging: data.packaging,
         spec: data.spec,
         price: data.price,

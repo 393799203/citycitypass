@@ -129,7 +129,19 @@ export const stockApi = {
   cancelStockIn: (id: string, type: string) => api.put(`/stock/stock-in/${id}/cancel`, { type }),
   createInboundOrder: (data: any) => api.post('/stock/inbound-order', data),
   getInboundOrders: (params?: any) => api.get('/stock/inbound-orders', { params }),
+  updateInboundOrder: (id: string, data: any) => api.put(`/stock/inbound-order/${id}`, data),
   executeInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/execute`),
+  cancelInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/cancel`),
+  batchTrace: (batchNo: string) => api.get(`/stock/batch/${batchNo}/trace`),
+};
+
+export const inboundApi = {
+  create: (data: any) => api.post('/stock/inbound-order', data),
+  list: (params?: any) => api.get('/stock/inbound-orders', { params }),
+  get: (id: string) => api.get(`/stock/inbound-order/${id}`),
+  update: (id: string, data: any) => api.put(`/stock/inbound-order/${id}`, data),
+  execute: (id: string) => api.put(`/stock/inbound-order/${id}/execute`),
+  cancel: (id: string) => api.put(`/stock/inbound-order/${id}/cancel`),
 };
 
 export const bundleApi = {
@@ -192,4 +204,20 @@ export const dispatchApi = {
 
 export const geocodeApi = {
   geocode: (address: string) => api.get('/geocode', { params: { address } }),
+};
+
+export const supplierApi = {
+  list: (params?: any) => api.get('/suppliers', { params }),
+  get: (id: string) => api.get(`/suppliers/${id}`),
+  create: (data: any) => api.post('/suppliers', data),
+  update: (id: string, data: any) => api.put(`/suppliers/${id}`, data),
+  delete: (id: string) => api.delete(`/suppliers/${id}`),
+};
+
+export const supplierContractApi = {
+  list: (params?: any) => api.get('/supplier-contracts', { params }),
+  get: (id: string) => api.get(`/supplier-contracts/${id}`),
+  create: (data: any) => api.post('/supplier-contracts', data),
+  update: (id: string, data: any) => api.put(`/supplier-contracts/${id}`, data),
+  delete: (id: string) => api.delete(`/supplier-contracts/${id}`),
 };

@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 interface ReturnStockInModalProps {
   open: boolean;
   warehouseId: string;
-  items: Array<{ id: string; productName: string; qualifiedQuantity: number }>;
+  items: Array<{ id: string; productName: string; qualifiedQuantity: number; stockBatchNo?: string | null }>;
   onClose: () => void;
   onConfirm: (locationId: string) => Promise<void>;
 }
@@ -161,7 +161,10 @@ export default function ReturnStockInModal({
               {items.filter(i => i.qualifiedQuantity > 0).map(item => (
                 <div key={item.id} className="flex justify-between items-center px-3 py-2">
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate">{item.productName}</div>
+                    <div className="text-sm truncate">
+                      {item.productName}
+                      {item.stockBatchNo && <span className="text-purple-500 ml-1">批:{item.stockBatchNo}</span>}
+                    </div>
                   </div>
                   <span className="text-green-600 text-sm ml-2">×{item.qualifiedQuantity}</span>
                 </div>

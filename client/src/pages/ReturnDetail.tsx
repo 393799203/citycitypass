@@ -3,15 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { returnApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Package, Truck, CheckCircle, Warehouse, DollarSign, Phone, FileText, Clock, Pencil } from 'lucide-react';
+import { ArrowLeft, Package, Truck, CheckCircle, Warehouse, DollarSign, Phone, FileText, Clock, Pencil, Info } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
-import ReturnStockInModal from '../components/ReturnStockInModal';
+import InboundOrderModal from '../components/InboundOrderModal';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   RETURN_REQUESTED: { label: '待发货', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
   RETURN_SHIPPED: { label: '已发货', color: 'text-blue-600', bgColor: 'bg-blue-50' },
   RETURN_RECEIVING: { label: '收货中', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  RETURN_QUALIFIED: { label: '已验收', color: 'text-green-600', bgColor: 'bg-green-50' },
+  RETURN_QUALIFIED: { label: '已验收(全合格)', color: 'text-green-600', bgColor: 'bg-green-50' },
+  RETURN_PARTIAL_QUALIFIED: { label: '已验收(部分)', color: 'text-orange-600', bgColor: 'bg-orange-50' },
   RETURN_REJECTED: { label: '已拒收', color: 'text-red-600', bgColor: 'bg-red-50' },
   RETURN_STOCK_IN: { label: '已入库', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   REFUNDED: { label: '已退款', color: 'text-pink-600', bgColor: 'bg-pink-50' },
@@ -33,7 +34,8 @@ const returnStatusFlow = [
   { key: 'RETURN_REQUESTED', label: '申请退货' },
   { key: 'RETURN_SHIPPED', label: '买家发货' },
   { key: 'RETURN_RECEIVING', label: '仓库收货' },
-  { key: 'RETURN_QUALIFIED', label: '验收' },
+  { key: 'RETURN_QUALIFIED', label: '验收(全)' },
+  { key: 'RETURN_PARTIAL_QUALIFIED', label: '验收(部分)' },
   { key: 'RETURN_STOCK_IN', label: '入库' },
   { key: 'REFUNDED', label: '退款完成' },
 ];
@@ -52,6 +54,7 @@ export default function ReturnDetail() {
   const [showQualifyModal, setShowQualifyModal] = useState(false);
   const [showStockInModal, setShowStockInModal] = useState(false);
   const [refundModal, setRefundModal] = useState<{ show: boolean; refundAmount: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
 
   const fetchReturn = async () => {
     if (!id) return;
@@ -62,8 +65,8 @@ export default function ReturnDetail() {
         setReturnOrder(res.data.data);
         setQualifyItems(res.data.data.items?.map((item: any) => ({
           ...item,
-          qualifiedQuantity: item.qualifiedQuantity || item.quantity,
-          rejectedQuantity: item.rejectedQuantity || 0,
+          qualifiedQuantity: item.qualifiedQuantity ?? 0,
+          rejectedQuantity: item.rejectedQuantity ?? 0,
         })) || []);
       }
     } catch (error) {
@@ -108,17 +111,24 @@ export default function ReturnDetail() {
     }
   };
 
-  const openQualifyModal = (ret: any) => {
-    setQualifyItems(ret.items?.map((item: any) => ({
-      ...item,
-      qualifiedQuantity: item.qualifiedQuantity || item.quantity,
-      rejectedQuantity: item.rejectedQuantity || 0,
-    })) || []);
+  const openQualifyModal = async (ret: any) => {
+    const res = await returnApi.get(returnOrder.id);
+    if (res.data.success) {
+      setQualifyItems(res.data.data.items?.map((item: any) => ({
+        ...item,
+        qualifiedQuantity: item.qualifiedQuantity ?? 0,
+        rejectedQuantity: item.rejectedQuantity || 0,
+      })) || []);
+    }
     setShowQualifyModal(true);
   };
 
   const handleQualify = async () => {
     if (!returnOrder) return;
+    const totalRejected = qualifyItems.reduce((sum, item) => sum + (item.rejectedQuantity || 0), 0);
+    if (totalRejected > 0 && !window.confirm(`有 ${totalRejected} 件商品验收不合格，确认继续吗？`)) {
+      return;
+    }
     try {
       await returnApi.qualify(returnOrder.id, { items: qualifyItems });
       toast.success('验收确认成功');
@@ -129,26 +139,15 @@ export default function ReturnDetail() {
     }
   };
 
-  const openStockInModal = () => {
-    setShowStockInModal(true);
-  };
-
-  const handleStockIn = async (locationId: string) => {
-    if (!returnOrder) return;
-    try {
-      await returnApi.stockIn(returnOrder.id, {
-        locationId,
-        items: qualifyItems.map((item: any) => ({
-          id: item.id,
-          qualifiedQuantity: item.qualifiedQuantity,
-        })),
-      });
-      toast.success('入库成功');
-      setShowStockInModal(false);
-      fetchReturn();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || '入库失败');
+  const openStockInModal = async () => {
+    const res = await returnApi.get(returnOrder.id);
+    if (res.data.success) {
+      setQualifyItems(res.data.data.items?.map((item: any) => ({
+        ...item,
+        qualifiedQuantity: item.qualifiedQuantity ?? 0,
+      })) || []);
     }
+    setShowStockInModal(true);
   };
 
   const handleRefund = async () => {
@@ -312,7 +311,24 @@ export default function ReturnDetail() {
                 <tbody className="divide-y">
                   {returnOrder.items?.map((item: any) => (
                     <tr key={item.id}>
-                      <td className="px-4 py-3 text-base">{item.productName}</td>
+                      <td className="px-4 py-3">
+                        <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                          {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
+                          {item.productName}
+                          {item.bundleId && item.bundle?.items?.length > 0 && (
+                            <button
+                              type="button"
+                              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                              onMouseLeave={() => setTooltip(null)}
+                              onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                              className="hover:bg-gray-100 rounded ml-1"
+                            >
+                              <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
+                            </button>
+                          )}
+                        </span>
+                        {item.stockBatchNo && <div className="text-purple-500 text-xs">批:{item.stockBatchNo}</div>}
+                      </td>
                       <td className="px-4 py-3 text-base text-gray-500">{item.packaging}</td>
                       <td className="px-4 py-3 text-base text-gray-500">{item.spec}</td>
                       <td className="px-4 py-3 text-right text-base">{item.quantity}</td>
@@ -356,7 +372,7 @@ export default function ReturnDetail() {
                     <CheckCircle className="w-4 h-4" /> 验收确认
                   </button>
                 )}
-                {returnOrder.status === 'RETURN_QUALIFIED' && (
+                {(returnOrder.status === 'RETURN_QUALIFIED' || returnOrder.status === 'RETURN_PARTIAL_QUALIFIED') && (
                   <button
                     onClick={() => openStockInModal()}
                     className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-2"
@@ -367,9 +383,10 @@ export default function ReturnDetail() {
                 {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(returnOrder.status) && returnOrder.refundStatus !== 'COMPLETED' && (
                   <button
                     onClick={() => {
+                      const discount = returnOrder.order?.contractDiscount ?? 1;
                       const totalRefund = (returnOrder.items || [])
-                        .filter((item: any) => item.qualifiedQuantity > 0)
-                        .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * item.qualifiedQuantity, 0);
+                        .filter((item: any) => (item.qualifiedQuantity ?? 0) > 0)
+                        .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.qualifiedQuantity ?? 0) * discount, 0);
                       setRefundModal({ show: true, refundAmount: totalRefund });
                     }}
                     className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg flex items-center justify-center gap-2"
@@ -428,26 +445,28 @@ export default function ReturnDetail() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs">商品</th>
-                  <th className="px-4 py-2 text-right text-xs">退货数</th>
+                  <th className="px-4 py-2 text-left text-xs">批次</th>
+                  <th className="px-4 py-2 text-right text-xs">出库数</th>
                   <th className="px-4 py-2 text-right text-xs">合格数</th>
                   <th className="px-4 py-2 text-right text-xs">拒收数</th>
                 </tr>
               </thead>
               <tbody>
                 {qualifyItems.map((item, idx) => (
-                  <tr key={item.id}>
+                  <tr key={item.stockOutId ? `${item.id}_${item.stockOutId}` : item.id}>
                     <td className="px-4 py-2 text-sm">{item.productName}</td>
-                    <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
+                    <td className="px-4 py-2 text-sm text-purple-600">{item.stockBatchNo || '-'}</td>
+                    <td className="px-4 py-2 text-sm text-right">{item.stockOutQuantity || item.quantity}</td>
                     <td className="px-4 py-2 text-right">
                       <input
                         type="number"
                         min="0"
-                        max={item.quantity}
+                        max={item.stockOutQuantity || item.quantity}
                         value={item.qualifiedQuantity}
                         onChange={(e) => {
                           const newItems = [...qualifyItems];
                           newItems[idx].qualifiedQuantity = parseInt(e.target.value) || 0;
-                          newItems[idx].rejectedQuantity = item.quantity - newItems[idx].qualifiedQuantity;
+                          newItems[idx].rejectedQuantity = (item.stockOutQuantity || item.quantity) - newItems[idx].qualifiedQuantity;
                           setQualifyItems(newItems);
                         }}
                         className="w-20 border rounded px-2 py-1 text-right"
@@ -467,12 +486,27 @@ export default function ReturnDetail() {
       )}
 
       {showStockInModal && returnOrder && (
-        <ReturnStockInModal
+        <InboundOrderModal
           open={true}
           warehouseId={returnOrder.warehouseId}
-          items={qualifyItems}
+          source="RETURN"
+          returnOrderId={returnOrder.id}
+          orderNo={returnOrder.order?.orderNo}
+          returnNo={returnOrder.returnNo}
+          defaultItems={qualifyItems
+            .filter(item => (item.qualifiedQuantity ?? 0) > 0)
+            .map(item => ({
+              type: item.skuId ? 'PRODUCT' : 'BUNDLE',
+              skuId: item.skuId,
+              bundleId: item.bundleId,
+              productName: item.productName,
+              packaging: item.packaging,
+              spec: item.spec,
+              quantity: item.qualifiedQuantity ?? 0,
+              batchNo: item.stockBatchNo,
+            }))}
           onClose={() => setShowStockInModal(false)}
-          onConfirm={handleStockIn}
+          onSuccess={fetchReturn}
         />
       )}
 
@@ -507,6 +541,15 @@ export default function ReturnDetail() {
               <button onClick={handleRefund} className="px-4 py-2 bg-yellow-600 text-white rounded-lg">确认退款</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {tooltip && (
+        <div
+          className="fixed z-50 bg-gray-800 text-white rounded-lg shadow-xl p-3 max-w-xs"
+          style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+        >
+          {tooltip.content}
         </div>
       )}
     </div>

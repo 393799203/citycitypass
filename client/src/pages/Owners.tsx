@@ -9,7 +9,7 @@ import { provinces, provinceCities } from '../data/region';
 import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff, MapPin, Phone } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 
-const defaultProductTags = ['电子产品', '服装', '食品', '建材', '化工', '医药', '生鲜', '家电', '家具'];
+const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
 
 interface Owner {
   id: string;

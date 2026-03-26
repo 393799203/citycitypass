@@ -38,7 +38,9 @@ export default function AddressInput({
   const [geocoding, setGeocoding] = useState(false);
 
   const displayValue = value.province
-    ? `${value.province} / ${value.city || ''}`.replace(/\s*\/\s*$/g, '')
+    ? value.province === value.city
+      ? value.province
+      : `${value.province} / ${value.city || ''}`.replace(/\s*\/\s*$/g, '')
     : '';
 
   const handleOpen = () => {

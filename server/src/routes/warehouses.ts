@@ -459,7 +459,33 @@ router.get('/:id/zones', async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ success: true, data: zones });
+
+    const allLocations = zones.flatMap(z => z.shelves.flatMap(s => s.locations.map(l => l.id)));
+    const locationIds = allLocations.length > 0 ? allLocations : ['none'];
+
+    const [stocks, bundleStocks] = await Promise.all([
+      prisma.stock.findMany({ where: { locationId: { in: locationIds } } }),
+      prisma.bundleStock.findMany({ where: { locationId: { in: locationIds } } }),
+    ]);
+
+    const stockMap: Record<string, any> = {};
+    const bundleStockMap: Record<string, any> = {};
+    stocks.forEach(s => { if (s.locationId) stockMap[s.locationId] = s; });
+    bundleStocks.forEach(b => { if (b.locationId) bundleStockMap[b.locationId] = b; });
+
+    const zonesWithStocks = zones.map(zone => ({
+      ...zone,
+      shelves: zone.shelves.map(shelf => ({
+        ...shelf,
+        locations: shelf.locations.map(loc => ({
+          ...loc,
+          stock: stockMap[loc.id] || null,
+          bundleStock: bundleStockMap[loc.id] || null,
+        })),
+      })),
+    }));
+
+    res.json({ success: true, data: zonesWithStocks });
   } catch (error) {
     console.error('List zones error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

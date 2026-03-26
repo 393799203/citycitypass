@@ -392,7 +392,11 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             className="w-4 h-4 rounded border-gray-300"
                           />
                         </td>
-                        <td className="py-3 font-medium">{order.orderNo}</td>
+                        <td className="py-3 font-medium">
+                          <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
+                            {order.orderNo}
+                          </Link>
+                        </td>
                         <td className="py-3">{order.warehouse?.name || '-'}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-1.5 text-sm">

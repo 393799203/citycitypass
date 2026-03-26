@@ -4,6 +4,42 @@ import { PrismaClient } from '@prisma/client';
 const router = Router();
 const prisma = new PrismaClient();
 
+const CATEGORY_CODE_MAP: Record<string, string> = {
+  'BAIJIU': 'BAIX',
+  'PIJIU': 'PIJU',
+  'YANGJIU': 'YAJU',
+  'PUTAOJIU': 'PUTJ',
+};
+
+const PACKAGING_CODE_MAP: Record<string, string> = {
+  '礼盒': 'L',
+  '纸盒': 'H',
+  '简装': 'S',
+};
+
+async function generateBundleSkuCode(packaging: string): Promise<string> {
+  const packagingCode = PACKAGING_CODE_MAP[packaging] || 'X';
+
+  const existingBundles = await prisma.bundleSKU.findMany({
+    where: { packaging },
+    select: { skuCode: true }
+  });
+
+  let maxSeq = 0;
+  for (const b of existingBundles) {
+    if (b.skuCode) {
+      const match = b.skuCode.match(/_(\d{4})$/);
+      if (match) {
+        const seq = parseInt(match[1]);
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    }
+  }
+
+  const nextSeq = String(maxSeq + 1).padStart(4, '0');
+  return `B_${packagingCode}${nextSeq}`;
+}
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { name, status } = req.query;
@@ -77,9 +113,12 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: '请添加套装商品' });
     }
 
+    const skuCode = await generateBundleSkuCode(packaging || '简装');
+
     const bundle = await prisma.bundleSKU.create({
       data: {
         name,
+        skuCode,
         packaging: packaging || '',
         spec: spec || '',
         price,

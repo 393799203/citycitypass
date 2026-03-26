@@ -57,6 +57,11 @@ router.get('/', async (req, res) => {
       prisma.returnOrder.count({ where }),
     ]);
 
+    const orderIds = data.map((r: any) => r.orderId);
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { orderId: { in: orderIds } },
+    }) as any[];
+
     const dataWithPrice = data.map((returnOrder: any) => {
       const orderItemPrices: Record<string, any> = {};
       if (returnOrder.order?.items) {
@@ -64,12 +69,18 @@ router.get('/', async (req, res) => {
           orderItemPrices[item.id] = item.price;
         }
       }
+      const returnStockOuts = stockOuts.filter((so: any) => so.orderId === returnOrder.orderId);
       return {
         ...returnOrder,
-        items: returnOrder.items.map((item: any) => ({
-          ...item,
-          unitPrice: orderItemPrices[item.orderItemId] || 0,
-        })),
+        items: returnOrder.items.map((item: any) => {
+          const stockOut = returnStockOuts.find((so: any) => so.id === item.stockOutId);
+          return {
+            ...item,
+            unitPrice: orderItemPrices[item.orderItemId] || 0,
+            stockBatchNo: stockOut?.batchNo || null,
+            stockOutQuantity: stockOut?.quantity || null,
+          };
+        }),
       };
     });
 
@@ -133,15 +144,22 @@ router.get('/:id', async (req, res) => {
       }
     }
 
-    const returnWithPrice = {
-      ...returnOrder,
-      items: returnOrder.items.map((item: any) => ({
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { orderId: returnOrder.orderId },
+    }) as any[];
+
+    const itemsWithBatch = returnOrder.items.map((item: any) => {
+      const stockOut = stockOuts.find((so: any) => so.id === item.stockOutId);
+      return {
         ...item,
         unitPrice: orderItemPrices[item.orderItemId] || 0,
-      })),
-    };
+        stockBatchNo: stockOut?.batchNo || null,
+        stockOutQuantity: stockOut?.quantity || null,
+      };
+    });
 
-    res.json(success(returnWithPrice));
+    const result = { ...returnOrder, items: itemsWithBatch };
+    res.json(success(result));
   } catch (err: any) {
     console.error('Get return error:', err);
     res.status(500).json(error('获取退货详情失败'));
@@ -193,6 +211,43 @@ router.post('/', async (req, res) => {
       data: { status: 'RETURNING' },
     });
 
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { orderId },
+    });
+
+    let returnItems: any[] = [];
+    if (items && items.length > 0) {
+      returnItems = items.map((item: any) => ({
+        orderItemId: item.orderItemId,
+        skuId: item.skuId || null,
+        bundleId: item.bundleId || null,
+        productName: item.productName,
+        packaging: item.packaging,
+        spec: item.spec,
+        quantity: item.quantity,
+      }));
+    } else {
+      for (const orderItem of order.items) {
+        const matchingStockOuts = stockOuts.filter(
+          (so) => orderItem.skuId ? so.skuId === orderItem.skuId : orderItem.bundleId ? so.bundleId === orderItem.bundleId : false
+        );
+        if (matchingStockOuts.length > 0) {
+          for (const so of matchingStockOuts) {
+            returnItems.push({
+              orderItemId: orderItem.id,
+              skuId: orderItem.skuId || null,
+              bundleId: orderItem.bundleId || null,
+              productName: orderItem.sku?.product?.name || orderItem.bundle?.name || '',
+              packaging: orderItem.sku?.packaging || orderItem.bundle?.packaging || '',
+              spec: orderItem.sku?.spec || orderItem.bundle?.spec || '',
+              quantity: so.quantity,
+              stockOutId: so.id,
+            });
+          }
+        }
+      }
+    }
+
     const returnOrder = await prisma.returnOrder.create({
       data: {
         returnNo,
@@ -206,23 +261,7 @@ router.post('/', async (req, res) => {
         receiverAddress: `${order.province}${order.city}${order.address}`,
         operatorName,
         items: {
-          create: items?.map((item: any) => ({
-            orderItemId: item.orderItemId,
-            skuId: item.skuId || null,
-            bundleId: item.bundleId || null,
-            productName: item.productName,
-            packaging: item.packaging,
-            spec: item.spec,
-            quantity: item.quantity,
-          })) || order.items.map(item => ({
-            orderItemId: item.id,
-            skuId: item.skuId || null,
-            bundleId: item.bundleId || null,
-            productName: item.sku?.product?.name || item.bundle?.name || '',
-            packaging: item.sku?.packaging || item.bundle?.packaging || '',
-            spec: item.sku?.spec || item.bundle?.spec || '',
-            quantity: item.quantity,
-          })),
+          create: returnItems,
         },
         logs: {
           create: {
@@ -327,11 +366,11 @@ router.put('/:id/qualify', async (req, res) => {
       return res.status(400).json(error('当前状态不允许验收'));
     }
 
-    let newStatus: string = 'RETURN_QUALIFIED';
-    let hasRejection = false;
+    const qualifiedItems = items || [];
+    const updatedReturnItems: any[] = [];
 
-    for (const item of items || []) {
-      await prisma.returnItem.update({
+    for (const item of qualifiedItems) {
+      const updated = await prisma.returnItem.update({
         where: { id: item.id },
         data: {
           qualifiedQuantity: item.qualifiedQuantity || 0,
@@ -339,14 +378,23 @@ router.put('/:id/qualify', async (req, res) => {
           remark: item.remark,
         },
       });
-      if ((item.rejectedQuantity || 0) > 0) {
-        hasRejection = true;
-      }
+      updatedReturnItems.push(updated);
     }
 
-    if (hasRejection) {
+    const totalQty = updatedReturnItems.reduce((sum, i) => sum + i.quantity, 0);
+    const totalQualified = updatedReturnItems.reduce((sum, i) => sum + (i.qualifiedQuantity || 0), 0);
+    const totalRejected = updatedReturnItems.reduce((sum, i) => sum + (i.rejectedQuantity || 0), 0);
+
+    let newStatus = 'RETURN_QUALIFIED';
+    if (totalRejected === totalQty) {
       newStatus = 'RETURN_REJECTED';
+    } else if (totalRejected > 0) {
+      newStatus = 'RETURN_PARTIAL_QUALIFIED';
     }
+
+    const afterStatus = newStatus;
+    const action = totalRejected === 0 ? 'QUALIFY' : totalQualified === 0 ? 'REJECT' : 'PARTIAL';
+    const remark = totalRejected === 0 ? '验收合格' : totalQualified === 0 ? '全部拒收' : '部分合格';
 
     const updated = await prisma.returnOrder.update({
       where: { id },
@@ -354,24 +402,64 @@ router.put('/:id/qualify', async (req, res) => {
         status: newStatus as any,
         logs: {
           create: {
-            action: hasRejection ? 'REJECT' : 'QUALIFY',
+            action: action as any,
             beforeStatus: returnOrder.status,
-            afterStatus: newStatus,
+            afterStatus: afterStatus as any,
             operatorName,
-            remark: hasRejection ? '部分商品验收不合格' : '验收合格',
+            remark,
           },
         },
       },
       include: {
-        items: true,
-        logs: true,
+        items: {
+          include: {
+            sku: { include: { product: true } },
+            bundle: {
+              include: {
+                items: {
+                  include: { sku: { include: { product: true } } }
+                }
+              }
+            },
+          },
+        },
+        logs: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
-    res.json(success(updated));
+    const order = await prisma.order.findUnique({
+      where: { id: updated.orderId },
+      include: { items: true },
+    });
+
+    const orderItemPrices: Record<string, any> = {};
+    if (order?.items) {
+      for (const item of order.items) {
+        orderItemPrices[item.id] = item.price;
+      }
+    }
+
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { orderId: updated.orderId },
+    });
+
+    const itemsWithBatch = updated.items.map((item: any) => {
+      const stockOut = stockOuts.find((so: any) => so.id === item.stockOutId);
+      return {
+        ...item,
+        unitPrice: orderItemPrices[item.orderItemId] || 0,
+        stockBatchNo: stockOut?.batchNo || null,
+        stockOutQuantity: stockOut?.quantity || null,
+      };
+    });
+
+    const result = { ...updated, items: itemsWithBatch };
+    res.json(success(result));
   } catch (err: any) {
-    console.error('Qualify return error:', err);
-    res.status(500).json(error('验收确认失败'));
+    console.error('Qualify return error:', err.message, err.stack);
+    res.status(500).json(error('验收确认失败: ' + err.message));
   }
 });
 
@@ -390,7 +478,7 @@ router.put('/:id/stock-in', async (req, res) => {
       return res.status(404).json(error('退货单不存在'));
     }
 
-    if (returnOrder.status !== 'RETURN_QUALIFIED') {
+    if (!['RETURN_QUALIFIED', 'RETURN_PARTIAL_QUALIFIED'].includes(returnOrder.status)) {
       return res.status(400).json(error('只有验收合格的退货才能入库'));
     }
 
@@ -403,59 +491,32 @@ router.put('/:id/stock-in', async (req, res) => {
       return res.status(400).json(error('库位不存在'));
     }
 
-    for (const item of returnOrder.items) {
-      const stockInQty = items?.find((i: any) => i.id === item.id)?.qualifiedQuantity || item.qualifiedQuantity;
+    const inboundOrder = await prisma.inboundOrder.create({
+      data: {
+        inboundNo: `INB${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        source: 'RETURN',
+        warehouseId: returnOrder.warehouseId,
+        remark: `退货入库，退货单: ${returnOrder.returnNo}`,
+        status: 'PENDING',
+        items: {
+          create: returnOrder.items.map(item => {
+            const inputItem = items?.find((i: any) => i.id === item.id);
+            const stockInQty = inputItem?.qualifiedQuantity ?? item.qualifiedQuantity;
+            const batchNo = inputItem?.stockBatchNo;
 
-      if (item.skuId) {
-        const stock = await prisma.stock.findFirst({
-          where: { skuId: item.skuId, locationId },
-        });
-
-        if (stock) {
-          await prisma.stock.update({
-            where: { id: stock.id },
-            data: { 
-              totalQuantity: { increment: stockInQty },
-              availableQuantity: { increment: stockInQty }
-            },
-          });
-        } else {
-          await prisma.stock.create({
-            data: {
+            return {
+              type: item.skuId ? 'PRODUCT' : 'BUNDLE',
               skuId: item.skuId,
-              locationId,
-              totalQuantity: stockInQty,
-              availableQuantity: stockInQty,
-              warehouseId: returnOrder.warehouseId,
-            },
-          });
-        }
-      } else if (item.bundleId) {
-        const bundleStock = await prisma.bundleStock.findFirst({
-          where: { bundleId: item.bundleId, locationId },
-        });
-
-        if (bundleStock) {
-          await prisma.bundleStock.update({
-            where: { id: bundleStock.id },
-            data: { 
-              totalQuantity: { increment: stockInQty },
-              availableQuantity: { increment: stockInQty }
-            },
-          });
-        } else {
-          await prisma.bundleStock.create({
-            data: {
               bundleId: item.bundleId,
-              locationId,
-              totalQuantity: stockInQty,
-              availableQuantity: stockInQty,
-              warehouseId: returnOrder.warehouseId,
-            },
-          });
-        }
-      }
-    }
+              quantity: stockInQty,
+              expectedQuantity: stockInQty,
+              receivedQuantity: stockInQty,
+              batchNo,
+            };
+          }),
+        },
+      },
+    });
 
     const updated = await prisma.returnOrder.update({
       where: { id },

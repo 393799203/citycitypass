@@ -7,8 +7,10 @@ import OrderDetail from './pages/OrderDetail';
 import Products from './pages/Products';
 import Warehouses from './pages/Warehouses';
 import WarehouseDetail from './pages/WarehouseDetail';
-import StockIns from './pages/StockIns';
+import StockIns from './pages/Inventory';
 import StockTransfers from './pages/StockTransfers';
+import BatchTracePage from './pages/BatchTracePage';
+import Inbound from './pages/Inbound';
 import Outbound from './pages/Outbound';
 import Transport from './pages/Transport';
 import DispatchCenter from './pages/DispatchCenter';
@@ -18,6 +20,7 @@ import ReturnDetail from './pages/ReturnDetail';
 import Owners from './pages/Owners';
 import Users from './pages/Users';
 import Customers from './pages/Customers';
+import Suppliers from './pages/Suppliers';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
 
@@ -49,10 +52,14 @@ function App() {
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="products" element={<Products />} />
           <Route path="customers" element={<Customers />} />
+          <Route path="suppliers" element={<Suppliers />} />
           <Route path="warehouses" element={<Warehouses />} />
           <Route path="warehouses/:id" element={<WarehouseDetail />} />
-          <Route path="inbound" element={<StockIns />} />
+          <Route path="inventory" element={<StockIns />} />
           <Route path="stock-transfers" element={<StockTransfers />} />
+          <Route path="batch-trace" element={<BatchTracePage />} />
+          <Route path="batch-trace/:batchNo" element={<BatchTracePage />} />
+          <Route path="inbound" element={<Inbound />} />
           <Route path="outbound" element={<Outbound />} />
           <Route path="transport" element={<Transport />} />
           <Route path="dispatch" element={<DispatchCenter />} />

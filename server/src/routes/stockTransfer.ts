@@ -161,6 +161,7 @@ router.post('/', async (req: Request, res: Response) => {
             bundleId: item.bundleId,
             warehouseId,
             locationId: item.fromLocationId,
+            batchNo: (item.batchNo || null) as any,
           },
         });
 
@@ -199,6 +200,7 @@ router.post('/', async (req: Request, res: Response) => {
             fromLocationId: item.fromLocationId || null,
             toLocationId: item.toLocationId || null,
             quantity: item.quantity,
+            batchNo: item.batchNo || null,
           },
         });
       }
@@ -243,26 +245,30 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               skuId: item.skuId,
               warehouseId: transfer.warehouseId,
               locationId: item.fromLocationId || null,
+              batchNo: item.batchNo || null,
             },
           });
 
-          if (fromStock) {
-            const newTotal = fromStock.totalQuantity - item.quantity;
-            const newAvailable = fromStock.availableQuantity - item.quantity;
-            if (newTotal <= 0) {
-              await tx.stock.delete({ where: { id: fromStock.id } });
-              if (item.fromLocationId) {
-                await cleanupEmptyStockLocations(tx, item.fromLocationId);
-              }
-            } else {
-              await tx.stock.update({
-                where: { id: fromStock.id },
-                data: {
-                  totalQuantity: newTotal,
-                  availableQuantity: newAvailable,
-                },
-              });
+          if (!fromStock || fromStock.availableQuantity < item.quantity) {
+            const available = fromStock?.availableQuantity || 0;
+            throw new Error(`商品库存不足: ${item.skuId} 在 ${item.fromLocationId} 可用库存 ${available}，需要移出 ${item.quantity}`);
+          }
+
+          const newTotal = fromStock.totalQuantity - item.quantity;
+          const newAvailable = fromStock.availableQuantity - item.quantity;
+          if (newTotal <= 0) {
+            await tx.stock.delete({ where: { id: fromStock.id } });
+            if (item.fromLocationId) {
+              await cleanupEmptyStockLocations(tx, item.fromLocationId);
             }
+          } else {
+            await tx.stock.update({
+              where: { id: fromStock.id },
+              data: {
+                totalQuantity: newTotal,
+                availableQuantity: newAvailable,
+              },
+            });
           }
 
           let toStock = await tx.stock.findFirst({
@@ -270,6 +276,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               skuId: item.skuId,
               warehouseId: transfer.warehouseId,
               locationId: item.toLocationId || null,
+              batchNo: item.batchNo || null,
             },
           });
 
@@ -287,9 +294,9 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
                 skuId: item.skuId,
                 warehouseId: transfer.warehouseId,
                 locationId: item.toLocationId || null,
+                batchNo: item.batchNo || null,
                 totalQuantity: item.quantity,
                 availableQuantity: item.quantity,
-                lockedQuantity: 0,
               },
             });
           }
@@ -299,8 +306,14 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               bundleId: item.bundleId,
               warehouseId: transfer.warehouseId,
               locationId: item.fromLocationId || null,
+              batchNo: item.batchNo || null,
             },
           });
+
+          if (!fromBundleStock || fromBundleStock.availableQuantity < item.quantity) {
+            const available = fromBundleStock?.availableQuantity || 0;
+            throw new Error(`套装库存不足: ${item.bundleId} 在 ${item.fromLocationId} 可用库存 ${available}，需要移出 ${item.quantity}`);
+          }
 
           if (fromBundleStock) {
             const newTotal = fromBundleStock.totalQuantity - item.quantity;
@@ -326,6 +339,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               bundleId: item.bundleId,
               warehouseId: transfer.warehouseId,
               locationId: item.toLocationId || null,
+              batchNo: item.batchNo || null,
             },
           });
 
@@ -343,9 +357,9 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
                 bundleId: item.bundleId,
                 warehouseId: transfer.warehouseId,
                 locationId: item.toLocationId || null,
+                batchNo: item.batchNo || null,
                 totalQuantity: item.quantity,
                 availableQuantity: item.quantity,
-                lockedQuantity: 0,
               },
             });
           }
@@ -361,9 +375,13 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
     });
 
     res.json({ success: true, data: result });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Execute transfer error:', error);
-    res.status(500).json({ success: false, message: '服务器错误' });
+    if (error.message.includes('库存不足')) {
+      res.status(400).json({ success: false, message: error.message });
+    } else {
+      res.status(500).json({ success: false, message: error.message || '服务器错误' });
+    }
   }
 });
 

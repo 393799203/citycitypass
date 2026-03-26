@@ -6,14 +6,15 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, CheckCircle, Warehouse, DollarSign, Clock, Search, Phone, X, Info, Pencil } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
-import ReturnStockInModal from '../components/ReturnStockInModal';
+import InboundOrderModal from '../components/InboundOrderModal';
 import { useConfirm } from '../components/ConfirmProvider';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   RETURN_REQUESTED: { label: '待发货', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
   RETURN_SHIPPED: { label: '已发货', color: 'text-blue-600', bgColor: 'bg-blue-50' },
   RETURN_RECEIVING: { label: '收货中', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  RETURN_QUALIFIED: { label: '已验收', color: 'text-green-600', bgColor: 'bg-green-50' },
+  RETURN_QUALIFIED: { label: '已验收(全合格)', color: 'text-green-600', bgColor: 'bg-green-50' },
+  RETURN_PARTIAL_QUALIFIED: { label: '已验收(部分)', color: 'text-orange-600', bgColor: 'bg-orange-50' },
   RETURN_REJECTED: { label: '已拒收', color: 'text-red-600', bgColor: 'bg-red-50' },
   RETURN_STOCK_IN: { label: '已入库', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   REFUNDED: { label: '已退款', color: 'text-pink-600', bgColor: 'bg-pink-50' },
@@ -144,26 +145,11 @@ export default function Returns() {
     setQualifyItems(
       returnOrder.items.map((i: any) => ({
         ...i,
-        qualifiedQuantity: i.qualifiedQuantity || i.quantity,
+        qualifiedQuantity: i.qualifiedQuantity ?? 0,
       }))
     );
     setStockInReturnOrder(returnOrder);
     setShowStockInModal(true);
-  };
-
-  const handleStockInConfirm = async (locationId: string) => {
-    if (!stockInReturnOrder) return;
-    try {
-      await returnApi.stockIn(stockInReturnOrder.id, {
-        locationId,
-        items: qualifyItems,
-      });
-      toast.success('退货入库成功');
-      setShowStockInModal(false);
-      fetchReturns();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
-    }
   };
 
   const handleRefund = async () => {
@@ -181,8 +167,8 @@ export default function Returns() {
   const openQualifyModal = (returnOrder: any) => {
     const items = returnOrder.items?.map((i: any) => ({
       ...i,
-      qualifiedQuantity: i.qualifiedQuantity || i.quantity,
-      rejectedQuantity: i.rejectedQuantity || 0,
+      qualifiedQuantity: i.qualifiedQuantity ?? i.quantity,  // 验收时默认全合格
+      rejectedQuantity: i.rejectedQuantity ?? 0,
     })) || [];
     setQualifyItems(items);
     setSelectedReturn(returnOrder);
@@ -304,12 +290,12 @@ export default function Returns() {
                         <CheckCircle className="w-4 h-4" />
                       </button>
                     )}
-                    {ret.status === 'RETURN_QUALIFIED' && (
+                    {(ret.status === 'RETURN_QUALIFIED' || ret.status === 'RETURN_PARTIAL_QUALIFIED') && (
                       <button
                         onClick={() => {
                           setQualifyItems(ret.items?.map((i: any) => ({
                             ...i,
-                            qualifiedQuantity: i.qualifiedQuantity || i.quantity,
+                            qualifiedQuantity: i.qualifiedQuantity ?? 0,
                           })) || []);
                           setStockInReturnOrder(ret);
                           setShowStockInModal(true);
@@ -323,9 +309,10 @@ export default function Returns() {
                     {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(ret.status) && ret.refundStatus !== 'COMPLETED' && (
                       <button
                         onClick={() => {
+                          const discount = ret.order?.contractDiscount ?? 1;
                           const totalRefund = (ret.items || [])
-                            .filter((item: any) => item.qualifiedQuantity > 0)
-                            .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * item.qualifiedQuantity, 0);
+                            .filter((item: any) => (item.qualifiedQuantity ?? 0) > 0)
+                            .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.qualifiedQuantity ?? 0) * discount, 0);
                           setRefundModal({ show: true, returnOrder: ret, refundAmount: totalRefund });
                         }}
                         className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-lg"
@@ -468,6 +455,7 @@ export default function Returns() {
                         selectedReturn.status === 'RETURN_SHIPPED' ? 'bg-blue-500 text-white' :
                         selectedReturn.status === 'RETURN_RECEIVING' ? 'bg-purple-500 text-white' :
                         selectedReturn.status === 'RETURN_QUALIFIED' ? 'bg-green-500 text-white' :
+                        selectedReturn.status === 'RETURN_PARTIAL_QUALIFIED' ? 'bg-orange-500 text-white' :
                         selectedReturn.status === 'RETURN_REJECTED' ? 'bg-red-500 text-white' :
                         selectedReturn.status === 'RETURN_STOCK_IN' ? 'bg-indigo-500 text-white' :
                         selectedReturn.status === 'CANCELLED' ? 'bg-gray-500 text-white' :
@@ -600,13 +588,19 @@ export default function Returns() {
                     <CheckCircle className="w-4 h-4" /> 验收确认
                   </button>
                 )}
-                {selectedReturn.status === 'RETURN_QUALIFIED' && (
+                {(selectedReturn.status === 'RETURN_QUALIFIED' || selectedReturn.status === 'RETURN_PARTIAL_QUALIFIED') && (
                   <button onClick={() => openStockInModal(selectedReturn)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2">
                     <Warehouse className="w-4 h-4" /> 退货入库
                   </button>
                 )}
                 {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(selectedReturn.status) && selectedReturn.refundStatus !== 'COMPLETED' && (
-                  <button onClick={handleRefund} className="px-4 py-2 bg-yellow-600 text-white rounded-lg flex items-center gap-2">
+                  <button onClick={() => {
+                    const discount = selectedReturn.order?.contractDiscount ?? 1;
+                    const totalRefund = (selectedReturn.items || [])
+                      .filter((item: any) => (item.qualifiedQuantity ?? 0) > 0)
+                      .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.qualifiedQuantity ?? 0) * discount, 0);
+                    setRefundModal({ show: true, returnOrder: selectedReturn, refundAmount: totalRefund });
+                  }} className="px-4 py-2 bg-yellow-600 text-white rounded-lg flex items-center gap-2">
                     <DollarSign className="w-4 h-4" /> 确认退款
                   </button>
                 )}
@@ -663,12 +657,27 @@ export default function Returns() {
       )}
 
       {showStockInModal && stockInReturnOrder && (
-        <ReturnStockInModal
+        <InboundOrderModal
           open={true}
           warehouseId={stockInReturnOrder.warehouseId}
-          items={qualifyItems}
+          source="RETURN"
+          returnOrderId={stockInReturnOrder.id}
+          orderNo={stockInReturnOrder.order?.orderNo}
+          returnNo={stockInReturnOrder.returnNo}
+          defaultItems={qualifyItems
+            .filter(item => (item.qualifiedQuantity ?? 0) > 0)
+            .map(item => ({
+              type: item.skuId ? 'PRODUCT' : 'BUNDLE',
+              skuId: item.skuId,
+              bundleId: item.bundleId,
+              productName: item.productName,
+              packaging: item.packaging,
+              spec: item.spec,
+              quantity: item.qualifiedQuantity ?? 0,
+              batchNo: item.stockBatchNo,
+            }))}
           onClose={() => setShowStockInModal(false)}
-          onConfirm={handleStockInConfirm}
+          onSuccess={fetchReturns}
         />
       )}
 
@@ -680,22 +689,41 @@ export default function Returns() {
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="text-sm text-gray-500 mb-2">退款金额</div>
                 <div className="text-2xl font-bold text-green-600">¥{refundModal.refundAmount.toFixed(2)}</div>
+                {refundModal.returnOrder.order?.contractDiscount && refundModal.returnOrder.order.contractDiscount < 1 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    客户折扣: {((refundModal.returnOrder.order.contractDiscount || 1) * 10).toFixed(1)}折
+                  </div>
+                )}
               </div>
               <div className="text-sm text-gray-600">
                 仅退款通过验收的商品
               </div>
               <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
                 {(refundModal.returnOrder.items || [])
-                  .filter((item: any) => item.qualifiedQuantity > 0)
-                  .map((item: any) => (
-                    <div key={item.id} className="flex justify-between items-center px-3 py-2">
-                      <div>
-                        <div className="text-sm">{item.productName}</div>
-                        <div className="text-xs text-gray-500">×{item.qualifiedQuantity}</div>
+                  .filter((item: any) => (item.qualifiedQuantity ?? 0) > 0)
+                  .map((item: any) => {
+                    const discount = refundModal.returnOrder.order?.contractDiscount ?? 1;
+                    const originalPrice = (item.unitPrice || 0) * (item.qualifiedQuantity || 0);
+                    const discountedPrice = originalPrice * discount;
+                    return (
+                      <div key={item.id} className="flex justify-between items-center px-3 py-2">
+                        <div>
+                          <div className="text-sm">{item.productName}</div>
+                          <div className="text-xs text-gray-500">×{item.qualifiedQuantity}</div>
+                        </div>
+                        <div className="text-right">
+                          {discount < 1 ? (
+                            <>
+                              <div className="text-xs text-gray-400 line-through">¥{originalPrice.toFixed(2)}</div>
+                              <div className="text-sm text-green-600">¥{discountedPrice.toFixed(2)}</div>
+                            </>
+                          ) : (
+                            <div className="text-sm text-green-600">¥{originalPrice.toFixed(2)}</div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-sm text-green-600">¥{((item.unitPrice || 0) * item.qualifiedQuantity).toFixed(2)}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">

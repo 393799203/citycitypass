@@ -274,7 +274,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                待拣货
+                待拣货订单
               </div>
             </button>
             <button
@@ -287,7 +287,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5" />
-                拣货单
+                波次拣货单
               </div>
             </button>
             <button
@@ -325,7 +325,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    AI生成拣货单
+                    AI波次拣货单
                   </button>
                   <button
                     onClick={async () => {
@@ -341,7 +341,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     disabled={selectedOrders.length === 0}
                     className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    批量生成拣货单
+                    生成波次拣货单
                   </button>
                 </div>
               </div>
@@ -441,6 +441,11 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                                 {locationStr && (
                                   <span className="ml-1 text-orange-500 text-sm">
                                     [{locationStr}]
+                                  </span>
+                                )}
+                                {lock.batchNo && (
+                                  <span className="ml-1 text-purple-500 text-xs">
+                                    批:{lock.batchNo}
                                   </span>
                                 )}
                               </div>
@@ -566,6 +571,11 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                               {item.stockLock?.location ? `${item.stockLock.location.shelf?.zone?.code}-${item.stockLock.location.shelf?.code}-L${item.stockLock.location.level}` :
                                item.bundleStockLock?.location ? `${item.bundleStockLock.location.shelf?.zone?.code}-${item.bundleStockLock.location.shelf?.code}-L${item.bundleStockLock.location.level}` :
                                item.warehouseLocation ? `${item.warehouseLocation} (已出库)` : '-'}
+                              {(item.batchNo || item.stockLock?.batchNo || item.bundleStockLock?.batchNo) && (
+                                <span className="text-purple-500 ml-1">
+                                  批:{item.batchNo || item.stockLock?.batchNo || item.bundleStockLock?.batchNo}
+                                </span>
+                              )}
                               {pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && ' (已退回)'}
                             </td>
                           </tr>

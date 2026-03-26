@@ -457,7 +457,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
 
 router.post('/inbound-order', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, remark, items } = req.body;
+    const { warehouseId, supplierId, source, snManagement, remark, items, returnOrderId } = req.body;
 
     if (!warehouseId) {
       return res.status(400).json({ success: false, message: '仓库不能为空' });
@@ -472,8 +472,11 @@ router.post('/inbound-order', async (req: Request, res: Response) => {
         data: {
           inboundNo,
           warehouseId,
+          supplierId: supplierId || null,
+          source: source || 'PURCHASE',
+          snManagement: snManagement || false,
           remark: remark || null,
-          status: 'PENDING',
+          status: source === 'RETURN' ? 'RECEIVED' : 'PENDING',
         },
       });
 
@@ -485,8 +488,27 @@ router.post('/inbound-order', async (req: Request, res: Response) => {
           bundleId: item.bundleId || null,
           locationId: item.locationId || null,
           quantity: item.quantity,
+          expectedQuantity: item.quantity,
+          batchNo: item.batchNo || null,
         })),
       });
+
+      if (source === 'RETURN' && returnOrderId) {
+        await tx.returnOrder.update({
+          where: { id: returnOrderId },
+          data: { status: 'RETURN_STOCK_IN' },
+        });
+        await tx.returnLog.create({
+          data: {
+            returnOrderId,
+            action: 'STOCK_IN',
+            beforeStatus: 'RETURN_PARTIAL_QUALIFIED',
+            afterStatus: 'RETURN_STOCK_IN',
+            operatorName: (req as any).user?.name || 'system',
+            remark: `创建入库单: ${inboundNo}`,
+          },
+        });
+      }
 
       return inboundOrder;
     });
@@ -510,6 +532,7 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
       where,
       include: {
         warehouse: true,
+        supplier: true,
         items: {
           include: {
             location: {
@@ -531,13 +554,14 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
       orders.map(async (order) => {
         const itemsWithDetails = await Promise.all(
           order.items.map(async (item) => {
-            if (item.type === 'product' && item.skuId) {
+            const itemType = item.type?.toUpperCase();
+            if (itemType === 'PRODUCT' && item.skuId) {
               const sku = await prisma.productSKU.findUnique({
                 where: { id: item.skuId },
                 include: { product: true },
               });
               return { ...item, sku, product: sku?.product };
-            } else if (item.type === 'bundle' && item.bundleId) {
+            } else if (itemType === 'BUNDLE' && item.bundleId) {
               const bundle = await prisma.bundleSKU.findUnique({
                 where: { id: item.bundleId },
               });
@@ -557,6 +581,201 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
   }
 });
 
+router.put('/inbound-order/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, arrivedAt, receivedAt, putawayAt, palletNo, vehicleNo, remark, items } = req.body;
+
+    const order = await prisma.inboundOrder.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: '入库单不存在' });
+    }
+
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (arrivedAt) updateData.arrivedAt = new Date(arrivedAt);
+    if (receivedAt) updateData.receivedAt = new Date(receivedAt);
+    if (putawayAt) updateData.putawayAt = new Date(putawayAt);
+    if (palletNo !== undefined) updateData.palletNo = palletNo;
+    if (vehicleNo !== undefined) updateData.vehicleNo = vehicleNo;
+    if (remark !== undefined) updateData.remark = remark;
+
+    if (items) {
+      for (const item of items) {
+        const updateItemData: any = {};
+        if (item.batchNo !== undefined) updateItemData.batchNo = item.batchNo;
+        if (item.arrivalQuantity !== undefined) updateItemData.expectedQuantity = item.arrivalQuantity;
+        if (item.receivedQuantity !== undefined) updateItemData.receivedQuantity = item.receivedQuantity;
+        if (item.inspectionResult !== undefined) updateItemData.inspectionResult = item.inspectionResult;
+        if (item.inspectionNote !== undefined) updateItemData.inspectionNote = item.inspectionNote;
+        if (item.snCodes !== undefined) updateItemData.snCodes = item.snCodes;
+        if (item.locationId !== undefined) updateItemData.locationId = item.locationId;
+        if (item.targetLocationId !== undefined) updateItemData.locationId = item.targetLocationId;
+
+        await prisma.inboundOrderItem.update({
+          where: { id: item.id },
+          data: updateItemData,
+        });
+      }
+    }
+
+    if (status === 'COMPLETED') {
+      const orderWithItems = await prisma.inboundOrder.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+
+      if (orderWithItems) {
+        await prisma.$transaction(async (tx) => {
+          for (const item of orderWithItems.items) {
+            if (item.type === 'PRODUCT' && item.skuId && item.locationId) {
+              let stock = await tx.stock.findFirst({
+                where: {
+                  skuId: item.skuId,
+                  warehouseId: orderWithItems.warehouseId,
+                  locationId: item.locationId,
+                  batchNo: item.batchNo || null,
+                },
+              });
+
+              const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
+                ? item.receivedQuantity
+                : (item.expectedQuantity || 0);
+
+              if (stock) {
+                await tx.stock.update({
+                  where: { id: stock.id },
+                  data: {
+                    totalQuantity: { increment: quantity },
+                    availableQuantity: { increment: quantity },
+                  },
+                });
+              } else {
+                await tx.stock.create({
+                  data: {
+                    skuId: item.skuId,
+                    warehouseId: orderWithItems.warehouseId,
+                    locationId: item.locationId,
+                    batchNo: item.batchNo || null,
+                    totalQuantity: quantity,
+                    availableQuantity: quantity,
+                  },
+                });
+              }
+
+              await tx.stockIn.create({
+                data: {
+                  skuId: item.skuId,
+                  warehouseId: orderWithItems.warehouseId,
+                  locationId: item.locationId,
+                  batchNo: item.batchNo || null,
+                  quantity,
+                  status: 'COMPLETED',
+                },
+              });
+            } else if (item.type === 'BUNDLE' && item.bundleId && item.locationId) {
+              let bundleStock = await tx.bundleStock.findFirst({
+                where: {
+                  bundleId: item.bundleId,
+                  warehouseId: orderWithItems.warehouseId,
+                  locationId: item.locationId,
+                  batchNo: item.batchNo || null,
+                },
+              });
+
+              const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
+                ? item.receivedQuantity
+                : (item.expectedQuantity || 0);
+
+              if (bundleStock) {
+                await tx.bundleStock.update({
+                  where: { id: bundleStock.id },
+                  data: {
+                    totalQuantity: { increment: quantity },
+                    availableQuantity: { increment: quantity },
+                  },
+                });
+              } else {
+                await tx.bundleStock.create({
+                  data: {
+                    bundleId: item.bundleId,
+                    warehouseId: orderWithItems.warehouseId,
+                    locationId: item.locationId,
+                    batchNo: item.batchNo || null,
+                    totalQuantity: quantity,
+                    availableQuantity: quantity,
+                  },
+                });
+              }
+
+              await tx.bundleStockIn.create({
+                data: {
+                  bundleId: item.bundleId,
+                  warehouseId: orderWithItems.warehouseId,
+                  locationId: item.locationId,
+                  batchNo: item.batchNo || null,
+                  quantity,
+                  status: 'COMPLETED',
+                },
+              });
+            }
+          }
+        });
+      }
+    }
+
+    const updated = await prisma.inboundOrder.update({
+      where: { id },
+      data: updateData,
+      include: {
+        warehouse: true,
+        items: true,
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Update inbound order error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.put('/inbound-order/:id/cancel', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.inboundOrder.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: '入库单不存在' });
+    }
+
+    if (order.status === 'COMPLETED' || order.status === 'CANCELLED') {
+      return res.status(400).json({ success: false, message: '入库单无法取消' });
+    }
+
+    if (order.source === 'RETURN') {
+      return res.status(400).json({ success: false, message: '退货入库单无法取消' });
+    }
+
+    const updated = await prisma.inboundOrder.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Cancel inbound order error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -569,18 +788,54 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
     if (!order) {
       return res.status(404).json({ success: false, message: '入库单不存在' });
     }
-    if (order.status !== 'PENDING') {
-      return res.status(400).json({ success: false, message: '入库单已处理' });
+    if (order.status !== 'PUTAWAY') {
+      return res.status(400).json({ success: false, message: '入库单状态不是待执行' });
     }
 
     await prisma.$transaction(async (tx) => {
+      const errors: string[] = [];
+
       for (const item of order.items) {
-        if (item.type === 'product' && item.skuId && item.locationId) {
+        if (!item.locationId) {
+          errors.push(`商品未选择库位`);
+          continue;
+        }
+
+        const location = await tx.location.findUnique({
+          where: { id: item.locationId },
+          include: { shelf: { include: { zone: true } } },
+        });
+
+        if (!location) {
+          errors.push(`库位不存在`);
+          continue;
+        }
+
+        const zoneType = location.shelf?.zone?.type;
+
+        if (order.source === 'RETURN') {
+          if (zoneType !== 'RETURNING') {
+            errors.push(`退货入库只能选择退货区库位`);
+            continue;
+          }
+        } else {
+          if (zoneType !== 'INBOUND') {
+            errors.push(`入库只能选择入库区库位`);
+            continue;
+          }
+        }
+
+        const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
+          ? item.receivedQuantity
+          : (item.expectedQuantity || item.quantity);
+
+        if (item.type === 'PRODUCT' && item.skuId) {
           let stock = await tx.stock.findFirst({
             where: {
               skuId: item.skuId,
               warehouseId: order.warehouseId,
               locationId: item.locationId,
+              batchNo: item.batchNo || null,
             },
           });
 
@@ -588,8 +843,8 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
             await tx.stock.update({
               where: { id: stock.id },
               data: {
-                totalQuantity: { increment: item.quantity },
-                availableQuantity: { increment: item.quantity },
+                totalQuantity: { increment: quantity },
+                availableQuantity: { increment: quantity },
               },
             });
           } else {
@@ -598,8 +853,9 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
                 skuId: item.skuId,
                 warehouseId: order.warehouseId,
                 locationId: item.locationId,
-                totalQuantity: item.quantity,
-                availableQuantity: item.quantity,
+                batchNo: item.batchNo || null,
+                totalQuantity: quantity,
+                availableQuantity: quantity,
               },
             });
           }
@@ -609,16 +865,18 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
               skuId: item.skuId,
               warehouseId: order.warehouseId,
               locationId: item.locationId,
-              quantity: item.quantity,
-              status: 'PENDING',
+              batchNo: item.batchNo || null,
+              quantity,
+              status: 'COMPLETED',
             },
           });
-        } else if (item.type === 'bundle' && item.bundleId && item.locationId) {
+        } else if (item.type === 'BUNDLE' && item.bundleId) {
           let bundleStock = await tx.bundleStock.findFirst({
             where: {
               bundleId: item.bundleId,
               warehouseId: order.warehouseId,
               locationId: item.locationId,
+              batchNo: item.batchNo || null,
             },
           });
 
@@ -626,8 +884,8 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
             await tx.bundleStock.update({
               where: { id: bundleStock.id },
               data: {
-                totalQuantity: { increment: item.quantity },
-                availableQuantity: { increment: item.quantity },
+                totalQuantity: { increment: quantity },
+                availableQuantity: { increment: quantity },
               },
             });
           } else {
@@ -636,8 +894,9 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
                 bundleId: item.bundleId,
                 warehouseId: order.warehouseId,
                 locationId: item.locationId,
-                totalQuantity: item.quantity,
-                availableQuantity: item.quantity,
+                batchNo: item.batchNo || null,
+                totalQuantity: quantity,
+                availableQuantity: quantity,
               },
             });
           }
@@ -647,11 +906,16 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
               bundleId: item.bundleId,
               warehouseId: order.warehouseId,
               locationId: item.locationId,
-              quantity: item.quantity,
-              status: 'PENDING',
+              batchNo: item.batchNo || null,
+              quantity,
+              status: 'COMPLETED',
             },
           });
         }
+      }
+
+      if (errors.length > 0) {
+        return res.status(400).json({ success: false, message: errors.join('; ') });
       }
 
       await tx.inboundOrder.update({
@@ -660,7 +924,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
       });
     });
 
-    res.json({ success: true, message: '执行成功' });
+    res.json({ success: true, message: '入库执行完成' });
   } catch (error) {
     console.error('Execute inbound order error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
@@ -916,6 +1180,7 @@ router.post('/use', async (req: Request, res: Response) => {
               skuId: lock.skuId,
               warehouseId: lock.warehouseId,
               locationId: lock.locationId,
+              batchNo: lock.batchNo,
               quantity: lock.quantity,
             },
           });
@@ -1059,6 +1324,7 @@ router.post('/bundle/use', async (req: Request, res: Response) => {
               bundleId: lock.bundleId,
               warehouseId: lock.warehouseId,
               locationId: lock.locationId,
+              batchNo: lock.batchNo,
               quantity: lock.quantity,
             },
           });
@@ -1336,6 +1602,217 @@ router.post('/bundle/stock-in', async (req: Request, res: Response) => {
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Bundle stock in error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
+  try {
+    const { batchNo } = req.params;
+
+    const stockIns = await prisma.stockIn.findMany({
+      where: { batchNo },
+      include: {
+        sku: { include: { product: true } },
+        warehouse: true,
+        location: { include: { shelf: { include: { zone: true } } } },
+      },
+    });
+
+    const bundleStockIns = await prisma.bundleStockIn.findMany({
+      where: { batchNo },
+      include: {
+        bundle: true,
+        warehouse: true,
+        location: { include: { shelf: { include: { zone: true } } } },
+      },
+    });
+
+    const stocks: any[] = await prisma.stock.findMany({
+      where: { batchNo },
+      include: {
+        sku: { include: { product: true } },
+        warehouse: true,
+        location: { include: { shelf: { include: { zone: true } } } },
+      },
+    });
+
+    const bundleStocks: any[] = await prisma.bundleStock.findMany({
+      where: { batchNo },
+      include: {
+        bundle: true,
+        warehouse: true,
+        location: { include: { shelf: { include: { zone: true } } } },
+      },
+    });
+
+    const stockLocks = await prisma.stockLock.findMany({
+      where: { batchNo },
+      include: {
+        sku: { include: { product: true } },
+        order: { include: { customer: true } },
+        warehouse: true,
+      },
+    });
+
+    const bundleStockLocks = await prisma.bundleStockLock.findMany({
+      where: { batchNo },
+      include: {
+        bundle: true,
+        order: { include: { customer: true } },
+        warehouse: true,
+      },
+    });
+
+    const stockTransfers: any[] = await prisma.stockTransferItem.findMany({
+      where: { batchNo },
+      include: {
+        transfer: true,
+        fromLocation: { include: { shelf: { include: { zone: true } } } },
+        toLocation: { include: { shelf: { include: { zone: true } } } },
+      },
+    });
+
+    const bundleStockTransfers: any[] = await prisma.stockTransferItem.findMany({
+      where: { batchNo },
+      include: {
+        transfer: true,
+        fromLocation: { include: { shelf: { include: { zone: true } } } },
+        toLocation: { include: { shelf: { include: { zone: true } } } },
+      },
+    } as any);
+
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { batchNo },
+    });
+
+    const totalInStock = stockIns.reduce((sum, s) => sum + s.quantity, 0) +
+                         bundleStockIns.reduce((sum, s) => sum + s.quantity, 0);
+
+    const totalInWarehouse = stocks.reduce((sum, s) => sum + s.totalQuantity, 0) +
+                             bundleStocks.reduce((sum, s) => sum + s.totalQuantity, 0);
+
+    const totalLocked = stockLocks.reduce((sum, s) => sum + s.quantity, 0) +
+                       bundleStockLocks.reduce((sum, s) => sum + s.quantity, 0);
+
+    const totalSold = stockOuts.reduce((sum, s) => sum + s.quantity, 0);
+
+    const stockLocations = stocks.map(s => ({
+      type: 'PRODUCT',
+      locationCode: s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '',
+      quantity: s.totalQuantity,
+      availableQuantity: s.availableQuantity,
+      lockedQuantity: s.lockedQuantity,
+      warehouse: s.warehouse?.name,
+    }));
+
+    const bundleLocations = bundleStocks.map(s => ({
+      type: 'BUNDLE',
+      locationCode: s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '',
+      quantity: s.totalQuantity,
+      availableQuantity: s.availableQuantity,
+      lockedQuantity: s.lockedQuantity,
+      warehouse: s.warehouse?.name,
+    }));
+
+    const soldOrders: any[] = await (async () => {
+      if (stockOuts.length === 0) return [];
+
+      const orderIds = stockOuts.map(s => s.orderId).filter(id => !!id) as string[];
+      const warehouseIds = stockOuts.map(s => s.warehouseId).filter(id => !!id) as string[];
+      const skuIds = stockOuts.map(s => s.skuId).filter(id => !!id) as string[];
+      const bundleIds = stockOuts.map(s => s.bundleId).filter(id => !!id) as string[];
+
+      const [orders, warehouses, skus, bundles] = await Promise.all([
+        orderIds.length > 0 ? prisma.order.findMany({ where: { id: { in: [...new Set(orderIds)] } }, include: { customer: true } }) : [],
+        warehouseIds.length > 0 ? prisma.warehouse.findMany({ where: { id: { in: [...new Set(warehouseIds)] } } }) : [],
+        skuIds.length > 0 ? prisma.productSKU.findMany({ where: { id: { in: [...new Set(skuIds)] } }, include: { product: true } }) : [],
+        bundleIds.length > 0 ? prisma.bundleSKU.findMany({ where: { id: { in: [...new Set(bundleIds)] } } }) : [],
+      ]);
+
+      const ordersMap: Record<string, any> = {};
+      orders.forEach(o => { ordersMap[o.id] = o; });
+      const warehousesMap: Record<string, any> = {};
+      warehouses.forEach(w => { warehousesMap[w.id] = w; });
+      const skuMap: Record<string, any> = {};
+      skus.forEach(s => { skuMap[s.id] = s; });
+      const bundleMap: Record<string, any> = {};
+      bundles.forEach(b => { bundleMap[b.id] = b; });
+
+      return stockOuts.map(s => {
+        const order = ordersMap[s.orderId];
+        const warehouse = warehousesMap[s.warehouseId];
+        const isBundle = !!s.bundleId;
+        const sku = skuMap[s.skuId || ''];
+        const bundle = bundleMap[s.bundleId || ''];
+        return {
+          type: isBundle ? 'BUNDLE' : 'PRODUCT',
+          orderNo: order?.orderNo,
+          orderId: s.orderId,
+          customer: order?.customer?.name,
+          customerPhone: order?.customer?.phone,
+          quantity: s.quantity,
+          productName: sku?.product?.name,
+          bundleName: bundle?.name,
+          warehouse: warehouse?.name,
+          createdAt: s.createdAt,
+        };
+      });
+    })();
+
+    const transferRecords: any[] = [
+      ...stockTransfers.map(t => ({
+        type: 'PRODUCT',
+        transferNo: t.transfer?.transferNo,
+        fromLocation: t.fromLocation ? `${t.fromLocation.shelf?.zone?.code || ''}-${t.fromLocation.shelf?.code || ''}-L${t.fromLocation.level}` : '',
+        toLocation: t.toLocation ? `${t.toLocation.shelf?.zone?.code || ''}-${t.toLocation.shelf?.code || ''}-L${t.toLocation.level}` : '',
+        quantity: t.quantity,
+        status: t.transfer?.status,
+        executedAt: t.transfer?.executedAt,
+      })),
+      ...bundleStockTransfers.map(t => ({
+        type: 'BUNDLE',
+        transferNo: t.transfer?.transferNo,
+        fromLocation: t.fromLocation ? `${t.fromLocation.shelf?.zone?.code || ''}-${t.fromLocation.shelf?.code || ''}-L${t.fromLocation.level}` : '',
+        toLocation: t.toLocation ? `${t.toLocation.shelf?.zone?.code || ''}-${t.toLocation.shelf?.code || ''}-L${t.toLocation.level}` : '',
+        quantity: t.quantity,
+        status: t.transfer?.status,
+        executedAt: t.transfer?.executedAt,
+      })),
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        batchNo,
+        totalInStock,
+        totalInWarehouse,
+        totalLocked,
+        totalSold,
+        stockIns: stockIns.map(s => ({
+          type: 'PRODUCT',
+          productName: s.sku?.product?.name,
+          skuCode: s.sku?.skuCode,
+          quantity: s.quantity,
+          warehouse: s.warehouse?.name,
+          locationCode: s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '',
+          createdAt: s.createdAt,
+        })),
+        bundleStockIns: bundleStockIns.map(s => ({
+          type: 'BUNDLE',
+          bundleName: s.bundle?.name,
+          quantity: s.quantity,
+          warehouse: s.warehouse?.name,
+          locationCode: s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '',
+          createdAt: s.createdAt,
+        })),
+        locations: [...stockLocations, ...bundleLocations],
+        soldOrders,
+        transferRecords,
+      },
+    });
+  } catch (error) {
+    console.error('Batch trace error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
