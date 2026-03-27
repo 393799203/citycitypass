@@ -255,17 +255,9 @@ export default function BatchTracePage() {
               <div className="text-xs text-gray-500 mt-2">总入库量</div>
             </div>
 
-            <div className="flex flex-col items-center">
-              <svg width="80" height="40" className="overflow-visible">
-                <defs>
-                  <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style={{ stopColor: '#22c55e', stopOpacity: 1 }} />
-                    <stop offset="100%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
-                  </linearGradient>
-                </defs>
-                <path d="M 0 20 L 80 20" stroke="url(#grad1)" strokeWidth="3" fill="none" />
-                <polygon points="75,15 85,20 75,25" fill="#6366f1" />
-              </svg>
+            <div className="relative h-6 w-[90px]">
+              <div className="w-[80px] h-[3px] bg-green-500 absolute top-1/2 -translate-y-1/2 left-0"></div>
+              <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-500 absolute top-1/2 -translate-y-1/2 right-0"></div>
             </div>
 
             <div className="flex flex-col items-center">
