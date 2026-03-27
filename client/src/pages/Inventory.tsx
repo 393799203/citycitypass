@@ -73,7 +73,7 @@ export default function InventoryPage() {
   const [filterType, setFilterType] = useState('');
   const [filterBundle, setFilterBundle] = useState('');
   const [filterBatchNo, setFilterBatchNo] = useState('');
-  const [inventoryType, setInventoryType] = useState<'all' | 'sales'>('sales');
+  const [inventoryType, setInventoryType] = useState<'all' | 'sales'>('all');
   const [zones, setZones] = useState<any[]>([]);
   const [filterShelfOptions, setFilterShelfOptions] = useState<any[]>([]);
 
