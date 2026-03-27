@@ -179,6 +179,8 @@ model User {
   email     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  pickerOrders  PickOrder[] @relation("PickerOrders")
+  approverOrders PickOrder[] @relation("ApproverOrders")
 }
 
 model Owner {
@@ -485,6 +487,10 @@ model PickOrder {
   orderIds    String      // 多个订单ID用逗号分隔
   status     PickStatus  @default(PENDING)
   items      PickOrderItem[]
+  pickerId   String?     // 拣货人ID
+  picker     User?       @relation("PickerOrders", fields: [pickerId], references: [id])
+  approverId String?     // 审核人ID
+  approver   User?       @relation("ApproverOrders", fields: [approverId], references: [id])
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }

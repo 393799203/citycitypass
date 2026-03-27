@@ -6,6 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Loader2, Package, CheckCircle, ClipboardList, RefreshCw, Sparkles, Info, Phone, MapPin, ShoppingCart } from 'lucide-react';
 import { formatPhone, formatAddress } from '../utils/format';
+import { useAuthStore } from '../stores/auth';
 
 const pickStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -16,6 +17,7 @@ const pickStatusMap: Record<string, string> = {
 };
 
 export default function OutboundPage() {
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'pending' | 'pick' | 'review'>('pending');
   const [pickOrders, setPickOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
 
   const handlePickComplete = async (pickOrderId: string) => {
     try {
-      await pickOrderApi.updateStatus(pickOrderId, 'PICKED');
+      await pickOrderApi.updateStatus(pickOrderId, 'PICKED', user?.id);
       toast.success('拣货完成');
       fetchData();
     } catch (error) {
@@ -180,7 +182,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
           for (const orderId of orderIds) {
             await orderApi.updateStatus(orderId, 'DISPATCHING');
           }
-          await pickOrderApi.updateStatus(pickOrderId, 'COMPLETED');
+          await pickOrderApi.updateStatus(pickOrderId, 'COMPLETED', user?.id);
           toast.success('审核通过');
         } else {
           for (const orderId of orderIds) {
@@ -621,6 +623,12 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {(pickOrder.picker || pickOrder.approver) && (
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 justify-end">
+                      {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
+                      {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
                     </div>
                   )}
                 </div>

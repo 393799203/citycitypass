@@ -91,7 +91,7 @@ export const pickOrderApi = {
   list: (params?: any) => api.get('/pick-orders', { params }),
   get: (id: string) => api.get(`/pick-orders/${id}`),
   create: (data: any) => api.post('/pick-orders', data),
-  updateStatus: (id: string, status: string) => api.put(`/pick-orders/${id}/status`, { status }),
+  updateStatus: (id: string, status: string, userId?: string) => api.put(`/pick-orders/${id}/status`, { status, userId }),
 };
 
 export const warehouseApi = {

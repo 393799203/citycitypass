@@ -229,6 +229,8 @@ router.get('/', async (req: Request, res: Response) => {
       prisma.pickOrder.findMany({
         where,
         include: {
+          picker: true,
+          approver: true,
           items: {
             include: {
               sku: true,
@@ -341,6 +343,8 @@ router.get('/:id', async (req: Request, res: Response) => {
     const pickOrder = await prisma.pickOrder.findUnique({
       where: { id },
       include: {
+        picker: true,
+        approver: true,
         items: {
           include: {
             sku: true,
@@ -406,11 +410,23 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.put('/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, userId } = req.body;
+
+    const updateData: any = { status };
+    if (status === 'PICKED' && userId) {
+      updateData.pickerId = userId;
+    }
+    if (status === 'COMPLETED' && userId) {
+      updateData.approverId = userId;
+    }
 
     const pickOrder = await prisma.pickOrder.update({
       where: { id },
-      data: { status },
+      data: updateData,
+      include: {
+        picker: true,
+        approver: true,
+      },
     });
 
     if (status === 'PICKED') {
