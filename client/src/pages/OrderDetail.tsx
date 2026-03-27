@@ -459,20 +459,26 @@ export default function OrderDetail() {
           </div>
         )}
 
-        {(order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && order.pickOrder && (
+        {(order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && order.picking && (
           <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <ClipboardList className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-900">关联拣货单: {order.pickOrder.pickNo}</span>
+                <span className="font-medium text-blue-900">关联拣货单: {order.picking.pickNo}</span>
                 <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  order.pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
-                  order.pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
+                  order.picking.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                  order.picking.status === 'PICKING' ? 'bg-blue-600 text-white' :
                   'bg-green-600 text-white'
                 }`}>
-                  {order.pickOrder.status === 'PENDING' ? '待拣货' : 
-                   order.pickOrder.status === 'PICKING' ? '拣货中' : '已拣货'}
+                  {order.picking.status === 'PENDING' ? '待拣货' :
+                   order.picking.status === 'PICKING' ? '拣货中' : '已拣货'}
                 </span>
+                {order.picking.picker && (
+                  <span className="text-sm text-gray-600">拣货人: {order.picking.picker.name}</span>
+                )}
+                {order.picking.approver && (
+                  <span className="text-sm text-gray-600">审核人: {order.picking.approver.name}</span>
+                )}
               </div>
               <Link
                 to="/outbound"
@@ -556,7 +562,7 @@ export default function OrderDetail() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">拣货单号:</span>
-                      <span className="font-medium">{order.picking.pickingNo}</span>
+                      <span className="font-medium">{order.picking.pickNo}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">状态:</span>
@@ -569,6 +575,18 @@ export default function OrderDetail() {
                          order.picking.status === 'PICKING' ? '拣货中' : '已完成'}
                       </span>
                     </div>
+                    {order.picking.picker && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">拣货人:</span>
+                        <span className="font-medium">{order.picking.picker.name}</span>
+                      </div>
+                    )}
+                    {order.picking.approver && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">审核人:</span>
+                        <span className="font-medium">{order.picking.approver.name}</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-sm text-gray-400">暂无拣货信息</div>

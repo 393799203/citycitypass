@@ -211,6 +211,10 @@ router.get('/:id', async (req: Request, res: Response) => {
           contains: id,
         },
       },
+      include: {
+        picker: true,
+        approver: true,
+      },
     });
 
     const matchedPickOrder = pickOrders.find((po: any) =>
@@ -219,8 +223,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const picking = matchedPickOrder ? {
       id: matchedPickOrder.id,
-      pickingNo: matchedPickOrder.pickNo,
+      pickNo: matchedPickOrder.pickNo,
       status: matchedPickOrder.status,
+      picker: matchedPickOrder.picker,
+      approver: matchedPickOrder.approver,
     } : null;
 
     const dispatch = order.dispatchOrders?.[0]?.dispatch ? {
