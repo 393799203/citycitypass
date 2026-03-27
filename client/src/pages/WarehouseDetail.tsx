@@ -463,7 +463,13 @@ export default function WarehouseDetailPage() {
                                 {shelf.stocks?.filter((s: any) => (s.totalQuantity || 0) > 0).map((s: any) => {
                                   const isReturnZone = s.location?.shelf?.zone?.type === 'RETURNING';
                                   return (
-                                    <div key={s.id} className={isReturnZone ? 'text-gray-400' : ''}>
+                                    <div
+                                      key={s.id}
+                                      className={isReturnZone ? 'text-gray-400' : ''}
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">商品信息</div><div className="text-gray-200 py-1">库位：{s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '无'}</div><div className="text-gray-200 py-1">批次号：{s.batchNo || '无'}</div></div> })}
+                                      onMouseLeave={() => setTooltip(null)}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">商品信息</div><div className="text-gray-200 py-1">库位：{s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '无'}</div><div className="text-gray-200 py-1">批次号：{s.batchNo || '无'}</div></div> })}
+                                    >
                                       <span className={isReturnZone ? 'text-gray-500' : 'text-blue-600'}>{isReturnZone ? '[退] ' : '[商品] '}{s.sku?.product?.name}</span>
                                       <span className="text-gray-400 mx-1">/</span>
                                       <span className="text-gray-500">{s.sku?.spec}</span>
@@ -472,7 +478,6 @@ export default function WarehouseDetailPage() {
                                       <span className="text-gray-400 mx-1">×</span>
                                       <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{s.totalQuantity || 0}</span>
                                       <span className="text-gray-400">件</span>
-                                      {isReturnZone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">待迁移</span>}
                                     </div>
                                   );
                                 })}
@@ -494,7 +499,6 @@ export default function WarehouseDetailPage() {
                                       <span className="text-gray-400 mx-1">×</span>
                                       <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{b.totalQuantity || 0}</span>
                                       <span className="text-gray-400">套</span>
-                                      {isReturnZone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">待迁移</span>}
                                     </div>
                                   );
                                 })}
