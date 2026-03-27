@@ -1123,11 +1123,12 @@ router.post('/unlock', async (req: Request, res: Response) => {
         });
 
         if (stock) {
+          const newLockedQty = Math.max(0, stock.lockedQuantity - lock.quantity);
           await tx.stock.update({
             where: { id: stock.id },
             data: {
-              lockedQuantity: stock.lockedQuantity - lock.quantity,
-              availableQuantity: stock.availableQuantity + lock.quantity,
+              lockedQuantity: newLockedQty,
+              availableQuantity: stock.availableQuantity + (stock.lockedQuantity - newLockedQty),
             },
           });
         }
@@ -1270,11 +1271,12 @@ router.post('/bundle/unlock', async (req: Request, res: Response) => {
         });
 
         if (bundleStock) {
+          const newLockedQty = Math.max(0, bundleStock.lockedQuantity - lock.quantity);
           await tx.bundleStock.update({
             where: { id: bundleStock.id },
             data: {
-              lockedQuantity: bundleStock.lockedQuantity - lock.quantity,
-              availableQuantity: bundleStock.availableQuantity + lock.quantity,
+              lockedQuantity: newLockedQty,
+              availableQuantity: bundleStock.availableQuantity + (bundleStock.lockedQuantity - newLockedQty),
             },
           });
         }
@@ -1791,9 +1793,8 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
       });
     })();
 
-    const transferRecords: any[] = [
+    const allTransfers = [
       ...stockTransfers.map(t => ({
-        type: 'PRODUCT',
         transferNo: t.transfer?.transferNo,
         fromLocation: t.fromLocation ? `${t.fromLocation.shelf?.zone?.code || ''}-${t.fromLocation.shelf?.code || ''}-L${t.fromLocation.level}` : '',
         toLocation: t.toLocation ? `${t.toLocation.shelf?.zone?.code || ''}-${t.toLocation.shelf?.code || ''}-L${t.toLocation.level}` : '',
@@ -1802,7 +1803,6 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
         executedAt: t.transfer?.executedAt,
       })),
       ...bundleStockTransfers.map(t => ({
-        type: 'BUNDLE',
         transferNo: t.transfer?.transferNo,
         fromLocation: t.fromLocation ? `${t.fromLocation.shelf?.zone?.code || ''}-${t.fromLocation.shelf?.code || ''}-L${t.fromLocation.level}` : '',
         toLocation: t.toLocation ? `${t.toLocation.shelf?.zone?.code || ''}-${t.toLocation.shelf?.code || ''}-L${t.toLocation.level}` : '',
@@ -1811,6 +1811,14 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
         executedAt: t.transfer?.executedAt,
       })),
     ];
+
+    const uniqueTransferMap = new Map<string, any>();
+    for (const t of allTransfers) {
+      if (t.transferNo && !uniqueTransferMap.has(t.transferNo)) {
+        uniqueTransferMap.set(t.transferNo, t);
+      }
+    }
+    const transferRecords = Array.from(uniqueTransferMap.values());
 
     res.json({
       success: true,

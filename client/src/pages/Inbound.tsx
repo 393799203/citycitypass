@@ -184,6 +184,8 @@ export default function InboundPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filteredProducts, setFilteredProducts] = useState<InboundProduct[]>([]);
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+  const [filterWarehouseId, setFilterWarehouseId] = useState('');
 
   const [saving, setSaving] = useState(false);
 
@@ -263,14 +265,23 @@ export default function InboundPage() {
     }
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (statusFilter?: string, sourceFilter?: string, warehouseFilter?: string) => {
     setLoading(true);
     try {
       const res = await stockApi.getInboundOrders();
       if (res.data.success) {
         let data = res.data.data;
-        if (filterStatus) {
-          data = data.filter((o: any) => o.status === filterStatus);
+        const currentStatus = statusFilter !== undefined ? statusFilter : filterStatus;
+        const currentSource = sourceFilter !== undefined ? sourceFilter : filterSource;
+        const currentWarehouse = warehouseFilter !== undefined ? warehouseFilter : filterWarehouseId;
+        if (currentStatus) {
+          data = data.filter((o: any) => o.status === currentStatus);
+        }
+        if (currentSource) {
+          data = data.filter((o: any) => o.source === currentSource);
+        }
+        if (currentWarehouse) {
+          data = data.filter((o: any) => o.warehouseId === currentWarehouse);
         }
         setOrders(data);
       }
@@ -885,8 +896,29 @@ export default function InboundPage() {
 
       <div className="flex gap-4 mb-4">
         <select
+          value={filterWarehouseId}
+          onChange={(e) => { setFilterWarehouseId(e.target.value); loadOrders(filterStatus, filterSource, e.target.value); }}
+          className="px-3 py-2 border rounded-lg text-sm"
+        >
+          <option value="">全部仓库</option>
+          {warehouses.map(w => (
+            <option key={w.id} value={w.id}>{w.name}</option>
+          ))}
+        </select>
+        <select
+          value={filterSource}
+          onChange={(e) => { setFilterSource(e.target.value); loadOrders(filterStatus, e.target.value, filterWarehouseId); }}
+          className="px-3 py-2 border rounded-lg text-sm"
+        >
+          <option value="">全部来源</option>
+          <option value="PURCHASE">采购入库</option>
+          <option value="RETURN">退货入库</option>
+          <option value="TRANSFER">调拨入库</option>
+          <option value="OTHER">其他</option>
+        </select>
+        <select
           value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); loadOrders(); }}
+          onChange={(e) => { setFilterStatus(e.target.value); loadOrders(e.target.value, filterSource, filterWarehouseId); }}
           className="px-3 py-2 border rounded-lg text-sm"
         >
           <option value="">全部状态</option>
@@ -1310,7 +1342,7 @@ export default function InboundPage() {
                             placeholder="批次号"
                             value={batchNo}
                             onChange={(e) => setBatchNo(e.target.value)}
-                            className="px-3 py-1 border rounded text-xs w-56 font-mono"
+                            className="px-3 py-1 border rounded text-xs w-32 font-mono"
                           />
                         </div>
                       </div>
@@ -1808,7 +1840,7 @@ export default function InboundPage() {
                             newItems[idx].batchNo = e.target.value;
                             setReceivingItems(newItems);
                           }}
-                          className="w-24 border rounded px-1 py-0.5 text-sm"
+                          className="w-32 border rounded px-1 py-0.5 text-sm"
                           placeholder="批次号"
                         />
                       </td>

@@ -474,12 +474,14 @@ export default function StockTransfers() {
     }
   };
 
-  const loadTransfers = async () => {
+  const loadTransfers = async (warehouseFilter?: string, statusFilter?: string) => {
     setLoading(true);
     try {
+      const currentWarehouse = warehouseFilter !== undefined ? warehouseFilter : filterWarehouseId;
+      const currentStatus = statusFilter !== undefined ? statusFilter : filterStatus;
       const transferRes = await stockTransferApi.list({
-        warehouseId: filterWarehouseId || undefined,
-        status: filterStatus || undefined,
+        warehouseId: currentWarehouse || undefined,
+        status: currentStatus || undefined,
       });
 
       const transferRecords = transferRes.data.success ? transferRes.data.data.map((t: any) => ({
@@ -696,11 +698,11 @@ export default function StockTransfers() {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6 p-4 bg-white rounded-lg shadow">
+      <div className="flex gap-4 mb-4">
         <select
           value={filterWarehouseId}
-          onChange={(e) => setFilterWarehouseId(e.target.value)}
-          className="px-3 py-2 border rounded-lg"
+          onChange={(e) => { setFilterWarehouseId(e.target.value); loadTransfers(e.target.value, filterStatus); }}
+          className="px-3 py-2 border rounded-lg text-sm"
         >
           <option value="">全部仓库</option>
           {warehouses.map((w) => (
@@ -711,20 +713,14 @@ export default function StockTransfers() {
         </select>
         <select
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border rounded-lg"
+          onChange={(e) => { setFilterStatus(e.target.value); loadTransfers(filterWarehouseId, e.target.value); }}
+          className="px-3 py-2 border rounded-lg text-sm"
         >
           <option value="">全部状态</option>
           <option value="PENDING">待移库</option>
           <option value="COMPLETED">已完成</option>
           <option value="CANCELLED">已取消</option>
         </select>
-        <button
-          onClick={loadTransfers}
-          className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-        >
-          搜索
-        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
