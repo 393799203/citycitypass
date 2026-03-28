@@ -119,7 +119,7 @@ export default function BatchTracePage() {
         <h1 className="text-5xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">批次追踪</h1>
         <p className="text-white/80 mb-10 text-lg">输入批次号追踪货物流向</p>
 
-        <div className="w-full max-w-2xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+        <div className="w-full max-w-3xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
           <div className="flex gap-4 mb-8">
             <input
               type="text"

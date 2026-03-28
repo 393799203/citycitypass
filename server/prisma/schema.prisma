@@ -853,8 +853,12 @@ model Vehicle {
   id           String        @id @default(uuid())
   licensePlate String        // 车牌号
   vehicleType  String        // 车型(小面/中面/厢货)
-  capacity     Int           // 载重(吨)
-  volume       Int?          // 容积(立方米)
+  brand        String?       // 品牌
+  model        String?       // 型号
+  capacity     Float         // 载重(吨)
+  volume       Float?        // 容积(立方米)
+  licenseNo    String?       // 行驶证号
+  insuranceNo  String?        // 保险单号
   status       VehicleStatus @default(AVAILABLE)
   warehouseId  String
   warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
@@ -1051,4 +1055,140 @@ model ReturnLog {
   remark       String?
 
   createdAt    DateTime     @default(now())
+}
+
+// 承运商管理
+model Carrier {
+  id           String   @id @default(uuid())
+  code        String   @unique // 承运商编码
+  name        String   // 承运商名称
+  type        CarrierType @default(INDIVIDUAL) // 承运商类型：个体/企业
+  level       CarrierLevel @default(C) // 承运商等级：A/B/C
+
+  // 资质信息
+  businessLicenseNo  String? // 营业执照号
+  businessLicenseUrl String? // 营业执照图片
+  transportLicenseNo String? // 道路运输经营许可证号
+  transportLicenseUrl String? // 道路运输经营许可证图片
+
+  // 服务能力
+  serviceTypes    String[] // 服务类型：长途运输、短途配送、冷链运输等
+  coverageAreas   String[] // 覆盖区域
+  vehicleTypes    String[] // 可用车型
+
+  // 联系信息
+  contact     String?
+  phone       String?
+  province    String?
+  city        String?
+  address     String?
+
+  // 状态
+  status      CarrierStatus @default(PENDING) // PENDING/APPROVED/REJECTED/SUSPENDED
+
+  // 审核信息
+  rejectionReason String? // 拒绝原因
+  approvedAt      DateTime? // 审核通过时间
+  approvedBy      String? // 审核人
+
+  // 合同
+  contracts   CarrierContract[]
+
+  // 车辆
+  vehicles    CarrierVehicle[]
+
+  remark     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum CarrierType {
+  INDIVIDUAL // 个体
+  COMPANY    // 企业
+}
+
+enum CarrierLevel {
+  A // 优质
+  B // 良好
+  C // 合格
+}
+
+enum CarrierStatus {
+  PENDING    // 待审核
+  APPROVED  // 已通过
+  REJECTED  // 已拒绝
+  SUSPENDED // 已暂停
+}
+
+// 承运商合同
+model CarrierContract {
+  id           String   @id @default(uuid())
+  carrierId    String
+  carrier      Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+
+  contractNo   String   @unique // 合同编号
+  name         String   // 合同名称
+  startDate    DateTime // 合同开始日期
+  endDate      DateTime // 合同结束日期
+
+  // 合同条款
+  serviceTerms String?  // 服务条款
+  priceTerms   String?  // 价格条款
+  paymentTerms String?  // 付款条款
+  liabilityTerms String? // 责任条款
+
+  amount       Float?   // 合同金额
+  deposit      Float?   // 保证金
+
+  // 状态
+  status       CarrierContractStatus @default(DRAFT) // DRAFT/PENDING/ACTIVE/EXPIRED/TERMINATED
+
+  fileUrl      String?  // 合同文件
+  fileName     String?
+
+  remark       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum CarrierContractStatus {
+  DRAFT     // 草稿
+  PENDING   // 待生效
+  ACTIVE    // 生效中
+  EXPIRED   // 已过期
+  TERMINATED // 已终止
+}
+
+// 承运商车辆
+model CarrierVehicle {
+  id           String   @id @default(uuid())
+  carrierId    String
+  carrier      Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+
+  licensePlate String   // 车牌号
+  vehicleType  String   // 车辆类型
+  brand        String?  // 品牌
+  model        String?  // 型号
+
+  capacity     Float?   // 载重（吨）
+  volume       Float?   // 容积（方）
+
+  // 证照信息
+  licenseNo    String?  // 行驶证号
+  licenseUrl   String?  // 行驶证图片
+  insuranceNo  String?  // 保险单号
+  insuranceUrl String?  // 保险图片
+
+  // 位置信息
+  latitude     Float?   // 当前纬度
+  longitude    Float?   // 当前经度
+  location     String?   // 当前位置描述
+  address      String?   // 详细地址
+
+  // 状态：与运力管理统一
+  status       VehicleStatus @default(AVAILABLE) // AVAILABLE/IN_TRANSIT/MAINTENANCE/DISABLED
+
+  remark       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

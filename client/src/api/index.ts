@@ -183,6 +183,7 @@ export const returnApi = {
 
 export const vehicleApi = {
   list: (params?: any) => api.get('/vehicles', { params }),
+  listAll: () => api.get('/vehicles/all'),
   create: (data: any) => api.post('/vehicles', data),
   update: (id: string, data: any) => api.put(`/vehicles/${id}`, data),
   delete: (id: string) => api.delete(`/vehicles/${id}`),
@@ -221,4 +222,24 @@ export const supplierContractApi = {
   create: (data: any) => api.post('/supplier-contracts', data),
   update: (id: string, data: any) => api.put(`/supplier-contracts/${id}`, data),
   delete: (id: string) => api.delete(`/supplier-contracts/${id}`),
+};
+
+export const carrierApi = {
+  list: (params?: any) => api.get('/carriers', { params }),
+  get: (id: string) => api.get(`/carriers/${id}`),
+  create: (data: any) => api.post('/carriers', data),
+  update: (id: string, data: any) => api.put(`/carriers/${id}`, data),
+  delete: (id: string) => api.delete(`/carriers/${id}`),
+  approve: (id: string, data: any) => api.post(`/carriers/${id}/approve`, data),
+  listContracts: (id: string) => api.get(`/carriers/${id}/contracts`),
+  createContract: (id: string, data: any) => api.post(`/carriers/${id}/contracts`, data),
+  updateContract: (contractId: string, data: any) => api.put(`/carriers/contracts/${contractId}`, data),
+  deleteContract: (contractId: string) => api.delete(`/carriers/contracts/${contractId}`),
+  listVehicles: (id: string) => api.get(`/carriers/${id}/vehicles`),
+  listAllVehicles: () => api.get('/carriers/vehicles/all'),
+  createVehicle: (id: string, data: any) => api.post(`/carriers/${id}/vehicles`, data),
+  updateVehicle: (vehicleId: string, data: any) => api.put(`/carriers/vehicles/${vehicleId}`, data),
+  updateVehicleLocation: (vehicleId: string, data: any) => api.put(`/carriers/vehicles/${vehicleId}/location`, data),
+  deleteVehicle: (vehicleId: string) => api.delete(`/carriers/vehicles/${vehicleId}`),
+  approveVehicle: (vehicleId: string, data: any) => api.post(`/carriers/vehicles/${vehicleId}/approve`, data),
 };

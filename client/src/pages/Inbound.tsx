@@ -1817,9 +1817,12 @@ export default function InboundPage() {
                             <button
                               type="button"
                               onClick={() => {
-                                const newItems = [...receivingItems];
-                                newItems[idx].receivedQuantity += 1;
-                                setReceivingItems(newItems);
+                                const expectedQty = item.expectedQuantity || 0;
+                                if ((item.receivedQuantity || 0) < expectedQty) {
+                                  const newItems = [...receivingItems];
+                                  newItems[idx].receivedQuantity += 1;
+                                  setReceivingItems(newItems);
+                                }
                               }}
                               className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm"
                             >

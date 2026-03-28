@@ -6,7 +6,7 @@ import AddressInput from '../components/AddressInput';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { provinces, provinceCities } from '../data/region';
-import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff, MapPin, Phone } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, X, Loader2, Filter, Power, PowerOff, MapPin, Phone, Package } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 
 const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
@@ -184,7 +184,7 @@ export default function OwnersPage() {
   return (
     <div className="space-y-6">
       <ToastContainer />
-      
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">货主管理</h1>
         <div className="flex gap-2">
@@ -271,112 +271,95 @@ export default function OwnersPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-          </div>
-        ) : owners.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">暂无数据</div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">货主主体</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">负责人</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">货物名称</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">详细地址</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {owners.map((owner) => (
-                <tr key={owner.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {owner.name}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        </div>
+      ) : owners.length === 0 ? (
+        <div className="text-center py-12 text-gray-500 bg-white rounded-xl">暂无数据</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {owners.map((owner) => (
+            <div key={owner.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-primary-600 font-bold text-lg">{owner.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">{owner.name}</h3>
                     {owner.isSelfOperated && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">自营</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">自营</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <div>{owner.contact || '-'}</div>
-                    <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
-                      <Phone className="w-4 h-4" />
-                      {owner.phone ? formatPhone(owner.phone) : '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </div>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  owner.status === 'SERVING'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
+                }`}>
+                  {owner.status === 'SERVING' ? '服务中' : '停止服务'}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                {owner.contact && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Phone className="w-4 h-4" />
+                    {owner.contact} · {owner.phone ? formatPhone(owner.phone) : '-'}
+                  </div>
+                )}
+                <div className="flex items-start gap-2 text-gray-600">
+                  <MapPin className="w-4 h-4 mt-0.5" />
+                  <span>{formatAddress(owner.province, owner.city, owner.address)}</span>
+                </div>
+                {owner.productTags && owner.productTags.length > 0 && (
+                  <div className="flex items-start gap-2 text-gray-600">
+                    <Package className="w-4 h-4 mt-0.5" />
                     <div className="flex flex-wrap gap-1">
-                      {owner.productTags?.map((tag, idx) => (
+                      {owner.productTags.map((tag, idx) => (
                         <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
                           {tag}
                         </span>
                       ))}
-                      {(!owner.productTags || owner.productTags.length === 0) && '-'}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      {formatAddress(owner.province, owner.city, owner.address)}
-                    </div>
-                    {owner.latitude && owner.longitude && (
-                      <div className="text-xs text-gray-400 mt-0.5">({owner.latitude}, {owner.longitude})</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      owner.status === 'SERVING' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {owner.status === 'SERVING' ? '服务中' : '停止服务'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleEdit(owner)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        title="编辑"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(owner)}
-                        className={`p-1.5 rounded-lg ${
-                          owner.status === 'SERVING'
-                            ? 'text-orange-600 hover:bg-orange-50'
-                            : 'text-green-600 hover:bg-green-50'
-                        }`}
-                        title={owner.status === 'SERVING' ? '停止服务' : '开启服务'}
-                      >
-                        {owner.status === 'SERVING' ? (
-                          <PowerOff className="w-4 h-4" />
-                        ) : (
-                          <Power className="w-4 h-4" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(owner.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                        title="删除"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-3 mt-3 border-t">
+                <button
+                  onClick={() => handleEdit(owner)}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
+                >
+                  <Pencil className="w-4 h-4" /> 编辑
+                </button>
+                <button
+                  onClick={() => handleToggleStatus(owner)}
+                  className={`px-3 py-1.5 rounded text-sm ${
+                    owner.status === 'SERVING'
+                      ? 'border border-orange-200 text-orange-600 hover:bg-orange-50'
+                      : 'border border-green-200 text-green-600 hover:bg-green-50'
+                  }`}
+                  title={owner.status === 'SERVING' ? '停止服务' : '开启服务'}
+                >
+                  {owner.status === 'SERVING' ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => handleDelete(owner.id)}
+                  className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold">{editingId ? '编辑货主' : '新增货主'}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -408,7 +391,7 @@ export default function OwnersPage() {
                   <label htmlFor="isSelfOperated" className="ml-2 text-sm text-gray-700">是否自营</label>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">负责人</label>
@@ -429,7 +412,7 @@ export default function OwnersPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">货物名称（标签）</label>
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -519,7 +502,7 @@ export default function OwnersPage() {
                   </div>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
                 <AddressInput
@@ -540,7 +523,7 @@ export default function OwnersPage() {
                   })}
                 />
               </div>
-              
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"

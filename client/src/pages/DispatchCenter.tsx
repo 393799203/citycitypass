@@ -45,6 +45,8 @@ export default function DispatchCenterPage() {
     driverId: '',
     scheduledTime: '',
     remark: '',
+    isCarrierVehicle: false,
+    warehouseId: '',
   });
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function DispatchCenterPage() {
       const [orderRes, dispatchRes, vehicleRes, driverRes, warehouseRes] = await Promise.all([
         orderApi.list({ status: 'DISPATCHING' }),
         dispatchApi.list({}),
-        vehicleApi.list({ status: 'AVAILABLE' }),
+        vehicleApi.listAll(),
         driverApi.list({ status: 'AVAILABLE' }),
         warehouseApi.list({}),
       ]);
@@ -121,7 +123,12 @@ export default function DispatchCenterPage() {
       let driverReason = '';
 
       if (warehouseInfo?.latitude && warehouseInfo?.longitude) {
-        const availableVehicles = vehicles.filter(v => v.status === 'AVAILABLE' && v.latitude && v.longitude);
+        const availableVehicles = vehicles.filter(v => 
+          v.status === 'AVAILABLE' && 
+          v.latitude && 
+          v.longitude &&
+          (v.sourceType === 'CARRIER' || v.warehouseId === warehouseInfo.id)
+        );
         if (availableVehicles.length > 0) {
           const sortedVehicles = availableVehicles.map(v => ({
             ...v,
@@ -135,18 +142,25 @@ export default function DispatchCenterPage() {
           vehicleReason = `距离仓库最近：${recommendedVehicle.address || recommendedVehicle.location || '未知位置'} (${recommendedVehicle.distance?.toFixed(4)})`;
         }
 
-        const availableDrivers = drivers.filter(d => d.status === 'AVAILABLE' && d.latitude && d.longitude);
-        if (availableDrivers.length > 0) {
-          const sortedDrivers = availableDrivers.map(d => ({
-            ...d,
-            distance: Math.sqrt(
-              Math.pow((d.latitude - warehouseInfo.latitude), 2) + 
-              Math.pow((d.longitude - warehouseInfo.longitude), 2)
-            )
-          })).sort((a, b) => a.distance - b.distance);
-          
-          recommendedDriver = sortedDrivers[0];
-          driverReason = `距离仓库最近：${recommendedDriver.address || recommendedDriver.location || '未知位置'} (${recommendedDriver.distance?.toFixed(4)})`;
+        if (recommendedVehicle?.sourceType !== 'CARRIER') {
+          const availableDrivers = drivers.filter(d => 
+            d.status === 'AVAILABLE' && 
+            d.latitude && 
+            d.longitude &&
+            d.warehouseId === warehouseInfo.id
+          );
+          if (availableDrivers.length > 0) {
+            const sortedDrivers = availableDrivers.map(d => ({
+              ...d,
+              distance: Math.sqrt(
+                Math.pow((d.latitude - warehouseInfo.latitude), 2) +
+                Math.pow((d.longitude - warehouseInfo.longitude), 2)
+              )
+            })).sort((a, b) => a.distance - b.distance);
+
+            recommendedDriver = sortedDrivers[0];
+            driverReason = `距离仓库最近：${recommendedDriver.address || recommendedDriver.location || '未知位置'} (${recommendedDriver.distance?.toFixed(4)})`;
+          }
         }
       }
 
@@ -155,7 +169,7 @@ export default function DispatchCenterPage() {
 重要规则：
 1. 必须优先选择同一仓库的订单
 2. 同一仓库中优先选择订单数量最多的城市/区域
-3. 跨仓库的订单不建议归在一起
+3. 跨仓库的订单不能归在一起
 4. 商品存放位置结构为【仓库-库区-货架-库位】
 
 订单列表：
@@ -209,8 +223,20 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
   };
 
   const handleCreateDispatch = async () => {
-    if (!createForm.vehicleId || !createForm.driverId || selectedOrders.length === 0) {
-      toast.error('请选择车辆、司机和订单');
+    if (selectedOrders.length === 0) {
+      toast.error('请选择订单');
+      return;
+    }
+    if (!isSameWarehouse) {
+      toast.error('请选择同一仓库的订单');
+      return;
+    }
+    if (!createForm.vehicleId) {
+      toast.error('请选择车辆');
+      return;
+    }
+    if (!createForm.isCarrierVehicle && !createForm.driverId) {
+      toast.error('请选择司机');
       return;
     }
 
@@ -218,14 +244,14 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
       await dispatchApi.create({
         vehicleId: createForm.vehicleId,
         driverId: createForm.driverId,
-        warehouseId: orders[0]?.warehouseId,
+        warehouseId: selectedWarehouseId,
         orderIds: selectedOrders,
         remark: createForm.remark,
       });
       toast.success('配送单创建成功');
       setShowCreateModal(false);
       setSelectedOrders([]);
-      setCreateForm({ orderIds: [], vehicleId: '', driverId: '', scheduledTime: '', remark: '' });
+      setCreateForm({ orderIds: [], vehicleId: '', driverId: '', scheduledTime: '', remark: '', isCarrierVehicle: false, warehouseId: '' });
       fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '创建失败');
@@ -243,6 +269,9 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
   };
 
   const selectedOrderDetails = orders.filter(o => selectedOrders.includes(o.id));
+  const selectedWarehouseId = selectedOrderDetails.length > 0 ? selectedOrderDetails[0].warehouseId : null;
+  const selectedWarehouseOrders = selectedOrderDetails.filter((o: any) => o.warehouseId === selectedWarehouseId);
+  const isSameWarehouse = selectedWarehouseOrders.length === selectedOrderDetails.length;
 
   return (
     <div className="p-6">
@@ -285,6 +314,8 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                       driverId: aiRecommendOrders.driverId || '',
                       scheduledTime: new Date().toISOString().slice(0, 16),
                       remark: '',
+                      isCarrierVehicle: vehicles.find(v => v.id === aiRecommendOrders.vehicleId)?.sourceType === 'CARRIER',
+                      warehouseId: order?.warehouseId || '',
                     });
                     setSelectedOrders(aiRecommendOrders.orderIds);
                     setShowCreateModal(true);
@@ -327,7 +358,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
             }`}
           >
             <Package className="w-4 h-4 inline mr-2" />
-            待调度订单
+            运力调度中心(待调度订单)
           </button>
           <button
             onClick={() => setActiveTab('dispatches')}
@@ -586,18 +617,37 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                 <label className="block text-sm font-medium text-gray-700 mb-1">选择车辆</label>
                 <select
                   value={createForm.vehicleId}
-                  onChange={e => setCreateForm({ ...createForm, vehicleId: e.target.value })}
+                  onChange={e => {
+                    const selectedVehicle = vehicles.find(v => v.id === e.target.value);
+                    setCreateForm({
+                      ...createForm,
+                      vehicleId: e.target.value,
+                      isCarrierVehicle: selectedVehicle?.sourceType === 'CARRIER',
+                      driverId: selectedVehicle?.sourceType === 'CARRIER' ? '' : createForm.driverId
+                    });
+                  }}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="">请选择车辆</option>
-                  {vehicles.map(v => (
+                  {vehicles.filter(v =>
+                    v.sourceType === 'CARRIER' || (isSameWarehouse && v.warehouseId === selectedWarehouseId)
+                  ).map(v => (
                     <option key={v.id} value={v.id}>
-                      {v.licensePlate} ({v.vehicleType} - {v.capacity}吨) - {v.address || '未设置位置'}
+                      {v.licensePlate} ({v.vehicleType} - {v.capacity}吨){v.sourceType === 'CARRIER' ? ` - ${v.warehouse?.name || '承运商'}` : ` - ${v.warehouse?.name || '自有'}`} - {v.address || '未设置位置'}
                     </option>
                   ))}
                 </select>
               </div>
 
+              {createForm.isCarrierVehicle ? (
+                <div className="p-3 bg-gray-50 rounded-lg text-gray-600 text-sm">
+                  承运商车辆，无需选择司机
+                </div>
+              ) : !isSameWarehouse ? (
+                <div className="p-3 bg-yellow-50 rounded-lg text-yellow-700 text-sm">
+                  订单必须来自同一仓库才能选择自有车辆
+                </div>
+              ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">选择司机</label>
                 <select
@@ -606,13 +656,14 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="">请选择司机</option>
-                  {drivers.map(d => (
+                  {drivers.filter(d => d.warehouseId === selectedWarehouseId).map(d => (
                     <option key={d.id} value={d.id}>
                       {d.name} - {formatPhone(d.phone)} - {d.address || '未设置位置'}
                     </option>
                   ))}
                 </select>
               </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>

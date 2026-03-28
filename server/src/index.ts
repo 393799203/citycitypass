@@ -23,6 +23,7 @@ import contractRoutes from './routes/contracts';
 import uploadRoutes from './routes/upload';
 import supplierRoutes from './routes/suppliers';
 import supplierContractRoutes from './routes/supplierContracts';
+import carrierRoutes from './routes/carriers';
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ app.use('/api/contracts', contractRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/supplier-contracts', supplierContractRoutes);
+app.use('/api/carriers', carrierRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

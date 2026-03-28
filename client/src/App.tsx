@@ -1,28 +1,40 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import React, { Suspense, lazy } from 'react';
 import Layout from './components/Layout';
-import Orders from './pages/Orders';
-import OrderDetail from './pages/OrderDetail';
-import Products from './pages/Products';
-import Warehouses from './pages/Warehouses';
-import WarehouseDetail from './pages/WarehouseDetail';
-import StockIns from './pages/Inventory';
-import StockTransfers from './pages/StockTransfers';
-import BatchTracePage from './pages/BatchTracePage';
-import Inbound from './pages/Inbound';
-import Outbound from './pages/Outbound';
-import Transport from './pages/Transport';
-import DispatchCenter from './pages/DispatchCenter';
-import DispatchDetail from './pages/DispatchDetail';
-import Returns from './pages/Returns';
-import ReturnDetail from './pages/ReturnDetail';
-import Owners from './pages/Owners';
-import Users from './pages/Users';
-import Customers from './pages/Customers';
-import Suppliers from './pages/Suppliers';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
+import { Loader2 } from 'lucide-react';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Products = lazy(() => import('./pages/Products'));
+const Warehouses = lazy(() => import('./pages/Warehouses'));
+const WarehouseDetail = lazy(() => import('./pages/WarehouseDetail'));
+const StockIns = lazy(() => import('./pages/Inventory'));
+const StockTransfers = lazy(() => import('./pages/StockTransfers'));
+const BatchTracePage = lazy(() => import('./pages/BatchTracePage'));
+const Inbound = lazy(() => import('./pages/Inbound'));
+const Outbound = lazy(() => import('./pages/Outbound'));
+const Transport = lazy(() => import('./pages/Transport'));
+const DispatchCenter = lazy(() => import('./pages/DispatchCenter'));
+const DispatchDetail = lazy(() => import('./pages/DispatchDetail'));
+const Returns = lazy(() => import('./pages/Returns'));
+const ReturnDetail = lazy(() => import('./pages/ReturnDetail'));
+const Carriers = lazy(() => import('./pages/Carriers'));
+const Owners = lazy(() => import('./pages/Owners'));
+const Users = lazy(() => import('./pages/Users'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+
+function Loading() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -36,42 +48,44 @@ function App() {
   return (
     <BrowserRouter>
       <ConfirmProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-          <Route index element={<Navigate to="/orders" replace />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="orders/:id" element={<OrderDetail />} />
-          <Route path="products" element={<Products />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="warehouses" element={<Warehouses />} />
-          <Route path="warehouses/:id" element={<WarehouseDetail />} />
-          <Route path="inventory" element={<StockIns />} />
-          <Route path="stock-transfers" element={<StockTransfers />} />
-          <Route path="batch-trace" element={<BatchTracePage />} />
-          <Route path="batch-trace/:batchNo" element={<BatchTracePage />} />
-          <Route path="inbound" element={<Inbound />} />
-          <Route path="outbound" element={<Outbound />} />
-          <Route path="transport" element={<Transport />} />
-          <Route path="dispatch" element={<DispatchCenter />} />
-          <Route path="dispatch/:id" element={<DispatchDetail />} />
-          <Route path="returns" element={<Returns />} />
-          <Route path="returns/:id" element={<ReturnDetail />} />
-          <Route path="carriers" element={<div className="text-gray-500">运力管理</div>} />
-          <Route path="owners" element={<Owners />} />
-          <Route path="users" element={<Users />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/orders" replace />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="orders/:id" element={<OrderDetail />} />
+              <Route path="products" element={<Products />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="suppliers" element={<Suppliers />} />
+              <Route path="warehouses" element={<Warehouses />} />
+              <Route path="warehouses/:id" element={<WarehouseDetail />} />
+              <Route path="inventory" element={<StockIns />} />
+              <Route path="stock-transfers" element={<StockTransfers />} />
+              <Route path="batch-trace" element={<BatchTracePage />} />
+              <Route path="batch-trace/:batchNo" element={<BatchTracePage />} />
+              <Route path="inbound" element={<Inbound />} />
+              <Route path="outbound" element={<Outbound />} />
+              <Route path="transport" element={<Transport />} />
+              <Route path="dispatch" element={<DispatchCenter />} />
+              <Route path="dispatch/:id" element={<DispatchDetail />} />
+              <Route path="returns" element={<Returns />} />
+              <Route path="returns/:id" element={<ReturnDetail />} />
+              <Route path="carriers" element={<Carriers />} />
+              <Route path="owners" element={<Owners />} />
+              <Route path="users" element={<Users />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
       </ConfirmProvider>
     </BrowserRouter>
   );

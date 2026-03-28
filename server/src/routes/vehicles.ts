@@ -31,9 +31,48 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/all', async (req: Request, res: Response) => {
+  try {
+    const [warehouseVehicles, carrierVehicles] = await Promise.all([
+      prisma.vehicle.findMany({
+        include: {
+          warehouse: true,
+          drivers: true,
+          _count: { select: { dispatches: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.carrierVehicle.findMany({
+        include: {
+          carrier: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const unifiedWarehouse = warehouseVehicles.map(v => ({
+      ...v,
+      sourceType: 'WAREHOUSE' as const,
+      carrier: null,
+    }));
+
+    const unifiedCarrier = carrierVehicles.map(v => ({
+      ...v,
+      sourceType: 'CARRIER' as const,
+      warehouse: v.carrier,
+      warehouseId: null,
+    }));
+
+    res.json({ success: true, data: [...unifiedWarehouse, ...unifiedCarrier] });
+  } catch (error) {
+    console.error('Get all vehicles error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { licensePlate, vehicleType, capacity, volume, warehouseId, latitude, longitude, location, address } = req.body;
+    const { licensePlate, vehicleType, brand, model, capacity, volume, licenseNo, insuranceNo, warehouseId, latitude, longitude, location, address } = req.body;
 
     if (!licensePlate || !vehicleType || !capacity || !warehouseId) {
       return res.status(400).json({ success: false, message: '参数不完整' });
@@ -50,8 +89,12 @@ router.post('/', async (req: Request, res: Response) => {
       data: {
         licensePlate,
         vehicleType,
-        capacity: parseInt(capacity),
-        volume: volume ? parseInt(volume) : null,
+        brand: brand || null,
+        model: model || null,
+        capacity: parseFloat(capacity),
+        volume: volume ? parseFloat(volume) : null,
+        licenseNo: licenseNo || null,
+        insuranceNo: insuranceNo || null,
         warehouseId,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
@@ -73,7 +116,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { licensePlate, vehicleType, capacity, volume, status, latitude, longitude, location, address } = req.body;
+    const { licensePlate, vehicleType, brand, model, capacity, volume, licenseNo, insuranceNo, status, latitude, longitude, location, address } = req.body;
 
     const existing = await prisma.vehicle.findUnique({ where: { id } });
     if (!existing) {
@@ -92,8 +135,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       data: {
         ...(licensePlate && { licensePlate }),
         ...(vehicleType && { vehicleType }),
-        ...(capacity && { capacity: parseInt(capacity) }),
-        ...(volume !== undefined && { volume: volume ? parseInt(volume) : null }),
+        ...(brand !== undefined && { brand }),
+        ...(model !== undefined && { model }),
+        ...(capacity !== undefined && { capacity: parseFloat(capacity) }),
+        ...(volume !== undefined && { volume: volume ? parseFloat(volume) : null }),
+        ...(licenseNo !== undefined && { licenseNo }),
+        ...(insuranceNo !== undefined && { insuranceNo }),
         ...(status && { status }),
         ...(latitude !== undefined && { latitude: latitude ? parseFloat(latitude) : null }),
         ...(longitude !== undefined && { longitude: longitude ? parseFloat(longitude) : null }),

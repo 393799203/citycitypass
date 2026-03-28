@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Plus, Trash2, Edit2, User, Car, X, MapPin } from 'lucide-react';
-import { vehicleApi, driverApi, geocodeApi } from '../api';
+import { vehicleApi, driverApi, geocodeApi, carrierApi } from '../api';
 import LicensePlateInput from '../components/LicensePlateInput';
 import PhoneInput from '../components/PhoneInput';
 import LicenseNoInput from '../components/LicenseNoInput';
@@ -10,15 +10,21 @@ import { formatPhone } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 
 const licenseTypeColors: Record<string, { bg: string; text: string; border: string }> = {
-  '小面': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
-  '中面': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
-  '厢货': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+  '小型货车': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+  '中型货车': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+  '大型货车': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+  '平板车': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
+  '厢式货车': { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' },
+  '冷藏车': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
 };
 
 const vehicleTypeColors: Record<string, { bg: string; text: string; border: string }> = {
-  '小面': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
-  '中面': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
-  '厢货': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+  '小型货车': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+  '中型货车': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+  '大型货车': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+  '平板车': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
+  '厢式货车': { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' },
+  '冷藏车': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
 };
 
 const vehicleStatusMap: Record<string, string> = {
@@ -39,8 +45,12 @@ interface Vehicle {
   id: string;
   licensePlate: string;
   vehicleType: string;
+  brand?: string;
+  model?: string;
   capacity: number;
   volume?: number;
+  licenseNo?: string;
+  insuranceNo?: string;
   status: string;
   warehouseId: string;
   warehouse?: { id: string; name: string };
@@ -79,14 +89,18 @@ export default function TransportPage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({
     warehouseId: '',
+    warehouse: null as { id: string; name: string } | null,
     licensePlate: '',
-    vehicleType: '小面',
+    vehicleType: '小型货车',
+    brand: '',
+    model: '',
     capacity: 50,
     volume: '',
+    licenseNo: '',
+    insuranceNo: '',
     status: 'AVAILABLE',
     name: '',
     phone: '',
-    licenseNo: '',
     licenseTypes: [] as string[],
     driverStatus: 'AVAILABLE',
     latitude: '',
@@ -102,7 +116,7 @@ export default function TransportPage() {
   const fetchData = async () => {
     try {
       const [vehicleRes, driverRes, warehouseRes] = await Promise.all([
-        vehicleApi.list({}),
+        vehicleApi.listAll(),
         driverApi.list({}),
         (await import('../api')).warehouseApi.list({}),
       ]);
@@ -125,7 +139,7 @@ export default function TransportPage() {
   const handleSubmit = async () => {
     try {
       if (activeTab === 'vehicle') {
-        if (!formData.warehouseId) {
+        if (!(editingItem?.sourceType === 'CARRIER') && !formData.warehouseId) {
           toast.error('请选择仓库');
           return;
         }
@@ -137,14 +151,22 @@ export default function TransportPage() {
           warehouseId: formData.warehouseId,
           licensePlate: formData.licensePlate,
           vehicleType: formData.vehicleType,
+          brand: formData.brand || null,
+          model: formData.model || null,
           capacity: formData.capacity,
           volume: formData.volume || null,
+          licenseNo: formData.licenseNo || null,
+          insuranceNo: formData.insuranceNo || null,
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           location: formData.location || null,
         };
         if (editingItem) {
-          await vehicleApi.update(editingItem.id, vehicleData);
+          if (editingItem.sourceType === 'CARRIER') {
+            await carrierApi.updateVehicle(editingItem.id, vehicleData);
+          } else {
+            await vehicleApi.update(editingItem.id, vehicleData);
+          }
           toast.success('车辆更新成功');
         } else {
           await vehicleApi.create(vehicleData);
@@ -185,12 +207,16 @@ export default function TransportPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, item?: any) => {
     const ok = await confirm({ message: '确定要删除吗？' });
     if (!ok) return;
     try {
       if (activeTab === 'vehicle') {
-        await vehicleApi.delete(id);
+        if (item?.sourceType === 'CARRIER') {
+          await carrierApi.deleteVehicle(id);
+        } else {
+          await vehicleApi.delete(id);
+        }
         toast.success('车辆删除成功');
       } else {
         await driverApi.delete(id);
@@ -244,7 +270,11 @@ export default function TransportPage() {
         updateData.address = locationForm.address;
       }
       if (activeTab === 'vehicle') {
-        await vehicleApi.update(locationItem.id, updateData);
+        if (locationItem.sourceType === 'CARRIER') {
+          await carrierApi.updateVehicleLocation(locationItem.id, updateData);
+        } else {
+          await vehicleApi.update(locationItem.id, updateData);
+        }
         toast.success('车辆位置更新成功');
       } else {
         await driverApi.update(locationItem.id, updateData);
@@ -262,32 +292,40 @@ export default function TransportPage() {
     if (activeTab === 'vehicle') {
       setFormData({
         warehouseId: item.warehouseId || '',
+        warehouse: item.warehouse || null,
         licensePlate: item.licensePlate,
         vehicleType: item.vehicleType,
+        brand: item.brand || '',
+        model: item.model || '',
         capacity: item.capacity,
         volume: item.volume?.toString() || '',
+        licenseNo: item.licenseNo || '',
+        insuranceNo: item.insuranceNo || '',
         status: item.status,
         name: '',
         phone: '',
-        licenseNo: '',
         licenseTypes: [],
         driverStatus: 'AVAILABLE',
         latitude: item.latitude?.toString() || '',
         longitude: item.longitude?.toString() || '',
         location: item.location || '',
-        address: '',
+        address: item.address || '',
       });
     } else {
       setFormData({
         warehouseId: item.warehouseId || '',
+        warehouse: item.warehouse || null,
         licensePlate: '',
-        vehicleType: '小面',
+        vehicleType: '小型货车',
+        brand: '',
+        model: '',
         capacity: 50,
         volume: '',
+        licenseNo: item.licenseNo,
+        insuranceNo: '',
         status: 'AVAILABLE',
         name: item.name,
         phone: item.phone,
-        licenseNo: item.licenseNo,
         licenseTypes: item.licenseTypes || [],
         driverStatus: item.status,
         latitude: item.latitude?.toString() || '',
@@ -303,15 +341,19 @@ export default function TransportPage() {
     setEditingItem(null);
     setFormData({
       warehouseId: '',
+      warehouse: null,
       licensePlate: '',
-      vehicleType: '小面',
+      vehicleType: '小型货车',
+      brand: '',
+      model: '',
       capacity: 50,
       volume: '',
+      licenseNo: '',
+      insuranceNo: '',
       status: 'AVAILABLE',
       name: '',
       phone: '',
-      licenseNo: '',
-      licenseTypes: [],
+      licenseTypes: [] as string[],
       driverStatus: 'AVAILABLE',
       latitude: '',
       longitude: '',
@@ -364,7 +406,7 @@ export default function TransportPage() {
               className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
               <Plus className="w-4 h-4" />
-              添加{activeTab === 'vehicle' ? '车辆' : '司机'}
+              添加{activeTab === 'vehicle' ? '自有车辆' : '司机'}
             </button>
           </div>
 
@@ -378,8 +420,9 @@ export default function TransportPage() {
                     <th className="pb-3">仓库</th>
                     <th className="pb-3">车牌号</th>
                     <th className="pb-3">车型</th>
-                    <th className="pb-3">载重(吨)</th>
-                    <th className="pb-3">容积(m³)</th>
+                    <th className="pb-3">品牌-型号</th>
+                    <th className="pb-3">载重/容积</th>
+                    <th className="pb-3">证照信息</th>
                     <th className="pb-3">当前位置</th>
                     <th className="pb-3">当前司机</th>
                     <th className="pb-3">状态</th>
@@ -388,17 +431,28 @@ export default function TransportPage() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const groupedVehicles = vehicles.reduce((acc: any, v) => {
+                    const warehouseVehicles = vehicles.filter((v: any) => v.sourceType === 'WAREHOUSE');
+                    const carrierVehicles = vehicles.filter((v: any) => v.sourceType === 'CARRIER');
+                    const groupedWarehouse = warehouseVehicles.reduce((acc: any, v) => {
                       const key = v.warehouse?.name || '未知仓库';
                       if (!acc[key]) acc[key] = [];
                       acc[key].push(v);
                       return acc;
                     }, {});
-                    return Object.entries(groupedVehicles).map(([warehouseName, list]: [string, any]) => (
-                      <React.Fragment key={warehouseName}>
+                    const groupedCarrier = carrierVehicles.reduce((acc: any, v) => {
+                      const key = v.warehouse?.name + ' (承运商)' || '未知承运商';
+                      if (!acc[key]) acc[key] = [];
+                      acc[key].push(v);
+                      return acc;
+                    }, {});
+                    const warehouseEntries = Object.entries(groupedWarehouse);
+                    const carrierEntries = Object.entries(groupedCarrier);
+                    return [...warehouseEntries.map(([k, v]) => [k, v, 'warehouse'] as [string, any, string]), 
+                            ...carrierEntries.map(([k, v]) => [k, v, 'carrier'] as [string, any, string])].map(([groupName, list, source]) => (
+                      <React.Fragment key={groupName}>
                         {list.map((vehicle: any, idx: number) => (
                           <tr key={vehicle.id} className="border-b hover:bg-gray-50">
-                            {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle">{warehouseName}</td>}
+                            {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle">{groupName}</td>}
                             <td className="py-3">
                               <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
                                 {vehicle.licensePlate ? vehicle.licensePlate.slice(0, 2) + '·' + vehicle.licensePlate.slice(2) : '-'}
@@ -411,8 +465,17 @@ export default function TransportPage() {
                                 </span>
                               ) : vehicle.vehicleType || '-'}
                             </td>
-                            <td className="py-3">{vehicle.capacity}</td>
-                            <td className="py-3">{vehicle.volume || '-'}</td>
+                            <td className="py-3 text-sm">
+                              {vehicle.brand || vehicle.model ? `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() : '-'}
+                            </td>
+                            <td className="py-3 text-sm">
+                              <div>载重: {vehicle.capacity}吨</div>
+                              <div>容积: {vehicle.volume || '-'}m³</div>
+                            </td>
+                            <td className="py-3 text-sm text-gray-500">
+                              <div>证:{vehicle.licenseNo || '-'}</div>
+                              <div>险:{vehicle.insuranceNo || '-'}</div>
+                            </td>
                             <td className="py-3 text-gray-500 text-sm">
                               <div>{vehicle.location || '-'}</div>
                               <div className="text-xs">{vehicle.address || '-'}</div>
@@ -455,7 +518,7 @@ export default function TransportPage() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleDelete(vehicle.id)}
+                                onClick={() => handleDelete(vehicle.id, vehicle)}
                                 className={`p-1.5 rounded ${
                                   vehicle.status === 'AVAILABLE' 
                                     ? 'text-red-600 hover:bg-red-50' 
@@ -608,28 +671,46 @@ export default function TransportPage() {
               {activeTab === 'vehicle' ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
+                    {editingItem?.sourceType === 'CARRIER' ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">承运商</label>
+                        <input
+                          type="text"
+                          value={formData.warehouse?.name || ''}
+                          disabled
+                          className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
+                        <input
+                          type="text"
+                          value={warehouses.find(w => w.id === formData.warehouseId)?.name || ''}
+                          disabled
+                          className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
+                        />
+                      </div>
+                    )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
-                      <select
-                        value={formData.warehouseId}
-                        onChange={e => {
-                          const warehouse = warehouses.find(w => w.id === e.target.value);
-                          setFormData({
-                            ...formData,
-                            warehouseId: e.target.value,
-                            latitude: warehouse?.latitude?.toString() || '',
-                            longitude: warehouse?.longitude?.toString() || '',
-                            location: warehouse?.address || '',
-                          });
-                        }}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      >
-                        <option value="">请选择仓库</option>
-                        {warehouses.map(w => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
-                      </select>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">车牌号</label>
+                      {editingItem ? (
+                        <input
+                          type="text"
+                          value={formData.licensePlate}
+                          disabled
+                          className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
+                        />
+                      ) : (
+                        <LicensePlateInput
+                          value={formData.licensePlate}
+                          onChange={(val) => setFormData({ ...formData, licensePlate: val })}
+                          className="w-full"
+                        />
+                      )}
                     </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">车型</label>
                       <select
@@ -637,19 +718,34 @@ export default function TransportPage() {
                         onChange={e => setFormData({ ...formData, vehicleType: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
                       >
-                        <option value="小面">小面</option>
-                        <option value="中面">中面</option>
-                        <option value="厢货">厢货</option>
+                        <option value="小型货车">小型货车</option>
+                        <option value="中型货车">中型货车</option>
+                        <option value="大型货车">大型货车</option>
+                        <option value="平板车">平板车</option>
+                        <option value="厢式货车">厢式货车</option>
+                        <option value="冷藏车">冷藏车</option>
                       </select>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">车牌号</label>
-                    <LicensePlateInput
-                      value={formData.licensePlate}
-                      onChange={(val) => setFormData({ ...formData, licensePlate: val })}
-                      className="w-full"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
+                      <input
+                        type="text"
+                        value={formData.brand}
+                        onChange={e => setFormData({ ...formData, brand: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="可选"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
+                      <input
+                        type="text"
+                        value={formData.model}
+                        onChange={e => setFormData({ ...formData, model: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="可选"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -667,6 +763,28 @@ export default function TransportPage() {
                         type="number"
                         value={formData.volume}
                         onChange={e => setFormData({ ...formData, volume: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="可选"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">行驶证号</label>
+                      <input
+                        type="text"
+                        value={formData.licenseNo}
+                        onChange={e => setFormData({ ...formData, licenseNo: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="可选"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">保险单号</label>
+                      <input
+                        type="text"
+                        value={formData.insuranceNo}
+                        onChange={e => setFormData({ ...formData, insuranceNo: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
                         placeholder="可选"
                       />
@@ -728,7 +846,7 @@ export default function TransportPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">准驾车型</label>
                       <div className="flex flex-wrap gap-2">
-                        {['小面', '中面', '厢货'].map(type => (
+                        {['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'].map(type => (
                           <label key={type} className="flex items-center gap-1 px-3 py-1 border rounded-lg cursor-pointer hover:bg-gray-50">
                             <input
                               type="checkbox"

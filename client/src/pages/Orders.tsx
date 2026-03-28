@@ -83,14 +83,14 @@ interface OrderFormItem {
 const statusMap: Record<string, string> = {
   PENDING: '待拣货',
   PICKING: '拣货中',
-  OUTBOUND_REVIEW: '出库审核中',
-  DISPATCHING: '待运力调度',
+  OUTBOUND_REVIEW: '出库审核',
+  DISPATCHING: '运力调度',
   DISPATCHED: '已调度',
   IN_TRANSIT: '运输中',
   DELIVERED: '已送达',
   COMPLETED: '已完成',
   RETURNING: '退货中',
-  RETURNED: '已退货退款',
+  RETURNED: '已退款',
   CANCELLED: '已取消',
 };
 
@@ -1039,13 +1039,13 @@ export default function OrdersPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="pl-4 pr-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
-                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
-                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-24">货主/仓库</th>
+                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-24">货主</th>
                 <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
                 <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
                 <th className="px-2 py-3 text-right text-base font-medium text-gray-500 uppercase w-16">金额</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
+                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
                 <th className="pr-4 pl-2 py-3 text-right text-base font-medium text-gray-500 uppercase w-16">操作</th>
               </tr>
             </thead>
@@ -1064,12 +1064,6 @@ export default function OrdersPage() {
                         </div>
                       ) : null;
                     })()}
-                  </td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20">
-                    <div className="flex flex-col">
-                      <span>{new Date(order.createdAt).toLocaleTimeString()}</span>
-                      <span className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</span>
-                    </div>
                   </td>
                   <td className="px-2 py-4 text-base text-gray-500 w-24">
                     <div className="truncate">{order.owner?.name}</div>
@@ -1115,24 +1109,31 @@ export default function OrdersPage() {
                     )}
                   </td>
                   <td className="px-2 py-4 whitespace-nowrap w-14 text-center">
-                    <span className={`px-2 py-1 text-sm rounded-full ${
-                      order.status === 'PENDING' ? 'bg-yellow-500 text-white' :
-                      order.status === 'APPROVED' ? 'bg-blue-600 text-white' :
-                      order.status === 'PICKING' ? 'bg-indigo-600 text-white' :
-                      order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-600 text-white' :
-                      order.status === 'DISPATCHING' ? 'bg-cyan-600 text-white' :
-                      order.status === 'DISPATCHED' ? 'bg-cyan-600 text-white' :
-                      order.status === 'IN_TRANSIT' ? 'bg-purple-600 text-white' :
-                      order.status === 'DELIVERED' ? 'bg-green-600 text-white' :
-                      order.status === 'COMPLETED' ? 'bg-emerald-500 text-white' :
-                      order.status === 'RETURNING' ? 'bg-orange-500 text-white' :
-                      order.status === 'RETURNED' ? 'bg-pink-500 text-white' :
-                      'bg-gray-500 text-white'
+                    <span className={`px-2 py-1 text-xs rounded border ${
+                      order.status === 'PENDING' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
+                      order.status === 'APPROVED' ? 'bg-blue-50 border-blue-500 text-blue-700' :
+                      order.status === 'PICKING' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' :
+                      order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-50 border-purple-500 text-purple-700' :
+                      order.status === 'DISPATCHING' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
+                      order.status === 'DISPATCHED' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
+                      order.status === 'IN_TRANSIT' ? 'bg-purple-50 border-purple-500 text-purple-700' :
+                      order.status === 'DELIVERED' ? 'bg-green-50 border-green-500 text-green-700' :
+                      order.status === 'COMPLETED' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' :
+                      order.status === 'RETURNING' ? 'bg-orange-50 border-orange-500 text-orange-700' :
+                      order.status === 'RETURNED' ? 'bg-pink-50 border-pink-500 text-pink-700' :
+                      order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
+                      'bg-gray-50 border-gray-500 text-gray-700'
                     }`}>
                       {statusMap[order.status]}
                     </span>
                   </td>
-                  <td className="px-2 py-4 whitespace-nowrap text-right text-base w-24">
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20">
+                    <div className="flex flex-col">
+                      <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                      <span className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-4 pr-4 whitespace-nowrap text-base text-right">
                     {order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW' ? (
                         <>
                           {(order as any).customerId ? null : (
@@ -1166,10 +1167,9 @@ export default function OrdersPage() {
                                 });
                                 setShowModal(true);
                               }}
-                              className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg"
-                              title="修改"
+                              className="px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 mr-1"
                             >
-                              <Pencil className="w-4 h-4" />
+                              修改
                             </button>
                           )}
                           <button
@@ -1179,10 +1179,9 @@ export default function OrdersPage() {
                                 handleStatusChange(order.id, 'CANCELLED');
                               }
                             }}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                            title="取消"
+                            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
                           >
-                            <Ban className="w-4 h-4" />
+                            取消
                           </button>
                         </>
                       ) : null}
@@ -1194,10 +1193,9 @@ export default function OrdersPage() {
                               handleDelete(order.id);
                             }
                           }}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="删除"
+                          className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          删除
                         </button>
                       )}
                       {order.status === 'DELIVERED' && (
@@ -1209,20 +1207,18 @@ export default function OrdersPage() {
                                 handleStatusChange(order.id, 'COMPLETED');
                               }
                             }}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
-                            title="确认收货"
+                            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 mr-1"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            确认收货
                           </button>
                           <button
                             onClick={() => {
                               setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
                               setReturnReason('');
                             }}
-                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
-                            title="申请退货"
+                            className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            申请退货
                           </button>
                         </>
                       )}
@@ -1232,10 +1228,9 @@ export default function OrdersPage() {
                             setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
                             setReturnReason('');
                           }}
-                          className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
-                          title="申请退货"
+                          className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
                         >
-                          <RotateCcw className="w-4 h-4" />
+                          申请退货
                         </button>
                       )}
                       {order.status === 'RETURNING' && (
@@ -1254,10 +1249,9 @@ export default function OrdersPage() {
                                       setReturnTrackingNo('');
                                       setReturnLogisticsCompany('');
                                     }}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                                    title="填写快递单号"
+                                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 mr-1"
                                   >
-                                    <Truck className="w-4 h-4" />
+                                    填写快递
                                   </button>
                                   <button
                                     onClick={async () => {
@@ -1271,10 +1265,9 @@ export default function OrdersPage() {
                                         });
                                       }
                                     }}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                                    title="取消退货"
+                                    className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                                   >
-                                    <XCircle className="w-4 h-4" />
+                                    取消退货
                                   </button>
                                 </>
                               )}
