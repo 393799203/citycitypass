@@ -452,7 +452,10 @@ export default function TransportPage() {
                       <React.Fragment key={groupName}>
                         {list.map((vehicle: any, idx: number) => (
                           <tr key={vehicle.id} className="border-b hover:bg-gray-50">
-                            {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle">{groupName}</td>}
+                            {idx === 0 && <td rowSpan={list.length} className="py-3 align-middle">
+                              <span className="text-primary-600 font-medium">{groupName.replace(' (承运商)', '')}</span>
+                              {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">承运商</span>}
+                            </td>}
                             <td className="py-3">
                               <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
                                 {vehicle.licensePlate ? vehicle.licensePlate.slice(0, 2) + '·' + vehicle.licensePlate.slice(2) : '-'}
