@@ -411,6 +411,25 @@ router.get('/stock-in', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/stock-out', async (req: Request, res: Response) => {
+  try {
+    const { warehouseId, skuId } = req.query;
+    const where: any = {};
+    if (warehouseId) where.warehouseId = warehouseId as string;
+    if (skuId) where.skuId = skuId as string;
+
+    const stockOuts = await (prisma.stockOut.findMany as any)({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ success: true, data: stockOuts });
+  } catch (error) {
+    console.error('Get stock-outs error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 router.post('/stock-in', async (req: Request, res: Response) => {
   try {
     const data = stockInSchema.parse(req.body);

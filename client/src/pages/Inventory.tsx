@@ -182,9 +182,33 @@ export default function InventoryPage() {
       }
     } catch (error) {
       console.error('Fetch data error:', error);
-    } finally {
-      setLoading(false);
     }
+
+    try {
+      const stockInRes = await fetch('/api/stock/stock-in', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const stockInData = await stockInRes.json();
+      if (stockInData.success) {
+        setStockIns(stockInData.data);
+      }
+    } catch (error) {
+      console.error('Fetch stock-ins error:', error);
+    }
+
+    try {
+      const stockOutRes = await fetch('/api/stock/stock-out', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const stockOutData = await stockOutRes.json();
+      if (stockOutData.success) {
+        setStockOuts(stockOutData.data);
+      }
+    } catch (error) {
+      console.error('Fetch stock-outs error:', error);
+    }
+
+    setLoading(false);
   };
 
   const fetchStockIns = async () => {
@@ -318,6 +342,29 @@ export default function InventoryPage() {
   return (
     <div className="space-y-6">
       <ToastContainer />
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-gray-500 text-sm">有库存商品SKU</div>
+          <div className="text-2xl font-bold text-primary-600">{new Set(stocks.filter(s => s.type === 'product' && (s.totalQuantity || 0) > 0).map(s => s.skuId)).size}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-gray-500 text-sm">有库存套装SKU</div>
+          <div className="text-2xl font-bold text-purple-600">{new Set(stocks.filter(s => s.type === 'bundle' && (s.totalQuantity || 0) > 0).map(s => s.bundleId)).size}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-gray-500 text-sm">今日入库</div>
+          <div className="text-2xl font-bold text-green-600">{stockIns.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, i) => sum + i.quantity, 0)}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-gray-500 text-sm">今日出库</div>
+          <div className="text-2xl font-bold text-orange-600">{stockOuts.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-gray-500 text-sm">总库存</div>
+          <div className="text-2xl font-bold text-gray-700">{stocks.reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
+        </div>
+      </div>
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
@@ -700,51 +747,42 @@ export default function InventoryPage() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const groupedStockIns = stockIns.reduce((acc: any, item: any) => {
-                      const key = item.warehouse?.name || '未知仓库';
-                      if (!acc[key]) acc[key] = [];
-                      acc[key].push(item);
-                      return acc;
-                    }, {});
-                    return Object.entries(groupedStockIns).map(([warehouseName, list]: [string, any]) => (
-                      <React.Fragment key={warehouseName}>
-                        {list.map((item: any, idx: number) => (
-                          <tr key={item.id} className="border-t">
-                            {idx === 0 && <td rowSpan={list.length} className="px-3 py-2 align-middle text-primary-600 font-medium">{warehouseName}</td>}
-                            <td className="px-3 py-2">
-                              <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                {item.type === 'bundle' ? '套装' : '商品'}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2">
-                              {item.type === 'bundle' 
-                                ? <div className="flex items-center gap-1">
-                                    {item.bundle?.name}
-                                    {item.bundle?.items?.length > 0 && (
-                                      <button
-                                        type="button"
-                                        onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
-                                        onMouseLeave={() => setTooltip(null)}
-                                        onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
-                                        className="p-0.5 hover:bg-gray-100 rounded"
-                                      >
-                                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                                      </button>
-                                    )}
-                                  </div>
-                                : getSkuInfo(item.skuId)}
-                            </td>
-                            <td className="px-3 py-2">
-                              <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
-                              {item.batchNo && <div className="text-purple-600 text-xs">批:{item.batchNo}</div>}
-                            </td>
-                            <td className="px-3 py-2 text-right text-green-600">+{item.quantity}</td>
-                            <td className="px-3 py-2 text-gray-500">
-                              {new Date(item.createdAt).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </React.Fragment>
+                    const sortedStockIns = [...stockIns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                    return sortedStockIns.map((item: any) => (
+                      <tr key={item.id} className="border-t">
+                        <td className="px-3 py-2 text-primary-600 font-medium">{item.warehouse?.name || '未知仓库'}</td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {item.type === 'bundle' ? '套装' : '商品'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {item.type === 'bundle' 
+                            ? <div className="flex items-center gap-1">
+                                {item.bundle?.name}
+                                {item.bundle?.items?.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
+                                    onMouseLeave={() => setTooltip(null)}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
+                                    className="p-0.5 hover:bg-gray-100 rounded"
+                                  >
+                                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                                  </button>
+                                )}
+                              </div>
+                            : getSkuInfo(item.skuId)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
+                          {item.batchNo && <div className="text-purple-600 text-xs">批:{item.batchNo}</div>}
+                        </td>
+                        <td className="px-3 py-2 text-right text-green-600">+{item.quantity}</td>
+                        <td className="px-3 py-2 text-gray-500">
+                          {new Date(item.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
                     ));
                   })()}
                   {stockIns.length === 0 && !stockInLoading && (
