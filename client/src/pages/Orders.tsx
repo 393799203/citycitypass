@@ -1038,21 +1038,21 @@ export default function OrdersPage() {
           <table className="w-full table-fixed">
             <thead className="bg-gray-50">
               <tr>
-                <th className="pl-4 pr-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
-                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-24">货主</th>
-                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
-                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
+                <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">货主</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
-                <th className="px-2 py-3 text-right text-base font-medium text-gray-500 uppercase w-16">金额</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">金额</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
-                <th className="px-2 py-3 text-left text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
-                <th className="pr-4 pl-2 py-3 text-right text-base font-medium text-gray-500 uppercase w-16">操作</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
+                <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="pl-4 pr-2 py-4 whitespace-nowrap text-base font-medium w-40">
+                  <td className="pl-4 pr-2 py-4 whitespace-nowrap text-base font-medium w-40 text-center">
                     <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                       {order.orderNo}
                     </Link>
@@ -1065,13 +1065,13 @@ export default function OrdersPage() {
                       ) : null;
                     })()}
                   </td>
-                  <td className="px-2 py-4 text-base text-gray-500 w-24">
+                  <td className="px-2 py-4 text-base text-gray-500 w-24 text-center">
                     <div className="truncate">{order.owner?.name}</div>
                     <div className="text-sm text-gray-400 truncate">{order.warehouse?.name}</div>
                   </td>
-                  <td className="px-2 py-4 text-base w-32">
+                  <td className="px-2 py-4 text-base w-32 text-center">
                     {(order as any).customerId && (order as any).customer ? (
-                      <>
+                      <div className="flex flex-col items-center gap-1">
                         <div className="flex items-center gap-1">
                           <span className="truncate font-medium">{(order as any).customer.name}</span>
                           {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
@@ -1084,25 +1084,25 @@ export default function OrdersPage() {
                           <span className="text-gray-300">|</span>
                           <span>{formatPhone(order.phone)}</span>
                         </div>
-                      </>
+                      </div>
                     ) : (
-                      <>
+                      <div className="flex flex-col items-center gap-1">
                         <div className="truncate">{order.receiver}</div>
                         <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
                           <Phone className="w-4 h-4 shrink-0" />
                           {formatPhone(order.phone)}
                         </div>
-                      </>
+                      </div>
                     )}
                   </td>
-                  <td className="px-2 py-4 text-base w-48">
-                    <div className="flex items-center gap-1 text-gray-500">
+                  <td className="px-2 py-4 text-base w-48 text-center">
+                    <div className="flex items-center justify-center gap-1 text-gray-500">
                       <MapPin className="w-4 h-4 shrink-0 text-gray-400" />
                       <span className="whitespace-normal">{formatAddress(order.province, order.city, order.address)}</span>
                     </div>
                   </td>
                   <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-12 text-center">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-primary-600 font-medium w-16 text-right">
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-primary-600 font-medium w-16 text-center">
                     <div>¥{Number(order.totalAmount).toLocaleString()}</div>
                     {(order as any).customerId && (order as any).contractDiscount && (
                       <span className="inline-block px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
@@ -1127,13 +1127,13 @@ export default function OrdersPage() {
                       {statusMap[order.status]}
                     </span>
                   </td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20">
-                    <div className="flex flex-col">
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20 text-center">
+                    <div className="flex flex-col items-center">
                       <span>{new Date(order.createdAt).toLocaleDateString()}</span>
                       <span className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</span>
                     </div>
                   </td>
-                  <td className="px-2 py-4 pr-4 whitespace-nowrap text-base text-right">
+                  <td className="px-2 py-4 whitespace-nowrap text-base text-center">
                     {order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW' ? (
                         <>
                           {(order as any).customerId ? null : (
