@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck,
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
+import ImportPreviewModal from '../components/ImportPreviewModal';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 
@@ -150,6 +151,7 @@ export default function OrdersPage() {
   const [returnTrackingNo, setReturnTrackingNo] = useState('');
   const [returnLogisticsCompany, setReturnLogisticsCompany] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importPreviewData, setImportPreviewData] = useState<{ orderNo: string; rows: any[] }[] | null>(null);
   const [customerType, setCustomerType] = useState<'RETAIL' | 'CORPORATE'>('RETAIL');
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -224,10 +226,13 @@ export default function OrdersPage() {
         exportData.push({
           '订单编号': order.orderNo,
           '货主': order.owner?.name || '',
-          '发货仓': order.warehouse?.name || '',
+          '客户名称': (order as any).customer?.name || '',
+          '折扣': idx === 0 ? ((order as any).contractDiscount ? `${((order as any).contractDiscount * 100).toFixed(0)}%` : '') : '',
           '收货人': order.receiver,
           '手机号': order.phone,
-          '收货地址': `${order.province || ''}${order.city || ''}${order.address}`,
+          '省份': order.province || '',
+          '城市': order.city || '',
+          '收货地址': order.address || '',
           '商品名称': item.productName,
           '包装': item.packaging,
           '规格': item.spec,
@@ -260,6 +265,9 @@ export default function OrdersPage() {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(sheet) as any[];
+
+        console.log('Excel 列名:', Object.keys(json[0] || {}));
+        console.log('Excel 第一行数据:', JSON.stringify(json[0], null, 2));
         
         const orderGroups: Record<string, any[]> = {};
         json.forEach(row => {
@@ -286,89 +294,12 @@ export default function OrdersPage() {
           toast.info(`已跳过 ${skippedCount} 个重复订单`);
         }
 
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const { orderNo, rows } of ordersToImport) {
-          const firstRow = rows[0];
-
-          const owner = owners.find(o => o.name === firstRow['货主']);
-          if (!owner) {
-            errorCount++;
-            continue;
-          }
-
-          const items = rows.map(row => ({
-            productName: row['商品名称'],
-            packaging: row['包装'],
-            spec: row['规格'],
-            price: Number(row['单价']),
-            quantity: Number(row['数量']),
-          }));
-
-          const skuPromises = items.map(async (item) => {
-            const res = await productApi.list({ name: item.productName });
-            const products = res.data.data || [];
-            for (const product of products) {
-              const sku = product.skus?.find((s: any) => s.packaging === item.packaging && s.spec === item.spec);
-              if (sku) {
-                return {
-                  skuId: sku.id,
-                  productName: item.productName,
-                  packaging: item.packaging,
-                  spec: item.spec,
-                  price: item.price,
-                  quantity: item.quantity,
-                };
-              }
-            }
-            return null;
-          });
-
-          const skuItems = await Promise.all(skuPromises);
-          const validItems = skuItems.filter(item => item !== null);
-
-          if (validItems.length === 0) {
-            errorCount++;
-            continue;
-          }
-
-          try {
-            const statusText = firstRow['状态'];
-            const statusMapReverse: Record<string, string> = {
-              '待拣货': 'PENDING',
-              '拣货中': 'PICKING',
-              '出库审核中': 'OUTBOUND_REVIEW',
-              '待运力调度': 'DISPATCHING',
-              '已调度': 'DISPATCHED',
-              '运输中': 'IN_TRANSIT',
-              '已送达': 'DELIVERED',
-              '已完成': 'COMPLETED',
-              '退货中': 'RETURNING',
-              '已取消': 'CANCELLED',
-            };
-            const status = statusMapReverse[statusText] || 'PENDING';
-
-            await orderApi.create({
-              orderNo: orderNo || undefined,
-              ownerId: owner.id,
-              receiver: firstRow['收货人'],
-              phone: firstRow['手机号'],
-              address: firstRow['收货地址'],
-              items: validItems,
-              status,
-            });
-            successCount++;
-          } catch (err) {
-            errorCount++;
-          }
+        if (ordersToImport.length === 0) {
+          toast.warning('没有需要导入的订单');
+          return;
         }
 
-        if (successCount > 0) {
-          fetchOrders();
-        }
-        
-        toast.success(`导入完成：成功 ${successCount} 条，失败 ${errorCount} 条`);
+        setImportPreviewData(ordersToImport);
       } catch (error) {
         toast.error('导入失败，请检查文件格式');
       }
@@ -376,6 +307,170 @@ export default function OrdersPage() {
     reader.readAsArrayBuffer(file);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImportConfirm = async (importOrders: { orderNo?: string; rows: any[]; fixed?: Record<string, any>; '货主'?: string; '仓库'?: string; '收货人'?: string; '手机号'?: string; '省份'?: string; '城市'?: string; '收货地址'?: string; '状态'?: string; '客户Id'?: string }[]) => {
+    console.log('handleImportConfirm 被调用, 数据:', JSON.stringify(importOrders, null, 2));
+    setImportPreviewData(null);
+    let successCount = 0;
+    let errorCount = 0;
+    const errorLogs: string[] = [];
+
+    if (importOrders.length === 0) {
+      console.log('没有需要导入的订单');
+      toast.warning('没有需要导入的订单');
+      return;
+    }
+
+    const customersRes = await customerApi.list({ status: 'ACTIVE' });
+    const allCustomers = customersRes.data.data || [];
+
+    for (const importOrder of importOrders) {
+      const orderNo = importOrder.orderNo;
+      const rows = importOrder.rows;
+      const fixed = importOrder.fixed;
+      const orderData = importOrder as any;
+      console.log('处理订单:', orderNo, '行数:', rows.length, '订单数据:', JSON.stringify(orderData, null, 2));
+
+      let customerId = orderData['客户Id'] || fixed?.customerId;
+      if (!customerId && orderData['客户名称']) {
+        const customer = allCustomers.find((c: any) => c.name === orderData['客户名称']);
+        if (customer) {
+          customerId = customer.id;
+        }
+      }
+
+      const owner = owners.find(o => o.name === orderData['货主']);
+      if (!owner) {
+        errorCount++;
+        errorLogs.push(`订单 ${orderNo || '未知'}: 未找到货主 "${orderData['货主']}"`);
+        toast.error(`订单 ${orderNo}: 未找到货主 "${orderData['货主']}"`);
+        continue;
+      }
+
+      const items = rows.map(row => ({
+        productName: row['商品名称'],
+        packaging: row['包装'],
+        spec: row['规格'],
+        price: Number(row['单价']),
+        quantity: Number(row['数量']),
+      }));
+
+      const skuPromises = items.map(async (item) => {
+        const productRes = await productApi.list({ name: item.productName });
+        const products = productRes.data.data || [];
+        console.log(`搜索商品: ${item.productName}, 找到 ${products.length} 个`);
+
+        for (const product of products) {
+          if (!product.skus || product.skus.length === 0) continue;
+          const sku = product.skus.find((s: any) => s.packaging === item.packaging && s.spec === item.spec);
+          if (sku) {
+            return {
+              skuId: sku.id,
+              bundleId: null,
+              productName: item.productName,
+              packaging: item.packaging,
+              spec: item.spec,
+              price: item.price,
+              quantity: item.quantity,
+            };
+          }
+        }
+
+        if (item.packaging || item.spec) {
+          return null;
+        }
+
+        const bundleRes = await bundleApi.list({ name: item.productName });
+        const bundles = bundleRes.data.data || [];
+        console.log(`搜索套装: ${item.productName}, 找到 ${bundles.length} 个`);
+
+        if (bundles.length > 0) {
+          const bundle = bundles.find((b: any) => b.name === item.productName);
+          if (bundle) {
+            return {
+              skuId: null,
+              bundleId: bundle.id,
+              productName: item.productName,
+              packaging: '',
+              spec: '',
+              price: item.price,
+              quantity: item.quantity,
+            };
+          }
+        }
+
+        console.warn(`商品/套装未找到: ${item.productName}`);
+        toast.error(`订单 ${orderNo}，${item.productName} 在货主仓库中缺货，无法下单`);
+        return null;
+      });
+
+      const skuItems = await Promise.all(skuPromises);
+      const validItems = skuItems.filter(item => item !== null);
+
+      if (validItems.length === 0) {
+        errorCount++;
+        const missingProducts = items.map(i => i.productName).join(', ');
+        errorLogs.push(`订单 ${orderNo || '未知'}，${missingProducts} 在货主仓库中缺货，无法下单`);
+        toast.error(`订单 ${orderNo}，${missingProducts} 在货主仓库中缺货，无法下单`);
+        continue;
+      }
+
+      try {
+        const statusText = orderData['状态'];
+        const statusMapReverse: Record<string, string> = {
+          '待拣货': 'PENDING',
+          '拣货中': 'PICKING',
+          '出库审核中': 'OUTBOUND_REVIEW',
+          '待运力调度': 'DISPATCHING',
+          '已调度': 'DISPATCHED',
+          '运输中': 'IN_TRANSIT',
+          '已送达': 'DELIVERED',
+          '已完成': 'COMPLETED',
+          '退货中': 'RETURNING',
+          '已取消': 'CANCELLED',
+        };
+        const status = statusMapReverse[orderData['状态'] || ''] || 'PENDING';
+
+        if (status === 'CANCELLED') {
+          errorCount++;
+          errorLogs.push(`订单 ${orderNo}: 取消状态的订单不能导入`);
+          toast.warn(`订单 ${orderNo}: 取消状态的订单不能导入`);
+          continue;
+        }
+
+        await orderApi.create({
+          orderNo: orderNo || undefined,
+          ownerId: owner.id,
+          receiver: orderData['收货人'] || fixed?.receiver || '未知',
+          phone: orderData['手机号'] || fixed?.phone || '13800000000',
+          province: orderData['省份'] || fixed?.province || '北京市',
+          city: orderData['城市'] || fixed?.city || '北京市',
+          address: orderData['收货地址'] || fixed?.address || '未知地址',
+          customerId,
+          customerName: orderData['客户名称'] || fixed?.customerName,
+          contractDiscount: orderData['折扣'] ? parseFloat(orderData['折扣'].replace('%', '')) / 100 : fixed?.discount,
+          items: validItems,
+          status,
+        });
+        successCount++;
+      } catch (err: any) {
+        errorCount++;
+        const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+        console.error(`订单 ${orderNo} 导入失败:`, err.response?.data);
+        errorLogs.push(`订单 ${orderNo}: ${errorMsg}`);
+        toast.error(`订单 ${orderNo} 导入失败: ${errorMsg}`);
+      }
+    }
+
+    if (successCount > 0) {
+      fetchOrders();
+    }
+    if (errorCount > 0) {
+      toast.error(`导入完成：成功 ${successCount} 条，失败 ${errorCount} 条`);
+    } else {
+      toast.success(`导入完成：成功 ${successCount} 条，失败 ${errorCount} 条`);
     }
   };
 
@@ -1719,6 +1814,16 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {importPreviewData && (
+        <ImportPreviewModal
+          fileData={importPreviewData}
+          owners={owners}
+          warehouses={warehouses}
+          customers={customers}
+          onConfirm={handleImportConfirm}
+          onCancel={() => setImportPreviewData(null)}
+        />
+      )}
 
     </div>
   );

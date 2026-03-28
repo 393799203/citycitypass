@@ -36,7 +36,7 @@ const orderItemSchema = z.object({
 
 const orderSchema = z.object({
   ownerId: z.string(),
-  warehouseId: z.string(),
+  warehouseId: z.string().optional(),
   customerId: z.string().optional(),
   receiver: z.string(),
   phone: z.string(),
@@ -252,6 +252,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
+    console.log('创建订单请求体:', JSON.stringify(req.body, null, 2));
     const data = orderSchema.parse(req.body);
 
     let totalAmount = 0;
@@ -432,7 +433,8 @@ router.post('/', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Create order error:', error);
     if (error.name === 'ZodError') {
-      return res.status(400).json({ success: false, message: error.errors[0].message });
+      console.error('Zod validation errors:', JSON.stringify(error.errors, null, 2));
+      return res.status(400).json({ success: false, message: error.errors[0].message, errors: error.errors });
     }
     res.status(500).json({ success: false, message: error.message || '服务器错误' });
   }
@@ -582,9 +584,19 @@ async function allocateItemsToWarehouses(prisma: any, warehouses: any[], skuItem
 
 async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: number, skuItems: any[], bundleItems: any[]) {
   return prisma.$transaction(async (tx: typeof prisma) => {
+    let warehouseId = data.warehouseId;
+    if (!warehouseId) {
+      const allWarehouses = await tx.warehouse.findMany({ where: { ownerId: data.ownerId } });
+      if (allWarehouses.length > 0) {
+        warehouseId = allWarehouses[0].id;
+      } else {
+        throw new Error('未找到可用仓库');
+      }
+    }
+
     if (skuItems.length > 0) {
       const availableStocks = await tx.stock.aggregate({
-        where: { skuId: { in: skuItems.map((i: any) => i.skuId!).filter(Boolean) as string[] }, warehouseId: data.warehouseId },
+        where: { skuId: { in: skuItems.map((i: any) => i.skuId!).filter(Boolean) as string[] }, warehouseId: warehouseId },
         _sum: { availableQuantity: true },
       });
       const totalAvailable = availableStocks._sum.availableQuantity || 0;
@@ -597,7 +609,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
     if (bundleItems.length > 0) {
       for (const item of bundleItems) {
         const bundleStock = await tx.bundleStock.aggregate({
-          where: { bundleId: item.bundleId!, warehouseId: data.warehouseId },
+          where: { bundleId: item.bundleId!, warehouseId: warehouseId },
           _sum: { availableQuantity: true },
         });
         const totalAvailable = bundleStock._sum.availableQuantity || 0;
@@ -611,7 +623,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
       data: {
         orderNo: data.orderNo || generateOrderNo(),
         ownerId: data.ownerId,
-        warehouseId: data.warehouseId,
+        warehouseId: warehouseId,
         customerId: data.customerId,
         receiver: data.receiver,
         phone: data.phone,
@@ -643,7 +655,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
         const allStocks = await tx.stock.findMany({
           where: {
             skuId: item.skuId!,
-            warehouseId: data.warehouseId,
+            warehouseId: warehouseId,
             availableQuantity: { gt: 0 },
             location: {
               shelf: {
@@ -678,7 +690,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.stockLock.create({
-            data: { skuId: item.skuId!, warehouseId: data.warehouseId, stockId: stock.id, locationId: stock.locationId, batchNo: stock.batchNo, quantity: lockQty, orderId: newOrder.id },
+            data: { skuId: item.skuId!, warehouseId: warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -686,7 +698,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
         const bundleStocks = await tx.bundleStock.findMany({
           where: {
             bundleId: item.bundleId!,
-            warehouseId: data.warehouseId,
+            warehouseId: warehouseId,
             availableQuantity: { gt: 0 },
             location: {
               shelf: {
@@ -721,7 +733,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.bundleStockLock.create({
-            data: { bundleId: item.bundleId!, warehouseId: data.warehouseId, stockId: bs.id, locationId: bs.locationId, batchNo: bs.batchNo, quantity: lockQty, orderId: newOrder.id },
+            data: { bundleId: item.bundleId!, warehouseId: warehouseId, locationId: bs.locationId, batchNo: bs.batchNo, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
