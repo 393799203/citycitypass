@@ -185,24 +185,18 @@ export default function InventoryPage() {
     }
 
     try {
-      const stockInRes = await fetch('/api/stock/stock-in', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const stockInData = await stockInRes.json();
-      if (stockInData.success) {
-        setStockIns(stockInData.data);
+      const stockInRes = await stockApi.stockIns();
+      if (stockInRes.data.success) {
+        setStockIns(stockInRes.data.data);
       }
     } catch (error) {
       console.error('Fetch stock-ins error:', error);
     }
 
     try {
-      const stockOutRes = await fetch('/api/stock/stock-out', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const stockOutData = await stockOutRes.json();
-      if (stockOutData.success) {
-        setStockOuts(stockOutData.data);
+      const stockOutRes = await stockApi.stockOuts();
+      if (stockOutRes.data.success) {
+        setStockOuts(stockOutRes.data.data);
       }
     } catch (error) {
       console.error('Fetch stock-outs error:', error);
