@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Truck, Plus, Pencil, Trash2, X, Loader2, CheckCircle, XCircle, Car, Phone, MapPin, FileText } from 'lucide-react';
+import { Truck, Plus, Pencil, Trash2, X, Loader2, CheckCircle, XCircle, Car, Phone, MapPin, FileText, Edit } from 'lucide-react';
 import { carrierApi } from '../api';
 import { useConfirm } from '../components/ConfirmProvider';
 import PhoneInput from '../components/PhoneInput';
@@ -58,6 +58,10 @@ interface CarrierVehicle {
   licenseNo?: string;
   insuranceNo?: string;
   status: 'AVAILABLE' | 'IN_TRANSIT' | 'MAINTENANCE' | 'DISABLED';
+  location?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   remark?: string;
 }
 
@@ -78,6 +82,7 @@ export default function CarriersPage() {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [selectedCarrier, setSelectedCarrier] = useState<Carrier | null>(null);
   const [filters, setFilters] = useState({ status: '', level: '', search: '' });
   const [activeTab, setActiveTab] = useState<'overview' | 'contracts' | 'vehicles'>('overview');
@@ -280,17 +285,56 @@ export default function CarriersPage() {
     if (!selectedCarrier) return;
 
     try {
-      await carrierApi.createVehicle(selectedCarrier.id, {
-        ...vehicleForm,
-        capacity: vehicleForm.capacity ? parseFloat(vehicleForm.capacity) : undefined,
-        volume: vehicleForm.volume ? parseFloat(vehicleForm.volume) : undefined,
-      });
-      toast.success('车辆添加成功');
+      if (editingVehicleId) {
+        await carrierApi.updateVehicle(editingVehicleId, {
+          ...vehicleForm,
+          capacity: vehicleForm.capacity ? parseFloat(vehicleForm.capacity) : undefined,
+          volume: vehicleForm.volume ? parseFloat(vehicleForm.volume) : undefined,
+        });
+        toast.success('车辆更新成功');
+      } else {
+        await carrierApi.createVehicle(selectedCarrier.id, {
+          ...vehicleForm,
+          capacity: vehicleForm.capacity ? parseFloat(vehicleForm.capacity) : undefined,
+          volume: vehicleForm.volume ? parseFloat(vehicleForm.volume) : undefined,
+        });
+        toast.success('车辆添加成功');
+      }
       setShowVehicleModal(false);
       setVehicleForm({ licensePlate: '', vehicleType: '', brand: '', model: '', capacity: '', volume: '', licenseNo: '', insuranceNo: '' });
+      setEditingVehicleId(null);
       refreshCarrier();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
+    }
+  };
+
+  const handleEditVehicle = (vehicle: any) => {
+    setVehicleForm({
+      licensePlate: vehicle.licensePlate || '',
+      vehicleType: vehicle.vehicleType || '',
+      brand: vehicle.brand || '',
+      model: vehicle.model || '',
+      capacity: vehicle.capacity?.toString() || '',
+      volume: vehicle.volume?.toString() || '',
+      licenseNo: vehicle.licenseNo || '',
+      insuranceNo: vehicle.insuranceNo || '',
+    });
+    setEditingVehicleId(vehicle.id);
+    setShowVehicleModal(true);
+  };
+
+  const handleDeleteVehicle = async (vehicleId: string) => {
+    if (!selectedCarrier) return;
+    const ok = await confirm({ message: '确定要删除该车辆吗？' });
+    if (!ok) return;
+
+    try {
+      await carrierApi.deleteVehicle(vehicleId);
+      toast.success('删除成功');
+      refreshCarrier();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '删除失败');
     }
   };
 
@@ -622,7 +666,7 @@ export default function CarriersPage() {
                   {selectedCarrier.vehicles && selectedCarrier.vehicles.length > 0 ? (
                     <div className="grid grid-cols-2 gap-3">
                       {selectedCarrier.vehicles.map((vehicle) => (
-                        <div key={vehicle.id} className="border rounded-lg p-3">
+                        <div key={vehicle.id} className="border rounded-lg p-3 relative">
                           <div className="flex justify-between items-start">
                             <div className="flex items-center gap-2">
                               <Car className="w-5 h-5 text-gray-400" />
@@ -631,22 +675,47 @@ export default function CarriersPage() {
                                 <p className="text-xs text-gray-500">{vehicle.vehicleType}</p>
                               </div>
                             </div>
-                            <span className={`px-2 py-0.5 rounded-full text-xs ${
-                              vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-700' :
-                              vehicle.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700' :
-                              vehicle.status === 'MAINTENANCE' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {vehicle.status === 'AVAILABLE' ? '空闲' :
-                               vehicle.status === 'IN_TRANSIT' ? '配送中' :
-                               vehicle.status === 'MAINTENANCE' ? '维修' : '停用'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-700' :
+                                vehicle.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700' :
+                                vehicle.status === 'MAINTENANCE' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {vehicle.status === 'AVAILABLE' ? '空闲' :
+                                 vehicle.status === 'IN_TRANSIT' ? '配送中' :
+                                 vehicle.status === 'MAINTENANCE' ? '维修' : '停用'}
+                              </span>
+                              <button
+                                onClick={() => handleEditVehicle(vehicle)}
+                                className="p-1 hover:bg-gray-100 rounded text-blue-600"
+                                title="编辑"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVehicle(vehicle.id)}
+                                className="p-1 hover:bg-gray-100 rounded text-red-600"
+                                title="删除"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                           <div className="mt-2 text-xs text-gray-500 flex gap-3">
                             {vehicle.brand && <span>{vehicle.brand}</span>}
                             {vehicle.capacity && <span>载重: {vehicle.capacity}吨</span>}
                             {vehicle.volume && <span>容积: {vehicle.volume}方</span>}
                           </div>
+                          {(vehicle.location || (vehicle.latitude && vehicle.longitude)) && (
+                            <div className="mt-2 text-xs text-green-600 flex items-center gap-2">
+                              <MapPin className="w-3 h-3" />
+                              <span>{vehicle.location || ''}</span>
+                              {vehicle.latitude && vehicle.longitude && (
+                                <span className="text-blue-500">({vehicle.latitude.toFixed(6)}, {vehicle.longitude.toFixed(6)})</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -932,7 +1001,7 @@ export default function CarriersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
             <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">添加车辆</h2>
+              <h2 className="text-xl font-bold">{editingVehicleId ? '编辑车辆' : '添加车辆'}</h2>
               <button onClick={() => setShowVehicleModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -1039,7 +1108,7 @@ export default function CarriersPage() {
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="submit" className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                  添加
+                  {editingVehicleId ? '保存' : '添加'}
                 </button>
                 <button type="button" onClick={() => setShowVehicleModal(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">
                   取消
