@@ -16,6 +16,7 @@ import {
   Menu,
   Settings,
   Building2,
+  Factory,
   Route,
   FileText,
   RotateCcw,
@@ -39,7 +40,7 @@ const configMenuItems = [
   { path: '/customers', icon: Users, label: '客户管理' },
   { path: '/suppliers', icon: Users, label: '供应商管理' },
   { path: '/transport', icon: Truck, label: '运力管理' },
-  { path: '/carriers', icon: Truck, label: '承运商管理' },
+  { path: '/carriers', icon: Factory, label: '承运商管理' },
 ];
 
 const businessMenuItems = [

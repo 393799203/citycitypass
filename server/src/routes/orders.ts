@@ -233,6 +233,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       id: order.dispatchOrders[0].dispatch.id,
       dispatchNo: order.dispatchOrders[0].dispatch.dispatchNo,
       status: order.dispatchOrders[0].dispatch.status,
+      completedTime: order.dispatchOrders[0].dispatch.completedTime,
       vehicle: order.dispatchOrders[0].dispatch.vehicle ? {
         licensePlate: order.dispatchOrders[0].dispatch.vehicle.licensePlate,
         vehicleType: order.dispatchOrders[0].dispatch.vehicle.vehicleType,
