@@ -935,17 +935,17 @@ export default function InboundPage() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">入库单号</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">来源</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">仓库</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">供应商</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">商品</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">库位</th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">数量</th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">状态</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">时间</th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">操作</th>
+            <tr className="text-center">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">入库单号</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">来源</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">仓库</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">供应商</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">商品</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">库位</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">数量</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">状态</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">时间</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -988,24 +988,24 @@ export default function InboundPage() {
                   <tr key={`${order.id}-${row.idx}`} className="hover:bg-gray-50">
                     {rowIdx === 0 && (
                       <>
-                        <td className="px-4 py-3 text-sm font-mono" rowSpan={orderRows.length}>
+                        <td className="px-4 py-3 text-sm font-mono text-center" rowSpan={orderRows.length}>
                           {order.inboundNo}
                         </td>
-                        <td className="px-4 py-3" rowSpan={orderRows.length}>
+                        <td className="px-4 py-3 text-center" rowSpan={orderRows.length}>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${SOURCE_COLORS[order.source] || 'bg-gray-100 text-gray-700'}`}>
                             {SOURCE_NAMES[order.source] || order.source}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm" rowSpan={orderRows.length}>
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
                           {order.warehouse?.name}
                         </td>
-                        <td className="px-4 py-3 text-sm" rowSpan={orderRows.length}>
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
                           {order.supplier?.name || '-'}
                         </td>
                       </>
                     )}
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3 text-sm text-center">
+                      <div className="flex items-center justify-center gap-1">
                         <span className={`px-1.5 py-0.5 text-xs rounded ${
                           row.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                         }`}>
@@ -1017,7 +1017,7 @@ export default function InboundPage() {
                         <div className="text-xs text-gray-500">{row.itemSpec} | {row.itemPackaging}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm text-center">
                       <div className="text-green-600">{row.locationCode}</div>
                       {row.batchNo && row.batchNo !== '-' && (
                         <div className="text-xs text-gray-400">批:{row.batchNo}</div>
@@ -1033,7 +1033,7 @@ export default function InboundPage() {
                             {STATUS_NAMES[order.status] || order.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm" rowSpan={orderRows.length}>
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
                           {order.putawayAt ? (
                             <>
                               <div className="text-xs text-green-600">上架: {new Date(order.putawayAt).toLocaleString()}</div>
@@ -1043,7 +1043,7 @@ export default function InboundPage() {
                             <div className="text-xs text-gray-400">创建: {new Date(order.createdAt).toLocaleString()}</div>
                           )}
                         </td>
-                        <td className="px-4 py-3" rowSpan={orderRows.length}>
+                        <td className="px-4 py-3 text-center" rowSpan={orderRows.length}>
                           <button
                             onClick={() => handleViewDetail(order)}
                             className="text-blue-600 hover:text-blue-800 text-sm mr-2"
@@ -1489,6 +1489,7 @@ export default function InboundPage() {
                     <tr>
                       <th className="px-3 py-2 text-left text-xs">商品</th>
                       <th className="px-3 py-2 text-left text-xs">规格</th>
+                      <th className="px-3 py-2 text-left text-xs">包装</th>
                       <th className="px-3 py-2 text-center text-xs">期望</th>
                       <th className="px-3 py-2 text-center text-xs">实收</th>
                       <th className="px-3 py-2 text-center text-xs">验收</th>
@@ -1503,6 +1504,7 @@ export default function InboundPage() {
                           {item.type === 'BUNDLE' ? item.bundle?.name : item.sku?.product?.name}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-500">{item.sku?.spec || '-'}</td>
+                        <td className="px-3 py-2 text-sm text-gray-500">{item.sku?.packaging || '-'}</td>
                         <td className="px-3 py-2 text-sm text-center">{item.expectedQuantity || item.quantity}</td>
                         <td className="px-3 py-2 text-sm text-center text-blue-600 font-medium">{item.receivedQuantity || 0}</td>
                         <td className="px-3 py-2 text-sm text-center">

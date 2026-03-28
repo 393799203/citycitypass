@@ -1128,24 +1128,24 @@ export default function ProductsPage() {
                   ) : (
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2 text-left">仓库</th>
-                          <th className="px-3 py-2 text-left">库位</th>
-                          <th className="px-3 py-2 text-right">总库存</th>
-                          <th className="px-3 py-2 text-right">可用</th>
-                          <th className="px-3 py-2 text-right">已锁定</th>
+                        <tr className="text-center">
+                          <th className="px-3 py-2">仓库</th>
+                          <th className="px-3 py-2">库位</th>
+                          <th className="px-3 py-2">总库存</th>
+                          <th className="px-3 py-2">可用</th>
+                          <th className="px-3 py-2">已锁定</th>
                         </tr>
                       </thead>
                       <tbody>
                         {bundleStocks.map(stock => (
                           <tr key={stock.id} className="border-t">
-                            <td className="px-3 py-2">{stock.warehouse?.code}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 text-center">{stock.warehouse?.code}</td>
+                            <td className="px-3 py-2 text-center">
                               {stock.location ? `${stock.location.shelf?.zone?.code || '-'} - ${stock.location.shelf?.code || '-'} - L${stock.location.level}` : '-'}
                             </td>
-                            <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
-                            <td className="px-3 py-2 text-right text-green-600">{stock.availableQuantity}</td>
-                            <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
+                            <td className="px-3 py-2 text-center">{stock.totalQuantity}</td>
+                            <td className="px-3 py-2 text-center text-green-600">{stock.availableQuantity}</td>
+                            <td className="px-3 py-2 text-center text-orange-600">{stock.lockedQuantity}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1160,26 +1160,26 @@ export default function ProductsPage() {
                   ) : (
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2 text-left">仓库</th>
-                          <th className="px-3 py-2 text-left">库位</th>
-                          <th className="px-3 py-2 text-left">规格</th>
-                          <th className="px-3 py-2 text-right">总库存</th>
-                          <th className="px-3 py-2 text-right">可用</th>
-                          <th className="px-3 py-2 text-right">已锁定</th>
+                        <tr className="text-center">
+                          <th className="px-3 py-2">仓库</th>
+                          <th className="px-3 py-2">库位</th>
+                          <th className="px-3 py-2">规格</th>
+                          <th className="px-3 py-2">总库存</th>
+                          <th className="px-3 py-2">可用</th>
+                          <th className="px-3 py-2">已锁定</th>
                         </tr>
                       </thead>
                       <tbody>
                         {productStocks.map(stock => (
                           <tr key={stock.id} className="border-t">
-                            <td className="px-3 py-2">{stock.warehouse?.code}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 text-center">{stock.warehouse?.code}</td>
+                            <td className="px-3 py-2 text-center">
                               {stock.location ? `${stock.location.shelf?.zone?.code || '-'} - ${stock.location.shelf?.code || '-'} - L${stock.location.level}` : '-'}
                             </td>
-                            <td className="px-3 py-2">{stock.sku?.spec}/{stock.sku?.packaging}</td>
-                            <td className="px-3 py-2 text-right">{stock.totalQuantity}</td>
-                            <td className="px-3 py-2 text-right text-green-600">{stock.availableQuantity}</td>
-                            <td className="px-3 py-2 text-right text-orange-600">{stock.lockedQuantity}</td>
+                            <td className="px-3 py-2 text-center">{stock.sku?.spec}/{stock.sku?.packaging}</td>
+                            <td className="px-3 py-2 text-center">{stock.totalQuantity}</td>
+                            <td className="px-3 py-2 text-center text-green-600">{stock.availableQuantity}</td>
+                            <td className="px-3 py-2 text-center text-orange-600">{stock.lockedQuantity}</td>
                           </tr>
                         ))}
                       </tbody>

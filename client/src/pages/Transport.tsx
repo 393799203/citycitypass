@@ -416,7 +416,7 @@ export default function TransportPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-gray-500 text-sm border-b">
+                  <tr className="text-center text-gray-500 text-sm border-b">
                     <th className="pb-3">仓库</th>
                     <th className="pb-3">车牌号</th>
                     <th className="pb-3">车型</th>
@@ -426,7 +426,7 @@ export default function TransportPage() {
                     <th className="pb-3">当前位置</th>
                     <th className="pb-3">当前司机</th>
                     <th className="pb-3">状态</th>
-                    <th className="pb-3 text-right">操作</th>
+                    <th className="pb-3">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -452,41 +452,41 @@ export default function TransportPage() {
                       <React.Fragment key={groupName}>
                         {list.map((vehicle: any, idx: number) => (
                           <tr key={vehicle.id} className="border-b hover:bg-gray-50">
-                            {idx === 0 && <td rowSpan={list.length} className="py-3 align-middle">
+                            {idx === 0 && <td rowSpan={list.length} className="py-3 align-middle text-center">
                               <span className="text-primary-600 font-medium">{groupName.replace(' (承运商)', '')}</span>
                               {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">承运商</span>}
                             </td>}
-                            <td className="py-3">
+                            <td className="py-3 text-center">
                               <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
                                 {vehicle.licensePlate ? vehicle.licensePlate.slice(0, 2) + '·' + vehicle.licensePlate.slice(2) : '-'}
                               </div>
                             </td>
-                            <td className="py-3">
+                            <td className="py-3 text-center">
                               {vehicle.vehicleType && vehicleTypeColors[vehicle.vehicleType] ? (
                                 <span className={`px-2 py-0.5 text-xs rounded-full ${vehicleTypeColors[vehicle.vehicleType].bg} ${vehicleTypeColors[vehicle.vehicleType].text} border ${vehicleTypeColors[vehicle.vehicleType].border}`}>
                                   {vehicle.vehicleType}
                                 </span>
                               ) : vehicle.vehicleType || '-'}
                             </td>
-                            <td className="py-3 text-sm">
+                            <td className="py-3 text-sm text-center">
                               {vehicle.brand || vehicle.model ? `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() : '-'}
                             </td>
-                            <td className="py-3 text-sm">
+                            <td className="py-3 text-sm text-center">
                               <div>载重: {vehicle.capacity}吨</div>
                               <div>容积: {vehicle.volume || '-'}m³</div>
                             </td>
-                            <td className="py-3 text-sm text-gray-500">
+                            <td className="py-3 text-sm text-gray-500 text-center">
                               <div>证:{vehicle.licenseNo || '-'}</div>
                               <div>险:{vehicle.insuranceNo || '-'}</div>
                             </td>
-                            <td className="py-3 text-gray-500 text-sm">
+                            <td className="py-3 text-gray-500 text-sm text-center">
                               <div>{vehicle.location || '-'}</div>
                               <div className="text-xs">{vehicle.address || '-'}</div>
                               {vehicle.latitude && vehicle.longitude && (
                                 <div className="text-xs text-gray-400">({vehicle.latitude},{vehicle.longitude})</div>
                               )}
                             </td>
-                            <td className="py-3">
+                            <td className="py-3 text-center">
                               {vehicle.drivers && vehicle.drivers.length > 0
                                 ? vehicle.drivers.map((d: any) => (
                                     <div key={d.id} className="text-sm">
@@ -496,7 +496,7 @@ export default function TransportPage() {
                                   ))
                                 : '-'}
                             </td>
-                            <td className="py-3">
+                            <td className="py-3 text-center">
                               <span className={`px-2 py-1 text-xs rounded-full ${
                                 vehicle.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
                                 vehicle.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
@@ -506,7 +506,7 @@ export default function TransportPage() {
                                 {vehicleStatusMap[vehicle.status]}
                               </span>
                             </td>
-                            <td className="py-3 text-right">
+                            <td className="py-3 text-center">
                               <button
                                 onClick={() => handleOpenLocationModal(vehicle)}
                                 className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
@@ -551,7 +551,7 @@ export default function TransportPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-gray-500 text-sm border-b">
+                  <tr className="text-center text-gray-500 text-sm border-b">
                     <th className="pb-3">仓库</th>
                     <th className="pb-3">司机/电话</th>
                     <th className="pb-3">驾驶证号</th>
@@ -559,7 +559,7 @@ export default function TransportPage() {
                     <th className="pb-3">当前位置</th>
                     <th className="pb-3">当前车辆</th>
                     <th className="pb-3">状态</th>
-                    <th className="pb-3 text-right">操作</th>
+                    <th className="pb-3">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -574,14 +574,14 @@ export default function TransportPage() {
                       <React.Fragment key={warehouseName}>
                         {list.map((driver: any, idx: number) => (
                           <tr key={driver.id} className="border-b hover:bg-gray-50">
-                            {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle">{warehouseName}</td>}
-                            <td className="py-3 text-sm">
+                            {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle text-center">{warehouseName}</td>}
+                            <td className="py-3 text-sm text-center">
                               <div className="font-medium">{driver.name}</div>
                               <div className="text-gray-400 text-xs">{formatPhone(driver.phone)}</div>
                             </td>
-                            <td className="py-3 font-mono text-sm">{driver.licenseNo ? driver.licenseNo.replace(/(\d{6})(\d{6})(\d{2})/, '$1 $2 $3').replace(/(\d{6})(\d{10})(\d{2})/, '$1 $2 $3') : '-'}</td>
-                            <td className="py-3">
-                              <div className="flex flex-wrap gap-1">
+                            <td className="py-3 font-mono text-sm text-center">{driver.licenseNo ? driver.licenseNo.replace(/(\d{6})(\d{6})(\d{2})/, '$1 $2 $3').replace(/(\d{6})(\d{10})(\d{2})/, '$1 $2 $3') : '-'}</td>
+                            <td className="py-3 text-center">
+                              <div className="flex flex-wrap gap-1 justify-center">
                                 {driver.licenseTypes?.map((type: string) => (
                                   <span key={type} className={`px-2 py-0.5 text-xs rounded-full ${licenseTypeColors[type]?.bg || 'bg-gray-100'} ${licenseTypeColors[type]?.text || 'text-gray-700'} border ${licenseTypeColors[type]?.border || 'border-gray-200'}`}>
                                     {type}
@@ -589,21 +589,21 @@ export default function TransportPage() {
                                 )) || '-'}
                               </div>
                             </td>
-                            <td className="py-3 text-gray-500 text-sm">
+                            <td className="py-3 text-gray-500 text-sm text-center">
                               <div>{driver.location || '-'}</div>
                               <div className="text-xs">{driver.address || '-'}</div>
                               {driver.latitude && driver.longitude && (
                                 <div className="text-xs text-gray-400">({driver.latitude},{driver.longitude})</div>
                               )}
                             </td>
-                            <td className="py-3">
+                            <td className="py-3 text-center">
                               {driver.vehicle?.licensePlate
                                 ? <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
                                     {driver.vehicle.licensePlate.slice(0, 2)}·{driver.vehicle.licensePlate.slice(2)}
                                   </div>
                                 : '-'}
                             </td>
-                            <td className="py-3">
+                            <td className="py-3 text-center">
                               <span className={`px-2 py-1 text-xs rounded-full ${
                                 driver.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
                                 driver.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
@@ -613,7 +613,7 @@ export default function TransportPage() {
                                 {driverStatusMap[driver.status]}
                               </span>
                             </td>
-                            <td className="py-3 text-right">
+                            <td className="py-3 text-center">
                               <button
                                 onClick={() => handleOpenLocationModal(driver)}
                                 className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"

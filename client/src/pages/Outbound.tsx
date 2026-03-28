@@ -350,7 +350,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
               <div className="overflow-x-visible">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-gray-500 text-sm border-b">
+                  <tr className="text-center text-gray-500 text-sm border-b">
                     <th className="pb-3 w-10">
                       <input
                         type="checkbox"
@@ -366,12 +366,12 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                         className="w-4 h-4 rounded border-gray-300"
                       />
                     </th>
-                    <th className="pb-3">订单号</th>
-                    <th className="pb-3">下单时间</th>
-                    <th className="pb-3">货主</th>
-                    <th className="pb-3">仓库</th>
-                    <th className="pb-3">商品[库位]</th>
-                    <th className="pb-3 text-right">操作</th>
+                    <th className="pb-3 text-center">订单号</th>
+                    <th className="pb-3 text-center">下单时间</th>
+                    <th className="pb-3 text-center">货主</th>
+                    <th className="pb-3 text-center">仓库</th>
+                    <th className="pb-3 text-center">商品[库位]</th>
+                    <th className="pb-3 text-center">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -391,24 +391,24 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           className="w-4 h-4 rounded border-gray-300"
                         />
                       </td>
-                      <td className="py-3 font-medium">
+                      <td className="py-3 text-center">
                         {order.order?.id ? (
                           <Link to={`/orders/${order.order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                             {order.order?.orderNo}
                           </Link>
                         ) : order.order?.orderNo}
                       </td>
-                      <td className="py-3 text-gray-500 text-sm">{order.order?.createdAt ? new Date(order.order.createdAt).toLocaleString() : '-'}</td>
-                      <td className="py-3">{order.order?.owner?.name}</td>
-                      <td className="py-3 text-blue-600">{order.order?.warehouse?.name}</td>
-                      <td className="py-3">
+                      <td className="py-3 text-gray-500 text-sm text-center">{order.order?.createdAt ? new Date(order.order.createdAt).toLocaleString() : '-'}</td>
+                      <td className="py-3 text-center">{order.order?.owner?.name}</td>
+                      <td className="py-3 text-center text-blue-600">{order.order?.warehouse?.name}</td>
+                      <td className="py-3 text-center">
                         {order.items?.flatMap((item: any) => {
                           const locks = item.bundleId
                             ? order.bundleStockLocks?.filter((l: any) => l.bundleId === item.bundleId)
                             : order.stockLocks?.filter((l: any) => l.skuId === item.skuId);
                           if (!locks || locks.length === 0) {
                             return [
-                              <div key={item.id} className="text-sm mb-1 flex items-center">
+                              <div key={item.id} className="text-sm mb-1 flex items-center justify-center">
                                 <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
                                   {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
                                   {item.productName}
@@ -422,7 +422,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                             const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
                             const showInfo = item.bundleId && item.bundle?.items?.length > 0;
                             return (
-                              <div key={`${item.id}-${idx}`} className="text-sm mb-1 flex items-center">
+                              <div key={`${item.id}-${idx}`} className="text-sm mb-1 flex items-center justify-center">
                                 <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
                                   {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
                                   {item.productName}
@@ -455,7 +455,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           });
                         })}
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3 text-center">
                         <button
                           onClick={async () => {
                             try {
@@ -540,18 +540,18 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                   <div className="overflow-x-visible bg-gray-50 rounded-lg p-3">
                     <table className="w-full table-fixed">
                       <thead>
-                        <tr className="text-xs text-gray-500">
-                          <th className="text-left py-1 w-1/4">商品</th>
-                          <th className="text-left py-1 w-1/4">包装/规格</th>
-                          <th className="text-left py-1 w-12">数量</th>
-                          <th className="text-left py-1 w-1/4">库位(货位)</th>
+                        <tr className="text-xs text-gray-500 text-center">
+                          <th className="py-1 w-1/4">商品</th>
+                          <th className="py-1 w-1/4">包装/规格</th>
+                          <th className="py-1 w-12">数量</th>
+                          <th className="py-1 w-1/4">库位(货位)</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
                         {(pickOrder.items || []).map((item: any) => (
                           <tr key={item.id} className="border-t border-gray-200">
-                            <td className="py-2 align-top">
-                              <div className="flex items-center gap-1">
+                            <td className="py-2 align-top text-center">
+                              <div className="flex items-center justify-center gap-1">
                                 {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
                                 <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
                                 {item.bundleId && item.bundle?.items?.length > 0 && (
@@ -567,9 +567,9 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                                 )}
                               </div>
                             </td>
-                            <td className="py-2 align-top text-gray-500">{item.packaging} · {item.spec}</td>
-                            <td className="py-2 align-top">{item.quantity}</td>
-                            <td className="py-2 align-top text-gray-500">
+                            <td className="py-2 align-top text-gray-500 text-center">{item.packaging} · {item.spec}</td>
+                            <td className="py-2 align-top text-center">{item.quantity}</td>
+                            <td className="py-2 align-top text-gray-500 text-center">
                               {item.stockLock?.location ? `${item.stockLock.location.shelf?.zone?.code}-${item.stockLock.location.shelf?.code}-L${item.stockLock.location.level}` :
                                item.bundleStockLock?.location ? `${item.bundleStockLock.location.shelf?.zone?.code}-${item.bundleStockLock.location.shelf?.code}-L${item.bundleStockLock.location.level}` :
                                item.warehouseLocation ? `${item.warehouseLocation}${pickOrder.status === 'CANCELLED' ? '' : ' (已出库)'}` : '-'}

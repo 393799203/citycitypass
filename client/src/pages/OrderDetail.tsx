@@ -696,20 +696,20 @@ export default function OrderDetail() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">包装</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">规格</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">单价</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">数量</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">小计</th>
+                <tr className="text-center">
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">商品</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">包装</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">规格</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">单价</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">数量</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">小计</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {order.items?.map((item: any) => (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
                         <Package className="w-5 h-5 text-gray-400" />
                         {item.bundleId ? (
                           <div>
@@ -723,11 +723,11 @@ export default function OrderDetail() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{item.packaging}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.spec}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">¥{Number(item.price).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{item.quantity}</td>
-                    <td className="px-4 py-3 text-right font-medium text-primary-600">¥{Number(item.subtotal).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-600 text-center">{item.packaging}</td>
+                    <td className="px-4 py-3 text-gray-600 text-center">{item.spec}</td>
+                    <td className="px-4 py-3 text-gray-600 text-center">¥{Number(item.price).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-600 text-center">{item.quantity}</td>
+                    <td className="px-4 py-3 font-medium text-primary-600 text-center">¥{Number(item.subtotal).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

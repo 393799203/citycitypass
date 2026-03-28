@@ -204,48 +204,48 @@ export default function Returns() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">退货单/原订单</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">退货人</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">仓库</th>
-              <th className="px-6 py-3 text-center text-sm font-medium text-gray-600">商品数</th>
-              <th className="px-6 py-3 text-right text-sm font-medium text-gray-600">金额</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">状态</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">退货原因</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">时间</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+            <tr className="text-center">
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">退货单/原订单</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">退货人</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">仓库</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">商品数</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">金额</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">状态</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">退货原因</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">时间</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">操作</th>
             </tr>
           </thead>
           <tbody>
             {returns.map(ret => (
               <tr key={ret.id} className="border-t hover:bg-gray-50">
-                <td className="px-6 py-4 text-base">
+                <td className="px-6 py-4 text-base text-center">
                   <Link to={`/returns/${ret.id}`} className="text-primary-600 hover:underline font-medium">
                     {ret.returnNo}
                   </Link>
-                  <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
+                  <div className="flex items-center justify-center gap-1 text-gray-400 text-sm mt-0.5">
                     <span className="text-xs">原订单:</span>
                     <Link to={`/orders/${ret.orderId}`} className="text-gray-500 hover:underline">{ret.order?.orderNo}</Link>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-base">
+                <td className="px-6 py-4 text-base text-center">
                   <div>{ret.receiverName}</div>
-                  <div className="flex items-center gap-1 text-gray-400 text-sm mt-0.5">
+                  <div className="flex items-center justify-center gap-1 text-gray-400 text-sm mt-0.5">
                     <Phone className="w-4 h-4" />
                     {ret.receiverPhone}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-base">{ret.warehouse?.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-base text-center">{ret.warehouse?.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-base">{ret.items?.reduce((sum: number, item: any) => sum + item.quantity, 0)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-base text-primary-600 font-medium">¥{Number(ret.order?.totalAmount || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap text-center text-base text-primary-600 font-medium">¥{Number(ret.order?.totalAmount || 0).toLocaleString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-center">
                   <span className={`px-2 py-1 text-sm rounded-full ${STATUS_CONFIG[ret.status]?.bgColor} ${STATUS_CONFIG[ret.status]?.color}`}>
                     {STATUS_CONFIG[ret.status]?.label}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-base text-gray-600 max-w-xs truncate">{ret.reason}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500">{new Date(ret.createdAt).toLocaleString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 text-base text-gray-600 max-w-xs truncate text-center">{ret.reason}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500 text-center">{new Date(ret.createdAt).toLocaleString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-center">
                   <div className="flex items-center gap-2">
                     {ret.status === 'RETURN_REQUESTED' && (
                       <button
@@ -518,20 +518,20 @@ export default function Returns() {
                     <h3 className="text-base font-medium mb-3">退货商品</h3>
                     <table className="w-full">
                       <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">商品</th>
-                          <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">规格</th>
-                          <th className="px-6 py-3 text-center text-sm font-medium text-gray-600">退货数</th>
-                          <th className="px-6 py-3 text-center text-sm font-medium text-gray-600">合格数</th>
-                          <th className="px-6 py-3 text-center text-sm font-medium text-gray-600">拒收数</th>
+                        <tr className="text-center">
+                          <th className="px-6 py-3 text-sm font-medium text-gray-600 text-center">商品</th>
+                          <th className="px-6 py-3 text-sm font-medium text-gray-600 text-center">规格</th>
+                          <th className="px-6 py-3 text-sm font-medium text-gray-600 text-center">退货数</th>
+                          <th className="px-6 py-3 text-sm font-medium text-gray-600 text-center">合格数</th>
+                          <th className="px-6 py-3 text-sm font-medium text-gray-600 text-center">拒收数</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedReturn.items?.map((item: any) => (
                             <tr key={item.id} className="border-t">
-                              <td className="px-6 py-4">
+                              <td className="px-6 py-4 text-center">
                                 {item.bundleId ? (
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center justify-center gap-1">
                                     <span className="text-purple-600 font-medium">[套装] {item.productName}</span>
                                     <button
                                       type="button"
@@ -547,10 +547,10 @@ export default function Returns() {
                                   <span className="text-blue-600">[商品] {item.productName || item.sku?.product?.name || '-'}</span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-base text-gray-500">{item.packaging} · {item.spec}</td>
-                              <td className="px-6 py-4 text-center text-base">{item.quantity}</td>
-                              <td className="px-6 py-4 text-center text-base text-green-600">{item.qualifiedQuantity}</td>
-                              <td className="px-6 py-4 text-center text-base text-red-600">{item.rejectedQuantity}</td>
+                              <td className="px-6 py-4 text-base text-gray-500 text-center">{item.packaging} · {item.spec}</td>
+                              <td className="px-6 py-4 text-base text-center">{item.quantity}</td>
+                              <td className="px-6 py-4 text-base text-green-600 text-center">{item.qualifiedQuantity}</td>
+                              <td className="px-6 py-4 text-base text-red-600 text-center">{item.rejectedQuantity}</td>
                             </tr>
                           ))}
                       </tbody>

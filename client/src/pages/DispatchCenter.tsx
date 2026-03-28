@@ -403,7 +403,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-gray-500 text-sm border-b">
+                    <tr className="text-center text-gray-500 text-sm border-b">
                       <th className="pb-3 w-10"></th>
                       <th className="pb-3">订单号</th>
                       <th className="pb-3">发货仓库</th>
@@ -415,7 +415,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   <tbody>
                     {orders.map(order => (
                       <tr key={order.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3">
+                        <td className="py-3 text-center">
                           <input
                             type="checkbox"
                             checked={selectedOrders.includes(order.id)}
@@ -423,14 +423,14 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             className="w-4 h-4 rounded border-gray-300"
                           />
                         </td>
-                        <td className="py-3 font-medium">
+                        <td className="py-3 font-medium text-center">
                           <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                             {order.orderNo}
                           </Link>
                         </td>
-                        <td className="py-3">{order.warehouse?.name || '-'}</td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-1.5 text-sm">
+                        <td className="py-3 text-center">{order.warehouse?.name || '-'}</td>
+                        <td className="py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-sm">
                             <span className="text-blue-600 font-medium truncate max-w-[100px]" title={order.warehouse?.address || '-'}>
                               {order.warehouse?.province|| '-'}{order.warehouse?.city || '-'}
                             </span>
@@ -440,11 +440,11 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             </span>
                           </div>
                         </td>
-                        <td className="py-3 text-sm">
+                        <td className="py-3 text-sm text-center">
                           <div>{order.receiver}</div>
                           <div className="text-gray-400 text-xs">{formatPhone(order.phone)}</div>
                         </td>
-                        <td className="py-3">
+                        <td className="py-3 text-center">
                           <span className={`px-2 py-1 text-xs rounded-full ${
                             order.status === 'PENDING' ? 'bg-yellow-600 text-white' :
                             order.status === 'APPROVED' ? 'bg-blue-600 text-white' :
@@ -476,7 +476,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-gray-500 text-sm border-b">
+                  <tr className="text-center text-gray-500 text-sm border-b">
                     <th className="pb-3">配送单号</th>
                     <th className="pb-3">路线</th>
                     <th className="pb-3">车辆</th>
@@ -485,19 +485,19 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                     <th className="pb-3">总重量</th>
                     <th className="pb-3">距离</th>
                     <th className="pb-3">状态</th>
-                    <th className="pb-3 text-right">操作</th>
+                    <th className="pb-3">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dispatches.map(dispatch => (
                     <tr key={dispatch.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 font-medium">
+                      <td className="py-3 font-medium text-center">
                         <Link to={`/dispatch/${dispatch.id}`} className="text-primary-600 hover:underline">
                           {dispatch.dispatchNo}
                         </Link>
                       </td>
-                      <td className="py-3">
-                          <div className="flex items-center gap-1.5 text-sm">
+                      <td className="py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-sm">
                             <span className="text-blue-600 font-medium truncate max-w-[80px]">
                               {dispatch.warehouse?.province || '-'}{dispatch.warehouse?.city || '-'}
                             </span>
@@ -507,19 +507,19 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             </span>
                           </div>
                         </td>
-                        <td className="py-3">
+                        <td className="py-3 text-center">
                           <div className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded">
                             {dispatch.vehicle?.licensePlate ? dispatch.vehicle.licensePlate.slice(0, 2) + '·' + dispatch.vehicle.licensePlate.slice(2) : '-'}
                           </div>
                         </td>
-                        <td className="py-3 text-sm">
+                        <td className="py-3 text-sm text-center">
                           <div className="font-medium">{dispatch.driver?.name || '-'}</div>
                           <div className="text-gray-400 text-xs">{formatPhone(dispatch.driver?.phone || '')}</div>
                         </td>
-                        <td className="py-3">{dispatch.orderCount}</td>
-                        <td className="py-3">{dispatch.totalWeight}吨</td>
-                        <td className="py-3">{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</td>
-                        <td className="py-3">
+                        <td className="py-3 text-center">{dispatch.orderCount}</td>
+                        <td className="py-3 text-center">{dispatch.totalWeight}吨</td>
+                        <td className="py-3 text-center">{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</td>
+                        <td className="py-3 text-center">
                           <span className={`px-2 py-1 text-xs rounded-full ${
                             dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
                             dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
@@ -529,7 +529,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             {dispatchStatusMap[dispatch.status]}
                           </span>
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="py-3 text-center">
                           {dispatch.status === 'PENDING' && (
                           <>
                             <button

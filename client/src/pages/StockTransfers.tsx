@@ -726,29 +726,29 @@ export default function StockTransfers() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+            <tr className="text-center">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 移库单号
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 仓库
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 商品
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 源库位→目的库位
               </th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 数量
               </th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 状态
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 创建/执行时间
               </th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">
                 操作
               </th>
             </tr>
@@ -785,16 +785,16 @@ export default function StockTransfers() {
                   <tr key={`${t.id}-${row.idx}`} className="hover:bg-gray-50">
                     {rowIdx === 0 && (
                       <>
-                        <td className="px-4 py-3 text-sm font-mono" rowSpan={rows.length}>
+                        <td className="px-4 py-3 text-sm font-mono text-center" rowSpan={rows.length}>
                           {t.transferNo}
                         </td>
-                        <td className="px-4 py-3 text-sm" rowSpan={rows.length}>
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
                           {t.warehouse?.name}
                         </td>
                       </>
                     )}
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3 text-sm text-center">
+                      <div className="flex items-center justify-center gap-1">
                         <span className={`px-1.5 py-0.5 text-xs rounded ${
                           row.itemType === 'bundle' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                         }`}>
@@ -806,8 +806,8 @@ export default function StockTransfers() {
                         <div className="text-xs text-gray-500">{row.itemSpec} | {row.itemPackaging}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-1">
+                    <td className="px-4 py-3 text-sm text-center">
+                      <div className="flex items-center justify-center gap-1">
                         <span className="text-orange-600">{row.fromCode}</span>
                         <ArrowRight className="w-3 h-3 text-gray-400" />
                         <span className="text-green-600">{row.toCode}</span>
@@ -816,19 +816,19 @@ export default function StockTransfers() {
                         <div className="text-xs text-gray-400">批:{row.batchNo}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center text-sm text-blue-600 font-medium">
+                    <td className="px-4 py-3 text-sm text-center text-blue-600 font-medium">
                       {row.quantity}件
                     </td>
                     {rowIdx === 0 && (
                       <>
-                        <td className="px-4 py-3 text-sm" rowSpan={rows.length}>
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
                             STATUS_COLORS[t.status] || 'bg-gray-100 text-gray-800'
                           }`}>
                             {STATUS_NAMES[t.status] || t.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm" rowSpan={rows.length}>
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
                           {t.executedAt && (
                             <div className="text-xs text-green-600">执行: {new Date(t.executedAt).toLocaleString()}</div>
                           )}

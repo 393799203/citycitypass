@@ -730,13 +730,13 @@ export default function InventoryPage() {
             <div className="overflow-y-auto max-h-[60vh]">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-3 py-2 text-left">仓库名</th>
-                    <th className="px-3 py-2 text-left">类型</th>
-                    <th className="px-3 py-2 text-left">商品/套装</th>
-                    <th className="px-3 py-2 text-left">货位</th>
-                    <th className="px-3 py-2 text-right">数量</th>
-                    <th className="px-3 py-2 text-left">时间</th>
+                  <tr className="text-center">
+                    <th className="px-3 py-2">仓库名</th>
+                    <th className="px-3 py-2">类型</th>
+                    <th className="px-3 py-2">商品/套装</th>
+                    <th className="px-3 py-2">货位</th>
+                    <th className="px-3 py-2">数量</th>
+                    <th className="px-3 py-2">时间</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -744,15 +744,15 @@ export default function InventoryPage() {
                     const sortedStockIns = [...stockIns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                     return sortedStockIns.map((item: any) => (
                       <tr key={item.id} className="border-t">
-                        <td className="px-3 py-2 text-primary-600 font-medium">{item.warehouse?.name || '未知仓库'}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-center text-primary-600 font-medium">{item.warehouse?.name || '未知仓库'}</td>
+                        <td className="px-3 py-2 text-center">
                           <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                             {item.type === 'bundle' ? '套装' : '商品'}
                           </span>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-center">
                           {item.type === 'bundle' 
-                            ? <div className="flex items-center gap-1">
+                            ? <div className="flex items-center justify-center gap-1">
                                 {item.bundle?.name}
                                 {item.bundle?.items?.length > 0 && (
                                   <button
@@ -768,12 +768,12 @@ export default function InventoryPage() {
                               </div>
                             : getSkuInfo(item.skuId)}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-center">
                           <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
                           {item.batchNo && <div className="text-purple-600 text-xs">批:{item.batchNo}</div>}
                         </td>
-                        <td className="px-3 py-2 text-right text-green-600">+{item.quantity}</td>
-                        <td className="px-3 py-2 text-gray-500">
+                        <td className="px-3 py-2 text-center text-green-600">+{item.quantity}</td>
+                        <td className="px-3 py-2 text-center text-gray-500">
                           {new Date(item.createdAt).toLocaleString()}
                         </td>
                       </tr>
@@ -812,37 +812,37 @@ export default function InventoryPage() {
             <div className="overflow-auto flex-1">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left">仓库</th>
-                    <th className="px-3 py-2 text-left">订单号</th>
-                    <th className="px-3 py-2 text-left">类型</th>
-                    <th className="px-3 py-2 text-left">商品/套装</th>
-                    <th className="px-3 py-2 text-left">货位</th>
-                    <th className="px-3 py-2 text-right">数量</th>
-                    <th className="px-3 py-2 text-left">时间</th>
+                  <tr className="text-center">
+                    <th className="px-3 py-2">仓库</th>
+                    <th className="px-3 py-2">订单号</th>
+                    <th className="px-3 py-2">类型</th>
+                    <th className="px-3 py-2">商品/套装</th>
+                    <th className="px-3 py-2">货位</th>
+                    <th className="px-3 py-2">数量</th>
+                    <th className="px-3 py-2">时间</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stockOuts.length > 0 ? stockOuts.map((out: any) => (
                     <tr key={out.id} className="border-t overflow-visible">
-                      <td className="px-3 py-2">{out.warehouse?.name || '-'}</td>
-                      <td className="px-3 py-2 font-mono text-sm">
+                      <td className="px-3 py-2 text-center">{out.warehouse?.name || '-'}</td>
+                      <td className="px-3 py-2 font-mono text-sm text-center">
                           {out.order?.orderNo ? (
                             <Link to={`/orders/${out.orderId}`} className="text-primary-600 hover:text-primary-800 hover:underline">
                               {out.order.orderNo}
                             </Link>
                           ) : out.orderId.substring(0, 8)}
                         </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         <span className={`px-2 py-0.5 text-xs rounded ${out.skuId ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                           {out.skuId ? '商品' : '套装'}
                         </span>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         {out.skuId
                           ? `${out.sku?.product?.name || ''} - ${out.sku?.spec || ''}/${out.sku?.packaging || ''}`
                           : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center gap-2">
                               <span>{out.bundle?.name || '-'}</span>
                               {out.bundle?.items?.length > 0 && (
                                 <button
@@ -858,12 +858,12 @@ export default function InventoryPage() {
                             </div>
                           )}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         <div>{out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}</div>
                         {out.batchNo && <div className="text-purple-600 text-xs">批:{out.batchNo}</div>}
                       </td>
-                      <td className="px-3 py-2 text-right text-red-600">-{out.quantity}</td>
-                      <td className="px-3 py-2 text-gray-500">
+                      <td className="px-3 py-2 text-center text-red-600">-{out.quantity}</td>
+                      <td className="px-3 py-2 text-center text-gray-500">
                         {new Date(out.createdAt).toLocaleString()}
                       </td>
                     </tr>

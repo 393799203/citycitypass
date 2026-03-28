@@ -230,21 +230,21 @@ export default function UsersPage() {
         ) : (
           <table className="w-full">
             <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">手机</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+              <tr className="text-center">
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">用户名</th>
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">姓名</th>
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">角色</th>
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">手机</th>
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">邮箱</th>
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.username}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">{user.username}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">{user.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       user.role === 'ADMIN' 
                         ? 'bg-red-100 text-red-700' 
@@ -253,10 +253,10 @@ export default function UsersPage() {
                       {roleMap[user.role] || user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone ? formatPhone(user.phone) : '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{user.phone ? formatPhone(user.phone) : '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{user.email || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleEdit(user)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
