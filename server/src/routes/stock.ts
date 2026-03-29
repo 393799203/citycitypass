@@ -698,6 +698,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                   warehouseId: orderWithItems.warehouseId,
                   locationId: item.locationId,
                   batchNo: item.batchNo || null,
+                  expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
                   quantity,
                   status: 'COMPLETED',
                 },
