@@ -291,7 +291,7 @@ router.post('/quick-create', async (req: Request, res: Response) => {
           },
         });
 
-        for (let level = 1; level <= 5; level++) {
+        for (let level = 1; level <= 6; level++) {
           await tx.location.create({
             data: {
               shelfId: shelf.id,
@@ -572,7 +572,7 @@ router.delete('/zones/:id', async (req: Request, res: Response) => {
 router.post('/zones/:zoneId/shelves', async (req: Request, res: Response) => {
   try {
     const { zoneId } = req.params;
-    const { code, name, type = 'HEAVY', status = 'ACTIVE', levels = 5 } = req.body;
+    const { code, name, type = 'HEAVY', status = 'ACTIVE', levels = 6 } = req.body;
 
     if (!code) {
       return res.status(400).json({ success: false, message: '货架编码不能为空' });

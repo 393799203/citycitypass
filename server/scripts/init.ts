@@ -14,14 +14,14 @@ const alcoholData = {
         { code: 'JX2', name: '兼香型' }
       ],
       brands: [
-        { name: "茅台", code: 'MT', packagings: ['单瓶', '双瓶', '箱6瓶', '箱12瓶'], specs: ['500ml', '1L', '2.5L'] },
-        { name: "五粮液", code: 'WL', packagings: ['单瓶', '双瓶', '箱6瓶'], specs: ['500ml', '750ml', '1L'] },
-        { name: "泸州老窖", code: 'LZLJ', packagings: ['单瓶', '箱6瓶', '箱12瓶'], specs: ['500ml', '1L'] },
-        { name: "洋河", code: 'YH', packagings: ['单瓶', '双瓶', '箱6瓶'], specs: ['500ml', '1L'] },
-        { name: "汾酒", code: 'FJ', packagings: ['单瓶', '箱6瓶', '箱12瓶'], specs: ['475ml', '500ml', '1L'] },
-        { name: "古井贡酒", code: 'GJG', packagings: ['单瓶', '双瓶', '箱6瓶'], specs: ['500ml', '1L'] },
-        { name: "口子窖", code: 'KJJ', packagings: ['单瓶', '箱6瓶'], specs: ['500ml', '1L'] },
-        { name: "北京二锅头", code: 'BJYY', packagings: ['单瓶', '双瓶', '箱6瓶', '箱12瓶'], specs: ['100ml', '250ml', '500ml', '1L'] }
+        { name: "茅台", code: 'MT', packagings: ['单瓶', '双瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['500ml', '1L', '2.5L'] },
+        { name: "五粮液", code: 'WL', packagings: ['单瓶', '双瓶', '箱(6瓶)'], specs: ['500ml', '750ml', '1L'] },
+        { name: "泸州老窖", code: 'LZLJ', packagings: ['单瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['500ml', '1L'] },
+        { name: "洋河", code: 'YH', packagings: ['单瓶', '双瓶', '箱(6瓶)'], specs: ['500ml', '1L'] },
+        { name: "汾酒", code: 'FJ', packagings: ['单瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['475ml', '500ml', '1L'] },
+        { name: "古井贡酒", code: 'GJG', packagings: ['单瓶', '双瓶', '箱(6瓶)'], specs: ['500ml', '1L'] },
+        { name: "口子窖", code: 'KJJ', packagings: ['单瓶', '箱(6瓶)'], specs: ['500ml', '1L'] },
+        { name: "北京二锅头", code: 'BJYY', packagings: ['单瓶', '双瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['100ml', '250ml', '500ml', '1L'] }
       ]
     },
     {
@@ -34,10 +34,10 @@ const alcoholData = {
         { code: 'ST', name: '世涛' }
       ],
       brands: [
-        { name: "青岛啤酒", code: 'QD', packagings: ['单瓶', '罐装', '箱6瓶', '箱12瓶', '箱24瓶'], specs: ['330ml', '500ml'] },
-        { name: "燕京啤酒", code: 'YB', packagings: ['单瓶', '罐装', '箱6瓶', '箱12瓶'], specs: ['330ml', '500ml'] },
-        { name: "哈尔滨啤酒", code: 'HLJ', packagings: ['单瓶', '罐装', '箱6瓶', '箱12瓶'], specs: ['330ml', '500ml'] },
-        { name: "百威", code: 'BUD', packagings: ['单瓶', '罐装', '箱6瓶', '箱12瓶', '箱24瓶'], specs: ['330ml', '500ml'] }
+        { name: "青岛啤酒", code: 'QD', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)', '箱(24瓶)'], specs: ['330ml', '500ml'] },
+        { name: "燕京啤酒", code: 'YB', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)'], specs: ['330ml', '500ml'] },
+        { name: "哈尔滨啤酒", code: 'HLJ', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)'], specs: ['330ml', '500ml'] },
+        { name: "百威", code: 'BUD', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)', '箱(24瓶)'], specs: ['330ml', '500ml'] }
       ]
     },
     {
@@ -49,12 +49,12 @@ const alcoholData = {
         { code: 'P', name: '桃红葡萄酒' }
       ],
       brands: [
-        { name: "张裕", code: 'ZY', packagings: ['单瓶', '箱6瓶', '箱12瓶'], specs: ['375ml', '750ml', '1.5L'] },
-        { name: "长城", code: 'CC', packagings: ['单瓶', '箱6瓶'], specs: ['375ml', '750ml'] },
-        { name: "王朝", code: 'WC', packagings: ['单瓶', '箱6瓶', '箱12瓶'], specs: ['375ml', '750ml', '1.5L'] },
-        { name: "威龙", code: 'WLW', packagings: ['单瓶', '箱6瓶'], specs: ['750ml'] },
-        { name: "奔富", code: 'PF', packagings: ['单瓶', '箱6瓶'], specs: ['375ml', '750ml'] },
-        { name: "拉菲", code: 'LF', packagings: ['单瓶', '箱6瓶'], specs: ['750ml', '1.5L'] }
+        { name: "张裕", code: 'ZY', packagings: ['单瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['375ml', '750ml', '1.5L'] },
+        { name: "长城", code: 'CC', packagings: ['单瓶', '箱(6瓶)'], specs: ['375ml', '750ml'] },
+        { name: "王朝", code: 'WC', packagings: ['单瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['375ml', '750ml', '1.5L'] },
+        { name: "威龙", code: 'WLW', packagings: ['单瓶', '箱(6瓶)'], specs: ['750ml'] },
+        { name: "奔富", code: 'PF', packagings: ['单瓶', '箱(6瓶)'], specs: ['375ml', '750ml'] },
+        { name: "拉菲", code: 'LF', packagings: ['单瓶', '箱(6瓶)'], specs: ['750ml', '1.5L'] }
       ]
     },
     {
@@ -68,20 +68,20 @@ const alcoholData = {
         { code: 'GJ', name: '金酒' }
       ],
       brands: [
-        { name: "轩尼诗", code: 'HN', packagings: ['单瓶', '双瓶', '箱6瓶'], specs: ['350ml', '700ml', '1L'] },
-        { name: "人头马", code: 'RT', packagings: ['单瓶', '箱6瓶'], specs: ['350ml', '700ml'] },
-        { name: "马爹利", code: 'MPL', packagings: ['单瓶', '箱6瓶'], specs: ['350ml', '700ml', '1L'] },
-        { name: "尊尼获加", code: 'JWK', packagings: ['单瓶', '双瓶', '箱6瓶', '箱12瓶'], specs: ['200ml', '375ml', '700ml', '1L'] },
-        { name: "芝华士", code: 'CHS', packagings: ['单瓶', '双瓶', '箱6瓶'], specs: ['375ml', '700ml', '1L'] },
-        { name: "杰克丹尼", code: 'JKDN', packagings: ['单瓶', '罐装', '箱6瓶', '箱12瓶'], specs: ['200ml', '375ml', '700ml', '1L'] },
-        { name: "百加得", code: 'BJD', packagings: ['单瓶', '罐装', '箱6瓶', '箱12瓶'], specs: ['200ml', '375ml', '700ml', '1L'] },
-        { name: "绝对伏特加", code: 'JD', packagings: ['单瓶', '箱6瓶', '箱12瓶'], specs: ['200ml', '375ml', '700ml', '1L'] }
+        { name: "轩尼诗", code: 'HN', packagings: ['单瓶', '双瓶', '箱(6瓶)'], specs: ['350ml', '700ml', '1L'] },
+        { name: "人头马", code: 'RT', packagings: ['单瓶', '箱(6瓶)'], specs: ['350ml', '700ml'] },
+        { name: "马爹利", code: 'MPL', packagings: ['单瓶', '箱(6瓶)'], specs: ['350ml', '700ml', '1L'] },
+        { name: "尊尼获加", code: 'JWK', packagings: ['单瓶', '双瓶', '箱(6瓶)', '箱(12瓶)'], specs: ['200ml', '375ml', '700ml', '1L'] },
+        { name: "芝华士", code: 'CHS', packagings: ['单瓶', '双瓶', '箱(6瓶)'], specs: ['375ml', '700ml', '1L'] },
+        { name: "杰克丹尼", code: 'JKDN', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)'], specs: ['200ml', '375ml', '700ml', '1L'] },
+        { name: "百加得", code: 'BJD', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)'], specs: ['200ml', '375ml', '700ml', '1L'] },
+        { name: "绝对伏特加", code: 'JD', packagings: ['单瓶', '箱(6瓶)','箱(12瓶)'], specs: ['200ml', '375ml', '700ml', '1L'] }
       ]
     }
   ]
 };
 
-const allPackagings = ['单瓶', '双瓶', '箱4瓶', '箱6瓶', '箱12瓶', '箱24瓶', '罐装'];
+const allPackagings = ['单瓶', '双瓶', '箱(4瓶)', '箱(6瓶)', '箱(12瓶)', '箱(24瓶)', '罐装'];
 const allSpecs = ['100ml', '200ml', '250ml', '330ml', '350ml', '375ml', '475ml', '500ml', '700ml', '750ml', '1L', '1.5L', '2.5L'];
 
 async function main() {

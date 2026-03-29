@@ -12,6 +12,7 @@ const stockInSchema = z.object({
   locationId: z.string().optional(),
   quantity: z.number().int().positive('数量必须大于0'),
   batchNo: z.string().nullable().optional(),
+  expiryDate: z.string().nullable().optional(),
   remark: z.string().nullable().optional(),
   operator: z.string().optional(),
 }).refine(data => data.skuId || data.bundleId, {
@@ -455,6 +456,7 @@ router.post('/stock-in', async (req: Request, res: Response) => {
             locationId: data.locationId || null,
             quantity: data.quantity,
             batchNo: data.batchNo || null,
+            expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
             remark: data.remark || null,
             operator: data.operator || null,
             status: 'PENDING',
@@ -509,6 +511,7 @@ router.post('/inbound-order', async (req: Request, res: Response) => {
           quantity: item.quantity,
           expectedQuantity: item.quantity,
           batchNo: item.batchNo || null,
+          expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
         })),
       });
 
@@ -583,6 +586,7 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
             } else if (itemType === 'BUNDLE' && item.bundleId) {
               const bundle = await prisma.bundleSKU.findUnique({
                 where: { id: item.bundleId },
+                include: { items: { include: { sku: { include: { product: true } } } } },
               });
               return { ...item, bundle };
             }
@@ -634,6 +638,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
         if (item.snCodes !== undefined) updateItemData.snCodes = item.snCodes;
         if (item.locationId !== undefined) updateItemData.locationId = item.locationId;
         if (item.targetLocationId !== undefined) updateItemData.locationId = item.targetLocationId;
+        if (item.expiryDate !== undefined) updateItemData.expiryDate = item.expiryDate ? new Date(item.expiryDate) : null;
 
         await prisma.inboundOrderItem.update({
           where: { id: item.id },
@@ -680,6 +685,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                     warehouseId: orderWithItems.warehouseId,
                     locationId: item.locationId,
                     batchNo: item.batchNo || null,
+                    expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
                     totalQuantity: quantity,
                     availableQuantity: quantity,
                   },
@@ -873,6 +879,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
                 warehouseId: order.warehouseId,
                 locationId: item.locationId,
                 batchNo: item.batchNo || null,
+                expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
                 totalQuantity: quantity,
                 availableQuantity: quantity,
               },
@@ -885,6 +892,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
               warehouseId: order.warehouseId,
               locationId: item.locationId,
               batchNo: item.batchNo || null,
+              expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
               quantity,
               status: 'COMPLETED',
             },

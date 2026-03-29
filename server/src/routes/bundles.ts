@@ -28,7 +28,7 @@ async function generateBundleSkuCode(packaging: string): Promise<string> {
   let maxSeq = 0;
   for (const b of existingBundles) {
     if (b.skuCode) {
-      const match = b.skuCode.match(/_(\d{4})$/);
+      const match = b.skuCode.match(/_[A-Z](\d{4})$/);
       if (match) {
         const seq = parseInt(match[1]);
         if (seq > maxSeq) maxSeq = seq;

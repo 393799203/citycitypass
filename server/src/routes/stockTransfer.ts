@@ -69,7 +69,7 @@ router.get('/', async (req: Request, res: Response) => {
         items: {
           include: {
             sku: { include: { product: true } },
-            bundle: true,
+            bundle: { include: { items: { include: { sku: { include: { product: true } } } } } },
             fromLocation: { include: { shelf: { include: { zone: true } } } },
             toLocation: { include: { shelf: { include: { zone: true } } } },
           },
