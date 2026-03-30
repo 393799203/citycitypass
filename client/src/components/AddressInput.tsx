@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { provinceCities } from '../data/regions';
 import { X, MapPin, Loader2 } from 'lucide-react';
 import { geocodeApi } from '../api';
@@ -36,6 +37,15 @@ export default function AddressInput({
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'region' | 'province' | 'city'>('region');
   const [geocoding, setGeocoding] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const inputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + window.scrollY, left: rect.left, width: rect.width });
+    }
+  }, [open]);
 
   const displayValue = value.province
     ? value.province === value.city
@@ -134,7 +144,7 @@ export default function AddressInput({
       )}
       
       <div className="flex gap-2">
-        <div className="relative flex-1">
+        <div className="relative flex-1 overflow-visible" ref={inputRef}>
           <div
             className="w-full px-3 py-2 border rounded-lg cursor-pointer bg-white min-h-[42px] flex items-center gap-2"
             onClick={handleOpen}
@@ -148,8 +158,11 @@ export default function AddressInput({
             )}
           </div>
 
-          {open && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-hidden">
+          {open && createPortal(
+            <div
+              className="fixed bg-white border rounded-lg shadow-lg max-h-64 overflow-hidden"
+              style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999 }}
+            >
               <div className="flex border-b">
                 {showRegion && (
                   <button
@@ -205,7 +218,8 @@ export default function AddressInput({
                   )) : null;
                 })()}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 

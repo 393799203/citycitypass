@@ -514,23 +514,27 @@ export default function TransportPage() {
                               >
                                 <MapPin className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => openEditModal(vehicle)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(vehicle.id, vehicle)}
-                                className={`p-1.5 rounded ${
-                                  vehicle.status === 'AVAILABLE' 
-                                    ? 'text-red-600 hover:bg-red-50' 
-                                    : 'text-gray-300 cursor-not-allowed'
-                                }`}
-                                disabled={vehicle.status !== 'AVAILABLE'}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {vehicle.sourceType !== 'CARRIER' && (
+                                <>
+                                  <button
+                                    onClick={() => openEditModal(vehicle)}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(vehicle.id, vehicle)}
+                                    className={`p-1.5 rounded ${
+                                      vehicle.status === 'AVAILABLE'
+                                        ? 'text-red-600 hover:bg-red-50'
+                                        : 'text-gray-300 cursor-not-allowed'
+                                    }`}
+                                    disabled={vehicle.status !== 'AVAILABLE'}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -684,7 +688,7 @@ export default function TransportPage() {
                           className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
                         />
                       </div>
-                    ) : (
+                    ) : editingItem ? (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
                         <input
@@ -693,6 +697,29 @@ export default function TransportPage() {
                           disabled
                           className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
                         />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">仓库 *</label>
+                        <select
+                          value={formData.warehouseId}
+                          onChange={e => {
+                            const warehouse = warehouses.find(w => w.id === e.target.value);
+                            setFormData({
+                              ...formData,
+                              warehouseId: e.target.value,
+                              latitude: warehouse?.latitude?.toString() || '',
+                              longitude: warehouse?.longitude?.toString() || '',
+                              location: warehouse?.address || '',
+                            });
+                          }}
+                          className="w-full px-3 py-2 border rounded-lg"
+                        >
+                          <option value="">请选择仓库</option>
+                          {warehouses.map(w => (
+                            <option key={w.id} value={w.id}>{w.name}</option>
+                          ))}
+                        </select>
                       </div>
                     )}
                     <div>

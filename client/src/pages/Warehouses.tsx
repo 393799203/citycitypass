@@ -171,7 +171,7 @@ export default function WarehousesPage() {
       manager: '',
       managerPhone: '',
       businessStartTime: '08:00',
-      businessEndTime: '16:00',
+      businessEndTime: '18:00',
     });
   };
 

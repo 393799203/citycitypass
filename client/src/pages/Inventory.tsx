@@ -563,6 +563,7 @@ export default function InventoryPage() {
                       lockedQuantity: 0,
                       availableQuantity: 0,
                       batchNos: [],
+                      expiryDates: [],
                     };
                   }
                   acc[key].shelves.push({
@@ -572,12 +573,16 @@ export default function InventoryPage() {
                     locked: stock.lockedQuantity,
                     available: stock.availableQuantity,
                     batchNo: stock.batchNo,
+                    expiryDate: stock.expiryDate,
                   });
                   acc[key].totalQuantity += stock.totalQuantity;
                   acc[key].lockedQuantity += stock.lockedQuantity;
                   acc[key].availableQuantity += stock.availableQuantity;
                   if (stock.batchNo && !acc[key].batchNos.includes(stock.batchNo)) {
                     acc[key].batchNos.push(stock.batchNo);
+                  }
+                  if (stock.expiryDate && !acc[key].expiryDates.includes(stock.expiryDate)) {
+                    acc[key].expiryDates.push(stock.expiryDate);
                   }
                   return acc;
                 }, {});
@@ -626,9 +631,9 @@ export default function InventoryPage() {
                                 ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                             }`}
-                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
                             onMouseLeave={() => setTooltip(null)}
-                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
                           >
                             {stock.type === 'bundle' ? '套装' : '商品'}
                           </span>
@@ -665,9 +670,9 @@ export default function InventoryPage() {
                                   <div
                                     key={idx}
                                     className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1"
-                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: shelf.batchNo ? <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo}</span></div> : <div className="text-gray-400">无批号</div> })}
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/><span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></div> })}
                                     onMouseLeave={() => setTooltip(null)}
-                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: shelf.batchNo ? <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo}</span></div> : <div className="text-gray-400">无批号</div> })}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/><span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></div> })}
                                   >
                                     <MapPin className="w-3 h-3 text-gray-400" />
                                     <span className="font-mono text-gray-600 text-xs">{shelf.code}</span>

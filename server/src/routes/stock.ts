@@ -1747,6 +1747,13 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
       where: { batchNo },
     });
 
+    const stockOutIds = stockOuts.map(s => s.id);
+    const returnItems = stockOutIds.length > 0
+      ? await prisma.returnItem.findMany({
+          where: { stockOutId: { in: stockOutIds } },
+        })
+      : [];
+
     const totalInStock = stockIns.reduce((sum, s) => sum + s.quantity, 0) +
                          bundleStockIns.reduce((sum, s) => sum + s.quantity, 0);
 
@@ -1757,6 +1764,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
                        bundleStockLocks.reduce((sum, s) => sum + s.quantity, 0);
 
     const totalSold = stockOuts.reduce((sum, s) => sum + s.quantity, 0);
+    const totalReturned = returnItems.reduce((sum, r) => sum + r.quantity, 0);
 
     const stockLocations = stocks.map(s => ({
       type: 'PRODUCT',
@@ -1784,11 +1792,12 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
       const skuIds = stockOuts.map(s => s.skuId).filter(id => !!id) as string[];
       const bundleIds = stockOuts.map(s => s.bundleId).filter(id => !!id) as string[];
 
-      const [orders, warehouses, skus, bundles] = await Promise.all([
+      const [orders, warehouses, skus, bundles, returnOrders] = await Promise.all([
         orderIds.length > 0 ? prisma.order.findMany({ where: { id: { in: [...new Set(orderIds)] } }, include: { customer: true } }) : [],
         warehouseIds.length > 0 ? prisma.warehouse.findMany({ where: { id: { in: [...new Set(warehouseIds)] } } }) : [],
         skuIds.length > 0 ? prisma.productSKU.findMany({ where: { id: { in: [...new Set(skuIds)] } }, include: { product: true } }) : [],
         bundleIds.length > 0 ? prisma.bundleSKU.findMany({ where: { id: { in: [...new Set(bundleIds)] } } }) : [],
+        orderIds.length > 0 ? prisma.returnOrder.findMany({ where: { orderId: { in: [...new Set(orderIds)] } } }) : [],
       ]);
 
       const ordersMap: Record<string, any> = {};
@@ -1799,6 +1808,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
       skus.forEach(s => { skuMap[s.id] = s; });
       const bundleMap: Record<string, any> = {};
       bundles.forEach(b => { bundleMap[b.id] = b; });
+      const returnedOrderIds = new Set(returnOrders.map(r => r.orderId));
 
       return stockOuts.map(s => {
         const order = ordersMap[s.orderId];
@@ -1817,6 +1827,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
           bundleName: bundle?.name,
           warehouse: warehouse?.name,
           createdAt: s.createdAt,
+          isReturned: returnedOrderIds.has(s.orderId),
         };
       });
     })();
@@ -1856,6 +1867,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
         totalInWarehouse,
         totalLocked,
         totalSold,
+        totalReturned,
         stockIns: stockIns.map(s => ({
           type: 'PRODUCT',
           productName: s.sku?.product?.name,

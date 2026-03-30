@@ -42,7 +42,7 @@ export default function WarehouseDetailPage() {
     name: '',
     type: 'LIGHT',
     status: 'ACTIVE',
-    levels: 5,
+    levels: 6,
     zoneId: ''
   });
   const [zoneFormData, setZoneFormData] = useState({
@@ -96,7 +96,7 @@ export default function WarehouseDetailPage() {
       await warehouseApi.createShelf(shelfFormData.zoneId, shelfFormData);
       toast.success('货架已创建');
       setShowShelfModal(false);
-      setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' });
+      setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' });
       const res = await warehouseApi.get(id!);
       if (res.data.success) {
         const data = res.data.data;
@@ -184,7 +184,7 @@ export default function WarehouseDetailPage() {
       toast.success('货架已更新');
       setShowShelfModal(false);
       setEditingShelf(null);
-      setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' });
+      setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' });
       const res = await warehouseApi.get(id!);
       if (res.data.success) {
         setWarehouse(res.data.data);
@@ -386,7 +386,7 @@ export default function WarehouseDetailPage() {
               <div className="flex gap-2">
                 {selectedZoneId && (
                   <button
-                    onClick={() => { setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: selectedZoneId }); setShowShelfModal(true); }}
+                    onClick={() => { setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: selectedZoneId }); setShowShelfModal(true); }}
                     className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm flex items-center gap-1"
                   >
                     <Plus className="w-4 h-4" />
@@ -696,7 +696,7 @@ export default function WarehouseDetailPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editingShelf ? '编辑货架' : '添加货架'}</h3>
-              <button onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' }); }} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' }); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -776,7 +776,7 @@ export default function WarehouseDetailPage() {
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 5, zoneId: '' }); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                <button type="button" onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' }); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
                   取消
                 </button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">

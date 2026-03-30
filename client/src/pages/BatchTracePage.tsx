@@ -10,6 +10,7 @@ interface TraceData {
   totalInWarehouse: number;
   totalLocked: number;
   totalSold: number;
+  totalReturned: number;
   stockIns: Array<{
     type: string;
     productName?: string;
@@ -47,6 +48,7 @@ interface TraceData {
     bundleName?: string;
     warehouse: string;
     createdAt: string;
+    isReturned: boolean;
   }>;
   transferRecords: Array<{
     type: string;
@@ -220,25 +222,6 @@ export default function BatchTracePage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-green-50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">{totalInbound}</div>
-          <div className="text-sm text-gray-600 mt-1">总入库</div>
-        </div>
-        <div className="bg-blue-50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">{totalInWarehouse}</div>
-          <div className="text-sm text-gray-600 mt-1">当前在库</div>
-        </div>
-        <div className="bg-yellow-50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{totalSold}</div>
-          <div className="text-sm text-gray-600 mt-1">已售出</div>
-        </div>
-        <div className="bg-purple-50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">{totalInbound - totalInWarehouse - totalSold}</div>
-          <div className="text-sm text-gray-600 mt-1">其他状态</div>
-        </div>
-      </div>
-
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
           <Package className="w-5 h-5 text-blue-500" />
@@ -281,16 +264,30 @@ export default function BatchTracePage() {
               </div>
               <div className="text-xs text-gray-500 mt-2">总售出量</div>
             </div>
+            <div className="flex flex-col items-center">
+              <svg width="80" height="40" className="overflow-visible">
+                <path d="M 0 20 L 80 20" stroke="#ef4444" strokeWidth="3" fill="none" />
+                <polygon points="75,15 85,20 75,25" fill="#ef4444" />
+              </svg>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
+                <span className="text-3xl font-bold text-white">{traceData.totalReturned || 0}</span>
+                <span className="text-xs text-red-100">已退货</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-2">总退货量</div>
+            </div>
           </div>
 
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center" style={{ transform: 'translateX(-280%)' }}>
             <svg width="40" height="50" className="overflow-visible">
               <path d="M 20 0 L 20 50" stroke="#3b82f6" strokeWidth="3" fill="none" />
               <polygon points="15,45 20,55 25,45" fill="#3b82f6" />
             </svg>
           </div>
 
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center" style={{ transform: 'translateX(-115%)' }}>
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl font-bold text-white">{totalInWarehouse}</span>
               <span className="text-xs text-blue-100">在库</span>
@@ -329,11 +326,16 @@ export default function BatchTracePage() {
                   <Link
                     key={idx}
                     to={`/orders/${order.orderId}`}
-                    className="px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors inline-flex items-center gap-2"
+                    className={`px-3 py-2 rounded-lg border hover:bg-opacity-80 transition-colors inline-flex items-center gap-2 ${
+                      order.isReturned
+                        ? 'bg-red-50 border-red-200 hover:bg-red-100'
+                        : 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100'
+                    }`}
                   >
-                    <span className="font-mono text-sm text-yellow-700">{order.orderNo}</span>
-                    <span className="text-yellow-600 font-bold">-{order.quantity}</span>
-                    <ArrowRight className="w-3 h-3 text-yellow-500" />
+                    <span className={`font-mono text-sm ${order.isReturned ? 'text-red-700' : 'text-yellow-700'}`}>{order.orderNo}</span>
+                    {order.isReturned && <span className="px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">已退货</span>}
+                    <span className={`font-bold ${order.isReturned ? 'text-red-600' : 'text-yellow-600'}`}>-{order.quantity}</span>
+                    <ArrowRight className={`w-3 h-3 ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
                   </Link>
                 ))}
                 {traceData.soldOrders.length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
@@ -432,17 +434,22 @@ export default function BatchTracePage() {
                 <Link
                   key={idx}
                   to={`/orders/${order.orderId}`}
-                  className="block bg-yellow-50 rounded-lg p-3 text-sm hover:bg-yellow-100 transition-colors"
+                  className={`block rounded-lg p-3 text-sm transition-colors ${
+                    order.isReturned
+                      ? 'bg-red-50 hover:bg-red-100'
+                      : 'bg-yellow-50 hover:bg-yellow-100'
+                  }`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="font-mono text-blue-600 hover:underline">{order.orderNo}</span>
+                      <span className={`font-mono hover:underline ${order.isReturned ? 'text-red-600' : 'text-blue-600'}`}>{order.orderNo}</span>
+                      {order.isReturned && <span className="ml-2 px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">已退货</span>}
                       <span className="ml-2 text-gray-500">{order.customer}</span>
                       {order.customerPhone && (
                         <span className="ml-2 text-gray-400">{order.customerPhone}</span>
                       )}
                     </div>
-                    <span className="text-yellow-600 font-bold">-{order.quantity}</span>
+                    <span className={`font-bold ${order.isReturned ? 'text-red-600' : 'text-yellow-600'}`}>-{order.quantity}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                     <span className={`px-2 py-0.5 text-xs rounded ${
@@ -451,7 +458,7 @@ export default function BatchTracePage() {
                       {order.type === 'BUNDLE' ? '套装' : '商品'}
                     </span>
                     <span>{order.productName || order.bundleName}</span>
-                    <ArrowRight className="w-3 h-3 ml-auto text-yellow-500" />
+                    <ArrowRight className={`w-3 h-3 ml-auto ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
                   </div>
                 </Link>
               ))}

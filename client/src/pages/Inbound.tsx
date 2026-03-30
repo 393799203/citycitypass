@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { warehouseApi, productApi, bundleApi, stockApi, supplierApi } from '../api';
-import { Warehouse, Package, Plus, X, ArrowRight, Trash2, Loader2, Truck, ClipboardCheck, MapPin, Barcode, CheckCircle, Search } from 'lucide-react';
+import { Warehouse, Package, Plus, X, ArrowRight, Trash2, Loader2, Truck, ClipboardCheck, MapPin, Barcode, CheckCircle, Search, Info } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -94,6 +94,7 @@ interface ArrivalItemInput {
   expectedQuantity: number;
   arrivalQuantity: number;
   batchNo: string;
+  expiryDate?: string;
 }
 
 interface ReceivingItemInput {
@@ -151,6 +152,7 @@ interface InboundProduct {
 
 export default function InboundPage() {
   const { confirm } = useConfirm();
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [orders, setOrders] = useState<InboundOrder[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -384,8 +386,12 @@ export default function InboundPage() {
         productName: productType === 'BUNDLE'
           ? bundles.find(b => b.bundleId === selectedBundleId)?.bundleName || ''
           : products.find(p => p.skuId === selectedSkuId)?.productName || '',
-        spec: productType === 'SKU' ? products.find(p => p.skuId === selectedSkuId)?.spec : undefined,
-        packaging: productType === 'SKU' ? products.find(p => p.skuId === selectedSkuId)?.packaging : undefined,
+        spec: productType === 'BUNDLE'
+          ? bundles.find(b => b.bundleId === selectedBundleId)?.spec
+          : products.find(p => p.skuId === selectedSkuId)?.spec,
+        packaging: productType === 'BUNDLE'
+          ? bundles.find(b => b.bundleId === selectedBundleId)?.packaging
+          : products.find(p => p.skuId === selectedSkuId)?.packaging,
         locationId: toLocationId,
         locationCode: fullLocationCode,
         quantity,
@@ -453,11 +459,12 @@ export default function InboundPage() {
       skuId: item.skuId,
       bundleId: item.bundleId,
       productName: item.sku?.product?.name || item.bundle?.name || '',
-      spec: item.sku?.spec || '',
-      packaging: item.sku?.packaging || '',
+      spec: item.sku?.spec || item.bundle?.spec || '',
+      packaging: item.sku?.packaging || item.bundle?.packaging || '',
       expectedQuantity: item.expectedQuantity || 0,
       arrivalQuantity: item.arrivalQuantity || item.expectedQuantity || 0,
       batchNo: item.batchNo || '',
+      expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
     })));
     setShowArrivalModal(true);
   };
@@ -474,6 +481,7 @@ export default function InboundPage() {
         id: item.id,
         arrivalQuantity: item.arrivalQuantity,
         batchNo: item.batchNo,
+        expiryDate: item.expiryDate || null,
       }));
       const res = await stockApi.updateInboundOrder(selectedArrivalOrder.id, {
         status: 'ARRIVED',
@@ -507,13 +515,13 @@ export default function InboundPage() {
       skuId: item.skuId,
       bundleId: item.bundleId,
       productName: item.sku?.product?.name || item.bundle?.name || '',
-      spec: item.sku?.spec || '',
-      packaging: item.sku?.packaging || '',
+      spec: item.sku?.spec || item.bundle?.spec || '',
+      packaging: item.sku?.packaging || item.bundle?.packaging || '',
       snManagement: item.snManagement || false,
       expectedQuantity: item.expectedQuantity || 0,
       receivedQuantity: item.receivedQuantity || 0,
       batchNo: item.batchNo || '',
-      expiryDate: item.expiryDate || '',
+      expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
       inspectionResult: (item.inspectionResult as any) || 'PENDING',
       inspectionNote: item.inspectionNote || '',
       snCodes: item.snCodes || [],
@@ -580,6 +588,7 @@ export default function InboundPage() {
         inspectionResult: item.inspectionResult,
         inspectionNote: item.inspectionNote,
         snCodes: item.snCodes,
+        expiryDate: item.expiryDate || null,
       }));
       const res = await stockApi.updateInboundOrder(selectedReceivingOrder.id, {
         status: 'RECEIVED',
@@ -623,8 +632,8 @@ export default function InboundPage() {
           skuId: item.skuId,
           bundleId: item.bundleId,
           productName: item.sku?.product?.name || item.bundle?.name || '',
-          spec: item.sku?.spec || '',
-          packaging: item.sku?.packaging || '',
+          spec: item.sku?.spec || item.bundle?.spec || '',
+          packaging: item.sku?.packaging || item.bundle?.packaging || '',
           batchNo: item.batchNo || '',
           quantity: actualQty,
           originalLocationId: item.locationId,
@@ -967,8 +976,8 @@ export default function InboundPage() {
                   const itemName = item.type === 'BUNDLE'
                     ? item.bundle?.name || '-'
                     : item.sku?.product?.name || '-';
-                  const itemSpec = item.sku?.spec;
-                  const itemPackaging = item.sku?.packaging;
+                  const itemSpec = item.type === 'BUNDLE' ? item.bundle?.spec : item.sku?.spec;
+                  const itemPackaging = item.type === 'BUNDLE' ? item.bundle?.packaging : item.sku?.packaging;
                   const locationCode = item.location?.shelf?.code
                     ? `${item.location.shelf?.zone?.code || ''}-${item.location.shelf?.code || ''}-L${item.location.level || ''}`
                     : '-';
@@ -981,6 +990,7 @@ export default function InboundPage() {
                     quantity: item.receivedQuantity || item.expectedQuantity || item.quantity || 0,
                     batchNo: item.batchNo || '-',
                     itemType: item.type,
+                    items: item.bundle?.items,
                   };
                 }) || [];
 
@@ -1012,6 +1022,17 @@ export default function InboundPage() {
                           {row.itemType === 'BUNDLE' ? '套装' : '商品'}
                         </span>
                         <span className="font-medium">{row.itemName}</span>
+                        {row.itemType === 'BUNDLE' && row.items && row.items.length > 0 && (
+                          <button
+                            type="button"
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseLeave={() => setTooltip(null)}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            className="p-0.5 hover:bg-gray-100 rounded"
+                          >
+                            <Info className="w-4 h-4 text-purple-500 cursor-help" />
+                          </button>
+                        )}
                       </div>
                       {row.itemSpec && (
                         <div className="text-xs text-gray-500">{row.itemSpec} | {row.itemPackaging}</div>
@@ -1614,6 +1635,9 @@ export default function InboundPage() {
                     <th className="px-3 py-2 text-center text-xs">计划数量</th>
                     <th className="px-3 py-2 text-center text-xs">到货数量</th>
                     <th className="px-3 py-2 text-center text-xs">批次号</th>
+                    {arrivalItems.some(i => i.type === 'PRODUCT') && (
+                      <th className="px-3 py-2 text-center text-xs">有效期</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -1638,7 +1662,7 @@ export default function InboundPage() {
                         />
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center justify-center gap-1">
                           <input
                             type="text"
                             value={item.batchNo}
@@ -1647,7 +1671,7 @@ export default function InboundPage() {
                               newItems[idx].batchNo = e.target.value;
                               setArrivalItems(newItems);
                             }}
-                            className={`w-56 border rounded px-2 py-1 font-mono ${!item.batchNo ? 'border-red-400 bg-red-50' : ''}`}
+                            className={`w-40 border rounded px-2 py-1 font-mono ${!item.batchNo ? 'border-red-400 bg-red-50' : ''}`}
                             placeholder="必填"
                           />
                           <button
@@ -1665,6 +1689,20 @@ export default function InboundPage() {
                             生成
                           </button>
                         </div>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {item.type === 'PRODUCT' && (
+                          <input
+                            type="date"
+                            value={item.expiryDate || ''}
+                            onChange={(e) => {
+                              const newItems = [...arrivalItems];
+                              newItems[idx].expiryDate = e.target.value;
+                              setArrivalItems(newItems);
+                            }}
+                            className="border rounded px-2 py-1 text-sm"
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1781,6 +1819,9 @@ export default function InboundPage() {
                     <th className="px-3 py-2 text-center text-xs">计划</th>
                     <th className="px-3 py-2 text-center text-xs">实收</th>
                     <th className="px-3 py-2 text-center text-xs">批次</th>
+                    {receivingItems.some(i => i.type === 'PRODUCT') && (
+                      <th className="px-3 py-2 text-center text-xs">有效期</th>
+                    )}
                     <th className="px-3 py-2 text-center text-xs">SN/数量</th>
                     <th className="px-3 py-2 text-center text-xs">验收</th>
                     <th className="px-3 py-2 text-left text-xs">备注</th>
@@ -1849,6 +1890,20 @@ export default function InboundPage() {
                           placeholder="批次号"
                         />
                       </td>
+                      {item.type === 'PRODUCT' && (
+                      <td className="px-3 py-2 text-center">
+                          <input
+                            type="date"
+                            value={item.expiryDate || ''}
+                            onChange={(e) => {
+                              const newItems = [...receivingItems];
+                              newItems[idx].expiryDate = e.target.value;
+                              setReceivingItems(newItems);
+                            }}
+                            className="border rounded px-1 py-0.5 text-sm"
+                          />
+                      </td>
+                      )}
                       <td className="px-3 py-2 text-center">
                         {item.snManagement ? (
                           <span className="text-xs text-gray-500">{item.snCodes.length}个SN</span>
@@ -2041,6 +2096,15 @@ export default function InboundPage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {tooltip && (
+        <div
+          className="fixed z-50 bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg text-sm"
+          style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+        >
+          {tooltip.content}
         </div>
       )}
     </div>

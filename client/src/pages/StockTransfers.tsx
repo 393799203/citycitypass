@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { stockTransferApi, warehouseApi, productApi, bundleApi, stockApi } from '../api';
-import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search } from 'lucide-react';
+import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search, Info } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -251,6 +251,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
 
 export default function StockTransfers() {
   const { confirm } = useConfirm();
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -768,8 +769,8 @@ export default function StockTransfers() {
                 const rows = t.items?.map((item: any, idx: number) => {
                     const itemType = item.bundle ? 'bundle' : 'product';
                     const itemName = item.sku?.product?.name || item.bundle?.name || '-';
-                    const itemSpec = item.sku?.spec;
-                    const itemPackaging = item.sku?.packaging;
+                    const itemSpec = item.sku?.spec || item.bundle?.spec;
+                    const itemPackaging = item.sku?.packaging || item.bundle?.packaging;
 
                     const fromCode = item.fromLocation?.shelf?.code
                       ? `${item.fromLocation.shelf.zone?.code || ''}-${item.fromLocation.shelf.code}-L${item.fromLocation.level}`
@@ -778,7 +779,7 @@ export default function StockTransfers() {
                       ? `${item.toLocation.shelf.zone?.code || ''}-${item.toLocation.shelf.code}-L${item.toLocation.level}`
                       : '-';
 
-                    return { idx, itemName, itemSpec, itemPackaging, fromCode, toCode, quantity: item.quantity, itemType, batchNo: item.batchNo || '-' };
+                    return { idx, itemName, itemSpec, itemPackaging, fromCode, toCode, quantity: item.quantity, itemType, batchNo: item.batchNo || '-', items: item.bundle?.items };
                   }) || [];
 
                 return rows.map((row: any, rowIdx: number) => (
@@ -801,6 +802,17 @@ export default function StockTransfers() {
                           {row.itemType === 'bundle' ? '套装' : '商品'}
                         </span>
                         <span className="font-medium">{row.itemName}</span>
+                        {row.itemType === 'bundle' && row.items && row.items.length > 0 && (
+                          <button
+                            type="button"
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseLeave={() => setTooltip(null)}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            className="p-0.5 hover:bg-gray-100 rounded"
+                          >
+                            <Info className="w-4 h-4 text-purple-500 cursor-help" />
+                          </button>
+                        )}
                       </div>
                       {row.itemSpec && (
                         <div className="text-xs text-gray-500">{row.itemSpec} | {row.itemPackaging}</div>
@@ -1108,6 +1120,15 @@ export default function StockTransfers() {
                 </div>
               </form>
           </div>
+        </div>
+      )}
+
+      {tooltip && (
+        <div
+          className="fixed z-50 bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg text-sm"
+          style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}
+        >
+          {tooltip.content}
         </div>
       )}
     </div>
