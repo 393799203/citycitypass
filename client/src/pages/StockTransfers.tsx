@@ -321,15 +321,16 @@ export default function StockTransfers() {
       setFilteredStocks(
         allStocks.filter(
           (s) =>
-            s.productName?.toLowerCase().includes(kw) ||
+            (s.productName?.toLowerCase().includes(kw) ||
             s.bundleName?.toLowerCase().includes(kw) ||
             s.spec?.toLowerCase().includes(kw) ||
             s.packaging?.toLowerCase().includes(kw) ||
-            s.locationCode.toLowerCase().includes(kw)
+            s.locationCode.toLowerCase().includes(kw)) &&
+            s.availableQuantity > 0
         )
       );
     } else {
-      setFilteredStocks(allStocks);
+      setFilteredStocks(allStocks.filter(s => s.availableQuantity > 0));
     }
   }, [searchKeyword, allStocks]);
 

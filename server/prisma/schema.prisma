@@ -674,6 +674,7 @@ model StockTransferItem {
   toLocation      Location?      @relation("TransferToLocation", fields: [toLocationId], references: [id])
   quantity        Int
   batchNo         String?
+  expiryDate      DateTime?
   createdAt       DateTime       @default(now())
   @@index([transferId])
   @@index([skuId])
@@ -711,6 +712,7 @@ model StockLock {
   locationId  String?
   location    Location?   @relation(fields: [locationId], references: [id])
   batchNo     String?     // 批次号
+  expiryDate  DateTime?   // 有效期
   quantity    Int         // 锁定数量
   status      LockStatus  @default(LOCKED)
   createdAt   DateTime    @default(now())

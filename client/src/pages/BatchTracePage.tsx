@@ -16,6 +16,7 @@ interface TraceData {
     productName?: string;
     bundleName?: string;
     quantity: number;
+    expiryDate?: string;
     warehouse: string;
     locationCode: string;
     createdAt: string;
@@ -247,6 +248,9 @@ export default function BatchTracePage() {
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center shadow-xl hover:scale-105 transition-transform border-4 border-white">
                 <span className="text-sm text-indigo-100">批次号</span>
                 <span className="text-sm font-bold text-white font-mono mt-1">{batchNo}</span>
+                {traceData?.stockIns?.[0]?.expiryDate && (
+                  <span className="text-xs text-indigo-200 mt-1">{new Date(traceData.stockIns[0].expiryDate).toLocaleDateString()}</span>
+                )}
               </div>
             </div>
 

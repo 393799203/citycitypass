@@ -53,13 +53,6 @@ export const returnApi = {
     return api.put(`/returns/${id}/qualify`, data);
   },
 
-  stockIn: (id: string, data: {
-    locationId: string;
-    items?: Array<{ id: string; qualifiedQuantity: number }>;
-  }) => {
-    return api.put(`/returns/${id}/stock-in`, data);
-  },
-
   refund: (id: string, data: { refundAmount?: number; remark?: string }) => {
     return api.put(`/returns/${id}/refund`, data);
   },

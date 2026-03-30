@@ -373,7 +373,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.stockLock.create({
-                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, quantity: lockQty, orderId: newOrder.id },
+                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, expiryDate: stock.expiryDate, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -691,7 +691,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.stockLock.create({
-            data: { skuId: item.skuId!, warehouseId: warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, quantity: lockQty, orderId: newOrder.id },
+            data: { skuId: item.skuId!, warehouseId: warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, expiryDate: stock.expiryDate, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -800,11 +800,14 @@ router.put('/:id/status', async (req: Request, res: Response) => {
 
         for (const lock of stockLocks) {
           if (lock.locationId) {
-            await tx.stock.updateMany({
+            await tx.stock.update({
               where: {
-                skuId: lock.skuId,
-                warehouseId: lock.warehouseId,
-                locationId: lock.locationId,
+                skuId_warehouseId_locationId_batchNo: {
+                  skuId: lock.skuId,
+                  warehouseId: lock.warehouseId,
+                  locationId: lock.locationId,
+                  batchNo: lock.batchNo,
+                },
               },
               data: {
                 lockedQuantity: { decrement: lock.quantity },
@@ -816,6 +819,8 @@ router.put('/:id/status', async (req: Request, res: Response) => {
               where: {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
+                locationId: null,
+                batchNo: lock.batchNo,
               },
               data: {
                 lockedQuantity: { decrement: lock.quantity },
@@ -879,18 +884,35 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                     where: { id: item.stockLockId },
                   });
                   if (stockLock) {
-                    await tx.stock.updateMany({
-                      where: {
-                        skuId: stockLock.skuId,
-                        bundleId: stockLock.bundleId,
-                        warehouseId: stockLock.warehouseId,
-                        locationId: stockLock.locationId,
-                      },
-                      data: {
-                        lockedQuantity: { decrement: stockLock.quantity },
-                        availableQuantity: { increment: stockLock.quantity },
-                      },
-                    });
+                    if (stockLock.locationId) {
+                      await tx.stock.update({
+                        where: {
+                          skuId_warehouseId_locationId_batchNo: {
+                            skuId: stockLock.skuId,
+                            warehouseId: stockLock.warehouseId,
+                            locationId: stockLock.locationId,
+                            batchNo: stockLock.batchNo,
+                          },
+                        },
+                        data: {
+                          lockedQuantity: { decrement: stockLock.quantity },
+                          availableQuantity: { increment: stockLock.quantity },
+                        },
+                      });
+                    } else {
+                      await tx.stock.updateMany({
+                        where: {
+                          skuId: stockLock.skuId,
+                          warehouseId: stockLock.warehouseId,
+                          locationId: null,
+                          batchNo: stockLock.batchNo,
+                        },
+                        data: {
+                          lockedQuantity: { decrement: stockLock.quantity },
+                          availableQuantity: { increment: stockLock.quantity },
+                        },
+                      });
+                    }
                     await tx.stockLock.delete({ where: { id: stockLock.id } });
                   }
                 }
@@ -951,18 +973,35 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                     where: { id: item.stockLockId },
                   });
                   if (stockLock) {
-                    await tx.stock.updateMany({
-                      where: {
-                        skuId: stockLock.skuId,
-                        bundleId: stockLock.bundleId,
-                        warehouseId: stockLock.warehouseId,
-                        locationId: stockLock.locationId,
-                      },
-                      data: {
-                        lockedQuantity: { decrement: stockLock.quantity },
-                        availableQuantity: { increment: stockLock.quantity },
-                      },
-                    });
+                    if (stockLock.locationId) {
+                      await tx.stock.update({
+                        where: {
+                          skuId_warehouseId_locationId_batchNo: {
+                            skuId: stockLock.skuId,
+                            warehouseId: stockLock.warehouseId,
+                            locationId: stockLock.locationId,
+                            batchNo: stockLock.batchNo,
+                          },
+                        },
+                        data: {
+                          lockedQuantity: { decrement: stockLock.quantity },
+                          availableQuantity: { increment: stockLock.quantity },
+                        },
+                      });
+                    } else {
+                      await tx.stock.updateMany({
+                        where: {
+                          skuId: stockLock.skuId,
+                          warehouseId: stockLock.warehouseId,
+                          locationId: null,
+                          batchNo: stockLock.batchNo,
+                        },
+                        data: {
+                          lockedQuantity: { decrement: stockLock.quantity },
+                          availableQuantity: { increment: stockLock.quantity },
+                        },
+                      });
+                    }
                     await tx.stockLock.delete({ where: { id: stockLock.id } });
                   }
                 }
@@ -1004,6 +1043,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 warehouseId: lock.warehouseId,
                 locationId: lock.locationId,
                 batchNo: lock.batchNo,
+                expiryDate: lock.expiryDate,
                 quantity: lock.quantity,
               },
             });
@@ -1103,11 +1143,27 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
       for (const lock of stockLocks) {
         if (lock.locationId) {
+          await tx.stock.update({
+            where: {
+              skuId_warehouseId_locationId_batchNo: {
+                skuId: lock.skuId,
+                warehouseId: lock.warehouseId,
+                locationId: lock.locationId,
+                batchNo: lock.batchNo,
+              },
+            },
+            data: {
+              lockedQuantity: { decrement: lock.quantity },
+              availableQuantity: { increment: lock.quantity },
+            },
+          });
+        } else {
           await tx.stock.updateMany({
             where: {
               skuId: lock.skuId,
               warehouseId: lock.warehouseId,
-              locationId: lock.locationId,
+              locationId: null,
+              batchNo: lock.batchNo,
             },
             data: {
               lockedQuantity: { decrement: lock.quantity },

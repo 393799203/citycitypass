@@ -79,6 +79,7 @@ router.get('/', async (req, res) => {
             unitPrice: orderItemPrices[item.orderItemId] || 0,
             stockBatchNo: stockOut?.batchNo || null,
             stockOutQuantity: stockOut?.quantity || null,
+            stockExpiryDate: stockOut?.expiryDate || null,
           };
         }),
       };
@@ -155,6 +156,7 @@ router.get('/:id', async (req, res) => {
         unitPrice: orderItemPrices[item.orderItemId] || 0,
         stockBatchNo: stockOut?.batchNo || null,
         stockOutQuantity: stockOut?.quantity || null,
+        stockExpiryDate: stockOut?.expiryDate || null,
       };
     });
 
@@ -460,88 +462,6 @@ router.put('/:id/qualify', async (req, res) => {
   } catch (err: any) {
     console.error('Qualify return error:', err.message, err.stack);
     res.status(500).json(error('验收确认失败: ' + err.message));
-  }
-});
-
-router.put('/:id/stock-in', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { locationId, items } = req.body;
-    const operatorName = (req as any).user?.name;
-
-    const returnOrder = await prisma.returnOrder.findUnique({
-      where: { id },
-      include: { items: true },
-    });
-
-    if (!returnOrder) {
-      return res.status(404).json(error('退货单不存在'));
-    }
-
-    if (!['RETURN_QUALIFIED', 'RETURN_PARTIAL_QUALIFIED'].includes(returnOrder.status)) {
-      return res.status(400).json(error('只有验收合格的退货才能入库'));
-    }
-
-    const location = await prisma.location.findUnique({
-      where: { id: locationId },
-      include: { shelf: { include: { zone: true } } },
-    });
-
-    if (!location) {
-      return res.status(400).json(error('库位不存在'));
-    }
-
-    const inboundOrder = await prisma.inboundOrder.create({
-      data: {
-        inboundNo: `INB${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        source: 'RETURN',
-        warehouseId: returnOrder.warehouseId,
-        remark: `退货入库，退货单: ${returnOrder.returnNo}`,
-        status: 'PENDING',
-        items: {
-          create: returnOrder.items.map(item => {
-            const inputItem = items?.find((i: any) => i.id === item.id);
-            const stockInQty = inputItem?.qualifiedQuantity ?? item.qualifiedQuantity;
-            const batchNo = inputItem?.stockBatchNo;
-
-            return {
-              type: item.skuId ? 'PRODUCT' : 'BUNDLE',
-              skuId: item.skuId,
-              bundleId: item.bundleId,
-              quantity: stockInQty,
-              expectedQuantity: stockInQty,
-              receivedQuantity: stockInQty,
-              batchNo,
-            };
-          }),
-        },
-      },
-    });
-
-    const updated = await prisma.returnOrder.update({
-      where: { id },
-      data: {
-        status: 'RETURN_STOCK_IN',
-        logs: {
-          create: {
-            action: 'STOCK_IN',
-            beforeStatus: returnOrder.status,
-            afterStatus: 'RETURN_STOCK_IN',
-            operatorName,
-            remark: `入库到: ${location.shelf?.zone?.code || ''}-${location.shelf?.code || ''}-L${location.level}`,
-          },
-        },
-      },
-      include: {
-        items: true,
-        logs: true,
-      },
-    });
-
-    res.json(success(updated));
-  } catch (err: any) {
-    console.error('Stock in return error:', err.message, err.stack);
-    res.status(500).json(error('退货入库失败: ' + (err.message || '未知错误')));
   }
 });
 

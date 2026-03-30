@@ -12,6 +12,7 @@ interface InboundItemInput {
   packaging?: string;
   quantity: number;
   batchNo?: string;
+  expiryDate?: string;
   locationId?: string;
   locationCode?: string;
   zoneId?: string;
@@ -144,6 +145,7 @@ export default function InboundOrderModal({
           bundleId: item.bundleId,
           quantity: item.quantity,
           batchNo: item.batchNo,
+          expiryDate: item.expiryDate,
           locationId: item.locationId,
         })),
       });

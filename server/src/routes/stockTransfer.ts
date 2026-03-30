@@ -146,6 +146,7 @@ router.post('/', async (req: Request, res: Response) => {
             skuId: item.skuId,
             warehouseId,
             locationId: item.fromLocationId,
+            batchNo: item.batchNo,
           },
         });
 
@@ -161,7 +162,7 @@ router.post('/', async (req: Request, res: Response) => {
             bundleId: item.bundleId,
             warehouseId,
             locationId: item.fromLocationId,
-            batchNo: (item.batchNo || null) as any,
+            batchNo: item.batchNo,
           },
         });
 
@@ -191,6 +192,19 @@ router.post('/', async (req: Request, res: Response) => {
       });
 
       for (const item of items) {
+        let expiryDate = null;
+        if (item.itemType === 'PRODUCT' && item.skuId && item.fromLocationId && item.batchNo) {
+          const stock = await tx.stock.findFirst({
+            where: {
+              skuId: item.skuId,
+              warehouseId,
+              locationId: item.fromLocationId,
+              batchNo: item.batchNo,
+            },
+          });
+          expiryDate = stock?.expiryDate || null;
+        }
+
         await tx.stockTransferItem.create({
           data: {
             transferId: transfer.id,
@@ -201,6 +215,7 @@ router.post('/', async (req: Request, res: Response) => {
             toLocationId: item.toLocationId || null,
             quantity: item.quantity,
             batchNo: item.batchNo || null,
+            expiryDate,
           },
         });
       }
@@ -295,6 +310,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
                 warehouseId: transfer.warehouseId,
                 locationId: item.toLocationId || null,
                 batchNo: item.batchNo || null,
+                expiryDate: item.expiryDate,
                 totalQuantity: item.quantity,
                 availableQuantity: item.quantity,
               },
@@ -416,6 +432,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 skuId: item.skuId,
                 warehouseId: transfer.warehouseId,
                 locationId: item.toLocationId || null,
+                batchNo: item.batchNo,
               },
             });
 
@@ -434,6 +451,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 skuId: item.skuId,
                 warehouseId: transfer.warehouseId,
                 locationId: item.fromLocationId || null,
+                batchNo: item.batchNo,
               },
             });
 
@@ -454,6 +472,8 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                   totalQuantity: item.quantity,
                   availableQuantity: item.quantity,
                   lockedQuantity: 0,
+                  batchNo: item.batchNo,
+                  expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
                 },
               });
             }
@@ -463,6 +483,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 bundleId: item.bundleId,
                 warehouseId: transfer.warehouseId,
                 locationId: item.toLocationId || null,
+                batchNo: item.batchNo,
               },
             });
 
@@ -481,6 +502,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 bundleId: item.bundleId,
                 warehouseId: transfer.warehouseId,
                 locationId: item.fromLocationId || null,
+                batchNo: item.batchNo,
               },
             });
 
@@ -501,6 +523,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                   totalQuantity: item.quantity,
                   availableQuantity: item.quantity,
                   lockedQuantity: 0,
+                  batchNo: item.batchNo,
                 },
               });
             }

@@ -176,7 +176,6 @@ export const returnApi = {
   create: (data: any) => api.post('/returns', data),
   receive: (id: string, data: any) => api.put(`/returns/${id}/receive`, data),
   qualify: (id: string, data: any) => api.put(`/returns/${id}/qualify`, data),
-  stockIn: (id: string, data: any) => api.put(`/returns/${id}/stock-in`, data),
   refund: (id: string, data: any) => api.put(`/returns/${id}/refund`, data),
   cancel: (id: string, reason?: string) => api.put(`/returns/${id}/cancel`, { reason }),
 };

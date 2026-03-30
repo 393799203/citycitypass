@@ -675,6 +675,7 @@ export default function Returns() {
               spec: item.spec,
               quantity: item.qualifiedQuantity ?? 0,
               batchNo: item.stockBatchNo,
+              expiryDate: item.stockExpiryDate,
             }))}
           onClose={() => setShowStockInModal(false)}
           onSuccess={fetchReturns}
