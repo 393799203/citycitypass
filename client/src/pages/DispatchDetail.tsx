@@ -209,9 +209,22 @@ export default function DispatchDetailPage() {
               <Truck className="w-6 h-6" />
               配送单详情
             </h1>
-            <p className="text-gray-500 mt-1">配送单号: {dispatch.dispatchNo}</p>
+            <p className="text-gray-500 mt-1 flex items-center gap-2">
+              配送单号: {dispatch.dispatchNo}
+              {dispatch.vehicleSource === 'CARRIER' && (
+                <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 text-sm rounded-full ${
+              dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+              dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
+              dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+              'bg-gray-600 text-white'
+            }`}>
+              {dispatchStatusMap[dispatch.status]}
+            </span>
             {dispatch.status === 'PENDING' && (
               <button
                 onClick={() => handleStatusChange('IN_TRANSIT')}
@@ -237,14 +250,6 @@ export default function DispatchDetailPage() {
               </button>
             )}
           </div>
-          <span className={`px-3 py-1 text-sm rounded-full ${
-            dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
-            dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
-            dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
-            'bg-gray-600 text-white'
-          }`}>
-            {dispatchStatusMap[dispatch.status]}
-          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -310,12 +315,16 @@ export default function DispatchDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
-                {dispatch.vehicle?.licensePlate ? dispatch.vehicle.licensePlate.slice(0, 2) + '·' + dispatch.vehicle.licensePlate.slice(2) : '-'}
+                {dispatch.vehicleSource === 'CARRIER'
+                  ? dispatch.carrierVehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.carrierVehicle?.licensePlate?.slice(2)
+                  : dispatch.vehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.vehicle?.licensePlate?.slice(2) || '-'}
               </div>
-              <span className="text-gray-600">({dispatch.vehicle?.vehicleType})</span>
+              <span className="text-gray-600">
+                ({dispatch.vehicleSource === 'CARRIER' ? dispatch.carrierVehicle?.vehicleType : dispatch.vehicle?.vehicleType})
+              </span>
             </div>
             <div className="text-sm text-gray-500">
-              载重: {dispatch.vehicle?.capacity}件
+              载重: {dispatch.vehicleSource === 'CARRIER' ? dispatch.carrierVehicle?.capacity : dispatch.vehicle?.capacity}件
             </div>
           </div>
 

@@ -330,6 +330,7 @@ export default function ReturnDetail() {
                           </span>
                         </div>
                         {item.stockBatchNo && <div className="text-purple-500 text-xs">批:{item.stockBatchNo}</div>}
+                        {item.stockExpiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.stockExpiryDate).toLocaleDateString()}</div>}
                       </td>
                       <td className="px-4 py-3 text-base text-gray-500 text-center">{item.packaging}</td>
                       <td className="px-4 py-3 text-base text-gray-500 text-center">{item.spec}</td>
@@ -458,6 +459,7 @@ export default function ReturnDetail() {
                   <tr key={item.stockOutId ? `${item.id}_${item.stockOutId}` : item.id}>
                     <td className="px-4 py-2 text-sm">{item.productName}</td>
                     <td className="px-4 py-2 text-sm text-purple-600">{item.stockBatchNo || '-'}</td>
+                    <td className="px-4 py-2 text-sm text-orange-600">{item.stockExpiryDate ? new Date(item.stockExpiryDate).toLocaleDateString() : '-'}</td>
                     <td className="px-4 py-2 text-sm text-right">{item.stockOutQuantity || item.quantity}</td>
                     <td className="px-4 py-2 text-right">
                       <input

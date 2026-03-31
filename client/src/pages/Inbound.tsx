@@ -1890,8 +1890,9 @@ export default function InboundPage() {
                           placeholder="批次号"
                         />
                       </td>
-                      {item.type === 'PRODUCT' && (
+                      {receivingItems.some(i => i.type === 'PRODUCT') && (
                       <td className="px-3 py-2 text-center">
+                        {item.type === 'PRODUCT' && (
                           <input
                             type="date"
                             value={item.expiryDate || ''}
@@ -1902,6 +1903,7 @@ export default function InboundPage() {
                             }}
                             className="border rounded px-1 py-0.5 text-sm"
                           />
+                        )}
                       </td>
                       )}
                       <td className="px-3 py-2 text-center">

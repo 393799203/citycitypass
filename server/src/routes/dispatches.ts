@@ -19,6 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
       where,
       include: {
         vehicle: true,
+        carrierVehicle: true,
         driver: true,
         warehouse: true,
         orders: {
@@ -39,20 +40,36 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { vehicleId, driverId, warehouseId, orderIds, remark, departureTime } = req.body;
+    const { vehicleId, vehicleSource, carrierVehicleId, driverId, warehouseId, orderIds, remark, departureTime } = req.body;
 
-    if (!vehicleId || !driverId || !warehouseId || !orderIds || orderIds.length === 0) {
+    if (!warehouseId || !orderIds || orderIds.length === 0) {
       return res.status(400).json({ success: false, message: '参数不完整' });
     }
 
-    const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    if (!vehicle) {
-      return res.status(400).json({ success: false, message: '车辆不存在' });
+    let vehicleCapacity = 0;
+    let carrierVehicle = null;
+
+    if (vehicleSource === 'CARRIER' && carrierVehicleId) {
+      carrierVehicle = await prisma.carrierVehicle.findUnique({ where: { id: carrierVehicleId } });
+      if (!carrierVehicle) {
+        return res.status(400).json({ success: false, message: '承运商车辆不存在' });
+      }
+      vehicleCapacity = carrierVehicle.capacity || 999999;
+    } else if (vehicleId) {
+      const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+      if (!vehicle) {
+        return res.status(400).json({ success: false, message: '车辆不存在' });
+      }
+      vehicleCapacity = vehicle.capacity;
+    } else {
+      return res.status(400).json({ success: false, message: '请选择车辆' });
     }
 
-    const driver = await prisma.driver.findUnique({ where: { id: driverId } });
-    if (!driver) {
-      return res.status(400).json({ success: false, message: '司机不存在' });
+    if (driverId) {
+      const driver = await prisma.driver.findUnique({ where: { id: driverId } });
+      if (!driver) {
+        return res.status(400).json({ success: false, message: '司机不存在' });
+      }
     }
 
     const orders = await prisma.order.findMany({
@@ -73,10 +90,10 @@ router.post('/', async (req: Request, res: Response) => {
       return sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
     }, 0);
 
-    if (totalWeight > vehicle.capacity) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `订单总重量${totalWeight}件，超过车辆载重${vehicle.capacity}件` 
+    if (totalWeight > vehicleCapacity) {
+      return res.status(400).json({
+        success: false,
+        message: `订单总重量${totalWeight}件，超过车辆载重${vehicleCapacity}件`
       });
     }
 
@@ -182,8 +199,10 @@ router.post('/', async (req: Request, res: Response) => {
       const created = await tx.dispatch.create({
         data: {
           dispatchNo,
-          vehicleId,
-          driverId,
+          vehicleSource: vehicleSource || 'WAREHOUSE',
+          vehicleId: vehicleSource === 'CARRIER' ? null : vehicleId,
+          carrierVehicleId: vehicleSource === 'CARRIER' ? carrierVehicleId : null,
+          driverId: driverId || null,
           warehouseId,
           status: 'PENDING',
           plannedRoute,
@@ -224,15 +243,24 @@ router.post('/', async (req: Request, res: Response) => {
         });
       }
 
-      await tx.vehicle.update({
-        where: { id: vehicleId },
-        data: { status: 'IN_TRANSIT' },
-      });
+      if (vehicleSource === 'CARRIER' && carrierVehicleId) {
+        await tx.carrierVehicle.update({
+          where: { id: carrierVehicleId },
+          data: { status: 'IN_TRANSIT' },
+        });
+      } else if (vehicleId) {
+        await tx.vehicle.update({
+          where: { id: vehicleId },
+          data: { status: 'IN_TRANSIT' },
+        });
+      }
 
-      await tx.driver.update({
-        where: { id: driverId },
-        data: { status: 'IN_TRANSIT', vehicleId },
-      });
+      if (driverId) {
+        await tx.driver.update({
+          where: { id: driverId },
+          data: { status: 'IN_TRANSIT', vehicleId },
+        });
+      }
 
       return created;
     });
@@ -304,15 +332,25 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           },
         });
 
-        await tx.vehicle.update({
-          where: { id: existing.vehicleId },
-          data: { status: 'AVAILABLE' },
-        });
+        if (existing.vehicleId) {
+          await tx.vehicle.update({
+            where: { id: existing.vehicleId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+        if (existing.carrierVehicleId) {
+          await tx.carrierVehicle.update({
+            where: { id: existing.carrierVehicleId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
 
-        await tx.driver.update({
-          where: { id: existing.driverId },
-          data: { status: 'AVAILABLE', vehicleId: null },
-        });
+        if (existing.driverId) {
+          await tx.driver.update({
+            where: { id: existing.driverId },
+            data: { status: 'AVAILABLE', vehicleId: null },
+          });
+        }
 
         let lastDeliveredOrder = null;
         
@@ -349,15 +387,25 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           if (lastDeliveredOrder.latitude != null) coordinateData.latitude = lastDeliveredOrder.latitude;
           if (lastDeliveredOrder.longitude != null) coordinateData.longitude = lastDeliveredOrder.longitude;
 
+          if (existing.vehicleId) {
           await tx.vehicle.update({
             where: { id: existing.vehicleId },
             data: { ...locationData, ...coordinateData },
           });
-
-          await tx.driver.update({
-            where: { id: existing.driverId },
+        }
+        if (existing.carrierVehicleId) {
+          await tx.carrierVehicle.update({
+            where: { id: existing.carrierVehicleId },
             data: { ...locationData, ...coordinateData },
           });
+        }
+
+        if (existing.driverId) {
+            await tx.driver.update({
+              where: { id: existing.driverId },
+              data: { ...locationData, ...coordinateData },
+            });
+          }
         }
       } else if (status === 'CANCELLED') {
         updated = await tx.dispatch.update({
@@ -375,15 +423,24 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           },
         });
 
-        await tx.vehicle.update({
-          where: { id: existing.vehicleId },
-          data: { status: 'AVAILABLE' },
-        });
-
-        await tx.driver.update({
-          where: { id: existing.driverId },
-          data: { status: 'AVAILABLE', vehicleId: null },
-        });
+        if (existing.vehicleId) {
+          await tx.vehicle.update({
+            where: { id: existing.vehicleId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+        if (existing.carrierVehicleId) {
+          await tx.carrierVehicle.update({
+            where: { id: existing.carrierVehicleId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+        if (existing.driverId) {
+          await tx.driver.update({
+            where: { id: existing.driverId },
+            data: { status: 'AVAILABLE', vehicleId: null },
+          });
+        }
 
         for (const dispatchOrder of existing.orders) {
           await tx.order.update({
@@ -411,6 +468,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       where: { id },
       include: {
         vehicle: true,
+        carrierVehicle: true,
         driver: true,
         warehouse: true,
         orders: {

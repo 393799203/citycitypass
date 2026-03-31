@@ -915,10 +915,13 @@ enum DispatchStatus {
 model Dispatch {
   id             String          @id @default(uuid())
   dispatchNo     String          @unique // 配送单号
-  vehicleId      String
-  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id])
-  driverId       String
-  driver         Driver          @relation(fields: [driverId], references: [id])
+  vehicleSource  String          @default("WAREHOUSE") // WAREHOUSE 或 CARRIER
+  vehicleId      String?         // 自有车辆ID（当 vehicleSource = WAREHOUSE 时使用）
+  vehicle        Vehicle?        @relation(fields: [vehicleId], references: [id])
+  carrierVehicleId String?       // 承运商车辆ID（当 vehicleSource = CARRIER 时使用）
+  carrierVehicle CarrierVehicle? @relation(fields: [carrierVehicleId], references: [id])
+  driverId       String?         // 承运商车辆时可能为空
+  driver         Driver?         @relation(fields: [driverId], references: [id])
   warehouseId     String
   warehouse      Warehouse       @relation(fields: [warehouseId], references: [id])
   status         DispatchStatus  @default(PENDING)
@@ -1197,4 +1200,6 @@ model CarrierVehicle {
   remark       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  dispatches   Dispatch[]
 }

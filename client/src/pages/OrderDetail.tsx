@@ -601,9 +601,14 @@ export default function OrderDetail() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">配送单号:</span>
-                      <Link to={`/dispatch/${order.dispatch.id}`} className="font-medium text-primary-600 hover:underline">
-                        {order.dispatch.dispatchNo}
-                      </Link>
+                      <div className="flex items-center gap-1">
+                        {order.dispatch.vehicleSource === 'CARRIER' && (
+                          <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+                        )}
+                        <Link to={`/dispatch/${order.dispatch.id}`} className="font-medium text-primary-600 hover:underline">
+                          {order.dispatch.dispatchNo}
+                        </Link>
+                      </div>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">状态:</span>

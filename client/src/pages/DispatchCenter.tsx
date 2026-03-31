@@ -242,8 +242,10 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
 
     try {
       await dispatchApi.create({
-        vehicleId: createForm.vehicleId,
-        driverId: createForm.driverId,
+        vehicleId: createForm.isCarrierVehicle ? null : createForm.vehicleId,
+        vehicleSource: createForm.isCarrierVehicle ? 'CARRIER' : 'WAREHOUSE',
+        carrierVehicleId: createForm.isCarrierVehicle ? createForm.vehicleId : null,
+        driverId: createForm.isCarrierVehicle ? null : createForm.driverId,
         warehouseId: selectedWarehouseId,
         orderIds: selectedOrders,
         remark: createForm.remark,
@@ -492,9 +494,14 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   {dispatches.map(dispatch => (
                     <tr key={dispatch.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 font-medium text-center">
-                        <Link to={`/dispatch/${dispatch.id}`} className="text-primary-600 hover:underline">
-                          {dispatch.dispatchNo}
-                        </Link>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Link to={`/dispatch/${dispatch.id}`} className="text-primary-600 hover:underline">
+                            {dispatch.dispatchNo}
+                          </Link>
+                          {dispatch.vehicleSource === 'CARRIER' && (
+                            <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 text-center">
                           <div className="flex items-center justify-center gap-1.5 text-sm">
@@ -509,7 +516,9 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                         </td>
                         <td className="py-3 text-center">
                           <div className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded">
-                            {dispatch.vehicle?.licensePlate ? dispatch.vehicle.licensePlate.slice(0, 2) + '·' + dispatch.vehicle.licensePlate.slice(2) : '-'}
+                            {dispatch.vehicleSource === 'CARRIER'
+                              ? dispatch.carrierVehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.carrierVehicle?.licensePlate?.slice(2)
+                              : dispatch.vehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.vehicle?.licensePlate?.slice(2) || '-'}
                           </div>
                         </td>
                         <td className="py-3 text-sm text-center">

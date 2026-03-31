@@ -190,6 +190,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             dispatch: {
               include: {
                 vehicle: true,
+                carrierVehicle: true,
                 driver: true,
               },
             },
@@ -234,9 +235,14 @@ router.get('/:id', async (req: Request, res: Response) => {
       dispatchNo: order.dispatchOrders[0].dispatch.dispatchNo,
       status: order.dispatchOrders[0].dispatch.status,
       completedTime: order.dispatchOrders[0].dispatch.completedTime,
+      vehicleSource: order.dispatchOrders[0].dispatch.vehicleSource,
       vehicle: order.dispatchOrders[0].dispatch.vehicle ? {
         licensePlate: order.dispatchOrders[0].dispatch.vehicle.licensePlate,
         vehicleType: order.dispatchOrders[0].dispatch.vehicle.vehicleType,
+      } : null,
+      carrierVehicle: order.dispatchOrders[0].dispatch.carrierVehicle ? {
+        licensePlate: order.dispatchOrders[0].dispatch.carrierVehicle.licensePlate,
+        vehicleType: order.dispatchOrders[0].dispatch.carrierVehicle.vehicleType,
       } : null,
       driver: order.dispatchOrders[0].dispatch.driver ? {
         name: order.dispatchOrders[0].dispatch.driver.name,
