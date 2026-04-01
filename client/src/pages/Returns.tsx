@@ -246,7 +246,7 @@ export default function Returns() {
                 <td className="px-6 py-4 text-base text-gray-600 max-w-xs truncate text-center">{ret.reason}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500 text-center">{new Date(ret.createdAt).toLocaleString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-1 items-center">
                     {ret.status === 'RETURN_REQUESTED' && (
                       <button
                         onClick={() => {
@@ -255,10 +255,9 @@ export default function Returns() {
                           setReturnTrackingNo(ret.trackingNo || '');
                           setReturnLogisticsCompany(ret.logisticsCompany || '');
                         }}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        title="填写快递单号"
+                        className="px-2 py-0.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
                       >
-                        <Pencil className="w-4 h-4" />
+                        填写快递
                       </button>
                     )}
                     {ret.status === 'RETURN_SHIPPED' && (
@@ -275,19 +274,17 @@ export default function Returns() {
                             }
                           }
                         }}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        title="确认收到退货"
+                        className="px-2 py-0.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
                       >
-                        <CheckCircle className="w-4 h-4" />
+                        确认收货
                       </button>
                     )}
                     {ret.status === 'RETURN_RECEIVING' && (
                       <button
                         onClick={() => openQualifyModal(ret)}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
-                        title="验收确认"
+                        className="px-2 py-0.5 text-xs text-white bg-green-600 hover:bg-green-700 rounded"
                       >
-                        <CheckCircle className="w-4 h-4" />
+                        验收确认
                       </button>
                     )}
                     {(ret.status === 'RETURN_QUALIFIED' || ret.status === 'RETURN_PARTIAL_QUALIFIED') && (
@@ -300,10 +297,9 @@ export default function Returns() {
                           setStockInReturnOrder(ret);
                           setShowStockInModal(true);
                         }}
-                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                        title="退货入库"
+                        className="px-2 py-0.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded"
                       >
-                        <Warehouse className="w-4 h-4" />
+                        退货入库
                       </button>
                     )}
                     {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(ret.status) && ret.refundStatus !== 'COMPLETED' && (
@@ -315,10 +311,9 @@ export default function Returns() {
                             .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.qualifiedQuantity ?? 0) * discount, 0);
                           setRefundModal({ show: true, returnOrder: ret, refundAmount: totalRefund });
                         }}
-                        className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-lg"
-                        title="确认退款"
+                        className="px-2 py-0.5 text-xs text-white bg-yellow-600 hover:bg-yellow-700 rounded"
                       >
-                        <DollarSign className="w-4 h-4" />
+                        确认退款
                       </button>
                     )}
                   </div>
@@ -618,6 +613,7 @@ export default function Returns() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs">商品</th>
+                  <th className="px-4 py-2 text-left text-xs">批次/有效期</th>
                   <th className="px-4 py-2 text-right text-xs">退货数</th>
                   <th className="px-4 py-2 text-right text-xs">合格数</th>
                   <th className="px-4 py-2 text-right text-xs">拒收数</th>
@@ -627,6 +623,10 @@ export default function Returns() {
                 {qualifyItems.map((item: any, idx: number) => (
                   <tr key={item.id}>
                     <td className="px-4 py-2 text-sm">{item.productName}</td>
+                    <td className="px-4 py-2">
+                      <div className="text-purple-600">{item.skuBatch?.batchNo || item.bundleBatch?.batchNo || '-'}</div>
+                      <div className="text-orange-500 text-xs">{item.skuBatch?.expiryDate ? `效期:${new Date(item.skuBatch.expiryDate).toLocaleDateString()}` : ''}</div>
+                    </td>
                     <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
                     <td className="px-4 py-2 text-right">
                       <input
