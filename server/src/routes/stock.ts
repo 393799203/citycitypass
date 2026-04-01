@@ -293,6 +293,8 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
     const bundleMap = new Map<string, {
       bundleId: string;
       bundleName: string;
+      packaging: string;
+      spec: string;
       price: number;
       totalAvailable: number;
       items: { skuId: string; productName: string; spec: string; packaging: string; quantity: number }[];
@@ -305,6 +307,8 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
         bundleMap.set(key, {
           bundleId: bs.bundleId,
           bundleName: bs.bundle.name || '',
+          packaging: bs.bundle.packaging || '',
+          spec: bs.bundle.spec || '',
           price: bs.bundle.price ? Number(bs.bundle.price) : 0,
           totalAvailable: 0,
           items: bs.bundle.items?.map(item => ({

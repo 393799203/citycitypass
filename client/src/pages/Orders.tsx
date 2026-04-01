@@ -393,8 +393,8 @@ export default function OrdersPage() {
               skuId: null,
               bundleId: bundle.id,
               productName: item.productName,
-              packaging: '',
-              spec: '',
+              packaging: bundle.packaging || '',
+              spec: bundle.spec || '',
               price: item.price,
               quantity: item.quantity,
             };
@@ -1450,8 +1450,8 @@ export default function OrdersPage() {
                                         skuId: null,
                                         bundleId: b.bundleId,
                                         productName: b.bundleName,
-                                        packaging: '',
-                                        spec: '',
+                                        packaging: b.packaging || '',
+                                        spec: b.spec || '',
                                         price: b.price,
                                         quantity: 1,
                                       }]

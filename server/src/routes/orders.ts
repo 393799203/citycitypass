@@ -113,7 +113,8 @@ router.get('/', async (req: Request, res: Response) => {
                   }
                 }
               }
-            }
+            },
+            bundleBatch: true,
           }
         },
       },
@@ -176,6 +177,7 @@ router.get('/:id', async (req: Request, res: Response) => {
               }
             },
             bundle: true,
+            bundleBatch: true,
           },
         },
         dispatchOrders: {
