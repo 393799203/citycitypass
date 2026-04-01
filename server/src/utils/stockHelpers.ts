@@ -178,6 +178,7 @@ export async function unlockStock(
   return tx.stock.update({
     where: { id: stock.id },
     data: {
+      totalQuantity: stock.totalQuantity + data.quantity,
       availableQuantity: stock.availableQuantity + data.quantity,
       lockedQuantity: stock.lockedQuantity - data.quantity,
     },
