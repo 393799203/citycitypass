@@ -168,43 +168,43 @@ export default function BatchTracePage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">批次号</th>
-                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">类别</th>
-                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">关联商品</th>
-                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">供应商</th>
-                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">有效期</th>
-                  <th className="px-4 py-3 text-right text-base font-medium text-gray-700">剩余库存</th>
-                  <th className="px-4 py-3 text-right text-base font-medium text-gray-700">操作</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">批次号</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">类别</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">关联商品</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">供应商</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">有效期</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">剩余库存</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {batchList.map((batch: any) => (
                   <tr key={batch.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-base text-purple-600 font-mono">{batch.batchNo}</td>
-                    <td className="px-4 py-3 text-base">
+                    <td className="px-4 py-3 text-center text-base text-purple-600 font-mono">{batch.batchNo}</td>
+                    <td className="px-4 py-3 text-center text-base">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${batch.type === 'PRODUCT' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
                         {batch.type === 'PRODUCT' ? '商品' : '套装'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-base text-gray-500">
+                    <td className="px-4 py-3 text-center text-base text-gray-500">
                       {batch.productName || batch.sku?.product?.name || '-'}
                       {batch.spec && ` ${batch.spec}`}
                       {batch.packaging && ` ${batch.packaging}`}
                     </td>
-                    <td className="px-4 py-3 text-base text-gray-500">
+                    <td className="px-4 py-3 text-center text-base text-gray-500">
                       {batch.supplierName || '-'}
                     </td>
-                    <td className="px-4 py-3 text-base text-gray-500">
+                    <td className="px-4 py-3 text-center text-base text-gray-500">
                       {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '-'}
                     </td>
-                    <td className="px-4 py-3 text-base text-right">
+                    <td className="px-4 py-3 text-center text-base text-gray-500">
                       {batch.totalQuantity > 0 ? (
                         <span className="text-green-600 font-medium">{batch.totalQuantity}</span>
                       ) : (
                         <span className="text-gray-400">0</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => navigate(`/batch-trace/${batch.batchNo}`)}
                         className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
