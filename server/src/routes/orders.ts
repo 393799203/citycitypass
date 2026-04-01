@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
+import { generateOrderNo } from '../utils/helpers';
 
 const router = Router();
 
@@ -51,15 +52,6 @@ const orderSchema = z.object({
   contractDiscount: z.number().optional(),
 });
 
-function generateOrderNo(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD${year}${month}${day}${random}`;
-}
-
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { orderNo, ownerId, status, startDate, endDate } = req.query;
@@ -107,7 +99,8 @@ router.get('/', async (req: Request, res: Response) => {
                   }
                 }
               }
-            }
+            },
+            skuBatch: true,
           }
         },
         bundleStockLocks: {
@@ -230,6 +223,14 @@ router.get('/:id', async (req: Request, res: Response) => {
       approver: matchedPickOrder.approver,
     } : null;
 
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { orderId: id },
+      include: {
+        skuBatch: true,
+        bundleBatch: true,
+      },
+    });
+
     const dispatch = order.dispatchOrders?.[0]?.dispatch ? {
       id: order.dispatchOrders[0].dispatch.id,
       dispatchNo: order.dispatchOrders[0].dispatch.dispatchNo,
@@ -250,7 +251,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       } : null,
     } : null;
 
-    res.json({ success: true, data: { ...order, picking, dispatch } });
+    res.json({ success: true, data: { ...order, picking, dispatch, stockOuts } });
   } catch (error) {
     console.error('Get order error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
@@ -379,7 +380,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.stockLock.create({
-                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, expiryDate: stock.expiryDate, quantity: lockQty, orderId: newOrder.id },
+                data: { skuId: item.skuId!, warehouseId, locationId: stock.locationId, skuBatchId: stock.skuBatchId, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -425,7 +426,7 @@ router.post('/', async (req: Request, res: Response) => {
                 data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
               });
               await tx.bundleStockLock.create({
-                data: { bundleId: item.bundleId!, warehouseId, locationId: bs.locationId, batchNo: bs.batchNo, quantity: lockQty, orderId: newOrder.id },
+                data: { bundleId: item.bundleId!, warehouseId, locationId: bs.locationId, bundleBatchId: bs.bundleBatchId, quantity: lockQty, orderId: newOrder.id },
               });
               remainingQuantity -= lockQty;
             }
@@ -697,7 +698,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.stockLock.create({
-            data: { skuId: item.skuId!, warehouseId: warehouseId, locationId: stock.locationId, batchNo: stock.batchNo, expiryDate: stock.expiryDate, quantity: lockQty, orderId: newOrder.id },
+            data: { skuId: item.skuId!, warehouseId: warehouseId, locationId: stock.locationId, skuBatchId: stock.skuBatchId, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -740,7 +741,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
             data: { lockedQuantity: { increment: lockQty }, availableQuantity: { decrement: lockQty } },
           });
           await tx.bundleStockLock.create({
-            data: { bundleId: item.bundleId!, warehouseId: warehouseId, locationId: bs.locationId, batchNo: bs.batchNo, quantity: lockQty, orderId: newOrder.id },
+            data: { bundleId: item.bundleId!, warehouseId: warehouseId, locationId: bs.locationId, bundleBatchId: bs.bundleBatchId, quantity: lockQty, orderId: newOrder.id },
           });
           remainingQuantity -= lockQty;
         }
@@ -808,11 +809,11 @@ router.put('/:id/status', async (req: Request, res: Response) => {
           if (lock.locationId) {
             await tx.stock.update({
               where: {
-                skuId_warehouseId_locationId_batchNo: {
+                warehouseId_locationId_skuBatchId: {
                   skuId: lock.skuId,
                   warehouseId: lock.warehouseId,
                   locationId: lock.locationId,
-                  batchNo: lock.batchNo,
+                  skuBatchId: lock.skuBatchId,
                 },
               },
               data: {
@@ -826,7 +827,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
                 locationId: null,
-                batchNo: lock.batchNo,
+                skuBatchId: lock.skuBatchId,
               },
               data: {
                 lockedQuantity: { decrement: lock.quantity },
@@ -893,11 +894,11 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                     if (stockLock.locationId) {
                       await tx.stock.update({
                         where: {
-                          skuId_warehouseId_locationId_batchNo: {
+                          warehouseId_locationId_skuBatchId: {
                             skuId: stockLock.skuId,
                             warehouseId: stockLock.warehouseId,
                             locationId: stockLock.locationId,
-                            batchNo: stockLock.batchNo,
+                            skuBatchId: stockLock.skuBatchId,
                           },
                         },
                         data: {
@@ -911,7 +912,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                           skuId: stockLock.skuId,
                           warehouseId: stockLock.warehouseId,
                           locationId: null,
-                          batchNo: stockLock.batchNo,
+                          skuBatchId: stockLock.skuBatchId,
                         },
                         data: {
                           lockedQuantity: { decrement: stockLock.quantity },
@@ -982,11 +983,11 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                     if (stockLock.locationId) {
                       await tx.stock.update({
                         where: {
-                          skuId_warehouseId_locationId_batchNo: {
+                          warehouseId_locationId_skuBatchId: {
                             skuId: stockLock.skuId,
                             warehouseId: stockLock.warehouseId,
                             locationId: stockLock.locationId,
-                            batchNo: stockLock.batchNo,
+                            skuBatchId: stockLock.skuBatchId,
                           },
                         },
                         data: {
@@ -1000,7 +1001,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                           skuId: stockLock.skuId,
                           warehouseId: stockLock.warehouseId,
                           locationId: null,
-                          batchNo: stockLock.batchNo,
+                          skuBatchId: stockLock.skuBatchId,
                         },
                         data: {
                           lockedQuantity: { decrement: stockLock.quantity },
@@ -1048,8 +1049,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
                 locationId: lock.locationId,
-                batchNo: lock.batchNo,
-                expiryDate: lock.expiryDate,
+                skuBatchId: lock.skuBatchId,
                 quantity: lock.quantity,
               },
             });
@@ -1101,7 +1101,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
               bundleId: lock.bundleId,
               warehouseId: lock.warehouseId,
               locationId: lock.locationId,
-              batchNo: lock.batchNo,
+              bundleBatchId: lock.bundleBatchId,
               quantity: lock.quantity,
             },
           });
@@ -1120,7 +1120,15 @@ router.put('/:id/status', async (req: Request, res: Response) => {
       });
     });
 
-    res.json({ success: true, data: order });
+    const stockOuts = await prisma.stockOut.findMany({
+      where: { orderId: id },
+      include: {
+        skuBatch: true,
+        bundleBatch: true,
+      },
+    });
+
+    res.json({ success: true, data: { ...order, stockOuts } });
   } catch (error) {
     console.error('Update order status error:', error);
     const message = error instanceof Error ? error.message : '服务器错误';
@@ -1151,11 +1159,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
         if (lock.locationId) {
           await tx.stock.update({
             where: {
-              skuId_warehouseId_locationId_batchNo: {
+              warehouseId_locationId_skuBatchId: {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
                 locationId: lock.locationId,
-                batchNo: lock.batchNo,
+                skuBatchId: lock.skuBatchId,
               },
             },
             data: {
@@ -1169,7 +1177,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
               skuId: lock.skuId,
               warehouseId: lock.warehouseId,
               locationId: null,
-              batchNo: lock.batchNo,
+              skuBatchId: lock.skuBatchId,
             },
             data: {
               lockedQuantity: { decrement: lock.quantity },

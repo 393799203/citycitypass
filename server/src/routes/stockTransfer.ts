@@ -72,6 +72,8 @@ router.get('/', async (req: Request, res: Response) => {
             bundle: { include: { items: { include: { sku: { include: { product: true } } } } } },
             fromLocation: { include: { shelf: { include: { zone: true } } } },
             toLocation: { include: { shelf: { include: { zone: true } } } },
+            skuBatch: true,
+            bundleBatch: true,
           },
         },
       },
@@ -141,12 +143,19 @@ router.post('/', async (req: Request, res: Response) => {
 
     for (const item of items) {
       if (item.itemType === 'PRODUCT' && item.skuId && item.fromLocationId) {
+        let skuBatchId = item.skuBatchId;
+        if (!skuBatchId && item.batchNo) {
+          const batch = await prisma.sKUBatch.findFirst({
+            where: { skuId: item.skuId, batchNo: item.batchNo }
+          });
+          skuBatchId = batch?.id;
+        }
         const stock = await prisma.stock.findFirst({
           where: {
             skuId: item.skuId,
             warehouseId,
             locationId: item.fromLocationId,
-            batchNo: item.batchNo,
+            ...(skuBatchId ? { skuBatchId } : {}),
           },
         });
 
@@ -157,12 +166,19 @@ router.post('/', async (req: Request, res: Response) => {
           });
         }
       } else if (item.itemType === 'BUNDLE' && item.bundleId && item.fromLocationId) {
+        let bundleBatchId = item.bundleBatchId;
+        if (!bundleBatchId && item.batchNo) {
+          const batch = await prisma.bundleBatch.findFirst({
+            where: { bundleId: item.bundleId, batchNo: item.batchNo }
+          });
+          bundleBatchId = batch?.id;
+        }
         const bundleStock = await prisma.bundleStock.findFirst({
           where: {
             bundleId: item.bundleId,
             warehouseId,
             locationId: item.fromLocationId,
-            batchNo: item.batchNo,
+            ...(bundleBatchId ? { bundleBatchId } : {}),
           },
         });
 
@@ -192,19 +208,6 @@ router.post('/', async (req: Request, res: Response) => {
       });
 
       for (const item of items) {
-        let expiryDate = null;
-        if (item.itemType === 'PRODUCT' && item.skuId && item.fromLocationId && item.batchNo) {
-          const stock = await tx.stock.findFirst({
-            where: {
-              skuId: item.skuId,
-              warehouseId,
-              locationId: item.fromLocationId,
-              batchNo: item.batchNo,
-            },
-          });
-          expiryDate = stock?.expiryDate || null;
-        }
-
         await tx.stockTransferItem.create({
           data: {
             transferId: transfer.id,
@@ -214,8 +217,8 @@ router.post('/', async (req: Request, res: Response) => {
             fromLocationId: item.fromLocationId || null,
             toLocationId: item.toLocationId || null,
             quantity: item.quantity,
-            batchNo: item.batchNo || null,
-            expiryDate,
+            skuBatchId: item.skuBatchId || undefined,
+            bundleBatchId: item.bundleBatchId || undefined,
           },
         });
       }
@@ -259,8 +262,8 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
             where: {
               skuId: item.skuId,
               warehouseId: transfer.warehouseId,
-              locationId: item.fromLocationId || null,
-              batchNo: item.batchNo || null,
+              locationId: item.fromLocationId || undefined,
+              skuBatchId: item.skuBatchId || '',
             },
           });
 
@@ -290,8 +293,8 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
             where: {
               skuId: item.skuId,
               warehouseId: transfer.warehouseId,
-              locationId: item.toLocationId || null,
-              batchNo: item.batchNo || null,
+              locationId: item.toLocationId || undefined,
+              skuBatchId: item.skuBatchId || '',
             },
           });
 
@@ -308,9 +311,8 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               data: {
                 skuId: item.skuId,
                 warehouseId: transfer.warehouseId,
-                locationId: item.toLocationId || null,
-                batchNo: item.batchNo || null,
-                expiryDate: item.expiryDate,
+                locationId: item.toLocationId || undefined,
+                skuBatchId: item.skuBatchId || '',
                 totalQuantity: item.quantity,
                 availableQuantity: item.quantity,
               },
@@ -321,8 +323,8 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
             where: {
               bundleId: item.bundleId,
               warehouseId: transfer.warehouseId,
-              locationId: item.fromLocationId || null,
-              batchNo: item.batchNo || null,
+              locationId: item.fromLocationId || undefined,
+              bundleBatchId: item.bundleBatchId || '',
             },
           });
 
@@ -354,8 +356,8 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
             where: {
               bundleId: item.bundleId,
               warehouseId: transfer.warehouseId,
-              locationId: item.toLocationId || null,
-              batchNo: item.batchNo || null,
+              locationId: item.toLocationId || undefined,
+              bundleBatchId: item.bundleBatchId || '',
             },
           });
 
@@ -372,8 +374,8 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               data: {
                 bundleId: item.bundleId,
                 warehouseId: transfer.warehouseId,
-                locationId: item.toLocationId || null,
-                batchNo: item.batchNo || null,
+                locationId: item.toLocationId || undefined,
+                bundleBatchId: item.bundleBatchId || '',
                 totalQuantity: item.quantity,
                 availableQuantity: item.quantity,
               },
@@ -431,8 +433,8 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
               where: {
                 skuId: item.skuId,
                 warehouseId: transfer.warehouseId,
-                locationId: item.toLocationId || null,
-                batchNo: item.batchNo,
+                locationId: item.toLocationId || undefined,
+                skuBatchId: item.skuBatchId || '',
               },
             });
 
@@ -450,8 +452,8 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
               where: {
                 skuId: item.skuId,
                 warehouseId: transfer.warehouseId,
-                locationId: item.fromLocationId || null,
-                batchNo: item.batchNo,
+                locationId: item.fromLocationId || undefined,
+                skuBatchId: item.skuBatchId || '',
               },
             });
 
@@ -468,12 +470,11 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 data: {
                   skuId: item.skuId,
                   warehouseId: transfer.warehouseId,
-                  locationId: item.fromLocationId || null,
+                  locationId: item.fromLocationId || undefined,
+                  skuBatchId: item.skuBatchId || '',
                   totalQuantity: item.quantity,
                   availableQuantity: item.quantity,
                   lockedQuantity: 0,
-                  batchNo: item.batchNo,
-                  expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
                 },
               });
             }
@@ -482,8 +483,8 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
               where: {
                 bundleId: item.bundleId,
                 warehouseId: transfer.warehouseId,
-                locationId: item.toLocationId || null,
-                batchNo: item.batchNo,
+                locationId: item.toLocationId || undefined,
+                bundleBatchId: item.bundleBatchId || '',
               },
             });
 
@@ -501,8 +502,8 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
               where: {
                 bundleId: item.bundleId,
                 warehouseId: transfer.warehouseId,
-                locationId: item.fromLocationId || null,
-                batchNo: item.batchNo,
+                locationId: item.fromLocationId || undefined,
+                bundleBatchId: item.bundleBatchId || '',
               },
             });
 
@@ -519,11 +520,11 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 data: {
                   bundleId: item.bundleId,
                   warehouseId: transfer.warehouseId,
-                  locationId: item.fromLocationId || null,
+                  locationId: item.fromLocationId || undefined,
+                  bundleBatchId: item.bundleBatchId || '',
                   totalQuantity: item.quantity,
                   availableQuantity: item.quantity,
                   lockedQuantity: 0,
-                  batchNo: item.batchNo,
                 },
               });
             }
@@ -570,6 +571,7 @@ router.get('/zone-stocks/:warehouseId', async (req: Request, res: Response) => {
       include: {
         sku: { include: { product: true } },
         location: { include: { shelf: { include: { zone: true } } } },
+        skuBatch: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -579,6 +581,7 @@ router.get('/zone-stocks/:warehouseId', async (req: Request, res: Response) => {
       include: {
         bundle: true,
         location: { include: { shelf: { include: { zone: true } } } },
+        bundleBatch: true,
       },
       orderBy: { createdAt: 'desc' },
     });

@@ -13,6 +13,10 @@ interface InboundItemInput {
   quantity: number;
   batchNo?: string;
   expiryDate?: string;
+  skuBatchId?: string;
+  bundleBatchId?: string;
+  skuBatch?: { batchNo: string; expiryDate?: string } | null;
+  bundleBatch?: { batchNo: string } | null;
   locationId?: string;
   locationCode?: string;
   zoneId?: string;
@@ -144,8 +148,8 @@ export default function InboundOrderModal({
           skuId: item.skuId,
           bundleId: item.bundleId,
           quantity: item.quantity,
-          batchNo: item.batchNo,
-          expiryDate: item.expiryDate,
+          skuBatchId: item.skuBatchId,
+          bundleBatchId: item.bundleBatchId,
           locationId: item.locationId,
         })),
       });
@@ -237,10 +241,26 @@ export default function InboundOrderModal({
                               {item.type === 'BUNDLE' ? '套装' : '商品'}
                             </span>
                             <span className="font-medium truncate">{item.productName}</span>
-                            {item.batchNo && (
-                              <span className="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded flex-shrink-0">
-                                批:{item.batchNo}
-                              </span>
+                            {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
+                              <div className="flex flex-col gap-1">
+                                {item.skuBatch?.batchNo && (
+                                  <>
+                                    <span className="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                      批:{item.skuBatch.batchNo}
+                                    </span>
+                                    {item.skuBatch?.expiryDate && (
+                                      <span className="text-xs text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                        效期:{new Date(item.skuBatch.expiryDate).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {item.bundleBatch?.batchNo && (
+                                  <span className="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                    批:{item.bundleBatch.batchNo}
+                                  </span>
+                                )}
+                              </div>
                             )}
                             <span className="text-green-600 font-bold flex-shrink-0">{item.quantity}件</span>
                           </div>

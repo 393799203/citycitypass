@@ -5,7 +5,15 @@ import { X } from 'lucide-react';
 interface ReturnStockInModalProps {
   open: boolean;
   warehouseId: string;
-  items: Array<{ id: string; productName: string; qualifiedQuantity: number; stockBatchNo?: string | null }>;
+  items: Array<{
+    id: string;
+    productName: string;
+    qualifiedQuantity: number;
+    skuBatchId?: string | null;
+    bundleBatchId?: string | null;
+    skuBatch?: { batchNo: string; expiryDate?: string } | null;
+    bundleBatch?: { batchNo: string } | null;
+  }>;
   onClose: () => void;
   onConfirm: (locationId: string) => Promise<void>;
 }
@@ -163,7 +171,11 @@ export default function ReturnStockInModal({
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">
                       {item.productName}
-                      {item.stockBatchNo && <span className="text-purple-500 ml-1">批:{item.stockBatchNo}</span>}
+                      {(item.skuBatch?.batchNo || item.skuBatch?.expiryDate) && (
+                        <span className="text-purple-500 ml-1">
+                          批:{item.skuBatch?.batchNo || '-'}{item.skuBatch?.expiryDate && `/${new Date(item.skuBatch.expiryDate).toLocaleDateString()}`}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <span className="text-green-600 text-sm ml-2">×{item.qualifiedQuantity}</span>

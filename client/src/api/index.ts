@@ -74,6 +74,8 @@ export const productApi = {
   getBrands: (params?: any) => api.get('/products/brands', { params }),
   createCategory: (data: any) => api.post('/products/categories', data),
   createBrand: (data: any) => api.post('/products/brands', data),
+  listSkus: (params?: any) => api.get('/products/skus', { params }),
+  listBundles: (params?: any) => api.get('/products/bundles', { params }),
   createSku: (productId: string, data: any) => api.post(`/products/${productId}/skus`, data),
   deleteSku: (skuId: string) => api.delete(`/products/skus/${skuId}`),
 };
@@ -132,7 +134,7 @@ export const stockApi = {
   updateInboundOrder: (id: string, data: any) => api.put(`/stock/inbound-order/${id}`, data),
   executeInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/execute`),
   cancelInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/cancel`),
-  batchList: () => api.get('/stock/batch/list'),
+  batchList: (params?: { skuId?: string; bundleId?: string; warehouseId?: string }) => api.get('/stock/batch/list', { params }),
   batchTrace: (batchNo: string) => api.get(`/stock/batch/${batchNo}/trace`),
 };
 
@@ -241,4 +243,20 @@ export const carrierApi = {
   updateVehicleLocation: (vehicleId: string, data: any) => api.put(`/carriers/vehicles/${vehicleId}/location`, data),
   deleteVehicle: (vehicleId: string) => api.delete(`/carriers/vehicles/${vehicleId}`),
   approveVehicle: (vehicleId: string, data: any) => api.post(`/carriers/vehicles/${vehicleId}/approve`, data),
+};
+
+export const skuBatchApi = {
+  list: (params?: any) => api.get('/sku-batches', { params }),
+  get: (id: string) => api.get(`/sku-batches/${id}`),
+  create: (data: any) => api.post('/sku-batches', data),
+  update: (id: string, data: any) => api.put(`/sku-batches/${id}`, data),
+  delete: (id: string) => api.delete(`/sku-batches/${id}`),
+};
+
+export const bundleBatchApi = {
+  list: (params?: any) => api.get('/bundle-batches', { params }),
+  get: (id: string) => api.get(`/bundle-batches/${id}`),
+  create: (data: any) => api.post('/bundle-batches', data),
+  update: (id: string, data: any) => api.put(`/bundle-batches/${id}`, data),
+  delete: (id: string) => api.delete(`/bundle-batches/${id}`),
 };

@@ -46,9 +46,6 @@ interface InboundOrder {
   source: string;
   warehouseId: string;
   warehouse?: any;
-  supplierId?: string;
-  supplier?: any;
-  snManagement: boolean;
   remark?: string;
 
   arrivalQuantity?: number;
@@ -77,10 +74,6 @@ interface InboundItemInput {
   locationId: string;
   locationCode: string;
   quantity: number;
-  batchNo?: string;
-  expiryDate?: string;
-  snManagement?: boolean;
-  snCodes?: string[];
 }
 
 interface ArrivalItemInput {
@@ -93,8 +86,10 @@ interface ArrivalItemInput {
   packaging?: string;
   expectedQuantity: number;
   arrivalQuantity: number;
-  batchNo: string;
+  supplierId?: string;
+  batchNo?: string;
   expiryDate?: string;
+  availableBatches?: { batchNo: string; expiryDate?: string; supplierId?: string; supplierName?: string }[];
 }
 
 interface ReceivingItemInput {
@@ -105,15 +100,12 @@ interface ReceivingItemInput {
   productName: string;
   spec?: string;
   packaging?: string;
-  snManagement: boolean;
   expectedQuantity: number;
   receivedQuantity: number;
-  batchNo: string;
+  batchNo?: string;
   expiryDate?: string;
   inspectionResult: 'OK' | 'SHORT' | 'DAMAGED' | 'PENDING';
   inspectionNote: string;
-  snCodes: string[];
-  snBatchMap: Record<string, string>;
 }
 
 interface PutawayItemInput {
@@ -124,7 +116,6 @@ interface PutawayItemInput {
   productName: string;
   spec?: string;
   packaging?: string;
-  batchNo: string;
   quantity: number;
   originalLocationId?: string;
   originalLocationCode?: string;
@@ -155,7 +146,6 @@ export default function InboundPage() {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [orders, setOrders] = useState<InboundOrder[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
@@ -163,9 +153,7 @@ export default function InboundPage() {
   const [selectedOrder, setSelectedOrder] = useState<InboundOrder | null>(null);
 
   const [formSource, setFormSource] = useState<string>('PURCHASE');
-  const [formSupplierId, setFormSupplierId] = useState('');
   const [formWarehouseId, setFormWarehouseId] = useState('');
-  const [formSnManagement, setFormSnManagement] = useState(false);
   const [inboundItems, setInboundItems] = useState<InboundItemInput[]>([]);
   const [inboundRemark, setInboundRemark] = useState('');
 
@@ -180,8 +168,6 @@ export default function InboundPage() {
   const [toShelfId, setToShelfId] = useState('');
   const [toLocationId, setToLocationId] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [batchNo, setBatchNo] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filteredProducts, setFilteredProducts] = useState<InboundProduct[]>([]);
@@ -189,20 +175,20 @@ export default function InboundPage() {
   const [filterSource, setFilterSource] = useState('');
   const [filterWarehouseId, setFilterWarehouseId] = useState('');
 
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [supplierId, setSupplierId] = useState('');
+
   const [saving, setSaving] = useState(false);
 
   const [showArrivalModal, setShowArrivalModal] = useState(false);
   const [selectedArrivalOrder, setSelectedArrivalOrder] = useState<InboundOrder | null>(null);
   const [arrivalVehicleNo, setArrivalVehicleNo] = useState('');
-  const [arrivalPalletNo, setArrivalPalletNo] = useState('');
   const [arrivalItems, setArrivalItems] = useState<ArrivalItemInput[]>([]);
 
   const [showReceivingModal, setShowReceivingModal] = useState(false);
   const [selectedReceivingOrder, setSelectedReceivingOrder] = useState<InboundOrder | null>(null);
   const [receivingItems, setReceivingItems] = useState<ReceivingItemInput[]>([]);
   const [receivingBarcode, setReceivingBarcode] = useState('');
-  const [receivingSnInput, setReceivingSnInput] = useState('');
-  const [selectedSnItemId, setSelectedSnItemId] = useState<string | null>(null);
 
   const [showPutawayModal, setShowPutawayModal] = useState(false);
   const [selectedPutawayOrder, setSelectedPutawayOrder] = useState<InboundOrder | null>(null);
@@ -216,7 +202,6 @@ export default function InboundPage() {
 
   useEffect(() => {
     loadWarehouses();
-    loadSuppliers();
     loadOrders();
   }, []);
 
@@ -250,17 +235,6 @@ export default function InboundPage() {
       const res = await warehouseApi.list();
       if (res.data.success) {
         setWarehouses(res.data.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const loadSuppliers = async () => {
-    try {
-      const res = await supplierApi.list();
-      if (res.data.success) {
-        setSuppliers(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -395,9 +369,6 @@ export default function InboundPage() {
         locationId: toLocationId,
         locationCode: fullLocationCode,
         quantity,
-        batchNo,
-        expiryDate,
-        snManagement: formSnManagement,
       };
       setInboundItems([...inboundItems, item]);
     }
@@ -405,8 +376,6 @@ export default function InboundPage() {
     setSelectedSkuId('');
     setSelectedBundleId('');
     setQuantity(1);
-    setBatchNo('');
-    setExpiryDate('');
   };
 
   const handleRemoveItem = (index: number) => {
@@ -427,9 +396,7 @@ export default function InboundPage() {
     try {
       const res = await stockApi.createInboundOrder({
         warehouseId: formWarehouseId,
-        supplierId: formSupplierId || null,
         source: formSource,
-        snManagement: formSnManagement,
         remark: inboundRemark,
         items: inboundItems,
       });
@@ -449,45 +416,66 @@ export default function InboundPage() {
     }
   };
 
-  const openArrivalModal = (order: InboundOrder) => {
+  const openArrivalModal = async (order: InboundOrder) => {
     setSelectedArrivalOrder(order);
     setArrivalVehicleNo('');
-    setArrivalPalletNo('');
-    setArrivalItems(order.items.map(item => ({
-      id: item.id,
-      type: item.type as 'PRODUCT' | 'BUNDLE',
-      skuId: item.skuId,
-      bundleId: item.bundleId,
-      productName: item.sku?.product?.name || item.bundle?.name || '',
-      spec: item.sku?.spec || item.bundle?.spec || '',
-      packaging: item.sku?.packaging || item.bundle?.packaging || '',
-      expectedQuantity: item.expectedQuantity || 0,
-      arrivalQuantity: item.arrivalQuantity || item.expectedQuantity || 0,
-      batchNo: item.batchNo || '',
-      expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
-    })));
+
+    try {
+      const res = await supplierApi.list();
+      if (res.data.success) {
+        setSuppliers(res.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load suppliers:', error);
+    }
+
+    const batchListRes = await stockApi.batchList({ warehouseId: order.warehouseId });
+    const allBatches = batchListRes.data.success ? batchListRes.data.data : [];
+
+    setArrivalItems(order.items.map(item => {
+      const itemBatches = allBatches.filter((b: any) => {
+        if (item.type === 'PRODUCT') {
+          return b.type === 'PRODUCT' && b.skuId === item.skuId;
+        } else {
+          return b.type === 'BUNDLE' && b.bundleId === item.bundleId;
+        }
+      });
+      return {
+        id: item.id,
+        type: item.type as 'PRODUCT' | 'BUNDLE',
+        skuId: item.skuId,
+        bundleId: item.bundleId,
+        productName: item.sku?.product?.name || item.bundle?.name || '',
+        spec: item.sku?.spec || item.bundle?.spec || '',
+        packaging: item.sku?.packaging || item.bundle?.packaging || '',
+        expectedQuantity: item.expectedQuantity || 0,
+        arrivalQuantity: item.arrivalQuantity || item.expectedQuantity || 0,
+        supplierId: '',
+        batchNo: '',
+        expiryDate: '',
+        availableBatches: itemBatches,
+      };
+    }));
     setShowArrivalModal(true);
   };
 
   const handleArrivalSubmit = async () => {
     if (!selectedArrivalOrder) return;
-    const missingBatchNo = arrivalItems.some(item => !item.batchNo);
-    if (missingBatchNo) {
-      toast.error('请填写所有商品的批次号');
-      return;
-    }
     try {
       const items = arrivalItems.map(item => ({
         id: item.id,
+        type: item.type,
+        skuId: item.skuId,
+        bundleId: item.bundleId,
         arrivalQuantity: item.arrivalQuantity,
-        batchNo: item.batchNo,
+        supplierId: item.supplierId || null,
+        batchNo: item.batchNo || null,
         expiryDate: item.expiryDate || null,
       }));
       const res = await stockApi.updateInboundOrder(selectedArrivalOrder.id, {
         status: 'ARRIVED',
         arrivedAt: new Date(),
         vehicleNo: arrivalVehicleNo,
-        palletNo: arrivalPalletNo,
         items,
       });
       if (res.data.success) {
@@ -509,27 +497,24 @@ export default function InboundPage() {
 
   const openReceivingModal = (order: InboundOrder) => {
     setSelectedReceivingOrder(order);
-    setReceivingItems(order.items.map(item => ({
-      id: item.id,
-      type: item.type as 'PRODUCT' | 'BUNDLE',
-      skuId: item.skuId,
-      bundleId: item.bundleId,
-      productName: item.sku?.product?.name || item.bundle?.name || '',
-      spec: item.sku?.spec || item.bundle?.spec || '',
-      packaging: item.sku?.packaging || item.bundle?.packaging || '',
-      snManagement: item.snManagement || false,
-      expectedQuantity: item.expectedQuantity || 0,
-      receivedQuantity: item.receivedQuantity || 0,
-      batchNo: item.batchNo || '',
-      expiryDate: item.expiryDate ? item.expiryDate.split('T')[0] : '',
-      inspectionResult: (item.inspectionResult as any) || 'PENDING',
-      inspectionNote: item.inspectionNote || '',
-      snCodes: item.snCodes || [],
-      snBatchMap: {},
-    })));
-    setReceivingBarcode('');
-    setReceivingSnInput('');
-    setSelectedSnItemId(null);
+    setReceivingItems(order.items.map(item => {
+      const batch = item.type === 'PRODUCT' ? item.skuBatch : item.bundleBatch;
+      return {
+        id: item.id,
+        type: item.type as 'PRODUCT' | 'BUNDLE',
+        skuId: item.skuId,
+        bundleId: item.bundleId,
+        productName: item.sku?.product?.name || item.bundle?.name || '',
+        spec: item.sku?.spec || item.bundle?.spec || '',
+        packaging: item.sku?.packaging || item.bundle?.packaging || '',
+        expectedQuantity: item.expectedQuantity || 0,
+        receivedQuantity: item.receivedQuantity || 0,
+        batchNo: batch?.batchNo || '',
+        expiryDate: batch?.expiryDate ? batch.expiryDate.split('T')[0] : '',
+        inspectionResult: (item.inspectionResult as any) || 'PENDING',
+        inspectionNote: item.inspectionNote || '',
+      };
+    }));
     setShowReceivingModal(true);
   };
 
@@ -557,21 +542,6 @@ export default function InboundPage() {
     } else {
       toast.error('未找到匹配的商品');
     }
-    setReceivingBarcode('');
-  };
-
-  const handleSnScan = (sn: string, batchNo: string, itemId: string) => {
-    const newItems = receivingItems.map(i =>
-      i.id === itemId ? {
-        ...i,
-        snCodes: [...i.snCodes, sn],
-        snBatchMap: { ...i.snBatchMap, [sn]: batchNo },
-        receivedQuantity: i.receivedQuantity + 1,
-      } : i
-    );
-    setReceivingItems(newItems);
-    toast.success(`SN:${sn} 已绑定批次:${batchNo}`);
-    setReceivingSnInput('');
   };
 
   const handleCompleteReceivingSubmit = async () => {
@@ -587,8 +557,6 @@ export default function InboundPage() {
         receivedQuantity: item.receivedQuantity,
         inspectionResult: item.inspectionResult,
         inspectionNote: item.inspectionNote,
-        snCodes: item.snCodes,
-        expiryDate: item.expiryDate || null,
       }));
       const res = await stockApi.updateInboundOrder(selectedReceivingOrder.id, {
         status: 'RECEIVED',
@@ -847,9 +815,7 @@ export default function InboundPage() {
 
   const resetForm = () => {
     setFormSource('PURCHASE');
-    setFormSupplierId('');
     setFormWarehouseId('');
-    setFormSnManagement(false);
     setInboundItems([]);
     setInboundRemark('');
     setZones([]);
@@ -859,8 +825,6 @@ export default function InboundPage() {
     setSelectedSkuId('');
     setSelectedBundleId('');
     setQuantity(1);
-    setBatchNo('');
-    setExpiryDate('');
     setSearchKeyword('');
   };
 
@@ -948,7 +912,6 @@ export default function InboundPage() {
               <th className="px-4 py-3 text-sm font-medium text-gray-500">入库单号</th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">来源</th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">仓库</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">供应商</th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">商品</th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">库位</th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">数量</th>
@@ -981,6 +944,7 @@ export default function InboundPage() {
                   const locationCode = item.location?.shelf?.code
                     ? `${item.location.shelf?.zone?.code || ''}-${item.location.shelf?.code || ''}-L${item.location.level || ''}`
                     : '-';
+                  const batch = item.type === 'PRODUCT' ? item.skuBatch : item.bundleBatch;
                   return {
                     idx,
                     itemName,
@@ -988,7 +952,8 @@ export default function InboundPage() {
                     itemPackaging,
                     locationCode,
                     quantity: item.receivedQuantity || item.expectedQuantity || item.quantity || 0,
-                    batchNo: item.batchNo || '-',
+                    batchNo: batch?.batchNo || '-',
+                    expiryDate: batch?.expiryDate ? batch.expiryDate.split('T')[0] : '-',
                     itemType: item.type,
                     items: item.bundle?.items,
                   };
@@ -1008,9 +973,6 @@ export default function InboundPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
                           {order.warehouse?.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
-                          {order.supplier?.name || '-'}
                         </td>
                       </>
                     )}
@@ -1114,7 +1076,7 @@ export default function InboundPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium text-gray-700">入库单信息</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <select
                       value={formSource}
                       onChange={(e) => setFormSource(e.target.value)}
@@ -1147,16 +1109,6 @@ export default function InboundPage() {
                       <option value="">选择仓库</option>
                       {warehouses.map(w => (
                         <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={formSupplierId}
-                      onChange={(e) => setFormSupplierId(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
-                    >
-                      <option value="">选择供应商</option>
-                      {suppliers.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1358,13 +1310,6 @@ export default function InboundPage() {
                               ))}
                             </select>
                           )}
-                          <input
-                            type="text"
-                            placeholder="批次号"
-                            value={batchNo}
-                            onChange={(e) => setBatchNo(e.target.value)}
-                            className="px-3 py-1 border rounded text-xs w-32 font-mono"
-                          />
                         </div>
                       </div>
                     ) : (
@@ -1474,14 +1419,6 @@ export default function InboundPage() {
                 <div>
                   <label className="block text-sm text-gray-600">仓库</label>
                   <div>{selectedOrder.warehouse?.name}</div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600">供应商</label>
-                  <div>{selectedOrder.supplier?.name || '-'}</div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600">SN管理</label>
-                  <div>{selectedOrder.snManagement ? '是' : '否'}</div>
                 </div>
                 {selectedOrder.arrivalQuantity && (
                   <div>
@@ -1598,22 +1535,12 @@ export default function InboundPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">到货时间</label>
                 <div className="border rounded-lg px-3 py-2 bg-gray-50">
                   {new Date().toLocaleString()}
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">托盘号</label>
-                <input
-                  type="text"
-                  value={arrivalPalletNo}
-                  onChange={(e) => setArrivalPalletNo(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="请输入托盘号"
-                />
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">车牌号</label>
@@ -1632,8 +1559,9 @@ export default function InboundPage() {
                   <tr>
                     <th className="px-3 py-2 text-left text-xs">商品</th>
                     <th className="px-3 py-2 text-left text-xs">规格/包装</th>
-                    <th className="px-3 py-2 text-center text-xs">计划数量</th>
-                    <th className="px-3 py-2 text-center text-xs">到货数量</th>
+                    <th className="px-3 py-2 text-center text-xs">计划数</th>
+                    <th className="px-3 py-2 text-center text-xs">到货数</th>
+                    <th className="px-3 py-2 text-center text-xs">供应商</th>
                     <th className="px-3 py-2 text-center text-xs">批次号</th>
                     {arrivalItems.some(i => i.type === 'PRODUCT') && (
                       <th className="px-3 py-2 text-center text-xs">有效期</th>
@@ -1658,22 +1586,60 @@ export default function InboundPage() {
                             newItems[idx].arrivalQuantity = parseInt(e.target.value) || 0;
                             setArrivalItems(newItems);
                           }}
-                          className="w-20 border rounded px-2 py-1 text-center"
+                          className="w-16 border rounded px-2 py-1 text-center"
                         />
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <input
-                            type="text"
-                            value={item.batchNo}
+                        <select
+                          value={item.supplierId || ''}
+                          onChange={(e) => {
+                            const newItems = [...arrivalItems];
+                            newItems[idx].supplierId = e.target.value;
+                            setArrivalItems(newItems);
+                          }}
+                          className="border rounded px-2 py-1 text-sm"
+                        >
+                          <option value="">选择供应商</option>
+                          {suppliers.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={item.batchNo || ''}
                             onChange={(e) => {
                               const newItems = [...arrivalItems];
                               newItems[idx].batchNo = e.target.value;
+                              if (e.target.value && item.availableBatches?.length) {
+                                const selected = item.availableBatches.find(b => b.batchNo === e.target.value);
+                                if (selected) {
+                                  if (selected.expiryDate) {
+                                    newItems[idx].expiryDate = selected.expiryDate.split('T')[0];
+                                  }
+                                  if (selected.supplierId) {
+                                    newItems[idx].supplierId = selected.supplierId;
+                                  }
+                                }
+                              }
                               setArrivalItems(newItems);
                             }}
-                            className={`w-40 border rounded px-2 py-1 font-mono ${!item.batchNo ? 'border-red-400 bg-red-50' : ''}`}
-                            placeholder="必填"
-                          />
+                            className="border rounded px-2 py-1 text-sm font-mono"
+                          >
+                            <option value="">选择批次/新建</option>
+                            {item.availableBatches?.map((b, bi) => (
+                              <option key={bi} value={b.batchNo}>
+                                {b.batchNo} {b.expiryDate ? `(${b.expiryDate.split('T')[0]})` : ''}
+                              </option>
+                            ))}
+                            {item.batchNo && !item.availableBatches?.some(b => b.batchNo === item.batchNo) && (
+                              <option value={item.batchNo}>★ {item.batchNo}</option>
+                            )}
+                          </select>
+                          {item.batchNo && !item.availableBatches?.some(b => b.batchNo === item.batchNo) && (
+                            <span className="text-xs text-green-600">新批次</span>
+                          )}
                           <button
                             type="button"
                             onClick={() => {
@@ -1683,27 +1649,27 @@ export default function InboundPage() {
                               newItems[idx].batchNo = `${dateStr}${randomStr}`;
                               setArrivalItems(newItems);
                             }}
-                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 border rounded"
-                            title="自动生成"
+                            className="px-1 py-1 text-xs bg-gray-100 hover:bg-gray-200 border rounded"
+                            title="自动生成新批次"
                           >
                             生成
                           </button>
                         </div>
                       </td>
+                      {item.type === 'PRODUCT' && (
                       <td className="px-3 py-2 text-center">
-                        {item.type === 'PRODUCT' && (
-                          <input
-                            type="date"
-                            value={item.expiryDate || ''}
-                            onChange={(e) => {
-                              const newItems = [...arrivalItems];
-                              newItems[idx].expiryDate = e.target.value;
-                              setArrivalItems(newItems);
-                            }}
-                            className="border rounded px-2 py-1 text-sm"
-                          />
-                        )}
+                        <input
+                          type="date"
+                          value={item.expiryDate || ''}
+                          onChange={(e) => {
+                            const newItems = [...arrivalItems];
+                            newItems[idx].expiryDate = e.target.value;
+                            setArrivalItems(newItems);
+                          }}
+                          className="border rounded px-2 py-1 text-sm"
+                        />
                       </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -1754,61 +1720,6 @@ export default function InboundPage() {
               />
             </div>
 
-            {receivingItems.some(i => i.snManagement) && (
-              <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <label className="block text-sm font-medium text-orange-800 mb-2">SN码扫描（请先选择商品）</label>
-                <div className="flex gap-2 mb-2">
-                  <select
-                    value={selectedSnItemId || ''}
-                    onChange={(e) => setSelectedSnItemId(e.target.value || null)}
-                    className="border rounded px-2 py-1 text-sm flex-1"
-                  >
-                    <option value="">选择SN管理商品</option>
-                    {receivingItems.filter(i => i.snManagement).map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.productName} ({item.spec}/{item.packaging}) - 批次:{item.batchNo || '未设'} - 已扫:{item.snCodes.length}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {selectedSnItemId && (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={receivingSnInput}
-                      onChange={(e) => setReceivingSnInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && receivingSnInput) {
-                          const item = receivingItems.find(i => i.id === selectedSnItemId);
-                          if (item) {
-                            handleSnScan(receivingSnInput, item.batchNo, selectedSnItemId);
-                          }
-                        }
-                      }}
-                      className="flex-1 border rounded-lg px-3 py-2"
-                      placeholder="扫描SN码后按回车"
-                    />
-                    <button
-                      onClick={() => {
-                        if (receivingSnInput) {
-                          const item = receivingItems.find(i => i.id === selectedSnItemId);
-                          if (item) {
-                            handleSnScan(receivingSnInput, item.batchNo, selectedSnItemId);
-                          }
-                        }
-                      }}
-                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                    >
-                      确认
-                    </button>
-                  </div>
-                )}
-                <div className="mt-2 text-xs text-orange-600">
-                  提示：SN码将自动关联到所选商品的批次号
-                </div>
-              </div>
-            )}
-
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">验收明细</label>
               <table className="min-w-full border divide-y">
@@ -1819,68 +1730,55 @@ export default function InboundPage() {
                     <th className="px-3 py-2 text-center text-xs">计划</th>
                     <th className="px-3 py-2 text-center text-xs">实收</th>
                     <th className="px-3 py-2 text-center text-xs">批次</th>
-                    {receivingItems.some(i => i.type === 'PRODUCT') && (
-                      <th className="px-3 py-2 text-center text-xs">有效期</th>
-                    )}
-                    <th className="px-3 py-2 text-center text-xs">SN/数量</th>
+                    <th className="px-3 py-2 text-center text-xs">有效期</th>
                     <th className="px-3 py-2 text-center text-xs">验收</th>
                     <th className="px-3 py-2 text-left text-xs">备注</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {receivingItems.map((item, idx) => (
-                    <tr key={item.id} className={item.inspectionResult !== 'PENDING' ? 'bg-green-50' : selectedSnItemId === item.id ? 'bg-orange-50' : ''}>
-                      <td className="px-3 py-2 text-sm">
-                        <div>{item.productName}</div>
-                        {item.snManagement && (
-                          <span className="text-xs text-orange-600">SN管理</span>
-                        )}
-                      </td>
+                    <tr key={item.id} className={item.inspectionResult !== 'PENDING' ? 'bg-green-50' : ''}>
+                      <td className="px-3 py-2 text-sm">{item.productName}</td>
                       <td className="px-3 py-2 text-sm text-gray-500">
                         {item.spec || '-'}{item.packaging ? ` / ${item.packaging}` : ''}
                       </td>
                       <td className="px-3 py-2 text-sm text-center">{item.expectedQuantity}</td>
                       <td className="px-3 py-2 text-center">
-                        {!item.snManagement && (
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (item.receivedQuantity > 0) {
-                                  const newItems = [...receivingItems];
-                                  newItems[idx].receivedQuantity -= 1;
-                                  setReceivingItems(newItems);
-                                }
-                              }}
-                              className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm"
-                            >
-                              -
-                            </button>
-                            <span className="w-12 text-center">{item.receivedQuantity}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const expectedQty = item.expectedQuantity || 0;
-                                if ((item.receivedQuantity || 0) < expectedQty) {
-                                  const newItems = [...receivingItems];
-                                  newItems[idx].receivedQuantity += 1;
-                                  setReceivingItems(newItems);
-                                }
-                              }}
-                              className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm"
-                            >
-                              +
-                            </button>
-                          </div>
-                        )}
-                        {item.snManagement && (
-                          <span className="text-sm text-orange-600">{item.snCodes.length}</span>
-                        )}
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (item.receivedQuantity > 0) {
+                                const newItems = [...receivingItems];
+                                newItems[idx].receivedQuantity -= 1;
+                                setReceivingItems(newItems);
+                              }
+                            }}
+                            className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+                          >
+                            -
+                          </button>
+                          <span className="w-12 text-center">{item.receivedQuantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const expectedQty = item.expectedQuantity || 0;
+                              if ((item.receivedQuantity || 0) < expectedQty) {
+                                const newItems = [...receivingItems];
+                                newItems[idx].receivedQuantity += 1;
+                                setReceivingItems(newItems);
+                              }
+                            }}
+                            className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+                          >
+                            +
+                          </button>
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-sm text-center">
                         <input
                           type="text"
-                          value={item.batchNo}
+                          value={item.batchNo || ''}
                           onChange={(e) => {
                             const newItems = [...receivingItems];
                             newItems[idx].batchNo = e.target.value;
@@ -1890,28 +1788,18 @@ export default function InboundPage() {
                           placeholder="批次号"
                         />
                       </td>
-                      {receivingItems.some(i => i.type === 'PRODUCT') && (
                       <td className="px-3 py-2 text-center">
-                        {item.type === 'PRODUCT' && (
-                          <input
-                            type="date"
-                            value={item.expiryDate || ''}
-                            onChange={(e) => {
-                              const newItems = [...receivingItems];
-                              newItems[idx].expiryDate = e.target.value;
-                              setReceivingItems(newItems);
-                            }}
-                            className="border rounded px-1 py-0.5 text-sm"
-                          />
-                        )}
-                      </td>
-                      )}
-                      <td className="px-3 py-2 text-center">
-                        {item.snManagement ? (
-                          <span className="text-xs text-gray-500">{item.snCodes.length}个SN</span>
-                        ) : (
-                          <span className="text-xs text-gray-500">-</span>
-                        )}
+                        <input
+                          type="date"
+                          value={item.expiryDate || ''}
+                          onChange={(e) => {
+                            const newItems = [...receivingItems];
+                            newItems[idx].expiryDate = e.target.value;
+                            setReceivingItems(newItems);
+                          }}
+                          className="border rounded px-1 py-0.5 text-sm"
+                          disabled={item.type === 'BUNDLE'}
+                        />
                       </td>
                       <td className="px-3 py-2 text-center">
                         <select
@@ -1947,32 +1835,6 @@ export default function InboundPage() {
                 </tbody>
               </table>
             </div>
-
-            {receivingItems.some(i => i.snManagement && i.snCodes.length > 0) && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">SN扫描记录</label>
-                <table className="min-w-full border divide-y">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs">商品</th>
-                      <th className="px-3 py-2 text-left text-xs">SN码</th>
-                      <th className="px-3 py-2 text-left text-xs">批次</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {receivingItems.filter(i => i.snManagement && i.snCodes.length > 0).map(item => (
-                      item.snCodes.map((sn, snIdx) => (
-                        <tr key={`${item.id}-${snIdx}`}>
-                          <td className="px-3 py-2 text-sm">{item.productName}</td>
-                          <td className="px-3 py-2 text-sm font-mono">{sn}</td>
-                          <td className="px-3 py-2 text-sm">{item.batchNo}</td>
-                        </tr>
-                      ))
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
 
             <div className="flex justify-end gap-3">
               <button
@@ -2021,7 +1883,6 @@ export default function InboundPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-2 text-left text-xs">商品</th>
-                        <th className="px-3 py-2 text-left text-xs">批次</th>
                         <th className="px-3 py-2 text-center text-xs">数量</th>
                         <th className="px-3 py-2 text-left text-xs">原预计库位</th>
                         <th className="px-3 py-2 text-center text-xs">推荐库位</th>
@@ -2035,7 +1896,6 @@ export default function InboundPage() {
                             <div>{item.productName}</div>
                             <div className="text-xs text-gray-500">{item.spec}/{item.packaging}</div>
                           </td>
-                          <td className="px-3 py-2 text-sm">{item.batchNo || '-'}</td>
                           <td className="px-3 py-2 text-sm text-center">{item.quantity}</td>
                           <td className="px-3 py-2 text-sm text-gray-500">{item.originalLocationCode || '-'}</td>
                           <td className="px-3 py-2 text-sm">

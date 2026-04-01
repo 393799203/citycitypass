@@ -24,6 +24,8 @@ import uploadRoutes from './routes/upload';
 import supplierRoutes from './routes/suppliers';
 import supplierContractRoutes from './routes/supplierContracts';
 import carrierRoutes from './routes/carriers';
+import skuBatchRoutes from './routes/skuBatches';
+import bundleBatchRoutes from './routes/bundleBatches';
 
 dotenv.config();
 
@@ -55,6 +57,8 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/supplier-contracts', supplierContractRoutes);
 app.use('/api/carriers', carrierRoutes);
+app.use('/api/sku-batches', skuBatchRoutes);
+app.use('/api/bundle-batches', bundleBatchRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

@@ -60,6 +60,7 @@ router.get('/', async (req, res) => {
     const orderIds = data.map((r: any) => r.orderId);
     const stockOuts = await prisma.stockOut.findMany({
       where: { orderId: { in: orderIds } },
+      include: { skuBatch: true, bundleBatch: true },
     }) as any[];
 
     const dataWithPrice = data.map((returnOrder: any) => {
@@ -77,9 +78,11 @@ router.get('/', async (req, res) => {
           return {
             ...item,
             unitPrice: orderItemPrices[item.orderItemId] || 0,
-            stockBatchNo: stockOut?.batchNo || null,
+            skuBatchId: stockOut?.skuBatchId || null,
+            skuBatch: stockOut?.skuBatch || null,
+            bundleBatchId: stockOut?.bundleBatchId || null,
+            bundleBatch: stockOut?.bundleBatch || null,
             stockOutQuantity: stockOut?.quantity || null,
-            stockExpiryDate: stockOut?.expiryDate || null,
           };
         }),
       };
@@ -147,6 +150,7 @@ router.get('/:id', async (req, res) => {
 
     const stockOuts = await prisma.stockOut.findMany({
       where: { orderId: returnOrder.orderId },
+      include: { skuBatch: true, bundleBatch: true },
     }) as any[];
 
     const itemsWithBatch = returnOrder.items.map((item: any) => {
@@ -154,9 +158,11 @@ router.get('/:id', async (req, res) => {
       return {
         ...item,
         unitPrice: orderItemPrices[item.orderItemId] || 0,
-        stockBatchNo: stockOut?.batchNo || null,
+        skuBatchId: stockOut?.skuBatchId || null,
+        skuBatch: stockOut?.skuBatch || null,
+        bundleBatchId: stockOut?.bundleBatchId || null,
+        bundleBatch: stockOut?.bundleBatch || null,
         stockOutQuantity: stockOut?.quantity || null,
-        stockExpiryDate: stockOut?.expiryDate || null,
       };
     });
 
@@ -445,6 +451,7 @@ router.put('/:id/qualify', async (req, res) => {
 
     const stockOuts = await prisma.stockOut.findMany({
       where: { orderId: updated.orderId },
+      include: { skuBatch: true, bundleBatch: true },
     });
 
     const itemsWithBatch = updated.items.map((item: any) => {
@@ -452,7 +459,10 @@ router.put('/:id/qualify', async (req, res) => {
       return {
         ...item,
         unitPrice: orderItemPrices[item.orderItemId] || 0,
-        stockBatchNo: stockOut?.batchNo || null,
+        skuBatchId: stockOut?.skuBatchId || null,
+        skuBatch: stockOut?.skuBatch || null,
+        bundleBatchId: stockOut?.bundleBatchId || null,
+        bundleBatch: stockOut?.bundleBatch || null,
         stockOutQuantity: stockOut?.quantity || null,
       };
     });

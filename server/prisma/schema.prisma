@@ -300,8 +300,9 @@ model Supplier {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  inboundOrders  InboundOrder[]
   contracts      SupplierContract[]
+  skuBatches     SKUBatch[]
+  bundleBatches  BundleBatch[]
 }
 
 enum SupplierStatus {
@@ -342,6 +343,7 @@ model ProductSKU {
   stockIns   StockIn[]
   bundleItems BundleSKUItem[]
   transferItems StockTransferItem[]
+  skuBatches  SKUBatch[]
 }
 
 model BundleSKU {
@@ -363,6 +365,7 @@ model BundleSKU {
   pickOrderItems PickOrderItem[]
   orderItems  OrderItem[]
   transferItems StockTransferItem[]
+  bundleBatches BundleBatch[]
 }
 
 model BundleSKUItem {
@@ -385,15 +388,15 @@ model BundleStock {
   warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
   locationId      String?
   location        Location? @relation(fields: [locationId], references: [id])
-  batchNo         String?   // 批次号
-  expiryDate      DateTime? // 效期
+  bundleBatchId   String
+  bundleBatch     BundleBatch @relation(fields: [bundleBatchId], references: [id])
   totalQuantity   Int       @default(0)
   lockedQuantity  Int       @default(0)
   availableQuantity Int      @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@unique([bundleId, warehouseId, locationId, batchNo])
+  @@unique([warehouseId, locationId, bundleBatchId])
 }
 
 model BundleStockLock {
@@ -404,7 +407,8 @@ model BundleStockLock {
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
-  batchNo     String?   // 批次号
+  bundleBatchId String
+  bundleBatch BundleBatch @relation(fields: [bundleBatchId], references: [id])
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   quantity    Int
@@ -420,8 +424,9 @@ model BundleStockIn {
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
+  bundleBatchId String
+  bundleBatch BundleBatch @relation(fields: [bundleBatchId], references: [id])
   quantity    Int
-  batchNo     String?   // 批次号
   remark      String?
   status      String    @default("PENDING")
   createdAt   DateTime  @default(now())
@@ -508,7 +513,10 @@ model PickOrderItem {
   packaging  String
   spec       String
   quantity   Int
-  batchNo    String?     // 批次号
+  skuBatchId String?
+  skuBatch   SKUBatch?   @relation(fields: [skuBatchId], references: [id])
+  bundleBatchId String?
+  bundleBatch BundleBatch? @relation(fields: [bundleBatchId], references: [id])
   warehouseLocation String
   stockLockId String?
   stockLock  StockLock? @relation(fields: [stockLockId], references: [id])
@@ -672,9 +680,11 @@ model StockTransferItem {
   fromLocation    Location?      @relation("TransferFromLocation", fields: [fromLocationId], references: [id])
   toLocationId    String?
   toLocation      Location?      @relation("TransferToLocation", fields: [toLocationId], references: [id])
+  skuBatchId      String?
+  skuBatch        SKUBatch?      @relation(fields: [skuBatchId], references: [id])
+  bundleBatchId   String?
+  bundleBatch     BundleBatch?   @relation(fields: [bundleBatchId], references: [id])
   quantity        Int
-  batchNo         String?
-  expiryDate      DateTime?
   createdAt       DateTime       @default(now())
   @@index([transferId])
   @@index([skuId])
@@ -689,16 +699,16 @@ model Stock {
   warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
   locationId      String?
   location        Location? @relation(fields: [locationId], references: [id])
-  batchNo         String?   // 批次号
-  expiryDate      DateTime? // 效期
-  totalQuantity   Int       @default(0)    // 总库存
-  lockedQuantity  Int       @default(0)    // 已锁定库存
-  availableQuantity Int     @default(0)    // 可用库存
+  skuBatchId      String
+  skuBatch        SKUBatch @relation(fields: [skuBatchId], references: [id])
+  totalQuantity   Int       @default(0)
+  lockedQuantity  Int       @default(0)
+  availableQuantity Int     @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   stockIns        StockIn[]
 
-  @@unique([skuId, warehouseId, locationId, batchNo])
+  @@unique([warehouseId, locationId, skuBatchId])
 }
 
 model StockLock {
@@ -711,9 +721,9 @@ model StockLock {
   warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
   locationId  String?
   location    Location?   @relation(fields: [locationId], references: [id])
-  batchNo     String?     // 批次号
-  expiryDate  DateTime?   // 有效期
-  quantity    Int         // 锁定数量
+  skuBatchId  String
+  skuBatch    SKUBatch    @relation(fields: [skuBatchId], references: [id])
+  quantity    Int
   status      LockStatus  @default(LOCKED)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -730,14 +740,14 @@ model StockIn {
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
-  quantity    Int       // 入库数量
-  batchNo     String?   // 批次号
-  expiryDate  DateTime? // 效期
-  remark      String?   // 备注
-  status      String    @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  skuBatchId  String
+  skuBatch    SKUBatch @relation(fields: [skuBatchId], references: [id])
+  quantity    Int
+  remark      String?
+  status      String    @default("PENDING")
   createdAt   DateTime  @default(now())
   executedAt  DateTime?
-  operator    String?   // 操作人
+  operator    String?
 }
 
 enum InboundSource {
@@ -761,12 +771,9 @@ model InboundOrder {
   id          String    @id @default(uuid())
   inboundNo   String    @unique
   source     InboundSource @default(PURCHASE)  // 来源
-  supplierId  String?
-  supplier    Supplier?  @relation(fields: [supplierId], references: [id])
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   remark      String?
-  snManagement Boolean @default(false) // 是否SN管理
 
   // 到货信息
   arrivalQuantity Int?    // 到货数量
@@ -790,7 +797,6 @@ model InboundOrder {
 
   @@index([warehouseId])
   @@index([status])
-  @@index([supplierId])
 }
 
 model InboundOrderItem {
@@ -807,13 +813,11 @@ model InboundOrderItem {
   expectedQuantity Int?   // 计划数量
   receivedQuantity Int?   // 实收数量
 
-  // 批次和效期
-  batchNo     String?   // 批次号
-  expiryDate  DateTime? // 效期
-
-  // SN 管理
-  snManagement Boolean @default(false) // 是否SN管理
-  snCodes      String[] // 序列号数组
+  // 批次 - 根据 type 关联不同的批次表
+  skuBatchId      String?
+  skuBatch        SKUBatch? @relation(fields: [skuBatchId], references: [id])
+  bundleBatchId   String?
+  bundleBatch     BundleBatch? @relation(fields: [bundleBatchId], references: [id])
 
   // 验收结果
   inspectionResult String? // OK / SHORT / DAMAGED
@@ -829,23 +833,27 @@ model InboundOrderItem {
 
 model StockOut {
   id          String    @id @default(uuid())
-  orderId     String    // 关联订单
-  skuId       String?   // 商品SKU（商品出库时）
-  bundleId    String?   // 套装（套装出库时）
+  orderId     String
+  skuId       String?
+  bundleId    String?
   warehouseId String
-  locationId  String?   // 库位（出库库位）
-  batchNo     String?   // 批次号
-  expiryDate  DateTime? // 效期
-  quantity    Int       // 出库数量
-  remark      String?   // 备注
+  locationId  String?
+  skuBatchId  String?
+  skuBatch    SKUBatch? @relation(fields: [skuBatchId], references: [id])
+  bundleBatchId String?
+  bundleBatch BundleBatch? @relation(fields: [bundleBatchId], references: [id])
+  quantity    Int
+  remark      String?
   createdAt   DateTime  @default(now())
-  operator    String?   // 操作人
+  operator    String?
 
   @@index([orderId])
   @@index([warehouseId])
   @@index([skuId])
   @@index([bundleId])
   @@index([locationId])
+  @@index([skuBatchId])
+  @@index([bundleBatchId])
 }
 
 enum VehicleStatus {
@@ -1202,4 +1210,50 @@ model CarrierVehicle {
   updatedAt    DateTime @updatedAt
 
   dispatches   Dispatch[]
+}
+
+model SKUBatch {
+  id              String    @id @default(uuid())
+  batchNo         String    // 批次号
+  skuId           String    // 商品SKU ID
+  sku             ProductSKU @relation(fields: [skuId], references: [id])
+  productionDate  DateTime? // 生产日期
+  expiryDate      DateTime? // 有效期
+  supplierId      String?   // 供应商ID
+  supplier        Supplier?  @relation(fields: [supplierId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  stocks          Stock[]
+  stockLocks      StockLock[]
+  stockIns        StockIn[]
+  inboundItems    InboundOrderItem[]
+  stockOuts       StockOut[]
+  pickItems       PickOrderItem[]
+  transferItems   StockTransferItem[]
+
+  @@unique([skuId, batchNo])
+}
+
+model BundleBatch {
+  id              String    @id @default(uuid())
+  batchNo         String    // 批次号
+  bundleId        String    // 套装SKU ID
+  bundle          BundleSKU @relation(fields: [bundleId], references: [id])
+  productionDate  DateTime? // 生产日期
+  expiryDate      DateTime? // 有效期
+  supplierId      String?   // 供应商ID
+  supplier        Supplier?  @relation(fields: [supplierId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  stocks          BundleStock[]
+  stockLocks      BundleStockLock[]
+  stockIns        BundleStockIn[]
+  stockOuts       StockOut[]
+  inboundItems    InboundOrderItem[]
+  pickItems       PickOrderItem[]
+  transferItems   StockTransferItem[]
+
+  @@unique([bundleId, batchNo])
 }

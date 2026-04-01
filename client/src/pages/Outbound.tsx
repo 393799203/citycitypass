@@ -445,9 +445,9 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                                     [{locationStr}]
                                   </span>
                                 )}
-                                {lock.batchNo && (
+                                {(lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo) && (
                                   <span className="ml-1 text-purple-500 text-xs">
-                                    批:{lock.batchNo}
+                                    批:{lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo}
                                   </span>
                                 )}
                               </div>
@@ -544,7 +544,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           <th className="py-1 w-1/4">商品</th>
                           <th className="py-1 w-1/4">包装/规格</th>
                           <th className="py-1 w-12">数量</th>
-                          <th className="py-1 w-1/4">库位(货位)</th>
+                          <th className="py-1 w-1/4">库位(货位)-批号</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
@@ -570,14 +570,15 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                             <td className="py-2 align-top text-gray-500 text-center">{item.packaging} · {item.spec}</td>
                             <td className="py-2 align-top text-center">{item.quantity}</td>
                             <td className="py-2 align-top text-gray-500 text-center">
-                              {item.stockLock?.location ? `${item.stockLock.location.shelf?.zone?.code}-${item.stockLock.location.shelf?.code}-L${item.stockLock.location.level}` :
-                               item.bundleStockLock?.location ? `${item.bundleStockLock.location.shelf?.zone?.code}-${item.bundleStockLock.location.shelf?.code}-L${item.bundleStockLock.location.level}` :
-                               item.warehouseLocation ? `${item.warehouseLocation}${pickOrder.status === 'CANCELLED' ? '' : ' (已出库)'}` : '-'}
-                              {(item.batchNo || item.stockLock?.batchNo || item.bundleStockLock?.batchNo) && (
-                                <span className="text-purple-500 ml-1">
-                                  批:{item.batchNo || item.stockLock?.batchNo || item.bundleStockLock?.batchNo}
-                                </span>
-                              )}
+                              {(() => {
+                                const loc = item.stockLock?.location || item.bundleStockLock?.location;
+                                const locCode = loc ? `${loc.shelf?.zone?.code}-${loc.shelf?.code}-L${loc.level}` : (item.warehouseLocation || '-');
+                                const batchNo = item.stockLock?.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo;
+                                const batchSuffix = batchNo ? `(${batchNo})` : '';
+                                const isCompleted = pickOrder.status === 'COMPLETED' || pickOrder.orders?.some((o: any) => o.status === 'DELIVERED' || o.status === 'IN_TRANSIT');
+                                const statusSuffix = isCompleted ? ' (已出库)' : (pickOrder.status === 'CANCELLED' ? ' (已出库)' : '');
+                                return `${locCode}${batchSuffix}${statusSuffix}`;
+                              })()}
                               {pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && ' (已退回)'}
                             </td>
                           </tr>

@@ -6,26 +6,31 @@ import { toast } from 'react-toastify';
 
 interface TraceData {
   batchNo: string;
-  totalInStock: number;
-  totalInWarehouse: number;
-  totalLocked: number;
-  totalSold: number;
-  totalReturned: number;
+  batchInfo?: {
+    id: string;
+    batchNo: string;
+    expiryDate?: string;
+    productionDate?: string;
+    supplierId?: string;
+    supplierName?: string;
+    productName?: string;
+    spec?: string;
+    packaging?: string;
+    type: 'PRODUCT' | 'BUNDLE';
+  };
+  summary?: {
+    totalInbound: number;
+    totalOutbound: number;
+    totalInWarehouse: number;
+    totalLocked: number;
+    totalReturned: number;
+  };
   stockIns: Array<{
     type: string;
     productName?: string;
     bundleName?: string;
     quantity: number;
     expiryDate?: string;
-    warehouse: string;
-    locationCode: string;
-    createdAt: string;
-  }>;
-  bundleStockIns: Array<{
-    type: string;
-    productName?: string;
-    bundleName?: string;
-    quantity: number;
     warehouse: string;
     locationCode: string;
     createdAt: string;
@@ -38,7 +43,7 @@ interface TraceData {
     lockedQuantity: number;
     warehouse: string;
   }>;
-  soldOrders: Array<{
+  stockOuts: Array<{
     type: string;
     orderNo: string;
     orderId: string;
@@ -51,7 +56,13 @@ interface TraceData {
     createdAt: string;
     isReturned: boolean;
   }>;
-  transferRecords: Array<{
+  returns: Array<{
+    type: string;
+    returnNo: string;
+    quantity: number;
+    createdAt: string;
+  }>;
+  transfers: Array<{
     type: string;
     transferNo: string;
     fromLocation: string;
@@ -62,11 +73,30 @@ interface TraceData {
   }>;
 }
 
+interface BatchInfo {
+  id: string;
+  batchNo: string;
+  expiryDate?: string;
+  productionDate?: string;
+  supplierId?: string;
+  supplierName?: string;
+  productName?: string;
+  spec?: string;
+  packaging?: string;
+  sku?: {
+    product?: {
+      name?: string;
+    };
+  };
+  type: 'PRODUCT' | 'BUNDLE';
+  totalQuantity?: number;
+}
+
 export default function BatchTracePage() {
   const { batchNo } = useParams<{ batchNo: string }>();
   const navigate = useNavigate();
   const [inputBatchNo, setInputBatchNo] = useState('');
-  const [batchList, setBatchList] = useState<string[]>([]);
+  const [batchList, setBatchList] = useState<BatchInfo[]>([]);
   const [traceData, setTraceData] = useState<TraceData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -118,57 +148,76 @@ export default function BatchTracePage() {
 
   if (!batchNo) {
     return (
-      <div className="min-h-[calc(100vh-120px)] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center p-8">
-        <h1 className="text-5xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">批次追踪</h1>
-        <p className="text-white/80 mb-10 text-lg">输入批次号追踪货物流向</p>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">批次列表</h1>
 
-        <div className="w-full max-w-3xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
-          <div className="flex gap-4 mb-8">
-            <input
-              type="text"
-              value={inputBatchNo}
-              onChange={(e) => setInputBatchNo(e.target.value)}
-              placeholder="请输入批次号"
-              className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-            />
-            <button
-              onClick={handleSearch}
-              disabled={!inputBatchNo.trim()}
-              className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 flex items-center gap-2 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
-            >
-              <Search className="w-6 h-6" />
-              查询
-            </button>
+        {loading && (
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
           </div>
+        )}
 
-          {loading && (
-            <div className="mt-4 text-center">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
-              <p className="mt-2 text-gray-500">加载中...</p>
-            </div>
-          )}
+        {!loading && batchList.length === 0 && (
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+            <p className="text-gray-500">暂无批次数据</p>
+          </div>
+        )}
 
-          {!loading && batchList.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">最近批次</h3>
-              <div className="flex flex-wrap gap-3">
-                {batchList.slice(0, 30).map((batch) => (
-                  <button
-                    key={batch}
-                    onClick={() => navigate(`/batch-trace/${batch}`)}
-                    className="px-5 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 rounded-xl text-base font-mono text-gray-700 border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all"
-                  >
-                    {batch}
-                  </button>
+        {!loading && batchList.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">批次号</th>
+                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">类别</th>
+                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">关联商品</th>
+                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">供应商</th>
+                  <th className="px-4 py-3 text-left text-base font-medium text-gray-700">有效期</th>
+                  <th className="px-4 py-3 text-right text-base font-medium text-gray-700">剩余库存</th>
+                  <th className="px-4 py-3 text-right text-base font-medium text-gray-700">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {batchList.map((batch: any) => (
+                  <tr key={batch.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-base text-purple-600 font-mono">{batch.batchNo}</td>
+                    <td className="px-4 py-3 text-base">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${batch.type === 'PRODUCT' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                        {batch.type === 'PRODUCT' ? '商品' : '套装'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-base text-gray-500">
+                      {batch.productName || batch.sku?.product?.name || '-'}
+                      {batch.spec && ` ${batch.spec}`}
+                      {batch.packaging && ` ${batch.packaging}`}
+                    </td>
+                    <td className="px-4 py-3 text-base text-gray-500">
+                      {batch.supplierName || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-base text-gray-500">
+                      {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-base text-right">
+                      {batch.totalQuantity > 0 ? (
+                        <span className="text-green-600 font-medium">{batch.totalQuantity}</span>
+                      ) : (
+                        <span className="text-gray-400">0</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => navigate(`/batch-trace/${batch.batchNo}`)}
+                        className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      >
+                        追踪
+                      </button>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-              {batchList.length > 30 && (
-                <p className="text-sm text-gray-400 mt-4">还有 {batchList.length - 30} 个批次...</p>
-              )}
-            </div>
-          )}
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   }
@@ -202,21 +251,29 @@ export default function BatchTracePage() {
     );
   }
 
-  const allStockIns = [...(traceData.stockIns || []), ...(traceData.bundleStockIns || [])];
+  const allStockIns = traceData.stockIns || [];
   const totalInbound = allStockIns.reduce((sum: number, s: any) => sum + s.quantity, 0);
-  const totalInWarehouse = traceData.locations.reduce((sum: number, l: any) => sum + l.quantity, 0);
-  const totalSold = traceData.soldOrders.reduce((sum: number, o: any) => sum + o.quantity, 0);
+  const totalInWarehouse = (traceData.locations || []).reduce((sum: number, l: any) => sum + (l.totalQuantity || l.quantity || 0), 0);
+  const totalSold = (traceData.stockOuts || []).reduce((sum: number, o: any) => sum + o.quantity, 0);
+  const totalReturned = (traceData.returns || []).reduce((sum: number, r: any) => sum + r.quantity, 0);
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/batch-trace')}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-2 text-gray-700"
+        >
+          <ArrowRight className="w-4 h-4" style={{ transform: 'rotate(180deg)' }} />
+          返回列表
+        </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">批次追踪</h1>
           <p className="text-sm text-gray-500 mt-1">批次号: <span className="font-mono text-blue-600">{batchNo}</span></p>
         </div>
         <button
           onClick={() => loadTraceData(batchNo)}
-          className="p-2 hover:bg-gray-100 rounded-lg"
+          className="p-2 hover:bg-gray-100 rounded-lg ml-auto"
           title="刷新"
         >
           <RefreshCw className="w-5 h-5 text-gray-600" />
@@ -246,11 +303,15 @@ export default function BatchTracePage() {
 
             <div className="flex flex-col items-center">
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center shadow-xl hover:scale-105 transition-transform border-4 border-white">
-                <span className="text-sm text-indigo-100">批次号</span>
-                <span className="text-sm font-bold text-white font-mono mt-1">{batchNo}</span>
-                {traceData?.stockIns?.[0]?.expiryDate && (
-                  <span className="text-xs text-indigo-200 mt-1">{new Date(traceData.stockIns[0].expiryDate).toLocaleDateString()}</span>
-                )}
+                <span className="text-[10px] text-indigo-200">批次号</span>
+                <span className="text-xs font-bold text-white font-mono mt-0.5">{batchNo}</span>
+                <div className="w-24 h-[1px] bg-indigo-300 my-1"></div>
+                <span className="text-[10px] text-indigo-200">有效期</span>
+                <span className="text-xs font-bold text-white mt-0.5">
+                  {traceData?.batchInfo?.expiryDate
+                    ? new Date(traceData.batchInfo.expiryDate).toLocaleDateString()
+                    : '-'}
+                </span>
               </div>
             </div>
 
@@ -277,7 +338,7 @@ export default function BatchTracePage() {
 
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
-                <span className="text-3xl font-bold text-white">{traceData.totalReturned || 0}</span>
+                <span className="text-3xl font-bold text-white">{totalReturned}</span>
                 <span className="text-xs text-red-100">已退货</span>
               </div>
               <div className="text-xs text-gray-500 mt-2">总退货量</div>
@@ -323,10 +384,10 @@ export default function BatchTracePage() {
             <div className="flex-1">
               <h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
-                订单列表 ({traceData.soldOrders.length})
+                订单列表 ({(traceData.stockOuts || []).length})
               </h4>
               <div className="flex flex-wrap gap-2">
-                {traceData.soldOrders.map((order, idx) => (
+                {(traceData.stockOuts || []).map((order, idx) => (
                   <Link
                     key={idx}
                     to={`/orders/${order.orderId}`}
@@ -342,7 +403,7 @@ export default function BatchTracePage() {
                     <ArrowRight className={`w-3 h-3 ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
                   </Link>
                 ))}
-                {traceData.soldOrders.length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
+                {(traceData.stockOuts || []).length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
               </div>
             </div>
           </div>
@@ -430,18 +491,18 @@ export default function BatchTracePage() {
             <ShoppingCart className="w-5 h-5 text-yellow-500" />
             已售订单
           </h3>
-          {traceData.soldOrders.length === 0 ? (
+          {(traceData.stockOuts || []).length === 0 ? (
             <p className="text-gray-400 text-center py-4">暂无售出记录</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {traceData.soldOrders.map((order, idx) => (
+              {(traceData.stockOuts || []).map((order: any, idx: number) => (
                 <Link
                   key={idx}
                   to={`/orders/${order.orderId}`}
                   className={`block rounded-lg p-3 text-sm transition-colors ${
                     order.isReturned
-                      ? 'bg-red-50 hover:bg-red-100'
-                      : 'bg-yellow-50 hover:bg-yellow-100'
+                      ? 'bg-red-50 hover:bg-red-100 border border-red-200'
+                      : 'bg-yellow-50 hover:bg-yellow-100 border border-yellow-200'
                   }`}
                 >
                   <div className="flex justify-between items-start">
@@ -475,11 +536,11 @@ export default function BatchTracePage() {
             <ArrowRight className="w-5 h-5 text-purple-500" />
             移库记录
           </h3>
-          {traceData.transferRecords.length === 0 ? (
+          {(traceData.transfers || []).length === 0 ? (
             <p className="text-gray-400 text-center py-4">暂无移库记录</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {traceData.transferRecords.map((transfer, idx) => (
+              {(traceData.transfers || []).map((transfer: any, idx: number) => (
                 <div key={idx} className="bg-purple-50 rounded-lg p-3 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-gray-700">{transfer.transferNo}</span>

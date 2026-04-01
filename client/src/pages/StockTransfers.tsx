@@ -37,6 +37,10 @@ interface TransferItemInput {
   toLocationCode: string;
   quantity: number;
   batchNo?: string;
+  skuBatchId?: string;
+  bundleBatchId?: string;
+  skuBatch?: { batchNo: string };
+  bundleBatch?: { batchNo: string };
   spec?: string;
   packaging?: string;
 }
@@ -73,6 +77,10 @@ interface StockItem {
   availableQuantity: number;
   sku?: any;
   bundle?: any;
+  skuBatch?: { id: string; batchNo: string };
+  bundleBatch?: { id: string; batchNo: string };
+  skuBatchId?: string;
+  bundleBatchId?: string;
 }
 
 interface StockGroupListProps {
@@ -141,7 +149,9 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                 const isItemSelected = selectedStock &&
                   stock.locationId === selectedStock.locationId &&
                   stock.type === selectedStock.type &&
-                  stock.batchNo === selectedStock.batchNo &&
+                  (stock.type === 'product' 
+                    ? stock.skuBatchId === selectedStock.skuBatchId
+                    : stock.bundleBatchId === selectedStock.bundleBatchId) &&
                   ((stock.type === 'product' && stock.skuId === selectedStock.skuId) ||
                    (stock.type === 'bundle' && stock.bundleId === selectedStock.bundleId));
                 return (
@@ -156,7 +166,7 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                   >
                     <span className="text-orange-600">{stock.locationFullCode}</span>
                     <span className="ml-1 text-green-600">{stock.availableQuantity}件</span>
-                    {stock.batchNo && <div className="ml-1 text-purple-600">批:{stock.batchNo}</div>}
+                    {(stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo) && <div className="ml-1 text-purple-600">批:{stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo}</div>}
                   </div>
                 );
               })}
@@ -174,7 +184,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
   stocks.forEach((stock, index) => {
     const name = stock.type === 'product' ? (stock.productName || '') : (stock.bundleName || '');
     const id = stock.type === 'product' ? (stock.skuId || '') : (stock.bundleId || '');
-    const groupKey = `${stock.type}-${id}-${name}-${stock.batchNo || ''}`;
+    const groupKey = `${stock.type}-${id}-${name}-${stock.type === 'product' ? stock.skuBatchId || '' : stock.bundleBatchId || ''}`;
     if (!groups[groupKey]) {
       groups[groupKey] = { items: [], key: groupKey };
     }
@@ -223,7 +233,9 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
                 const isItemSelected = selectedStock &&
                   stock.locationId === selectedStock.locationId &&
                   stock.type === selectedStock.type &&
-                  stock.batchNo === selectedStock.batchNo &&
+                  (stock.type === 'product' 
+                    ? stock.skuBatchId === selectedStock.skuBatchId
+                    : stock.bundleBatchId === selectedStock.bundleBatchId) &&
                   ((stock.type === 'product' && stock.skuId === selectedStock.skuId) ||
                    (stock.type === 'bundle' && stock.bundleId === selectedStock.bundleId));
                 return (
@@ -440,7 +452,7 @@ export default function StockTransfers() {
         const uniqueMap = new Map();
         combined.forEach(s => {
           const id = s.type === 'product' ? (s.skuId || '') : (s.bundleId || '');
-          const key = `${s.type}-${id}-${s.locationId}-${s.batchNo}`;
+          const key = `${s.type}-${id}-${s.locationId}-${s.type === 'product' ? s.skuBatch?.id || '' : s.bundleBatch?.id || ''}`;
           if (!uniqueMap.has(key)) {
             uniqueMap.set(key, s);
           }
@@ -526,7 +538,10 @@ export default function StockTransfers() {
       toLocationId: toLocationId,
       toLocationCode: targetLocations.find(l => l.id === toLocationId)?.code || toLocationId,
       quantity: transferQty,
-      batchNo: selectedStock.batchNo,
+      skuBatchId: selectedStock.skuBatch?.id || selectedStock.skuBatchId,
+      bundleBatchId: selectedStock.bundleBatch?.id || selectedStock.bundleBatchId,
+      skuBatch: selectedStock.skuBatch,
+      bundleBatch: selectedStock.bundleBatch,
       spec: selectedStock.spec,
       packaging: selectedStock.packaging,
     };
@@ -537,7 +552,8 @@ export default function StockTransfers() {
         i.bundleId === newItem.bundleId &&
         i.fromLocationId === newItem.fromLocationId &&
         i.toLocationId === newItem.toLocationId &&
-        i.batchNo === newItem.batchNo
+        i.skuBatchId === newItem.skuBatchId &&
+        i.bundleBatchId === newItem.bundleBatchId
     );
 
     if (existingIndex >= 0) {
@@ -780,7 +796,7 @@ export default function StockTransfers() {
                       ? `${item.toLocation.shelf.zone?.code || ''}-${item.toLocation.shelf.code}-L${item.toLocation.level}`
                       : '-';
 
-                    return { idx, itemName, itemSpec, itemPackaging, fromCode, toCode, quantity: item.quantity, itemType, batchNo: item.batchNo || '-', items: item.bundle?.items };
+                    return { idx, itemName, itemSpec, itemPackaging, fromCode, toCode, quantity: item.quantity, itemType, batchNo: item.itemType === 'PRODUCT' ? item.skuBatch?.batchNo || '-' : item.bundleBatch?.batchNo || '-', items: item.bundle?.items };
                   }) || [];
 
                 return rows.map((row: any, rowIdx: number) => (
@@ -965,8 +981,10 @@ export default function StockTransfers() {
                                 <span className="text-xs text-gray-500 whitespace-nowrap">{selectedStock.spec} | {selectedStock.packaging}</span>
                               )}
                             </div>
-                            {selectedStock.batchNo && (
-                              <div className="text-xs text-purple-500 pl-12" >批号: {selectedStock.batchNo}</div>
+                            {selectedStock.type === 'product' ? selectedStock.skuBatch?.batchNo && (
+                              <div className="text-xs text-purple-500 pl-12" >批号: {selectedStock.skuBatch?.batchNo}</div>
+                            ) : selectedStock.bundleBatch?.batchNo && (
+                              <div className="text-xs text-purple-500 pl-12" >批号: {selectedStock.bundleBatch?.batchNo}</div>
                             )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -1068,8 +1086,10 @@ export default function StockTransfers() {
                                   {item.toLocationCode}
                                 </span>
                               </div>
-                              {item.batchNo && (
-                                <div className="text-xs text-purple-500 pl-12">批号: {item.batchNo}</div>
+                              {item.itemType === 'PRODUCT' ? item.skuBatch?.batchNo && (
+                                <div className="text-xs text-purple-500 pl-12">批号: {item.skuBatch?.batchNo}</div>
+                              ) : item.bundleBatch?.batchNo && (
+                                <div className="text-xs text-purple-500 pl-12">批号: {item.bundleBatch?.batchNo}</div>
                               )}
                             </div>
                             <div className="flex items-center gap-3">

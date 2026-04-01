@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
+import { generatePickOrderNo } from '../utils/helpers';
 const router = Router();
 
 const pickOrderItemSchema = z.object({
@@ -22,15 +21,6 @@ const createPickOrderSchema = z.object({
 }).refine(data => data.orderId || data.orderIds, {
   message: "需要提供 orderId 或 orderIds",
 });
-
-function generatePickNo(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `PK${year}${month}${day}${random}`;
-}
 
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -81,6 +71,7 @@ router.post('/', async (req: Request, res: Response) => {
             sku: {
               include: { product: true },
             },
+            skuBatch: true,
           },
         });
         allStockLocks.push(...stockLocks);
@@ -102,6 +93,7 @@ router.post('/', async (req: Request, res: Response) => {
                 }
               }
             },
+            bundleBatch: true,
           },
         });
         allBundleStockLocks.push(...bundleStockLocks);
@@ -124,7 +116,8 @@ router.post('/', async (req: Request, res: Response) => {
             packaging: lock.sku.packaging,
             spec: lock.sku.spec,
             quantity: lock.quantity,
-            batchNo: lock.batchNo,
+            skuBatchId: lock.skuBatchId,
+            bundleBatchId: null,
             warehouseLocation: `${lock.location?.shelf?.zone?.code || ''}-${lock.location?.shelf?.code || ''}-L${lock.location?.level || ''}` || lock.sku.warehouseLocation || '',
             stockLockId: lock.id,
             bundleStockLockId: null,
@@ -147,7 +140,8 @@ router.post('/', async (req: Request, res: Response) => {
             packaging: lock.bundle.packaging,
             spec: lock.bundle.spec,
             quantity: lock.quantity,
-            batchNo: lock.batchNo,
+            skuBatchId: null,
+            bundleBatchId: lock.bundleBatchId,
             warehouseLocation: `${lock.location?.shelf?.zone?.code || ''}-${lock.location?.shelf?.code || ''}-L${lock.location?.level || ''}` || '',
             stockLockId: null,
             bundleStockLockId: lock.id,
@@ -163,7 +157,8 @@ router.post('/', async (req: Request, res: Response) => {
         packaging: item.packaging || '',
         spec: item.spec || '',
         quantity: item.quantity,
-        batchNo: item.batchNo,
+        skuBatchId: item.skuBatchId,
+        bundleBatchId: item.bundleBatchId,
         warehouseLocation: item.warehouseLocation,
         stockLockId: item.stockLockId,
         bundleStockLockId: item.bundleStockLockId,
@@ -171,7 +166,7 @@ router.post('/', async (req: Request, res: Response) => {
 
       const pick = await tx.pickOrder.create({
         data: {
-          pickNo: generatePickNo(),
+          pickNo: generatePickOrderNo(),
           orderIds: orderIdList.join(','),
           status: 'PICKING',
           items: {
@@ -182,7 +177,8 @@ router.post('/', async (req: Request, res: Response) => {
               packaging: item.packaging || '',
               spec: item.spec || '',
               quantity: item.quantity,
-              batchNo: item.batchNo,
+              skuBatchId: item.skuBatchId,
+              bundleBatchId: item.bundleBatchId,
               warehouseLocation: item.warehouseLocation,
               stockLockId: item.stockLockId,
               bundleStockLockId: item.bundleStockLockId,
@@ -255,7 +251,8 @@ router.get('/', async (req: Request, res: Response) => {
                         }
                       }
                     }
-                  }
+                  },
+                  skuBatch: true,
                 }
               },
               bundleStockLock: {
@@ -268,7 +265,8 @@ router.get('/', async (req: Request, res: Response) => {
                         }
                       }
                     }
-                  }
+                  },
+                  bundleBatch: true,
                 }
               },
             },
@@ -359,6 +357,8 @@ router.get('/:id', async (req: Request, res: Response) => {
                 }
               }
             },
+            skuBatch: true,
+            bundleBatch: true,
             stockLock: {
               include: {
                 location: {
@@ -369,7 +369,8 @@ router.get('/:id', async (req: Request, res: Response) => {
                       }
                     }
                   }
-                }
+                },
+                skuBatch: true,
               }
             },
             bundleStockLock: {
@@ -382,7 +383,8 @@ router.get('/:id', async (req: Request, res: Response) => {
                       }
                     }
                   }
-                }
+                },
+                bundleBatch: true,
               }
             },
           },

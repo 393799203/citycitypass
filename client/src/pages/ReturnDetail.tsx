@@ -329,8 +329,8 @@ export default function ReturnDetail() {
                             )}
                           </span>
                         </div>
-                        {item.stockBatchNo && <div className="text-purple-500 text-xs">批:{item.stockBatchNo}</div>}
-                        {item.stockExpiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.stockExpiryDate).toLocaleDateString()}</div>}
+                        {item.skuBatch?.batchNo && <div className="text-purple-500 text-xs">批:{item.skuBatch.batchNo}</div>}
+                        {item.skuBatch?.expiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.skuBatch.expiryDate).toLocaleDateString()}</div>}
                       </td>
                       <td className="px-4 py-3 text-base text-gray-500 text-center">{item.packaging}</td>
                       <td className="px-4 py-3 text-base text-gray-500 text-center">{item.spec}</td>
@@ -448,7 +448,7 @@ export default function ReturnDetail() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs">商品</th>
-                  <th className="px-4 py-2 text-left text-xs">批次</th>
+                  <th className="px-4 py-2 text-left text-xs">批次/有效期</th>
                   <th className="px-4 py-2 text-right text-xs">出库数</th>
                   <th className="px-4 py-2 text-right text-xs">合格数</th>
                   <th className="px-4 py-2 text-right text-xs">拒收数</th>
@@ -458,8 +458,10 @@ export default function ReturnDetail() {
                 {qualifyItems.map((item, idx) => (
                   <tr key={item.stockOutId ? `${item.id}_${item.stockOutId}` : item.id}>
                     <td className="px-4 py-2 text-sm">{item.productName}</td>
-                    <td className="px-4 py-2 text-sm text-purple-600">{item.stockBatchNo || '-'}</td>
-                    <td className="px-4 py-2 text-sm text-orange-600">{item.stockExpiryDate ? new Date(item.stockExpiryDate).toLocaleDateString() : '-'}</td>
+                    <td className="px-4 py-2">
+                       <div className="text-purple-600">{item.skuBatch?.batchNo || item.bundleBatch?.batchNo || '-'}</div>
+                       <div className="text-orange-500 text-xs">{item.skuBatch?.expiryDate ? `效期:${new Date(item.skuBatch.expiryDate).toLocaleDateString()}` : ''}</div>
+                     </td>
                     <td className="px-4 py-2 text-sm text-right">{item.stockOutQuantity || item.quantity}</td>
                     <td className="px-4 py-2 text-right">
                       <input
@@ -507,8 +509,10 @@ export default function ReturnDetail() {
               packaging: item.packaging,
               spec: item.spec,
               quantity: item.qualifiedQuantity ?? 0,
-              batchNo: item.stockBatchNo,
-              expiryDate: item.stockExpiryDate,
+              skuBatchId: item.skuBatch?.id,
+              bundleBatchId: item.bundleBatch?.id,
+              skuBatch: item.skuBatch,
+              bundleBatch: item.bundleBatch,
             }))}
           onClose={() => setShowStockInModal(false)}
           onSuccess={fetchReturn}

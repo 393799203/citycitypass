@@ -674,8 +674,10 @@ export default function Returns() {
               packaging: item.packaging,
               spec: item.spec,
               quantity: item.qualifiedQuantity ?? 0,
-              batchNo: item.stockBatchNo,
-              expiryDate: item.stockExpiryDate,
+              skuBatchId: item.skuBatchId,
+              bundleBatchId: item.bundleBatchId,
+              skuBatch: item.skuBatch,
+              bundleBatch: item.bundleBatch,
             }))}
           onClose={() => setShowStockInModal(false)}
           onSuccess={fetchReturns}

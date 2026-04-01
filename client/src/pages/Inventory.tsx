@@ -528,7 +528,10 @@ export default function InventoryPage() {
                 return false;
               }
             }
-            if (filterBatchNo && stock.batchNo?.toLowerCase().indexOf(filterBatchNo.toLowerCase()) === -1) return false;
+            if (filterBatchNo) {
+              const batchNo = stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo;
+              if (!batchNo || batchNo.toLowerCase().indexOf(filterBatchNo.toLowerCase()) === -1) return false;
+            }
             return true;
           });
           const groupedStocks = filteredStocks.reduce((acc: any, stock: any) => {
@@ -572,17 +575,19 @@ export default function InventoryPage() {
                     total: stock.totalQuantity,
                     locked: stock.lockedQuantity,
                     available: stock.availableQuantity,
-                    batchNo: stock.batchNo,
-                    expiryDate: stock.expiryDate,
+                    batchNo: stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo,
+                    expiryDate: stock.type === 'product' ? stock.skuBatch?.expiryDate : stock.bundleBatch?.expiryDate,
                   });
                   acc[key].totalQuantity += stock.totalQuantity;
                   acc[key].lockedQuantity += stock.lockedQuantity;
                   acc[key].availableQuantity += stock.availableQuantity;
-                  if (stock.batchNo && !acc[key].batchNos.includes(stock.batchNo)) {
-                    acc[key].batchNos.push(stock.batchNo);
+                  const stockBatchNo = stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo;
+                  const stockExpiryDate = stock.type === 'product' ? stock.skuBatch?.expiryDate : undefined;
+                  if (stockBatchNo && !acc[key].batchNos.includes(stockBatchNo)) {
+                    acc[key].batchNos.push(stockBatchNo);
                   }
-                  if (stock.expiryDate && !acc[key].expiryDates.includes(stock.expiryDate)) {
-                    acc[key].expiryDates.push(stock.expiryDate);
+                  if (stockExpiryDate && !acc[key].expiryDates.includes(stockExpiryDate)) {
+                    acc[key].expiryDates.push(stockExpiryDate);
                   }
                   return acc;
                 }, {});
@@ -631,9 +636,9 @@ export default function InventoryPage() {
                                 ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                             }`}
-                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && stock.type !== 'bundle' && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
                             onMouseLeave={() => setTooltip(null)}
-                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && stock.type !== 'bundle' && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
                           >
                             {stock.type === 'bundle' ? '套装' : '商品'}
                           </span>
@@ -775,7 +780,8 @@ export default function InventoryPage() {
                         </td>
                         <td className="px-3 py-2 text-center">
                           <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
-                          {item.batchNo && <div className="text-purple-600 text-xs">批:{item.batchNo}</div>}
+                          {item.skuBatch?.batchNo && <div className="text-purple-600 text-xs">批:{item.skuBatch?.batchNo}</div>}
+                          {item.bundleBatch?.batchNo && <div className="text-purple-600 text-xs">批:{item.bundleBatch?.batchNo}</div>}
                         </td>
                         <td className="px-3 py-2 text-center text-green-600">+{item.quantity}</td>
                         <td className="px-3 py-2 text-center text-gray-500">
@@ -865,7 +871,8 @@ export default function InventoryPage() {
                       </td>
                       <td className="px-3 py-2 text-center">
                         <div>{out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}</div>
-                        {out.batchNo && <div className="text-purple-600 text-xs">批:{out.batchNo}</div>}
+                        {out.skuBatch?.batchNo && <div className="text-purple-600 text-xs">批:{out.skuBatch?.batchNo}</div>}
+                        {out.bundleBatch?.batchNo && <div className="text-purple-600 text-xs">批:{out.bundleBatch?.batchNo}</div>}
                       </td>
                       <td className="px-3 py-2 text-center text-red-600">-{out.quantity}</td>
                       <td className="px-3 py-2 text-center text-gray-500">

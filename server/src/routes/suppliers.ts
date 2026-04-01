@@ -130,12 +130,16 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const inboundOrders = await prisma.inboundOrder.count({
+    const skuBatches = await prisma.sKUBatch.count({
       where: { supplierId: id }
     });
 
-    if (inboundOrders > 0) {
-      return res.status(400).json({ success: false, message: '该供应商已有入库单，无法删除' });
+    const bundleBatches = await prisma.bundleBatch.count({
+      where: { supplierId: id }
+    });
+
+    if (skuBatches > 0 || bundleBatches > 0) {
+      return res.status(400).json({ success: false, message: '该供应商已有批次关联，无法删除' });
     }
 
     await prisma.supplier.delete({
