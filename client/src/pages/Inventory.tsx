@@ -636,9 +636,33 @@ export default function InventoryPage() {
                                 ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                             }`}
-                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && stock.type !== 'bundle' && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? (
+                              <div>
+                                <div className="font-semibold mb-2 text-purple-400">批次信息：</div>
+                                {stock.batchNos.map((bn: string, i: number) => {
+                                  const ed = stock.expiryDates[i] || stock.expiryDates[0];
+                                  return (
+                                    <div key={i} className="text-gray-200 py-1">
+                                      {bn}{ed && stock.type !== 'bundle' ? ` (${new Date(ed).toLocaleDateString()})` : ''}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : <div className="text-gray-400">无批次信息</div> })}
                             onMouseLeave={() => setTooltip(null)}
-                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 || stock.expiryDates.length > 0 ? <div><div className="font-semibold mb-2 text-purple-400">批号：</div>{stock.batchNos.map((bn: string, i: number) => (<div key={i} className="text-gray-200 py-1">{bn}</div>))}{stock.expiryDates.length > 0 && stock.type !== 'bundle' && <><div className="font-semibold mb-2 text-green-400 mt-2">有效期：</div>{stock.expiryDates.map((ed: string, i: number) => (<div key={i} className="text-gray-200 py-1">{new Date(ed).toLocaleDateString()}</div>))}</>}</div> : <div className="text-gray-400">无批号</div> })}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? (
+                              <div>
+                                <div className="font-semibold mb-2 text-purple-400">批次信息：</div>
+                                {stock.batchNos.map((bn: string, i: number) => {
+                                  const ed = stock.expiryDates[i] || stock.expiryDates[0];
+                                  return (
+                                    <div key={i} className="text-gray-200 py-1">
+                                      {bn}{ed && stock.type !== 'bundle' ? ` (${new Date(ed).toLocaleDateString()})` : ''}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : <div className="text-gray-400">无批次信息</div> })}
                           >
                             {stock.type === 'bundle' ? '套装' : '商品'}
                           </span>

@@ -454,7 +454,7 @@ export default function TransportPage() {
                           <tr key={vehicle.id} className="border-b hover:bg-gray-50">
                             {idx === 0 && <td rowSpan={list.length} className="py-3 align-middle text-center">
                               <span className="text-primary-600 font-medium">{groupName.replace(' (承运商)', '')}</span>
-                              {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">承运商</span>}
+                              {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded">承运商</span>}
                             </td>}
                             <td className="py-3 text-center">
                               <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
