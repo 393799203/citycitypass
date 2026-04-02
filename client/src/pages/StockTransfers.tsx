@@ -807,7 +807,10 @@ export default function StockTransfers() {
                           {t.transferNo}
                         </td>
                         <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
-                          {t.warehouse?.name}
+                          <div>{t.warehouse?.name}</div>
+                          {t.warehouse?.owner?.name && (
+                            <div className="text-xs text-gray-400">{t.warehouse.owner.name}</div>
+                          )}
                         </td>
                       </>
                     )}
@@ -868,13 +871,13 @@ export default function StockTransfers() {
                             <>
                               <button
                                 onClick={() => handleExecuteTransfer(t.id)}
-                                className="text-blue-600 hover:text-blue-800 text-sm mr-2"
+                                className="text-white px-2 py-1 rounded text-xs bg-blue-600 hover:bg-blue-700 mr-2"
                               >
                                 执行
                               </button>
                               <button
                                 onClick={() => handleCancelTransfer(t.id)}
-                                className="text-red-600 hover:text-red-800 text-sm"
+                                className="text-white px-2 py-1 rounded text-xs bg-red-600 hover:bg-red-700"
                               >
                                 取消
                               </button>

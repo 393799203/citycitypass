@@ -58,7 +58,7 @@ router.get('/', async (req: Request, res: Response) => {
         sku: {
           include: { product: true }
         },
-        warehouse: true,
+        warehouse: { include: { owner: true } },
         location: {
           include: {
             shelf: {
@@ -599,7 +599,7 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
     const orders = await prisma.inboundOrder.findMany({
       where,
       include: {
-        warehouse: true,
+        warehouse: { include: { owner: true } },
         items: {
           include: {
             location: {

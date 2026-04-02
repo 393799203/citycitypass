@@ -975,7 +975,10 @@ export default function InboundPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
-                          {order.warehouse?.name}
+                          <div>{order.warehouse?.name}</div>
+                          {order.warehouse?.owner?.name && (
+                            <div className="text-xs text-gray-400">{order.warehouse.owner.name}</div>
+                          )}
                         </td>
                       </>
                     )}
@@ -1030,12 +1033,6 @@ export default function InboundPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-center" rowSpan={orderRows.length}>
-                          <button
-                            onClick={() => handleViewDetail(order)}
-                            className="text-blue-600 hover:text-blue-800 text-sm mr-2"
-                          >
-                            详情
-                          </button>
                           {getNextAction(order) && (
                             <button
                               onClick={getNextAction(order)!.action}
@@ -1047,7 +1044,7 @@ export default function InboundPage() {
                           {order.status === 'PENDING' && order.source !== 'RETURN' && (
                             <button
                               onClick={() => handleCancelOrder(order.id)}
-                              className="text-red-600 hover:text-red-800 text-sm ml-2"
+                              className="text-white px-2 py-1 rounded text-xs bg-red-600 hover:bg-red-700 ml-2"
                             >
                               取消
                             </button>
@@ -1422,6 +1419,9 @@ export default function InboundPage() {
                 <div>
                   <label className="block text-sm text-gray-600">仓库</label>
                   <div>{selectedOrder.warehouse?.name}</div>
+                  {selectedOrder.warehouse?.owner?.name && (
+                    <div className="text-xs text-gray-400">{selectedOrder.warehouse.owner.name}</div>
+                  )}
                 </div>
                 {selectedOrder.arrivalQuantity && (
                   <div>

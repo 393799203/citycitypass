@@ -63,7 +63,7 @@ router.get('/', async (req: Request, res: Response) => {
     const transfers = await prisma.stockTransfer.findMany({
       where,
       include: {
-        warehouse: true,
+        warehouse: { include: { owner: true } },
         fromZone: true,
         toZone: true,
         items: {
