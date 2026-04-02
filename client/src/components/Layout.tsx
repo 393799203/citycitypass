@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
 import {
   Truck,
@@ -21,6 +21,7 @@ import {
   FileText,
   RotateCcw,
   GitBranch,
+  ArrowLeft,
 } from 'lucide-react';
 
 const roleMap: Record<string, string> = {
@@ -63,6 +64,12 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const canGoBack = location.pathname !== '/orders' && location.pathname !== '/inventory' &&
+    !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
+       '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
+       '/carriers', '/users', '/dispatch', '/returns'].includes(location.pathname);
 
   const handleLogout = () => {
     logout();
@@ -192,13 +199,24 @@ export default function Layout() {
         }`}
       >
         <header className="h-14 bg-white border-b flex items-center justify-between px-4 sticky top-0 z-40">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-4">
+            {canGoBack && (
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">返回</span>
+              </button>
+            )}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{roleMap[user?.role || '']}：{user?.name}</span>
             <button
               onClick={handleLogout}

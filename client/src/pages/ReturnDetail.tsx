@@ -184,13 +184,6 @@ export default function ReturnDetail() {
     <div className="p-6">
       <ToastContainer />
 
-      <div className="mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
-          <ArrowLeft className="w-5 h-5" />
-          <span>返回</span>
-        </button>
-      </div>
-
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border p-6">

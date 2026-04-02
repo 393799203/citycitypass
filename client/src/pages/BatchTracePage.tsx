@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { stockApi } from '../api';
-import { Package, MapPin, ShoppingCart, ArrowRight, RefreshCw, Search } from 'lucide-react';
+import { Package, MapPin, ShoppingCart, ArrowLeft, ArrowRight, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface TraceData {
@@ -260,13 +260,6 @@ export default function BatchTracePage() {
   return (
     <div className="p-6">
       <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate('/batch-trace')}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-2 text-gray-700"
-        >
-          <ArrowRight className="w-4 h-4" style={{ transform: 'rotate(180deg)' }} />
-          返回列表
-        </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">批次追踪</h1>
           <p className="text-sm text-gray-500 mt-1">批次号: <span className="font-mono text-blue-600">{batchNo}</span></p>

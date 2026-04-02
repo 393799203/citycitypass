@@ -215,16 +215,6 @@ export default function OrderDetail() {
         />
       )}
 
-      <div className="flex items-center gap-4">
-        <Link
-          to="/orders"
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          返回订单列表
-        </Link>
-      </div>
-
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex items-center justify-between mb-6">
           <div>

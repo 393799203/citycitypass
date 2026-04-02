@@ -784,9 +784,13 @@ export default function InventoryPage() {
                           </span>
                         </td>
                         <td className="px-3 py-2 text-center">
-                          {item.type === 'bundle' 
-                            ? <div className="flex items-center justify-center gap-1">
-                                {item.bundle?.name}
+                          {item.type === 'bundle'
+                            ? (
+                              <div className="flex items-start justify-center gap-2">
+                                <div>
+                                  <div>{item.bundle?.name}</div>
+                                  <div className="text-gray-500 text-sm">{item.bundle?.spec || ''} / {item.bundle?.packaging || ''}</div>
+                                </div>
                                 {item.bundle?.items?.length > 0 && (
                                   <button
                                     type="button"
@@ -799,7 +803,13 @@ export default function InventoryPage() {
                                   </button>
                                 )}
                               </div>
-                            : getSkuInfo(item.skuId)}
+                            )
+                            : (
+                              <div>
+                                <div>{item.sku?.product?.name || item.skuId}</div>
+                                <div className="text-gray-500 text-sm">{item.sku?.spec || ''} / {item.sku?.packaging || ''}</div>
+                              </div>
+                            )}
                         </td>
                         <td className="px-3 py-2 text-center">
                           <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
@@ -874,10 +884,18 @@ export default function InventoryPage() {
                       </td>
                       <td className="px-3 py-2 text-center">
                         {out.skuId
-                          ? `${out.sku?.product?.name || ''} - ${out.sku?.spec || ''}/${out.sku?.packaging || ''}`
+                          ? (
+                            <div>
+                              <div>{out.sku?.product?.name || ''}</div>
+                              <div className="text-gray-500 text-sm">{out.sku?.spec || ''} / {out.sku?.packaging || ''}</div>
+                            </div>
+                          )
                           : (
-                            <div className="flex items-center justify-center gap-2">
-                              <span>{out.bundle?.name || '-'}</span>
+                            <div className="flex items-start justify-center gap-2">
+                              <div>
+                                <div>{out.bundle?.name || '-'}</div>
+                                <div className="text-gray-500 text-sm">{out.bundle?.spec || ''} / {out.bundle?.packaging || ''}</div>
+                              </div>
                               {out.bundle?.items?.length > 0 && (
                                 <button
                                   type="button"
