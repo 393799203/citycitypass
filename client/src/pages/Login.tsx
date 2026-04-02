@@ -200,7 +200,7 @@ export default function Login() {
           {/* 移动端Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
             <Truck className="w-10 h-10 text-primary-600" />
-            <span className="text-3xl font-bold text-primary-600">城城通</span>
+            <span className="text-3xl font-bold text-primary-600">企管通</span>
           </div>
 
           {/* 欢迎文字 */}

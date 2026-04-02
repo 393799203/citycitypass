@@ -131,7 +131,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
 {
   "groups": [
     {
-      "reason": "推荐理由，如：这两个订单都在城城通1号仓，商品都在RV-R001货架，可以一次性拣完",
+      "reason": "推荐理由，如：这两个订单都在企管通1号仓，商品都在RV-R001货架，可以一次性拣完",
       "orderIds": ["ORD202603226332"]
     }
   ]
@@ -368,7 +368,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     </th>
                     <th className="pb-3 text-center">订单号</th>
                     <th className="pb-3 text-center">下单时间</th>
-                    <th className="pb-3 text-center">主体</th>
+                    <th className="pb-3 text-center">货主</th>
                     <th className="pb-3 text-center">仓库</th>
                     <th className="pb-3 text-center">商品[库位]</th>
                     <th className="pb-3 text-center">操作</th>

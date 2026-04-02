@@ -161,13 +161,13 @@ export const bundleStockApi = {
 };
 
 export const stockTransferApi = {
-  list: (params?: any) => api.get('/stock-transfers', { params }),
-  get: (id: string) => api.get(`/stock-transfers/${id}`),
-  create: (data: any) => api.post('/stock-transfers', data),
-  execute: (id: string) => api.put(`/stock-transfers/${id}/execute`),
-  cancel: (id: string, reason?: string) => api.put(`/stock-transfers/${id}/cancel`, { reason }),
+  list: (params?: any) => api.get('/stock/transfer', { params }),
+  get: (id: string) => api.get(`/stock/transfer/${id}`),
+  create: (data: any) => api.post('/stock/transfer', data),
+  execute: (id: string) => api.put(`/stock/transfer/${id}/execute`),
+  cancel: (id: string, reason?: string) => api.put(`/stock/transfer/${id}/cancel`, { reason }),
   getZoneStocks: (warehouseId: string, zoneType?: string) =>
-    api.get(`/stock-transfers/zone-stocks/${warehouseId}`, { params: { zoneType } }),
+    api.get(`/stock/transfer/zone-stocks/${warehouseId}`, { params: { zoneType } }),
   getAllStocks: (warehouseId: string) =>
     api.get(`/stock/all-stocks/${warehouseId}`),
 };

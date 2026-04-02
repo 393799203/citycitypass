@@ -180,9 +180,9 @@ export default function BatchTracePage() {
               <tbody className="divide-y divide-gray-200">
                 {batchList.map((batch: any) => (
                   <tr key={batch.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-center text-base text-purple-600 font-mono">{batch.batchNo}</td>
+                    <td className="px-4 py-3 text-center text-base font-mono">{batch.batchNo}</td>
                     <td className="px-4 py-3 text-center text-base">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${batch.type === 'PRODUCT' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${batch.type === 'PRODUCT' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                         {batch.type === 'PRODUCT' ? '商品' : '套装'}
                       </span>
                     </td>
