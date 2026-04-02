@@ -255,7 +255,7 @@ export default function Returns() {
                           setReturnTrackingNo(ret.trackingNo || '');
                           setReturnLogisticsCompany(ret.logisticsCompany || '');
                         }}
-                        className="px-2 py-0.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
+                        className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
                       >
                         填写快递
                       </button>
@@ -274,7 +274,7 @@ export default function Returns() {
                             }
                           }
                         }}
-                        className="px-2 py-0.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
+                        className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
                       >
                         确认收货
                       </button>
@@ -282,7 +282,7 @@ export default function Returns() {
                     {ret.status === 'RETURN_RECEIVING' && (
                       <button
                         onClick={() => openQualifyModal(ret)}
-                        className="px-2 py-0.5 text-xs text-white bg-green-600 hover:bg-green-700 rounded"
+                        className="px-2 py-1 text-xs text-white bg-green-600 hover:bg-green-700 rounded"
                       >
                         验收确认
                       </button>
@@ -297,7 +297,7 @@ export default function Returns() {
                           setStockInReturnOrder(ret);
                           setShowStockInModal(true);
                         }}
-                        className="px-2 py-0.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded"
+                        className="px-2 py-1 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded"
                       >
                         退货入库
                       </button>
@@ -311,7 +311,7 @@ export default function Returns() {
                             .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.qualifiedQuantity ?? 0) * discount, 0);
                           setRefundModal({ show: true, returnOrder: ret, refundAmount: totalRefund });
                         }}
-                        className="px-2 py-0.5 text-xs text-white bg-yellow-600 hover:bg-yellow-700 rounded"
+                        className="px-2 py-1 text-xs text-white bg-yellow-600 hover:bg-yellow-700 rounded"
                       >
                         确认退款
                       </button>
