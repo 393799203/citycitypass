@@ -30,11 +30,11 @@ const roleMap: Record<string, string> = {
   WAREHOUSE_STAFF: '仓管',
   DRIVER: '司机',
   CUSTOMER: '访客',
-  OWNER: '货主',
+  OWNER: '主体',
 };
 
 const configMenuItems = [
-  { path: '/owners', icon: Building2, label: '货主管理' },
+  { path: '/owners', icon: Building2, label: '主体管理' },
   { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
   { path: '/products', icon: Package, label: '商品管理' },
   { path: '/customers', icon: Users, label: '客户管理' },
@@ -79,7 +79,7 @@ export default function Layout() {
         <div className="h-14 flex items-center justify-between px-3 border-b bg-primary-600">
           <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
             <Truck className="w-7 h-7 text-white flex-shrink-0" />
-            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">城城通</span>}
+            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">企管通</span>}
           </div>
           <button
             onClick={() => setMobileOpen(false)}

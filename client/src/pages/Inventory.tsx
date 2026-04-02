@@ -418,7 +418,7 @@ export default function InventoryPage() {
               onChange={(e) => { setFilterOwner(e.target.value); setFilterWarehouse(''); setFilterZone(''); setFilterShelf(''); setFilterProduct(''); }}
               className="px-3 py-1.5 border rounded text-sm w-36"
             >
-              <option value="">全部货主</option>
+              <option value="">全部主体</option>
               {owners.filter(o => o.status !== 'STOPPED').map(o => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}

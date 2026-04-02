@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { productApi, bundleApi, warehouseApi } from '../api';
+import { productApi, bundleApi, warehouseApi, ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'lucide-react';
@@ -12,6 +12,7 @@ interface Product {
   brand: { id: string; name: string; code?: string };
   categoryId: string;
   category: { id: string; name: string };
+  ownerId?: string;
   status: string;
   skus: SKU[];
 }
@@ -85,6 +86,11 @@ interface Warehouse {
   code: string;
 }
 
+interface Owner {
+  id: string;
+  name: string;
+}
+
 const defaultBundlePackagings = ['礼盒', '纸盒', '简装'];
 const defaultBundleSpecs = ['单品', '组合'];
 
@@ -102,6 +108,8 @@ export default function ProductsPage() {
   const [brandSpecs, setBrandSpecs] = useState<any[]>([]);
   const [skus, setSkus] = useState<SKUWithProduct[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [owners, setOwners] = useState<Owner[]>([]);
+  const [filterOwner, setFilterOwner] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -121,6 +129,7 @@ export default function ProductsPage() {
     brandId: '',
     categoryId: '',
     subCategoryId: '',
+    ownerId: '',
     status: 'ACTIVE',
     skus: [{ packaging: '', spec: '', price: '' }],
   });
@@ -131,12 +140,40 @@ export default function ProductsPage() {
     spec: '组合',
     price: '',
     status: 'ACTIVE',
+    ownerId: '',
     items: [] as { skuId: string; quantity: number }[],
   });
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchProductsByOwner = async () => {
+      try {
+        const [productRes, bundleRes] = await Promise.all([
+          productApi.list(filterOwner ? { ownerId: filterOwner } : {}),
+          bundleApi.list(filterOwner ? { ownerId: filterOwner } : {}),
+        ]);
+        if (productRes.data.success) {
+          setProducts(productRes.data.data);
+          const allSkus: SKUWithProduct[] = [];
+          productRes.data.data.forEach((p: any) => {
+            p.skus?.forEach((s: any) => {
+              allSkus.push({ ...s, product: { id: p.id, name: p.name, brand: p.brand } });
+            });
+          });
+          setSkus(allSkus);
+        }
+        if (bundleRes.data.success) {
+          setBundles(bundleRes.data.data);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchProductsByOwner();
+  }, [filterOwner]);
 
   useEffect(() => {
     if (formData.categoryId) {
@@ -220,13 +257,14 @@ export default function ProductsPage() {
     setLoading(true);
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
-      const [productsRes, bundlesRes, categoriesRes, brandsRes, subCategoriesRes, warehousesRes] = await Promise.all([
-        productApi.list(),
-        bundleApi.list(),
+      const [productsRes, bundlesRes, categoriesRes, brandsRes, subCategoriesRes, warehousesRes, ownersRes] = await Promise.all([
+        productApi.list(filterOwner ? { ownerId: filterOwner } : {}),
+        bundleApi.list(filterOwner ? { ownerId: filterOwner } : {}),
         fetch('/api/products/categories', { headers }).then(r => r.json()),
         fetch('/api/products/brands', { headers }).then(r => r.json()),
         fetch('/api/products/sub-categories', { headers }).then(r => r.json()),
         warehouseApi.list(),
+        ownerApi.list(),
       ]);
 
       if (productsRes.data.success) {
@@ -244,6 +282,7 @@ export default function ProductsPage() {
       if (brandsRes.success) setBrands(brandsRes.data);
       if (subCategoriesRes.success) setSubCategories(subCategoriesRes.data);
       if (warehousesRes.data.success) setWarehouses(warehousesRes.data.data);
+      if (ownersRes.data.success) setOwners(ownersRes.data.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -301,6 +340,7 @@ export default function ProductsPage() {
       brandId: product.brandId,
       categoryId: product.categoryId,
       subCategoryId: (product as any).subCategoryId || '',
+      ownerId: (product as any).ownerId || '',
       status: product.status,
       skus: product.skus.length > 0 ? product.skus : [{ packaging: '', spec: '', price: '' }],
     });
@@ -325,6 +365,7 @@ export default function ProductsPage() {
       spec: bundle.spec || '组合',
       price: bundle.price,
       status: bundle.status,
+      ownerId: (bundle as any).ownerId || '',
       items: bundle.items.map(i => ({ skuId: i.skuId, quantity: i.quantity })),
     });
     setEditingId(bundle.id);
@@ -356,14 +397,14 @@ export default function ProductsPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', brandId: '', categoryId: '', subCategoryId: '', status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
+    setFormData({ name: '', brandId: '', categoryId: '', subCategoryId: '', ownerId: filterOwner, status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
     setFilteredBrands([]);
     setFilteredSubCategories([]);
     setEditingId(null);
   };
 
   const resetBundleForm = () => {
-    setBundleFormData({ name: '', packaging: '礼盒', spec: '组合', price: '', status: 'ACTIVE', items: [] });
+    setBundleFormData({ name: '', packaging: '礼盒', spec: '组合', price: '', status: 'ACTIVE', ownerId: filterOwner, items: [] });
     setEditingId(null);
   };
 
@@ -538,19 +579,58 @@ export default function ProductsPage() {
   return (
     <div className="p-6">
       <ToastContainer />
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">商品&套装管理</h1>
-        <button
-          onClick={() => { 
-            if (activeTab === 'product') resetForm(); 
-            else resetBundleForm();
-            setShowModal(true); 
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="w-5 h-5" />
-          {activeTab === 'product' ? '创建商品' : '创建套装'}
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">主体：</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setFilterOwner('')}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  filterOwner === ''
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                全部
+              </button>
+              {owners.map(o => (
+                <button
+                  key={o.id}
+                  onClick={() => setFilterOwner(o.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    filterOwner === o.id
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {o.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="text-sm text-gray-500">
+            商品: {products.length} | 套装: {bundles.length}
+          </span>
+          <button
+            onClick={() => {
+              if (activeTab === 'product') resetForm();
+              else resetBundleForm();
+              setShowModal(true);
+            }}
+            disabled={!filterOwner}
+            title={!filterOwner ? '请先选择主体' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              filterOwner
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Plus className="w-5 h-5" />
+            {activeTab === 'product' ? '创建商品' : '创建套装'}
+          </button>
+        </div>
       </div>
 
       <div className="flex border-b mb-6">
@@ -577,9 +657,10 @@ export default function ProductsPage() {
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       ) : activeTab === 'product' ? (
-        products.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">暂无商品，请创建</div>
-        ) : (
+        <>
+          {products.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">暂无商品，请创建</div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map(product => (
               <div key={product.id} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
@@ -649,7 +730,8 @@ export default function ProductsPage() {
               </div>
             ))}
           </div>
-        )
+        )}
+        </>
       ) : (
         bundles.length === 0 ? (
           <div className="text-center py-10 text-gray-500">暂无套装，请创建</div>

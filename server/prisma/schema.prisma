@@ -4,6 +4,8 @@ generator client {
 
 model Customer {
   id           String      @id @default(uuid())
+  ownerId      String?
+  owner        Owner?      @relation(fields: [ownerId], references: [id])
   code        String      @unique
   name        String
   channel     String?     // 渠道：电商、线下门店、批发商等
@@ -202,6 +204,11 @@ model Owner {
   orders          Order[]
   warehouses      Warehouse[]
   returnOrders    ReturnOrder[]
+  products        Product[]
+  productSkus     ProductSKU[]
+  bundles         BundleSKU[]
+  customers       Customer[]
+  suppliers       Supplier[]
 }
 
 model ProductCategory {
@@ -285,6 +292,8 @@ model BrandSpec {
 
 model Supplier {
   id          String   @id @default(uuid())
+  ownerId     String?
+  owner       Owner?   @relation(fields: [ownerId], references: [id])
   code        String   @unique
   name        String
   contact     String?
@@ -312,6 +321,8 @@ enum SupplierStatus {
 
 model Product {
   id             String   @id @default(uuid())
+  ownerId        String?
+  owner          Owner?   @relation(fields: [ownerId], references: [id])
   name           String
   brandId        String
   brand          ProductBrand @relation(fields: [brandId], references: [id])
@@ -327,6 +338,8 @@ model Product {
 
 model ProductSKU {
   id          String   @id @default(uuid())
+  ownerId     String?
+  owner       Owner?   @relation(fields: [ownerId], references: [id])
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   skuCode     String   @unique  // 自动生成的 SKU 编码
@@ -348,6 +361,8 @@ model ProductSKU {
 
 model BundleSKU {
   id          String   @id @default(uuid())
+  ownerId     String?
+  owner       Owner?   @relation(fields: [ownerId], references: [id])
   name        String
   skuCode     String   @unique  // 自动生成的 SKU 编码，格式：B_品类码(4位) + 包装码(1位) + 序号(4位)
   packaging   String

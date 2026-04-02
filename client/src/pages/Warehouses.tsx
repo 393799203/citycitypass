@@ -25,6 +25,7 @@ export default function WarehousesPage() {
   const { confirm } = useConfirm();
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
+  const [filterOwner, setFilterOwner] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,13 +48,13 @@ export default function WarehousesPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [filterOwner]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [warehouseRes, ownerRes] = await Promise.all([
-        warehouseApi.list(),
+        warehouseApi.list(filterOwner ? { ownerId: filterOwner } : {}),
         ownerApi.list(),
       ]);
       if (warehouseRes.data.success) {
@@ -156,20 +157,21 @@ export default function WarehousesPage() {
   };
 
   const resetForm = () => {
+    const owner = owners.find(o => o.id === filterOwner);
     setEditingId(null);
     setFormData({
       code: '',
       name: '',
       type: 'NORMAL',
       status: 'ACTIVE',
-      province: '',
-      city: '',
-      address: '',
-      latitude: '',
-      longitude: '',
-      ownerId: '',
-      manager: '',
-      managerPhone: '',
+      province: owner?.province || '',
+      city: owner?.city || '',
+      address: owner?.address || '',
+      latitude: owner?.latitude?.toString() || '',
+      longitude: owner?.longitude?.toString() || '',
+      ownerId: filterOwner,
+      manager: owner?.contact || '',
+      managerPhone: owner?.phone || '',
       businessStartTime: '08:00',
       businessEndTime: '18:00',
     });
@@ -180,16 +182,55 @@ export default function WarehousesPage() {
       <ToastContainer />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">仓库管理</h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="w-4 h-4" />
-          创建仓库
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">主体：</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setFilterOwner('')}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  filterOwner === ''
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                全部
+              </button>
+              {owners.map(o => (
+                <button
+                  key={o.id}
+                  onClick={() => setFilterOwner(o.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    filterOwner === o.id
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {o.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="text-sm text-gray-500">
+            仓库: {warehouses.length}
+          </span>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            disabled={!filterOwner}
+            title={!filterOwner ? '请先选择主体' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              filterOwner
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            创建仓库
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -250,7 +291,7 @@ export default function WarehousesPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">货主</span>
+                  <span className="text-gray-500">主体</span>
                   <span className="text-gray-700">{warehouse.owner?.name || '-'}</span>
                 </div>
                 {(warehouse.manager || warehouse.managerPhone) && (
@@ -369,30 +410,10 @@ export default function WarehousesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">所属货主</label>
-                <select
-                  value={formData.ownerId}
-                  onChange={e => {
-                    const owner = owners.find(o => o.id === e.target.value);
-                    setFormData({
-                      ...formData,
-                      ownerId: e.target.value,
-                      manager: owner?.contact || '',
-                      managerPhone: owner?.phone || '',
-                      province: owner?.province || '',
-                      city: owner?.city || '',
-                      address: owner?.address || '',
-                      latitude: owner?.latitude?.toString() || '',
-                      longitude: owner?.longitude?.toString() || '',
-                    });
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">请选择货主</option>
-                  {owners.map(owner => (
-                    <option key={owner.id} value={owner.id}>{owner.name}</option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">所属主体</label>
+                <div className="px-3 py-2 bg-gray-100 rounded-lg text-gray-700">
+                  {owners.find(o => o.id === formData.ownerId)?.name || '-'}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

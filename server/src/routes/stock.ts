@@ -184,7 +184,7 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
   try {
     const { ownerId } = req.query;
     if (!ownerId) {
-      return res.status(400).json({ success: false, message: '缺少货主ID' });
+      return res.status(400).json({ success: false, message: '缺少主体ID' });
     }
 
     const warehouses = await prisma.warehouse.findMany({

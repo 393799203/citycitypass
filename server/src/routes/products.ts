@@ -16,6 +16,7 @@ const productSchema = z.object({
   brandId: z.string().min(1),
   categoryId: z.string().min(1),
   subCategoryId: z.string().optional(),
+  ownerId: z.string().optional(),
   status: z.string().optional(),
   skus: skuSchema.array().optional(),
 });
@@ -281,19 +282,18 @@ router.delete('/skus/:id', async (req: Request, res: Response) => {
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { name, categoryId, brandId, status, warehouseId } = req.query;
-    
-    const where: any = {};
-    if (name) where.name = { contains: String(name) };
-    if (categoryId) where.categoryId = String(categoryId);
-    if (brandId) where.brandId = String(brandId);
-    if (status) where.status = String(status);
+    const { name, categoryId, brandId, status, warehouseId, ownerId } = req.query;
 
     let productIds: string[] | undefined;
     let stockMap: Record<string, number> = {};
+
     if (warehouseId) {
+      const stockWhere: any = { warehouseId: String(warehouseId), availableQuantity: { gt: 0 } };
+      if (ownerId) {
+        stockWhere.sku = { ownerId: { equals: String(ownerId) } };
+      }
       const stocks = await prisma.stock.findMany({
-        where: { warehouseId: String(warehouseId), availableQuantity: { gt: 0 } },
+        where: stockWhere,
         select: { skuId: true, availableQuantity: true },
       });
       stocks.forEach((s: any) => {
@@ -308,6 +308,20 @@ router.get('/', async (req: Request, res: Response) => {
       if (!productIds || productIds.length === 0) {
         return res.json({ success: true, data: [] });
       }
+    }
+
+    const where: any = {};
+    if (name) where.name = { contains: String(name) };
+    if (categoryId) where.categoryId = String(categoryId);
+    if (brandId) where.brandId = String(brandId);
+    if (status) where.status = String(status);
+    if (ownerId) {
+      where.OR = [
+        { ownerId: String(ownerId) },
+        { ownerId: null },
+      ];
+    }
+    if (productIds) {
       where.id = { in: productIds };
     }
 
@@ -316,21 +330,31 @@ router.get('/', async (req: Request, res: Response) => {
       include: {
         category: true,
         brand: { select: { id: true, name: true, code: true } },
-        skus: {
-          include: {
-            stocks: warehouseId ? {
-              where: { warehouseId: String(warehouseId) },
-              select: { totalQuantity: true },
-            } : false,
-          },
-        },
+        skus: (() => {
+          const skuWhere: any = {};
+          if (ownerId) {
+            skuWhere.OR = [
+              { ownerId: String(ownerId) },
+              { ownerId: null },
+            ];
+          }
+          return {
+            where: Object.keys(skuWhere).length > 0 ? skuWhere : undefined,
+            include: {
+              stocks: warehouseId ? {
+                where: { warehouseId: String(warehouseId) },
+                select: { totalQuantity: true },
+              } : false,
+            },
+          };
+        })(),
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const productsWithStock = products.map(p => ({
+    const productsWithStock = products.map((p: any) => ({
       ...p,
-      skus: p.skus.map(s => ({
+      skus: p.skus.map((s: any) => ({
         ...s,
         stock: stockMap[s.id] || 0,
       })),
@@ -378,6 +402,7 @@ router.post('/', async (req: Request, res: Response) => {
         brandId: data.brandId,
         categoryId: data.categoryId,
         subCategoryId: data.subCategoryId || null,
+        ownerId: data.ownerId || null,
       },
       include: {
         category: true,
@@ -429,6 +454,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const data = productSchema.parse(req.body);
 
+    // 检查要删除的 SKU 是否被使用
     const existingSkus = await prisma.productSKU.findMany({
       where: { productId: id },
     });
@@ -438,9 +464,20 @@ router.put('/:id', async (req: Request, res: Response) => {
     const toDelete = existingSkuIds.filter((skuId) => !newSkuIds.includes(skuId));
 
     if (toDelete.length > 0) {
-      await prisma.productSKU.deleteMany({
-        where: { id: { in: toDelete } },
-      });
+      // 检查每个 SKU 是否被库存或套装引用
+      const safeToDelete: string[] = [];
+      for (const skuId of toDelete) {
+        const stockCount = await prisma.stock.count({ where: { skuId } });
+        const bundleItemCount = await prisma.bundleSKUItem.count({ where: { skuId } });
+        if (stockCount === 0 && bundleItemCount === 0) {
+          safeToDelete.push(skuId);
+        }
+      }
+      if (safeToDelete.length > 0) {
+        await prisma.productSKU.deleteMany({
+          where: { id: { in: safeToDelete } },
+        });
+      }
     }
 
     const product = await prisma.product.update({
@@ -449,6 +486,8 @@ router.put('/:id', async (req: Request, res: Response) => {
         name: data.name,
         brandId: data.brandId,
         categoryId: data.categoryId,
+        subCategoryId: data.subCategoryId || null,
+        ownerId: data.ownerId || null,
         status: data.status,
       },
       include: {
@@ -468,6 +507,7 @@ router.put('/:id', async (req: Request, res: Response) => {
               packaging: sku.packaging,
               spec: sku.spec,
               price: sku.price,
+              ownerId: data.ownerId || null,
             },
           });
         } else {
@@ -479,6 +519,7 @@ router.put('/:id', async (req: Request, res: Response) => {
               packaging: sku.packaging,
               spec: sku.spec,
               price: sku.price,
+              ownerId: data.ownerId || null,
             },
           });
         }

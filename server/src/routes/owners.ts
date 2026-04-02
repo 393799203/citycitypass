@@ -36,7 +36,10 @@ router.get('/', async (req: Request, res: Response) => {
           select: { id: true, name: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { isSelfOperated: 'desc' },
+        { createdAt: 'desc' },
+      ],
     });
 
     res.json({ success: true, data: owners });
@@ -54,7 +57,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     });
 
     if (!owner) {
-      return res.status(404).json({ success: false, message: '货主不存在' });
+      return res.status(404).json({ success: false, message: '主体不存在' });
     }
 
     res.json({ success: true, data: owner });
@@ -149,7 +152,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     
     await prisma.owner.delete({ where: { id } });
-    res.json({ success: true, message: '货主已删除' });
+    res.json({ success: true, message: '主体已删除' });
   } catch (error) {
     console.error('Delete owner error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

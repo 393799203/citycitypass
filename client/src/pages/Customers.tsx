@@ -6,9 +6,11 @@ import AddressInput from '../components/AddressInput';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
+import { ownerApi } from '../api';
 
 interface Customer {
   id: string;
+  ownerId?: string;
   code: string;
   name: string;
   channel: string;
@@ -77,11 +79,14 @@ const defaultFormData: Customer = {
   status: 'ACTIVE',
   remark: '',
   contracts: [],
+  ownerId: '',
 };
 
 export default function CustomersPage() {
   const { confirm } = useConfirm();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [owners, setOwners] = useState<any[]>([]);
+  const [filterOwner, setFilterOwner] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -118,11 +123,18 @@ export default function CustomersPage() {
       if (filters.level) params.append('level', filters.level);
       if (filters.status) params.append('status', filters.status);
       if (filters.search) params.append('search', filters.search);
-      
-      const res = await fetch(`/api/customers?${params}`, { headers });
+      if (filterOwner) params.append('ownerId', filterOwner);
+
+      const [res, ownerRes] = await Promise.all([
+        fetch(`/api/customers?${params}`, { headers }),
+        ownerApi.list(),
+      ]);
       const data = await res.json();
       if (data.success) {
         setCustomers(data.data);
+      }
+      if (ownerRes.data.success) {
+        setOwners(ownerRes.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -133,10 +145,14 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
+  }, [filterOwner]);
+
+  useEffect(() => {
+    fetchCustomers();
   }, [filters]);
 
   const resetForm = () => {
-    setFormData(defaultFormData);
+    setFormData({ ...defaultFormData, ownerId: filterOwner });
     setEditingId(null);
   };
 
@@ -314,12 +330,51 @@ export default function CustomersPage() {
       
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">客户管理</h1>
-        <button
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="w-4 h-4" /> 新建客户
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">主体：</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setFilterOwner('')}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  filterOwner === ''
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                全部
+              </button>
+              {owners.map(o => (
+                <button
+                  key={o.id}
+                  onClick={() => setFilterOwner(o.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    filterOwner === o.id
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {o.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="text-sm text-gray-500">
+            客户: {customers.length}
+          </span>
+          <button
+            onClick={() => { resetForm(); setShowModal(true); }}
+            disabled={!filterOwner}
+            title={!filterOwner ? '请先选择主体' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              filterOwner
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Plus className="w-4 h-4" /> 新建客户
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-2 flex-wrap">

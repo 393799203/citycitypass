@@ -6,16 +6,23 @@ const prisma = new PrismaClient();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { keyword, status } = req.query;
+    const { keyword, status, ownerId } = req.query;
     const where: Prisma.SupplierWhereInput = {};
 
-    if (keyword) {
+    if (ownerId) {
       where.OR = [
+        { ownerId: String(ownerId) },
+        { ownerId: undefined },
+      ];
+    }
+
+    if (keyword) {
+      where.OR = (where.OR || []).concat([
         { name: { contains: keyword as string } },
         { code: { contains: keyword as string } },
         { contact: { contains: keyword as string } },
         { phone: { contains: keyword as string } },
-      ];
+      ]);
     }
 
     if (status) {
@@ -75,6 +82,7 @@ router.post('/', async (req: Request, res: Response) => {
         productTags,
         status: status || 'ACTIVE',
         remark,
+        ownerId: req.body.ownerId || null,
       }
     });
 

@@ -103,7 +103,7 @@ export default function Login() {
             <Truck className="w-24 h-24" />
           </div>
           <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            城城通
+            企管通
           </h1>
           <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
             智慧物流管理系统

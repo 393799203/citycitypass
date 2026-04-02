@@ -288,7 +288,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     if (warehouses.length === 0) {
-      return res.status(400).json({ success: false, message: '该货主没有仓库' });
+      return res.status(400).json({ success: false, message: '该主体没有仓库' });
     }
 
     const allocation = await allocateItemsToWarehouses(prisma, warehouses, skuItems, bundleItems);
@@ -1054,17 +1054,41 @@ router.put('/:id/status', async (req: Request, res: Response) => {
 
         for (const lock of stockLocks) {
           if (lock.locationId) {
-            await tx.stock.updateMany({
+            const stock = await tx.stock.findFirst({
               where: {
                 skuId: lock.skuId,
                 warehouseId: lock.warehouseId,
                 locationId: lock.locationId,
-              },
-              data: {
-                totalQuantity: { decrement: lock.quantity },
-                lockedQuantity: { decrement: lock.quantity },
+                skuBatchId: lock.skuBatchId,
               },
             });
+            if (stock && stock.lockedQuantity > 0) {
+              await tx.stock.update({
+                where: {
+                  warehouseId_locationId_skuBatchId: {
+                    warehouseId: lock.warehouseId,
+                    locationId: lock.locationId,
+                    skuBatchId: lock.skuBatchId,
+                  },
+                },
+                data: {
+                  totalQuantity: { decrement: lock.quantity },
+                  lockedQuantity: { decrement: Math.min(lock.quantity, stock.lockedQuantity) },
+                },
+              });
+            } else if (!stock) {
+              await tx.stock.updateMany({
+                where: {
+                  skuId: lock.skuId,
+                  warehouseId: lock.warehouseId,
+                  locationId: lock.locationId,
+                  skuBatchId: lock.skuBatchId,
+                },
+                data: {
+                  totalQuantity: { decrement: lock.quantity },
+                },
+              });
+            }
 
             await tx.stockOut.create({
               data: {
@@ -1090,32 +1114,60 @@ router.put('/:id/status', async (req: Request, res: Response) => {
 
         for (const lock of bundleStockLocks) {
           if (lock.locationId) {
-            await tx.bundleStock.updateMany({
+            const bundleStock = await tx.bundleStock.findFirst({
               where: {
                 bundleId: lock.bundleId,
                 warehouseId: lock.warehouseId,
                 locationId: lock.locationId,
-              },
-              data: {
-                totalQuantity: { decrement: lock.quantity },
-                lockedQuantity: { decrement: lock.quantity },
+                bundleBatchId: lock.bundleBatchId,
               },
             });
+            if (bundleStock && bundleStock.lockedQuantity > 0) {
+              await tx.bundleStock.update({
+                where: { id: bundleStock.id },
+                data: {
+                  totalQuantity: { decrement: lock.quantity },
+                  lockedQuantity: { decrement: Math.min(lock.quantity, bundleStock.lockedQuantity) },
+                },
+              });
+            } else if (!bundleStock) {
+              await tx.bundleStock.updateMany({
+                where: {
+                  bundleId: lock.bundleId,
+                  warehouseId: lock.warehouseId,
+                  locationId: lock.locationId,
+                  bundleBatchId: lock.bundleBatchId,
+                },
+                data: {
+                  totalQuantity: { decrement: lock.quantity },
+                },
+              });
+            }
 
             if (lock.locationId) {
               await cleanupEmptyBundleStockLocations(tx, lock.locationId);
             }
           } else {
-            await tx.bundleStock.updateMany({
+            const bundleStock = await tx.bundleStock.findFirst({
               where: {
                 bundleId: lock.bundleId,
                 warehouseId: lock.warehouseId,
-              },
-              data: {
-                totalQuantity: { decrement: lock.quantity },
-                lockedQuantity: { decrement: lock.quantity },
+                locationId: null,
               },
             });
+            if (bundleStock && bundleStock.lockedQuantity > 0) {
+              await tx.bundleStock.updateMany({
+                where: {
+                  bundleId: lock.bundleId,
+                  warehouseId: lock.warehouseId,
+                  locationId: null,
+                },
+                data: {
+                  totalQuantity: { decrement: lock.quantity },
+                  lockedQuantity: { decrement: Math.min(lock.quantity, bundleStock.lockedQuantity) },
+                },
+              });
+            }
           }
 
           await tx.stockOut.create({

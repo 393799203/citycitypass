@@ -56,11 +56,7 @@ export default function OwnersPage() {
     try {
       const res = await ownerApi.list(filters);
       if (res.data.success) {
-        const sortedOwners = [...res.data.data].sort((a, b) => {
-          if (a.isSelfOperated === b.isSelfOperated) return 0;
-          return a.isSelfOperated ? -1 : 1;
-        });
-        setOwners(sortedOwners);
+        setOwners(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -81,7 +77,7 @@ export default function OwnersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
-      toast.error('请输入货主主体');
+      toast.error('请输入主体名');
       return;
     }
 
@@ -93,10 +89,10 @@ export default function OwnersPage() {
       };
       if (editingId) {
         await ownerApi.update(editingId, data);
-        toast.success('货主更新成功');
+        toast.success('主体更新成功');
       } else {
         await ownerApi.create(data);
-        toast.success('货主创建成功');
+        toast.success('主体创建成功');
       }
       setShowModal(false);
       resetForm();
@@ -125,11 +121,11 @@ export default function OwnersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该货主吗？' });
+    const ok = await confirm({ message: '确定要删除该主体吗？' });
     if (!ok) return;
     try {
       await ownerApi.delete(id);
-      toast.success('货主已删除');
+      toast.success('主体已删除');
       fetchOwners();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '删除失败');
@@ -139,7 +135,7 @@ export default function OwnersPage() {
   const handleToggleStatus = async (owner: Owner) => {
     const newStatus = owner.status === 'SERVING' ? 'STOPPED' : 'SERVING';
     const action = newStatus === 'STOPPED' ? '停止服务' : '开启服务';
-    const ok = await confirm({ message: `确定要${action}该货主吗？` });
+    const ok = await confirm({ message: `确定要${action}该主体吗？` });
     if (!ok) return;
     try {
       await ownerApi.update(owner.id, { status: newStatus });
@@ -186,7 +182,7 @@ export default function OwnersPage() {
       <ToastContainer />
 
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">货主管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">主体管理</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -200,7 +196,7 @@ export default function OwnersPage() {
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <UserPlus className="w-5 h-5" />
-            新增货主
+            新增主体
           </button>
         </div>
       </div>
@@ -209,13 +205,13 @@ export default function OwnersPage() {
         <div className="bg-white p-4 rounded-xl shadow-sm border">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">货主主体</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">主体名</label>
               <input
                 type="text"
                 value={filters.name}
                 onChange={(e) => setFilters({ ...filters, name: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg"
-                placeholder="请输入货主主体"
+                placeholder="请输入主体名"
               />
             </div>
             <div>
@@ -288,8 +284,10 @@ export default function OwnersPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">{owner.name}</h3>
-                    {owner.isSelfOperated && (
+                    {owner.isSelfOperated ? (
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">自营</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">入驻</span>
                     )}
                   </div>
                 </div>
@@ -361,7 +359,7 @@ export default function OwnersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">{editingId ? '编辑货主' : '新增货主'}</h2>
+              <h2 className="text-xl font-bold">{editingId ? '编辑主体' : '新增主体'}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -370,14 +368,14 @@ export default function OwnersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    货主主体 <span className="text-red-500">*</span>
+                    主体名 <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入货主主体"
+                    placeholder="请输入主体名"
                   />
                 </div>
                 <div className="flex items-center pt-6">

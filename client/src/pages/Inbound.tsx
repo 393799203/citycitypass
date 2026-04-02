@@ -207,10 +207,11 @@ export default function InboundPage() {
 
   useEffect(() => {
     if (formWarehouseId) {
-      loadProducts();
+      const warehouse = warehouses.find((w: any) => w.id === formWarehouseId);
+      loadProducts(warehouse?.ownerId);
       loadZones(formWarehouseId);
     }
-  }, [formWarehouseId]);
+  }, [formWarehouseId, warehouses]);
 
   useEffect(() => {
     if (searchKeyword.trim()) {
@@ -268,11 +269,12 @@ export default function InboundPage() {
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (ownerId?: string) => {
     try {
+      const params = ownerId ? { ownerId } : {};
       const [productRes, bundleRes] = await Promise.all([
-        productApi.list(),
-        bundleApi.list(),
+        productApi.list(params),
+        bundleApi.list(params),
       ]);
 
       const productItems = (productRes.data.data || []).flatMap((p: any) =>
@@ -421,7 +423,9 @@ export default function InboundPage() {
     setArrivalVehicleNo('');
 
     try {
-      const res = await supplierApi.list();
+      const ownerId = order.warehouse?.ownerId;
+      const params = ownerId ? { ownerId } : {};
+      const res = await supplierApi.list(params);
       if (res.data.success) {
         setSuppliers(res.data.data || []);
       }
@@ -857,7 +861,6 @@ export default function InboundPage() {
         <button
           onClick={() => {
             resetForm();
-            loadProducts();
             setShowModal(true);
           }}
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -1108,7 +1111,7 @@ export default function InboundPage() {
                     >
                       <option value="">选择仓库</option>
                       {warehouses.map(w => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
+                        <option key={w.id} value={w.id}>{w.name} {w.owner ? `(${w.owner.name})` : ''}</option>
                       ))}
                     </select>
                   </div>

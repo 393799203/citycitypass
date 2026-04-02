@@ -157,8 +157,8 @@ export default function OrdersPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
   useEffect(() => {
-    if (customerType === 'CORPORATE') {
-      customerApi.list({ status: 'ACTIVE' }).then(res => {
+    if (customerType === 'CORPORATE' && formData.ownerId) {
+      customerApi.list({ status: 'ACTIVE', ownerId: formData.ownerId }).then(res => {
         if (res.data.success) {
           setCustomers(res.data.data || []);
         }
@@ -167,7 +167,7 @@ export default function OrdersPage() {
       setCustomers([]);
       setSelectedCustomerId('');
     }
-  }, [customerType]);
+  }, [customerType, formData.ownerId]);
 
   useEffect(() => {
     if (selectedCustomerId) {
@@ -225,7 +225,7 @@ export default function OrdersPage() {
       order.items.forEach((item, idx) => {
         exportData.push({
           '订单编号': order.orderNo,
-          '货主': order.owner?.name || '',
+          '主体': order.owner?.name || '',
           '客户名称': (order as any).customer?.name || '',
           '折扣': idx === 0 ? ((order as any).contractDiscount ? `${((order as any).contractDiscount * 100).toFixed(0)}%` : '') : '',
           '收货人': order.receiver,
@@ -310,7 +310,7 @@ export default function OrdersPage() {
     }
   };
 
-  const handleImportConfirm = async (importOrders: { orderNo?: string; rows: any[]; fixed?: Record<string, any>; '货主'?: string; '仓库'?: string; '收货人'?: string; '手机号'?: string; '省份'?: string; '城市'?: string; '收货地址'?: string; '状态'?: string; '客户Id'?: string }[]) => {
+  const handleImportConfirm = async (importOrders: { orderNo?: string; rows: any[]; fixed?: Record<string, any>; '主体'?: string; '仓库'?: string; '收货人'?: string; '手机号'?: string; '省份'?: string; '城市'?: string; '收货地址'?: string; '状态'?: string; '客户Id'?: string }[]) => {
     console.log('handleImportConfirm 被调用, 数据:', JSON.stringify(importOrders, null, 2));
     setImportPreviewData(null);
     let successCount = 0;
@@ -341,11 +341,11 @@ export default function OrdersPage() {
         }
       }
 
-      const owner = owners.find(o => o.name === orderData['货主']);
+      const owner = owners.find(o => o.name === orderData['主体']);
       if (!owner) {
         errorCount++;
-        errorLogs.push(`订单 ${orderNo || '未知'}: 未找到货主 "${orderData['货主']}"`);
-        toast.error(`订单 ${orderNo}: 未找到货主 "${orderData['货主']}"`);
+        errorLogs.push(`订单 ${orderNo || '未知'}: 未找到主体 "${orderData['主体']}"`);
+        toast.error(`订单 ${orderNo}: 未找到主体 "${orderData['主体']}"`);
         continue;
       }
 
@@ -358,7 +358,7 @@ export default function OrdersPage() {
       }));
 
       const skuPromises = items.map(async (item) => {
-        const productRes = await productApi.list({ name: item.productName });
+        const productRes = await productApi.list({ name: item.productName, ownerId: formData.ownerId || undefined });
         const products = productRes.data.data || [];
         console.log(`搜索商品: ${item.productName}, 找到 ${products.length} 个`);
 
@@ -402,7 +402,7 @@ export default function OrdersPage() {
         }
 
         console.warn(`商品/套装未找到: ${item.productName}`);
-        toast.error(`订单 ${orderNo}，${item.productName} 在货主仓库中缺货，无法下单`);
+        toast.error(`订单 ${orderNo}，${item.productName} 在主体仓库中缺货，无法下单`);
         return null;
       });
 
@@ -412,8 +412,8 @@ export default function OrdersPage() {
       if (validItems.length === 0) {
         errorCount++;
         const missingProducts = items.map(i => i.productName).join(', ');
-        errorLogs.push(`订单 ${orderNo || '未知'}，${missingProducts} 在货主仓库中缺货，无法下单`);
-        toast.error(`订单 ${orderNo}，${missingProducts} 在货主仓库中缺货，无法下单`);
+        errorLogs.push(`订单 ${orderNo || '未知'}，${missingProducts} 在主体仓库中缺货，无法下单`);
+        toast.error(`订单 ${orderNo}，${missingProducts} 在主体仓库中缺货，无法下单`);
         continue;
       }
 
@@ -979,7 +979,7 @@ export default function OrdersPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">货主</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">主体</label>
               <select
                 value={filters.ownerId}
                 onChange={(e) => setFilters({ ...filters, ownerId: e.target.value })}
@@ -1039,7 +1039,7 @@ export default function OrdersPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">货主</th>
+                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">主体</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
@@ -1302,12 +1302,13 @@ export default function OrdersPage() {
                     value={formData.ownerId}
                     onChange={(e) => {
                       setFormData({ ...formData, ownerId: e.target.value, warehouseId: '', items: [] });
+                      setSelectedCustomerId('');
                     }}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                     required
                     disabled={!!editingId}
                   >
-                    <option value="">选择货主</option>
+                    <option value="">选择主体</option>
                     {owners.filter(o => o.status !== 'STOPPED').map(o => (
                       <option key={o.id} value={o.id}>{o.name}</option>
                     ))}
@@ -1352,7 +1353,7 @@ export default function OrdersPage() {
                         skus.some((sku: any) => sku.totalAvailable > 0)
                       );
                       if (filteredProducts.length === 0) {
-                        return <div className="text-center text-gray-400 py-10">该货主暂无商品</div>;
+                        return <div className="text-center text-gray-400 py-10">该主体暂无商品</div>;
                       }
                       return (
                         <div className="space-y-3">
@@ -1489,7 +1490,7 @@ export default function OrdersPage() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-center text-gray-400 py-10">该货主暂无套装</div>
+                        <div className="text-center text-gray-400 py-10">该主体暂无套装</div>
                       );
                     })()
                   ) : formData.warehouseId ? (
@@ -1576,7 +1577,7 @@ export default function OrdersPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-400 py-10">请先选择货主查看可用商品</div>
+                    <div className="text-center text-gray-400 py-10">请先选择主体查看可用商品</div>
                   )}
                 </div>
               </div>

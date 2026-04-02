@@ -1,7 +1,7 @@
 {
   "name": "citycitypass-server",
   "version": "1.0.0",
-  "description": "城城通物流信息化系统后端服务",
+  "description": "企管通信息化系统后端服务",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

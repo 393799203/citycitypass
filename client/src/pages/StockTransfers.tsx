@@ -1065,32 +1065,29 @@ export default function StockTransfers() {
                           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
                             <div className="flex flex-col gap-1">
                               <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-                                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                                    item.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
-                                  }`}>
-                                    {item.itemType === 'BUNDLE' ? '套装' : '商品'}
-                                  </span>
-                                  <span className={`truncate font-medium text-sm ${
-                                    item.itemType === 'BUNDLE' ? 'text-purple-600' : 'text-blue-600'
-                                  }`}>{getItemDisplayName(item)}</span>
-                                  {item.spec && (
-                                    <span className="text-xs text-gray-500 whitespace-nowrap">
-                                      {item.spec} | {item.packaging}
-                                    </span>
-                                  )}
-                                </div>
+                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                  item.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                                }`}>
+                                  {item.itemType === 'BUNDLE' ? '套装' : '商品'}
+                                </span>
+                                <span className={`truncate font-medium text-sm ${
+                                  item.itemType === 'BUNDLE' ? 'text-purple-600' : 'text-blue-600'
+                                }`}>{getItemDisplayName(item)}</span>
                                 <span className="text-orange-500 text-xs whitespace-nowrap">{item.fromLocationCode}</span>
                                 <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                 <span className="text-green-600 text-xs whitespace-nowrap flex-shrink-0">
                                   {item.toLocationCode}
                                 </span>
                               </div>
-                              {item.itemType === 'PRODUCT' ? item.skuBatch?.batchNo && (
-                                <div className="text-xs text-purple-500 pl-12">批号: {item.skuBatch?.batchNo}</div>
-                              ) : item.bundleBatch?.batchNo && (
-                                <div className="text-xs text-purple-500 pl-12">批号: {item.bundleBatch?.batchNo}</div>
-                              )}
+                              <div className="text-xs text-gray-500 pl-12">
+                                {[item.spec, item.packaging].filter(Boolean).join(' | ')}
+                                {item.itemType === 'PRODUCT' && item.skuBatch?.batchNo && (
+                                  <span className="ml-2 text-purple-500"> 批号: {item.skuBatch?.batchNo}</span>
+                                )}
+                                {item.itemType === 'BUNDLE' && item.bundleBatch?.batchNo && (
+                                  <span className="ml-2 text-purple-500"> 批号: {item.bundleBatch?.batchNo}</span>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center gap-3">
                               <span className="text-blue-600 font-bold">

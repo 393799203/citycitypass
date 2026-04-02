@@ -13,7 +13,7 @@ const roleMap: Record<string, string> = {
   WAREHOUSE_STAFF: '仓管',
   DRIVER: '司机',
   CUSTOMER: '访客',
-  OWNER: '货主',
+  OWNER: '主体',
 };
 
 const roles = [
@@ -23,7 +23,7 @@ const roles = [
   { value: 'WAREHOUSE_STAFF', label: '仓管' },
   { value: 'DRIVER', label: '司机' },
   { value: 'CUSTOMER', label: '访客' },
-  { value: 'OWNER', label: '货主' },
+  { value: 'OWNER', label: '主体' },
 ];
 
 interface User {

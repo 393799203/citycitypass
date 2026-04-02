@@ -4,13 +4,14 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
-import { supplierApi, supplierContractApi } from '../api';
+import { supplierApi, supplierContractApi, ownerApi } from '../api';
 import { useConfirm } from '../components/ConfirmProvider';
 
 const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
 
 interface Supplier {
   id: string;
+  ownerId?: string;
   code: string;
   name: string;
   contact: string;
@@ -57,6 +58,7 @@ const defaultFormData: Supplier = {
   productTags: [],
   status: 'ACTIVE',
   remark: '',
+  ownerId: '',
 };
 
 const defaultContractForm: SupplierContract = {
@@ -78,6 +80,8 @@ const defaultContractForm: SupplierContract = {
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [owners, setOwners] = useState<any[]>([]);
+  const [filterOwner, setFilterOwner] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -98,9 +102,17 @@ export default function SuppliersPage() {
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
-      const res = await supplierApi.list();
+      const params: any = {};
+      if (filterOwner) params.ownerId = filterOwner;
+      const [res, ownerRes] = await Promise.all([
+        supplierApi.list(params),
+        ownerApi.list(),
+      ]);
       if (res.data.success) {
         setSuppliers(res.data.data);
+      }
+      if (ownerRes.data.success) {
+        setOwners(ownerRes.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -111,7 +123,11 @@ export default function SuppliersPage() {
 
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+  }, [filterOwner]);
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, [filters]);
 
   const filteredSuppliers = suppliers.filter(s => {
     if (filters.search) {
@@ -130,7 +146,7 @@ export default function SuppliersPage() {
   });
 
   const resetForm = () => {
-    setFormData(defaultFormData);
+    setFormData({ ...defaultFormData, ownerId: filterOwner });
     setEditingId(null);
     setCustomTagInput('');
     setShowCustomTagInput(false);
@@ -297,12 +313,51 @@ export default function SuppliersPage() {
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">供应商管理</h1>
-        <button
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="w-4 h-4" /> 新建供应商
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">主体：</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setFilterOwner('')}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  filterOwner === ''
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                全部
+              </button>
+              {owners.map(o => (
+                <button
+                  key={o.id}
+                  onClick={() => setFilterOwner(o.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    filterOwner === o.id
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {o.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="text-sm text-gray-500">
+            供应商: {filteredSuppliers.length}
+          </span>
+          <button
+            onClick={() => { resetForm(); setShowModal(true); }}
+            disabled={!filterOwner}
+            title={!filterOwner ? '请先选择主体' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              filterOwner
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Plus className="w-4 h-4" /> 新建供应商
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-2 flex-wrap">

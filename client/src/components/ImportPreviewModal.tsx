@@ -15,7 +15,7 @@ interface OrderItem {
 interface OrderData {
   orderNo: string;
   '订单编号'?: string;
-  '货主'?: string;
+  '主体'?: string;
   '客户名称'?: string;
   '折扣'?: string;
   '收货人'?: string;
@@ -71,7 +71,7 @@ export default function ImportPreviewModal({
 
 需要的标准字段：
 - 订单编号
-- 货主
+- 主体
 - 收货人
 - 手机号（可能叫：电话、手机、联系电话等）
 - 省份
@@ -88,7 +88,7 @@ ${rawRows}
 
 请根据原始数据内容智能匹配字段，返回规范化后的JSON：
 {
-  "货主": "货主名称",
+  "主体": "主体名称",
   "收货人": "收货人姓名",
   "手机号": "手机号",
   "省份": "省份",
@@ -116,7 +116,7 @@ ${rawRows}
         const updated = [...data];
         const currentOrder = updated[orderIdx];
 
-        currentOrder['货主'] = fixed['货主'] || currentOrder['货主'];
+        currentOrder['主体'] = fixed['主体'] || currentOrder['主体'];
         currentOrder['收货人'] = fixed['收货人'] || currentOrder['收货人'];
         currentOrder['手机号'] = fixed['手机号'] || currentOrder['手机号'];
         currentOrder['省份'] = fixed['省份'] || currentOrder['省份'];
@@ -135,10 +135,10 @@ ${rawRows}
         }
 
         const errors: string[] = [];
-        if (!currentOrder['货主']) {
-          errors.push('缺少货主');
-        } else if (!owners.find(o => o.name === currentOrder['货主'])) {
-          errors.push(`货主"${currentOrder['货主']}"不存在`);
+        if (!currentOrder['主体']) {
+          errors.push('缺少主体');
+        } else if (!owners.find(o => o.name === currentOrder['主体'])) {
+          errors.push(`主体"${currentOrder['主体']}"不存在`);
         }
         if (!currentOrder['收货人']) errors.push('缺少收货人');
         if (!currentOrder['手机号']) errors.push('缺少手机号');
@@ -194,8 +194,8 @@ ${rawRows}
         const row = item.rows[0];
         const errors: string[] = [];
 
-        if (!row['货主']) errors.push('缺少货主');
-        if (!owners.find(o => o.name === row['货主'])) errors.push(`货主"${row['货主']}"不存在`);
+        if (!row['主体']) errors.push('缺少主体');
+        if (!owners.find(o => o.name === row['主体'])) errors.push(`主体"${row['主体']}"不存在`);
         if (!row['收货人']) errors.push('缺少收货人');
         if (!row['手机号']) errors.push('缺少手机号');
         if (!row['收货地址']) errors.push('缺少收货地址');
@@ -215,7 +215,7 @@ ${rawRows}
         return {
           orderNo: item.orderNo,
           '订单编号': row['订单编号'],
-          '货主': row['货主'],
+          '主体': row['主体'],
           '客户名称': row['客户名称'],
           '折扣': row['折扣'],
           '收货人': row['收货人'],
@@ -256,7 +256,7 @@ ${rawRows}
         const customer = customers.find(c => c.name === customerName);
         return {
           orderNo: d.orderNo,
-          '货主': d['货主'],
+          '主体': d['主体'],
           '客户名称': d['客户名称'],
           '客户Id': customer?.id,
           '折扣': d['折扣'],
@@ -321,7 +321,7 @@ ${rawRows}
                         <span className="font-medium">{order['订单编号'] || order.orderNo}</span>
                       </div>
                       <span className="text-sm text-gray-500">
-                        {order['货主']} → {order['收货人']} {order['手机号'] ? `(${order['手机号']})` : ''}
+                        {order['主体']} → {order['收货人']} {order['手机号'] ? `(${order['手机号']})` : ''}
                       </span>
                       <span className="text-sm text-orange-600">
                         {order.items.length}种商品
@@ -356,19 +356,19 @@ ${rawRows}
                               <span className="text-gray-800 font-medium">{order['订单编号'] || order.orderNo || '-'}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-gray-500">货主:</span>
-                              {order._errors?.some(e => e.includes('货主')) ? (
+                              <span className="text-gray-500">主体:</span>
+                              {order._errors?.some(e => e.includes('主体')) ? (
                                 <select
-                                  value={order['货主'] || ''}
+                                  value={order['主体'] || ''}
                                   onChange={(e) => {
                                     const updated = [...data];
                                     const newOwner = e.target.value;
-                                    updated[idx]['货主'] = newOwner;
+                                    updated[idx]['主体'] = newOwner;
                                     updated[idx]._errors = updated[idx]._errors?.filter(err => {
                                       if (newOwner && owners.find(o => o.name === newOwner)) {
-                                        return !err.includes('货主');
+                                        return !err.includes('主体');
                                       }
-                                      if (err.includes('缺少货主')) {
+                                      if (err.includes('缺少主体')) {
                                         return !newOwner;
                                       }
                                       return true;
@@ -378,14 +378,14 @@ ${rawRows}
                                   }}
                                   className="border rounded px-2 py-1 text-sm"
                                 >
-                                  <option value="">选择货主</option>
+                                  <option value="">选择主体</option>
                                   {owners.map(o => (
                                     <option key={o.id} value={o.name}>{o.name}</option>
                                   ))}
                                 </select>
                               ) : (
-                                <span className={order._errors?.includes('缺少货主') ? 'text-red-500' : 'text-gray-800'}>
-                                  {order['货主'] || '未填写'}
+                                <span className={order._errors?.includes('缺少主体') ? 'text-red-500' : 'text-gray-800'}>
+                                  {order['主体'] || '未填写'}
                                 </span>
                               )}
                             </div>

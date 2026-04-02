@@ -42,11 +42,17 @@ async function generateBundleSkuCode(packaging: string): Promise<string> {
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { name, status } = req.query;
-    
+    const { name, status, ownerId } = req.query;
+
     const where: any = {};
     if (name) where.name = { contains: name as string };
     if (status) where.status = status;
+    if (ownerId) {
+      where.OR = [
+        { ownerId: String(ownerId) },
+        { ownerId: null },
+      ];
+    }
 
     const bundles = await prisma.bundleSKU.findMany({
       where,
@@ -103,7 +109,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, packaging, spec, price, items, status } = req.body;
+    const { name, packaging, spec, price, items, status, ownerId } = req.body;
 
     if (!name || !price) {
       return res.status(400).json({ success: false, message: '请填写必填字段' });
@@ -123,6 +129,7 @@ router.post('/', async (req: Request, res: Response) => {
         spec: spec || '',
         price,
         status: status || 'ACTIVE',
+        ownerId: ownerId || null,
         items: {
           create: items.map((item: any) => ({
             skuId: item.skuId,
@@ -153,7 +160,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, packaging, spec, price, items, status } = req.body;
+    const { name, packaging, spec, price, items, status, ownerId } = req.body;
 
     const existing = await prisma.bundleSKU.findUnique({ where: { id } });
     if (!existing) {
@@ -170,6 +177,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         spec,
         price,
         status,
+        ownerId: ownerId || null,
         items: {
           create: items.map((item: any) => ({
             skuId: item.skuId,

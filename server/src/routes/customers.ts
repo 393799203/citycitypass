@@ -5,9 +5,15 @@ const router = Router();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { channel, region, level, status, search } = req.query;
+    const { channel, region, level, status, search, ownerId } = req.query;
     const where: any = {};
 
+    if (ownerId) {
+      where.OR = [
+        { ownerId: String(ownerId) },
+        { ownerId: null },
+      ];
+    }
     if (channel) where.channel = channel as string;
     if (region) where.region = region as string;
     if (level) where.level = level as string;
@@ -107,6 +113,7 @@ router.post('/', async (req: Request, res: Response) => {
         signatureNote: data.signatureNote,
         status: data.status,
         remark: data.remark,
+        ownerId: data.ownerId || null,
       },
     });
 
