@@ -1066,6 +1066,7 @@ export default function ProductsPage() {
                         <thead className="bg-gray-50">
                           <tr className="text-center">
                             <th className="px-3 py-2">仓库</th>
+                            <th className="px-3 py-2">规格</th>
                             <th className="px-3 py-2">库位</th>
                             <th className="px-3 py-2">批号</th>
                             <th className="px-3 py-2">总库存</th>
@@ -1077,6 +1078,7 @@ export default function ProductsPage() {
                           {bundleStocks.map(stock => (
                             <tr key={stock.id} className="border-t">
                               <td className="px-3 py-2 text-center">{stock.warehouse?.name}</td>
+                              <td className="px-3 py-2 text-center">{stock.bundle?.spec} / {stock.bundle?.packaging}</td>
                               <td className="px-3 py-2 text-center">
                                 {stock.location ? `${stock.location.shelf?.zone?.code || '-'} - ${stock.location.shelf?.code || '-'} - L${stock.location.level}` : '-'}
                               </td>
@@ -1110,6 +1112,7 @@ export default function ProductsPage() {
                           {productStocks.map(stock => (
                             <tr key={stock.id} className="border-t">
                               <td className="px-3 py-2 text-center">{stock.warehouse?.name}</td>
+                              <td className="px-3 py-2 text-center">{stock.sku?.spec} / {stock.sku?.packaging}</td>
                               <td className="px-3 py-2 text-center">
                                 {stock.location ? `${stock.location.shelf?.zone?.code || '-'} - ${stock.location.shelf?.code || '-'} - L${stock.location.level}` : '-'}
                               </td>
