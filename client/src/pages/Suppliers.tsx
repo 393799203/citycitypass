@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText } from
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
 import { supplierApi, supplierContractApi, ownerApi } from '../api';
+import OwnerStamp from '../components/OwnerStamp';
 import { useConfirm } from '../components/ConfirmProvider';
 
 const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
@@ -12,6 +13,7 @@ const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒',
 interface Supplier {
   id: string;
   ownerId?: string;
+  owner?: { id: string; name: string };
   code: string;
   name: string;
   contact: string;
@@ -386,7 +388,10 @@ export default function SuppliersPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSuppliers.map((supplier) => (
-            <div key={supplier.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all">
+            <div key={supplier.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all relative">
+              {supplier.owner?.name && (
+                <OwnerStamp name={supplier.owner.name} />
+              )}
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <div className="flex items-center gap-2">

@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Cl
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
+import OwnerStamp from '../components/OwnerStamp';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -244,7 +245,10 @@ export default function WarehousesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {warehouses.map(warehouse => (
-            <div key={warehouse.id} className="bg-white rounded-xl shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/warehouses/${warehouse.id}`)}>
+            <div key={warehouse.id} className="bg-white rounded-xl shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer relative" onClick={() => navigate(`/warehouses/${warehouse.id}`)}>
+              {warehouse.owner?.name && (
+                <OwnerStamp name={warehouse.owner.name} />
+              )}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -289,10 +293,6 @@ export default function WarehousesPage() {
                   }`}>
                     {statusMap[warehouse.status]}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">主体</span>
-                  <span className="text-gray-700">{warehouse.owner?.name || '-'}</span>
                 </div>
                 {(warehouse.manager || warehouse.managerPhone) && (
                   <div className="flex items-center justify-between">

@@ -30,6 +30,7 @@ router.get('/', async (req: Request, res: Response) => {
       prisma.customer.findMany({
         where,
         include: {
+          owner: true,
           contracts: {
             where: { status: 'ACTIVE' },
           },

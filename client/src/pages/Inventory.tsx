@@ -692,16 +692,15 @@ export default function InventoryPage() {
                             )}
                           </div>
                           <div className="shrink-0 flex items-center gap-3 text-xs">
-                         
                             {(
                               <div className="flex items-center gap-1.5">
                                 {stock.shelves.map((shelf: any, idx: number) => (
                                   <div
                                     key={idx}
                                     className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1"
-                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/><span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></div> })}
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/>{stock.type !== 'bundle' && <> <span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></>}</div> })}
                                     onMouseLeave={() => setTooltip(null)}
-                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/><span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></div> })}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/>{stock.type !== 'bundle' && <> <span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></>}</div> })}
                                   >
                                     <MapPin className="w-3 h-3 text-gray-400" />
                                     <span className="font-mono text-gray-600 text-xs">{shelf.code}</span>

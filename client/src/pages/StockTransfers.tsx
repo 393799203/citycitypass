@@ -934,7 +934,7 @@ export default function StockTransfers() {
                   >
                     <option value="">选择仓库</option>
                     {warehouses.map(w => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
+                      <option key={w.id} value={w.id}>{w.name} {w.owner ? `(${w.owner.name})` : ''}</option>
                     ))}
                   </select>
                 </div>

@@ -6,11 +6,13 @@ import AddressInput from '../components/AddressInput';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
+import OwnerStamp from '../components/OwnerStamp';
 import { ownerApi } from '../api';
 
 interface Customer {
   id: string;
   ownerId?: string;
+  owner?: { id: string; name: string };
   code: string;
   name: string;
   channel: string;
@@ -414,7 +416,10 @@ export default function CustomersPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {customers.map((customer) => (
-            <div key={customer.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all">
+            <div key={customer.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all relative">
+              {customer.owner?.name && (
+                <OwnerStamp name={customer.owner.name} />
+              )}
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <div className="flex items-center gap-2">

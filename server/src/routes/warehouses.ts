@@ -123,6 +123,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       where: { warehouseId: id, location: { shelfId: { in: shelfIds } } },
       include: {
         sku: { include: { product: true } },
+        skuBatch: true,
         location: {
           include: {
             shelf: {
@@ -147,6 +148,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             }
           }
         },
+        bundleBatch: true,
         location: {
           include: {
             shelf: {

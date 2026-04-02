@@ -57,6 +57,7 @@ router.get('/', async (req: Request, res: Response) => {
     const bundles = await prisma.bundleSKU.findMany({
       where,
       include: {
+        owner: true,
         items: {
           include: {
             sku: {

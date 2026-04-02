@@ -4,6 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
+import OwnerStamp from '../components/OwnerStamp';
 
 interface Product {
   id: string;
@@ -13,6 +14,7 @@ interface Product {
   categoryId: string;
   category: { id: string; name: string };
   ownerId?: string;
+  owner?: { id: string; name: string };
   status: string;
   skus: SKU[];
 }
@@ -27,6 +29,8 @@ interface SKU {
 
 interface Bundle {
   id: string;
+  ownerId?: string;
+  owner?: { id: string; name: string };
   name: string;
   skuCode?: string;
   packaging: string;
@@ -663,7 +667,10 @@ export default function ProductsPage() {
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map(product => (
-              <div key={product.id} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
+              <div key={product.id} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white relative overflow-hidden">
+                {product.owner?.name && (
+                  <OwnerStamp name={product.owner.name} />
+                )}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -738,7 +745,10 @@ export default function ProductsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {bundles.map(bundle => (
-              <div key={bundle.id} className="border border-purple-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
+              <div key={bundle.id} className="border border-purple-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white relative">
+                {bundle.owner?.name && (
+                  <OwnerStamp name={bundle.owner.name} />
+                )}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

@@ -31,6 +31,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const suppliers = await prisma.supplier.findMany({
       where,
+      include: { owner: true },
       orderBy: { createdAt: 'desc' }
     });
 

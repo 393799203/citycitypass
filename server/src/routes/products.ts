@@ -329,6 +329,7 @@ router.get('/', async (req: Request, res: Response) => {
       where,
       include: {
         category: true,
+        owner: true,
         brand: { select: { id: true, name: true, code: true } },
         skus: (() => {
           const skuWhere: any = {};
