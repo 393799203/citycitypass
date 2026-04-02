@@ -702,7 +702,27 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
           },
           orderBy: { createdAt: 'asc' },
         })
-      : [];
+      : await prisma.stockTransferItem.findMany({
+          where: { bundleBatchId: bundleBatch!.id },
+          include: {
+            transfer: true,
+            fromLocation: {
+              include: {
+                shelf: {
+                  include: { zone: true }
+                }
+              }
+            },
+            toLocation: {
+              include: {
+                shelf: {
+                  include: { zone: true }
+                }
+              }
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        });
 
     // 退货记录 - 通过 ReturnItem 的 stockOutId 关联
     const stockOutIds = stockOuts.map(s => s.id).filter(Boolean);
