@@ -329,34 +329,27 @@ export default function WarehouseDetailPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/warehouses')} className="p-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold">{warehouse.name}</h1>
-        </div>
-        <div className="ml-auto flex gap-2">
-          <button
-            onClick={() => setShowZoneModal(true)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            添加库区
-          </button>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">库区概览</h2>
-              {selectedZoneId && (
-                <button onClick={() => setSelectedZoneId(null)} className="text-sm text-primary-600 hover:underline">
-                  查看全部
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">{warehouse.name}</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowZoneModal(true)}
+                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1.5 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  添加库区
                 </button>
-              )}
+                {selectedZoneId && (
+                  <button onClick={() => setSelectedZoneId(null)} className="text-sm text-primary-600 hover:underline">
+                    查看全部
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex gap-2 mb-4 flex-wrap">
               {zones.map(zone => (
