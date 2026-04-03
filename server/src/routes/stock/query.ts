@@ -7,7 +7,7 @@ const router = Router();
 // GET /
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, skuId, bundleId, inventoryType } = req.query;
+    const { warehouseId, skuId, bundleId, inventoryType, ownerId } = req.query;
 
     let zoneTypeFilter: object;
     if (inventoryType === 'sales') {
@@ -21,6 +21,7 @@ router.get('/', async (req: Request, res: Response) => {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
         ...(skuId ? { skuId: skuId as string } : {}),
         ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
+        ...(ownerId ? { warehouse: { ownerId: ownerId as string } } : {}),
       },
       include: {
         sku: {
@@ -46,6 +47,7 @@ router.get('/', async (req: Request, res: Response) => {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
         ...(bundleId ? { bundleId: bundleId as string } : {}),
         ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
+        ...(ownerId ? { warehouse: { ownerId: ownerId as string } } : {}),
       },
       include: {
         bundle: {
@@ -379,11 +381,18 @@ router.get('/bundle', async (req: Request, res: Response) => {
 router.get('/bundle/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { warehouseId } = req.query;
+    const { warehouseId, ownerId } = req.query;
     const where: any = {
       bundleId: id,
     };
     if (warehouseId) where.warehouseId = warehouseId as string;
+    if (ownerId) {
+        if (where.warehouse) {
+          where.warehouse.ownerId = ownerId as string;
+        } else {
+          where.warehouse = { ownerId: ownerId as string };
+        }
+      }
 
     const stocks = await prisma.bundleStock.findMany({
       where,
@@ -437,11 +446,18 @@ router.get('/bundle/:id', async (req: Request, res: Response) => {
 router.get('/sku/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { warehouseId } = req.query;
+    const { warehouseId, ownerId } = req.query;
     const where: any = {
       sku: { productId: id },
     };
     if (warehouseId) where.warehouseId = warehouseId as string;
+    if (ownerId) {
+      if (where.warehouse) {
+        where.warehouse.ownerId = ownerId as string;
+      } else {
+        where.warehouse = { ownerId: ownerId as string };
+      }
+    }
 
     const stocks = await prisma.stock.findMany({
       where,
@@ -486,7 +502,7 @@ router.get('/sku/:id', async (req: Request, res: Response) => {
 // GET /batch/list
 router.get('/batch/list', async (req: Request, res: Response) => {
   try {
-    const { skuId, bundleId, warehouseId } = req.query;
+    const { skuId, bundleId, warehouseId, ownerId } = req.query;
 
     const skuWhere: any = {};
     const bundleWhere: any = {};
@@ -497,9 +513,18 @@ router.get('/batch/list', async (req: Request, res: Response) => {
     if (bundleId) {
       bundleWhere.bundleId = bundleId as string;
     }
+
+    let warehouseFilter: any = {};
     if (warehouseId) {
-      skuWhere.stocks = { some: { warehouseId: warehouseId as string } };
-      bundleWhere.stocks = { some: { warehouseId: warehouseId as string } };
+      warehouseFilter.warehouseId = warehouseId as string;
+    }
+    if (ownerId) {
+      warehouseFilter.warehouse = { ownerId: ownerId as string };
+    }
+
+    if (warehouseId || ownerId) {
+      skuWhere.stocks = { some: warehouseFilter };
+      bundleWhere.stocks = { some: warehouseFilter };
     }
 
     const skuBatches = await prisma.sKUBatch.findMany({
@@ -512,7 +537,7 @@ router.get('/batch/list', async (req: Request, res: Response) => {
         },
         supplier: true,
         stocks: {
-          where: warehouseId ? { warehouseId: warehouseId as string } : {},
+          where: warehouseFilter,
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -524,7 +549,7 @@ router.get('/batch/list', async (req: Request, res: Response) => {
         bundle: true,
         supplier: true,
         stocks: {
-          where: warehouseId ? { warehouseId: warehouseId as string } : {},
+          where: warehouseFilter,
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -770,7 +795,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
           totalOutbound,
           totalInWarehouse,
           totalLocked,
-          totalReturned: returns.reduce((sum: number, r: any) => sum + r.qualifiedQuantity, 0),
+          totalReturned: returns.reduce((sum: number, r: any) => sum + r.quantity, 0),
         },
         stockIns: stockIns.map((s: any) => ({
           type: 'INBOUND',
@@ -813,7 +838,7 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
         returns: returns.map((r: any) => ({
           type: 'RETURN',
           returnNo: r.returnOrder?.returnNo,
-          quantity: r.qualifiedQuantity,
+          quantity: r.quantity,
           createdAt: r.returnOrder?.createdAt,
         })),
       },

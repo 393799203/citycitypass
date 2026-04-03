@@ -7,11 +7,12 @@ const prisma = new PrismaClient();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, status, vehicleId } = req.query;
+    const { warehouseId, status, vehicleId, ownerId } = req.query;
     const where: any = {};
     if (warehouseId) where.warehouseId = warehouseId as string;
     if (status) where.status = status;
     if (vehicleId) where.vehicleId = vehicleId as string;
+    if (ownerId) where.warehouse = { ownerId: ownerId as string };
 
     const drivers = await prisma.driver.findMany({
       where,

@@ -8,10 +8,17 @@ const router = Router();
 // GET /stock-in
 router.get('/stock-in', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, skuId } = req.query;
+    const { warehouseId, skuId, ownerId } = req.query;
     const where: any = {};
     if (warehouseId) where.warehouseId = warehouseId as string;
     if (skuId) where.skuId = skuId as string;
+    if (ownerId) {
+      if (where.warehouse) {
+        where.warehouse.ownerId = ownerId as string;
+      } else {
+        where.warehouse = { ownerId: ownerId as string };
+      }
+    }
 
     const stockIns = await prisma.stockIn.findMany({
       where,
@@ -34,8 +41,17 @@ router.get('/stock-in', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    const bundleWhere: any = warehouseId ? { warehouseId: warehouseId as string } : {};
+    if (ownerId) {
+      if (bundleWhere.warehouse) {
+        bundleWhere.warehouse.ownerId = ownerId as string;
+      } else {
+        bundleWhere.warehouse = { ownerId: ownerId as string };
+      }
+    }
+
     const bundleStockIns = await prisma.bundleStockIn.findMany({
-      where: warehouseId ? { warehouseId: warehouseId as string } : {},
+      where: bundleWhere,
       include: {
         bundle: {
           include: {
@@ -149,11 +165,12 @@ router.post('/inbound-order', async (req: Request, res: Response) => {
 // GET /inbound-orders
 router.get('/inbound-orders', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, status } = req.query;
+    const { warehouseId, status, ownerId } = req.query;
 
     const where: any = {};
     if (warehouseId) where.warehouseId = warehouseId as string;
     if (status) where.status = status as string;
+    if (ownerId) where.warehouse = { ownerId: ownerId as string };
 
     const orders = await prisma.inboundOrder.findMany({
       where,

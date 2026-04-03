@@ -209,6 +209,7 @@ model Owner {
   bundles         BundleSKU[]
   customers       Customer[]
   suppliers       Supplier[]
+  carriers        Carrier[]
 }
 
 model ProductCategory {
@@ -1096,6 +1097,9 @@ model Carrier {
   name        String   // 承运商名称
   type        CarrierType @default(INDIVIDUAL) // 承运商类型：个体/企业
   level       CarrierLevel @default(C) // 承运商等级：A/B/C
+
+  ownerId     String?
+  owner       Owner?   @relation(fields: [ownerId], references: [id])
 
   // 资质信息
   businessLicenseNo  String? // 营业执照号

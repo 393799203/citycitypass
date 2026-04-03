@@ -62,11 +62,12 @@ const vehicleSchema = z.object({
 // 获取承运商列表
 router.get('/', async (req, res, next) => {
   try {
-    const { status, level, type, search } = req.query;
+    const { status, level, type, search, ownerId } = req.query;
     const where: any = {};
     if (status) where.status = status;
     if (level) where.level = level;
     if (type) where.type = type;
+    if (ownerId) where.ownerId = ownerId;
     if (search) {
       where.OR = [
         { name: { contains: search as string } },
@@ -267,7 +268,12 @@ router.delete('/contracts/:contractId', async (req, res, next) => {
 // 获取所有承运商车辆
 router.get('/vehicles/all', async (req, res, next) => {
   try {
+    const { ownerId } = req.query;
+    const where: any = {};
+    if (ownerId) where.carrier = { ownerId: ownerId as string };
+
     const vehicles = await prisma.carrierVehicle.findMany({
+      where,
       include: { carrier: true },
       orderBy: { createdAt: 'desc' },
     });

@@ -24,10 +24,22 @@ function getStockWhere(skuId: string, warehouseId: string, locationId?: string) 
 // GET /stock-out
 router.get('/stock-out', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, skuId } = req.query;
+    const { warehouseId, skuId, ownerId } = req.query;
     const where: any = {};
     if (warehouseId) where.warehouseId = warehouseId as string;
     if (skuId) where.skuId = skuId as string;
+    if (ownerId) {
+      const warehouses = await prisma.warehouse.findMany({
+        where: { ownerId: ownerId as string },
+        select: { id: true },
+      });
+      const warehouseIds = warehouses.map(w => w.id);
+      if (warehouseIds.length > 0) {
+        where.warehouseId = { in: warehouseIds };
+      } else {
+        where.warehouseId = 'none-matching';
+      }
+    }
 
     const stockOuts = await (prisma.stockOut.findMany as any)({
       where,
@@ -48,7 +60,7 @@ router.get('/stock-out', async (req: Request, res: Response) => {
 // GET /out
 router.get('/out', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, startDate, endDate, orderId } = req.query;
+    const { warehouseId, startDate, endDate, orderId, ownerId } = req.query;
     const where: any = {};
     if (warehouseId) where.warehouseId = warehouseId as string;
     if (orderId) where.orderId = orderId as string;
@@ -56,6 +68,18 @@ router.get('/out', async (req: Request, res: Response) => {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate as string);
       if (endDate) where.createdAt.lte = new Date(endDate as string);
+    }
+    if (ownerId) {
+      const warehouses = await prisma.warehouse.findMany({
+        where: { ownerId: ownerId as string },
+        select: { id: true },
+      });
+      const warehouseIds = warehouses.map(w => w.id);
+      if (warehouseIds.length > 0) {
+        where.warehouseId = { in: warehouseIds };
+      } else {
+        where.warehouseId = 'none-matching';
+      }
     }
 
     const stockOuts = await prisma.stockOut.findMany({

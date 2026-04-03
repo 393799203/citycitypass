@@ -33,8 +33,19 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/all', async (req: Request, res: Response) => {
   try {
+    const { ownerId } = req.query;
+
+    const warehouseWhere: any = {};
+    const carrierWhere: any = {};
+
+    if (ownerId) {
+      warehouseWhere.warehouse = { ownerId: ownerId as string };
+      carrierWhere.carrier = { ownerId: ownerId as string };
+    }
+
     const [warehouseVehicles, carrierVehicles] = await Promise.all([
       prisma.vehicle.findMany({
+        where: warehouseWhere,
         include: {
           warehouse: true,
           drivers: true,
@@ -43,6 +54,7 @@ router.get('/all', async (req: Request, res: Response) => {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.carrierVehicle.findMany({
+        where: carrierWhere,
         include: {
           carrier: true,
         },

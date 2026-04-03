@@ -214,96 +214,35 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { status, page = '1', pageSize = '20' } = req.query;
+    const { status, page = '1', pageSize = '20', ownerId } = req.query;
     
-    const where: any = {};
+    let where: any = {};
     if (status) where.status = String(status);
 
     const skip = (Number(page) - 1) * Number(pageSize);
     
-    const [items, total] = await Promise.all([
-      prisma.pickOrder.findMany({
-        where,
-        include: {
-          picker: true,
-          approver: true,
-          items: {
-            include: {
-              sku: true,
-              bundle: {
-                include: {
-                  items: {
-                    include: {
-                      sku: {
-                        include: { product: true }
-                      }
-                    }
-                  }
-                }
-              },
-              stockLock: {
-                include: {
-                  location: {
-                    include: {
-                      shelf: {
-                        include: {
-                          zone: true
-                        }
-                      }
-                    }
-                  },
-                  skuBatch: true,
-                }
-              },
-              bundleStockLock: {
-                include: {
-                  location: {
-                    include: {
-                      shelf: {
-                        include: {
-                          zone: true
-                        }
-                      }
-                    }
-                  },
-                  bundleBatch: true,
-                }
-              },
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: Number(pageSize),
-      }),
-      prisma.pickOrder.count({ where }),
-    ]);
-
-    const itemsWithOrders = await Promise.all(
-      items.map(async (item) => {
-        const orderIds = item.orderIds.split(',');
-        const orders = await prisma.order.findMany({
-          where: { id: { in: orderIds } },
-          include: { 
-            owner: true, 
-            warehouse: true,
-            items: {
-              include: { 
-                sku: true,
-                bundle: {
+    let pickOrders = await prisma.pickOrder.findMany({
+      where,
+      include: {
+        picker: true,
+        approver: true,
+        items: {
+          include: {
+            sku: true,
+            skuBatch: true,
+            bundleBatch: true,
+            bundle: {
+              include: {
+                items: {
                   include: {
-                    items: {
-                      include: {
-                        sku: {
-                          include: { product: true }
-                        }
-                      }
+                    sku: {
+                      include: { product: true }
                     }
                   }
-                },
-              },
+                }
+              }
             },
-            stockLocks: {
+            stockLock: {
               include: {
                 location: {
                   include: {
@@ -313,18 +252,70 @@ router.get('/', async (req: Request, res: Response) => {
                       }
                     }
                   }
-                }
+                },
+                skuBatch: true,
+              }
+            },
+            bundleStockLock: {
+              include: {
+                location: {
+                  include: {
+                    shelf: {
+                      include: {
+                        zone: true
+                      }
+                    }
+                  }
+                },
+                bundleBatch: true,
               }
             },
           },
-        });
-        return { ...item, orders };
-      })
-    );
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: Number(pageSize),
+    });
+
+    const orderIdsArray = pickOrders.flatMap(po => po.orderIds.split(',').map(id => id.trim()));
+    const uniqueOrderIds = [...new Set(orderIdsArray)];
+    
+    const orders = await prisma.order.findMany({
+      where: { id: { in: uniqueOrderIds } },
+      include: { 
+        owner: true, 
+        warehouse: true,
+        items: {
+          include: {
+            sku: {
+              include: { product: true }
+            }
+          }
+        }
+      }
+    });
+
+    const orderMap = Object.fromEntries(orders.map(o => [o.id, o]));
+
+    const pickOrdersWithOrders = pickOrders.map(po => ({
+      ...po,
+      orders: po.orderIds.split(',').map((id: string) => orderMap[id.trim()]).filter(Boolean),
+    }));
+
+    if (ownerId) {
+      pickOrdersWithOrders.forEach(po => {
+        po.orders = po.orders.filter((o: any) => o.ownerId === ownerId);
+      });
+      pickOrdersWithOrders.splice(0, pickOrdersWithOrders.length, 
+        ...pickOrdersWithOrders.filter((po: any) => po.orders.length > 0));
+    }
+
+    const total = await prisma.pickOrder.count({ where });
 
     res.json({ 
       success: true, 
-      data: itemsWithOrders,
+      data: pickOrdersWithOrders,
       total,
       page: Number(page),
       pageSize: Number(pageSize),

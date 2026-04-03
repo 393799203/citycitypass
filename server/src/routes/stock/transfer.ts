@@ -49,7 +49,7 @@ function validateTransferRule(fromZoneType: string, toZoneType: string): { valid
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, status, startDate, endDate } = req.query;
+    const { warehouseId, status, startDate, endDate, ownerId } = req.query;
 
     const where: any = {};
     if (warehouseId) where.warehouseId = warehouseId as string;
@@ -58,6 +58,9 @@ router.get('/', async (req: Request, res: Response) => {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate as string);
       if (endDate) where.createdAt.lte = new Date(endDate as string);
+    }
+    if (ownerId) {
+      where.warehouse = { ownerId: ownerId as string };
     }
 
     const transfers = await prisma.stockTransfer.findMany({
@@ -579,7 +582,17 @@ router.get('/zone-stocks/:warehouseId', async (req: Request, res: Response) => {
     const bundleStocks = await prisma.bundleStock.findMany({
       where,
       include: {
-        bundle: true,
+        bundle: {
+          include: {
+            items: {
+              include: {
+                sku: {
+                  include: { product: true }
+                }
+              }
+            }
+          }
+        },
         location: { include: { shelf: { include: { zone: true } } } },
         bundleBatch: true,
       },

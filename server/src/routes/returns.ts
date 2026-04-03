@@ -6,8 +6,7 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { status, startDate, endDate, page = 1, pageSize = 20 } = req.query;
-    const ownerId = (req as any).user?.ownerId;
+    const { status, startDate, endDate, page = 1, pageSize = 20, ownerId } = req.query;
 
     const where: any = {};
     if (ownerId) where.ownerId = ownerId;
