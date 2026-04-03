@@ -116,12 +116,13 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = carrierSchema.parse(req.body);
+    const { ownerId } = req.query;
 
     const count = await prisma.carrier.count();
     const code = data.code || `CY${Date.now().toString().slice(-8)}${(count + 1).toString().padStart(4, '0')}`;
 
     const carrier = await prisma.carrier.create({
-      data: { ...data, code }
+      data: { ...data, code, ownerId: ownerId as string || null }
     });
     res.json({ success: true, data: carrier });
   } catch (error) {
