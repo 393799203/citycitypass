@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { orderApi, pickOrderApi } from '../api';
 import { parseAIResponse } from '../api/ai';
@@ -30,11 +30,7 @@ export default function OutboundPage() {
     fetchData();
   }, [activeTab]);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'pending') {
@@ -75,7 +71,7 @@ export default function OutboundPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   const handleAICreatePickOrders = async () => {
     const pendingOrders = pickOrders.filter((o: any) => !o.order?.pickOrder);
@@ -573,7 +569,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                               {(() => {
                                 const loc = item.stockLock?.location || item.bundleStockLock?.location;
                                 const locCode = loc ? `${loc.shelf?.zone?.code}-${loc.shelf?.code}-L${loc.level}` : (item.warehouseLocation || '-');
-                                const batchNo = item.stockLock?.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo;
+                                const batchNo = item.stockLock?.skuBatch?.batchNo || item.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo || item.bundleBatch?.batchNo;
                                 const batchSuffix = batchNo ? `(${batchNo})` : '';
                                 const isCompleted = pickOrder.status === 'COMPLETED' || pickOrder.orders?.some((o: any) => o.status === 'DELIVERED' || o.status === 'IN_TRANSIT');
                                 const statusSuffix = isCompleted ? ' (已出库)' : (pickOrder.status === 'CANCELLED' ? ' (已出库)' : '');
@@ -602,24 +598,31 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                           <div className="flex items-start gap-2 text-gray-600">
                             <ShoppingCart className="w-4 h-4 mt-0.5" />
                             <div>
-                              {o.items?.map((item: any) => (
-                                <span key={item.id} className="mr-2 inline-flex items-center">
-                                  {item.bundleId ? <span className="text-purple-600">[套装]</span> : <span className="text-blue-600">[商品]</span>}
-                                  <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
-                                  {item.bundleId && item.bundle?.items?.length > 0 && (
-                                    <button
-                                      type="button"
-                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                      onMouseLeave={() => setTooltip(null)}
-                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                      className="p-0.5 hover:bg-gray-100 rounded mx-1"
-                                    >
-                                      <Info className="w-3 h-3 text-purple-500 cursor-help" />
-                                    </button>
-                                  )}
-                                  x{item.quantity}
-                                </span>
-                              ))}
+                              {o.items?.map((item: any) => {
+                                const pickItem = pickOrder.items?.find((pi: any) =>
+                                  (item.skuId && pi.skuId === item.skuId) || (item.bundleId && pi.bundleId === item.bundleId)
+                                );
+                                const batchNo = pickItem?.skuBatch?.batchNo || pickItem?.bundleBatch?.batchNo;
+                                return (
+                                  <span key={item.id} className="mr-2 inline-flex items-center">
+                                    {item.bundleId ? <span className="text-purple-600">[套装]</span> : <span className="text-blue-600">[商品]</span>}
+                                    <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
+                                    {batchNo && <span className="text-orange-500 ml-1">({batchNo})</span>}
+                                    {item.bundleId && item.bundle?.items?.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                        onMouseLeave={() => setTooltip(null)}
+                                        onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                        className="p-0.5 hover:bg-gray-100 rounded mx-1"
+                                      >
+                                        <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                      </button>
+                                    )}
+                                    x{item.quantity}
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>

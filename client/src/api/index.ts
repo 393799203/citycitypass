@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import { useOwnerStore } from '../stores/owner';
 
 const api = axios.create({
   baseURL: '/api',
@@ -14,6 +15,10 @@ api.interceptors.request.use(
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const ownerId = useOwnerStore.getState().currentOwnerId;
+    if (ownerId) {
+      config.headers['x-owner-id'] = ownerId;
     }
     return config;
   },

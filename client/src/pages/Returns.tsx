@@ -664,9 +664,7 @@ export default function Returns() {
           returnOrderId={stockInReturnOrder.id}
           orderNo={stockInReturnOrder.order?.orderNo}
           returnNo={stockInReturnOrder.returnNo}
-          defaultItems={qualifyItems
-            .filter(item => (item.qualifiedQuantity ?? 0) > 0)
-            .map(item => ({
+          defaultItems={qualifyItems.map(item => ({
               type: item.skuId ? 'PRODUCT' : 'BUNDLE',
               skuId: item.skuId,
               bundleId: item.bundleId,

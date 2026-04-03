@@ -1,6 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useConfirm } from './ConfirmProvider';
+import OwnerModal from './OwnerModal';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
+import { useOwnerStore } from '../stores/owner';
+import { ownerApi } from '../api';
+import { ToastContainer, toast } from 'react-toastify';
 import {
   Truck,
   ShoppingCart,
@@ -22,6 +27,10 @@ import {
   RotateCcw,
   GitBranch,
   ArrowLeft,
+  ChevronDown,
+  Plus,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 
 const roleMap: Record<string, string> = {
@@ -35,7 +44,6 @@ const roleMap: Record<string, string> = {
 };
 
 const configMenuItems = [
-  { path: '/owners', icon: Building2, label: '主体管理' },
   { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
   { path: '/products', icon: Package, label: '商品管理' },
   { path: '/customers', icon: Users, label: '客户管理' },
@@ -62,9 +70,23 @@ const adminMenuItems = [
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [ownerDropdownOpen, setOwnerDropdownOpen] = useState(false);
+  const [owners, setOwners] = useState<any[]>([]);
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
+  const [editingOwner, setEditingOwner] = useState<any>(null);
   const { user, logout } = useAuthStore();
+  const { currentOwnerId, currentOwnerName, setCurrentOwner } = useOwnerStore();
+  const { confirm } = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    ownerApi.list().then(res => {
+      if (res.data.success) {
+        setOwners(res.data.data.filter((o: any) => o.status !== 'STOPPED'));
+      }
+    });
+  }, []);
 
   const canGoBack = location.pathname !== '/orders' && location.pathname !== '/inventory' &&
     !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
@@ -217,6 +239,100 @@ export default function Layout() {
             </button>
           </div>
           <div className="flex items-center gap-4">
+            {owners.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setOwnerDropdownOpen(!ownerDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                >
+                  <Building2 className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-700">
+                    {currentOwnerName || '全部主体'}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${ownerDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {ownerDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setOwnerDropdownOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                      <button
+                        onClick={() => {
+                          setCurrentOwner(null, null);
+                          setOwnerDropdownOpen(false);
+                          window.location.reload();
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${!currentOwnerId ? 'text-primary-600 font-medium' : 'text-gray-600'}`}
+                      >
+                        全部主体
+                      </button>
+                      {owners.map(o => (
+                        <div
+                          key={o.id}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center justify-between gap-2 ${currentOwnerId === o.id ? 'text-primary-600 font-medium' : 'text-gray-600'}`}
+                        >
+                          <button
+                            onClick={() => {
+                              setCurrentOwner(o.id, o.name);
+                              setOwnerDropdownOpen(false);
+                              window.location.reload();
+                            }}
+                            className="flex items-center gap-2 flex-1"
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            {o.name}
+                          </button>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingOwner(o);
+                                setShowOwnerModal(true);
+                              }}
+                              className="p-0.5 hover:bg-gray-200 rounded"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const ok = await confirm({ message: `确定要删除主体"${o.name}"吗？` });
+                                if (!ok) return;
+                                try {
+                                  await ownerApi.delete(o.id);
+                                  toast.success('主体已删除');
+                                  ownerApi.list().then(res => {
+                                    if (res.data.success) {
+                                      setOwners(res.data.data.filter((owner: any) => owner.status !== 'STOPPED'));
+                                    }
+                                  });
+                                } catch (error: any) {
+                                  toast.error(error.response?.data?.message || '删除失败');
+                                }
+                              }}
+                              className="p-0.5 hover:bg-gray-200 rounded text-red-500"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => {
+                          setEditingOwner(null);
+                          setShowOwnerModal(true);
+                          setOwnerDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 text-primary-600"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        新增主体
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <div className="h-6 w-px bg-gray-200" />
             <span className="text-sm text-gray-600">{roleMap[user?.role || '']}：{user?.name}</span>
             <button
               onClick={handleLogout}
@@ -231,6 +347,21 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      <OwnerModal
+        open={showOwnerModal}
+        editingOwner={editingOwner}
+        onClose={() => setShowOwnerModal(false)}
+        onSuccess={() => {
+          ownerApi.list().then(res => {
+            if (res.data.success) {
+              setOwners(res.data.data.filter((o: any) => o.status !== 'STOPPED'));
+            }
+          });
+        }}
+      />
+
+      <ToastContainer />
 
       {mobileOpen && (
         <div

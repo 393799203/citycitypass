@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ArrowLeft, Truck, MapPin, Package, User } from 'lucide-react';
+import { Truck, MapPin, Package, User } from 'lucide-react';
 import { dispatchApi } from '../api';
 import { formatPhone, formatAddress } from '../utils/format';
 
@@ -192,15 +192,6 @@ export default function DispatchDetailPage() {
   return (
     <div className="p-6">
       <ToastContainer />
-      <div className="mb-6">
-        <Link
-          to="/dispatch"
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          返回调度中心
-        </Link>
-      </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex items-center justify-between mb-6">

@@ -9,6 +9,7 @@ import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
+import { useOwnerStore } from '../stores/owner';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -24,9 +25,10 @@ const statusMap: Record<string, string> = {
 export default function WarehousesPage() {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const { currentOwnerId } = useOwnerStore();
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
-  const [filterOwner, setFilterOwner] = useState('');
+  const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -184,34 +186,6 @@ export default function WarehousesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">仓库管理</h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">主体：</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setFilterOwner('')}
-                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                  filterOwner === ''
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                全部
-              </button>
-              {owners.map(o => (
-                <button
-                  key={o.id}
-                  onClick={() => setFilterOwner(o.id)}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    filterOwner === o.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {o.name}
-                </button>
-              ))}
-            </div>
-          </div>
           <span className="text-sm text-gray-500">
             仓库: {warehouses.length}
           </span>

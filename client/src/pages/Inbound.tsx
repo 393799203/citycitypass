@@ -305,8 +305,8 @@ export default function InboundPage() {
           packaging: item.sku?.packaging || '',
           quantity: item.quantity || 1,
         })),
-        spec: undefined,
-        packaging: undefined,
+        spec: b.spec,
+        packaging: b.packaging,
       }));
 
       setProducts(productItems);
@@ -1250,9 +1250,12 @@ export default function InboundPage() {
                                 ? bundles.find(b => b.bundleId === selectedBundleId)?.bundleName
                                 : products.find(p => p.skuId === selectedSkuId)?.productName}
                             </span>
-                            {(productType === 'SKU' && (products.find(p => p.skuId === selectedSkuId)?.spec || products.find(p => p.skuId === selectedSkuId)?.packaging)) && (
+                            {((productType === 'SKU' && (products.find(p => p.skuId === selectedSkuId)?.spec || products.find(p => p.skuId === selectedSkuId)?.packaging)) ||
+                              (productType === 'BUNDLE' && (bundles.find(b => b.bundleId === selectedBundleId)?.spec || bundles.find(b => b.bundleId === selectedBundleId)?.packaging))) && (
                               <span className="text-xs text-gray-500 whitespace-nowrap">
-                                {products.find(p => p.skuId === selectedSkuId)?.spec}{products.find(p => p.skuId === selectedSkuId)?.spec && products.find(p => p.skuId === selectedSkuId)?.packaging ? '/' : ''}{products.find(p => p.skuId === selectedSkuId)?.packaging}
+                                {productType === 'BUNDLE'
+                                  ? `${bundles.find(b => b.bundleId === selectedBundleId)?.spec || ''}${bundles.find(b => b.bundleId === selectedBundleId)?.spec && bundles.find(b => b.bundleId === selectedBundleId)?.packaging ? '/' : ''}${bundles.find(b => b.bundleId === selectedBundleId)?.packaging || ''}`
+                                  : `${products.find(p => p.skuId === selectedSkuId)?.spec || ''}${products.find(p => p.skuId === selectedSkuId)?.spec && products.find(p => p.skuId === selectedSkuId)?.packaging ? '/' : ''}${products.find(p => p.skuId === selectedSkuId)?.packaging || ''}`}
                               </span>
                             )}
                           </div>

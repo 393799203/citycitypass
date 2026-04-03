@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
+import { useOwnerStore } from '../stores/owner';
 
 interface Product {
   id: string;
@@ -100,6 +101,7 @@ const defaultBundleSpecs = ['单品', '组合'];
 
 export default function ProductsPage() {
   const { confirm } = useConfirm();
+  const { currentOwnerId } = useOwnerStore();
   const [activeTab, setActiveTab] = useState<'product' | 'bundle'>('product');
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
@@ -113,7 +115,7 @@ export default function ProductsPage() {
   const [skus, setSkus] = useState<SKUWithProduct[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
-  const [filterOwner, setFilterOwner] = useState('');
+  const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -545,34 +547,6 @@ export default function ProductsPage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">商品&套装管理</h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">主体：</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setFilterOwner('')}
-                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                  filterOwner === ''
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                全部
-              </button>
-              {owners.map(o => (
-                <button
-                  key={o.id}
-                  onClick={() => setFilterOwner(o.id)}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    filterOwner === o.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {o.name}
-                </button>
-              ))}
-            </div>
-          </div>
           <span className="text-sm text-gray-500">
             商品: {products.length} | 套装: {bundles.length}
           </span>

@@ -131,8 +131,8 @@ export default function InboundOrderModal({
       return;
     }
 
-    if (isReturn && inboundItems.some(item => !item.locationId)) {
-      toast.error('请为每个商品选择入库库位');
+    if (isReturn && inboundItems.some(item => item.quantity > 0 && !item.locationId)) {
+      toast.error('请为有数量的商品选择入库库位');
       return;
     }
 
@@ -264,6 +264,7 @@ export default function InboundOrderModal({
                             )}
                             <span className="text-green-600 font-bold flex-shrink-0">{item.quantity}件</span>
                           </div>
+                          {item.quantity > 0 ? (
                           <div className="flex items-center gap-1 text-xs flex-shrink-0 ml-2">
                             <select
                               value={item.zoneId || ''}
@@ -298,6 +299,9 @@ export default function InboundOrderModal({
                               ))}
                             </select>
                           </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs flex-shrink-0 ml-2">无需入库</span>
+                          )}
                         </div>
                       );
                     })}
@@ -322,7 +326,7 @@ export default function InboundOrderModal({
                 </button>
                 <button
                   onClick={handleCreateOrder}
-                  disabled={saving || inboundItems.some(item => !item.locationId)}
+                  disabled={saving || inboundItems.every(item => item.quantity === 0) || inboundItems.some(item => item.quantity > 0 && !item.locationId)}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
                   {saving ? '创建中...' : '创建入库单'}

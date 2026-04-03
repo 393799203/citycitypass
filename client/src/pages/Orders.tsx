@@ -11,6 +11,7 @@ import ReturnTrackingModal from '../components/ReturnTrackingModal';
 import ImportPreviewModal from '../components/ImportPreviewModal';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
+import { useOwnerStore } from '../stores/owner';
 
 
 interface Order {
@@ -110,6 +111,7 @@ const statusOptions = [
 export default function OrdersPage() {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const { currentOwnerId } = useOwnerStore();
   const getLatestActiveReturn = (order: any) => {
     if (!order.returnOrders?.length) return null;
     return order.returnOrders
@@ -124,7 +126,7 @@ export default function OrdersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ orderNo: '', ownerId: '', status: '', startDate: '', endDate: '' });
+  const [filters, setFilters] = useState({ orderNo: '', status: '', startDate: '', endDate: '' });
   const [formData, setFormData] = useState({
     ownerId: '',
     warehouseId: '',
@@ -787,7 +789,7 @@ export default function OrdersPage() {
 
   const resetForm = () => {
     setFormData({
-      ownerId: '',
+      ownerId: currentOwnerId || '',
       warehouseId: '',
       receiver: '',
       phone: '',
@@ -979,17 +981,6 @@ export default function OrdersPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">主体</label>
-              <select
-                value={filters.ownerId}
-                onChange={(e) => setFilters({ ...filters, ownerId: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                <option value="">全部</option>
-                {owners.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
               <select
                 value={filters.status}
@@ -1017,7 +1008,7 @@ export default function OrdersPage() {
                 查询
               </button>
               <button
-                onClick={() => { setFilters({ orderNo: '', ownerId: '', status: '', startDate: '', endDate: '' }); fetchOrders(); }}
+                onClick={() => { setFilters({ orderNo: '', status: '', startDate: '', endDate: '' }); fetchOrders(); }}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
               >
                 重置
@@ -1306,10 +1297,10 @@ export default function OrdersPage() {
                     }}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                     required
-                    disabled={!!editingId}
+                    disabled={!!editingId || !!currentOwnerId}
                   >
                     <option value="">选择主体</option>
-                    {owners.filter(o => o.status !== 'STOPPED').map(o => (
+                    {(currentOwnerId ? owners.filter(o => o.id === currentOwnerId) : owners).filter(o => o.status !== 'STOPPED').map(o => (
                       <option key={o.id} value={o.id}>{o.name}</option>
                     ))}
                   </select>

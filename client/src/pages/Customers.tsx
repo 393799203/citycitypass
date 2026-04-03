@@ -8,6 +8,7 @@ import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { ownerApi } from '../api';
+import { useOwnerStore } from '../stores/owner';
 
 interface Customer {
   id: string;
@@ -86,9 +87,10 @@ const defaultFormData: Customer = {
 
 export default function CustomersPage() {
   const { confirm } = useConfirm();
+  const { currentOwnerId } = useOwnerStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
-  const [filterOwner, setFilterOwner] = useState('');
+  const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -333,34 +335,6 @@ export default function CustomersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">客户管理</h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">主体：</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setFilterOwner('')}
-                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                  filterOwner === ''
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                全部
-              </button>
-              {owners.map(o => (
-                <button
-                  key={o.id}
-                  onClick={() => setFilterOwner(o.id)}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    filterOwner === o.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {o.name}
-                </button>
-              ))}
-            </div>
-          </div>
           <span className="text-sm text-gray-500">
             客户: {customers.length}
           </span>

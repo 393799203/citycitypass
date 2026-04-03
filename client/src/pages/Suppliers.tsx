@@ -7,6 +7,7 @@ import AddressInput from '../components/AddressInput';
 import { supplierApi, supplierContractApi, ownerApi } from '../api';
 import OwnerStamp from '../components/OwnerStamp';
 import { useConfirm } from '../components/ConfirmProvider';
+import { useOwnerStore } from '../stores/owner';
 
 const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
 
@@ -81,9 +82,10 @@ const defaultContractForm: SupplierContract = {
 };
 
 export default function SuppliersPage() {
+  const { currentOwnerId } = useOwnerStore();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
-  const [filterOwner, setFilterOwner] = useState('');
+  const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -316,34 +318,6 @@ export default function SuppliersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">供应商管理</h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">主体：</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setFilterOwner('')}
-                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                  filterOwner === ''
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                全部
-              </button>
-              {owners.map(o => (
-                <button
-                  key={o.id}
-                  onClick={() => setFilterOwner(o.id)}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    filterOwner === o.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {o.name}
-                </button>
-              ))}
-            </div>
-          </div>
           <span className="text-sm text-gray-500">
             供应商: {filteredSuppliers.length}
           </span>

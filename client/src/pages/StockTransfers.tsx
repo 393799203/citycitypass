@@ -43,6 +43,7 @@ interface TransferItemInput {
   bundleBatch?: { batchNo: string };
   spec?: string;
   packaging?: string;
+  bundle?: any;
 }
 
 interface Transfer {
@@ -434,6 +435,7 @@ export default function StockTransfers() {
           const zone = shelf?.zone;
           return {
             ...s,
+            bundle: s.bundle,
             bundleId: s.bundle?.id || s.bundleId,
             locationId: s.locationId,
             locationCode: shelf?.code ? `${shelf.code}-L${s.location.level}` : s.locationId,
@@ -443,6 +445,8 @@ export default function StockTransfers() {
             zoneCode: zone?.code || '',
             zoneType: zone?.type || '',
             bundleName: s.bundle?.name || '',
+            spec: s.bundle?.spec || '',
+            packaging: s.bundle?.packaging || '',
             type: 'bundle',
           };
         });
@@ -544,6 +548,7 @@ export default function StockTransfers() {
       bundleBatch: selectedStock.bundleBatch,
       spec: selectedStock.spec,
       packaging: selectedStock.packaging,
+      bundle: selectedStock.bundle,
     };
 
     const existingIndex = formItems.findIndex(
@@ -976,8 +981,12 @@ export default function StockTransfers() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex flex-col gap-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">商品</span>
-                              <span className="font-medium text-sm text-blue-600 truncate">
+                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                selectedStock.type === 'bundle' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                              }`}>
+                                {selectedStock.type === 'bundle' ? '套装' : '商品'}
+                              </span>
+                              <span className={`font-medium text-sm truncate ${selectedStock.type === 'bundle' ? 'text-purple-600' : 'text-blue-600'}`}>
                                 {getStockDisplayName(selectedStock)}
                               </span>
                               {selectedStock.spec && (
@@ -985,9 +994,9 @@ export default function StockTransfers() {
                               )}
                             </div>
                             {selectedStock.type === 'product' ? selectedStock.skuBatch?.batchNo && (
-                              <div className="text-xs text-purple-500 pl-12" >批号: {selectedStock.skuBatch?.batchNo}</div>
+                              <div className="text-xs text-purple-500 px-1.5" >批号: {selectedStock.skuBatch?.batchNo}</div>
                             ) : selectedStock.bundleBatch?.batchNo && (
-                              <div className="text-xs text-purple-500 pl-12" >批号: {selectedStock.bundleBatch?.batchNo}</div>
+                              <div className="text-xs text-purple-500 px-1.5" >批号: {selectedStock.bundleBatch?.batchNo}</div>
                             )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">

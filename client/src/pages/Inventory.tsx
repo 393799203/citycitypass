@@ -65,7 +65,6 @@ export default function InventoryPage() {
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
   const [showStockOutModal, setShowStockOutModal] = useState(false);
-  const [filterOwner, setFilterOwner] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
   const [filterZone, setFilterZone] = useState('');
@@ -208,12 +207,9 @@ export default function InventoryPage() {
   const fetchStockIns = async () => {
     setStockInLoading(true);
     try {
-      const res = await fetch('/api/stock/stock-in', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStockIns(data.data);
+      const res = await stockApi.stockIns();
+      if (res.data.success) {
+        setStockIns(res.data.data);
       }
     } finally {
       setStockInLoading(false);
@@ -414,23 +410,12 @@ export default function InventoryPage() {
           </div>
           <div className="flex gap-2 items-center flex-wrap">
             <select
-              value={filterOwner}
-              onChange={(e) => { setFilterOwner(e.target.value); setFilterWarehouse(''); setFilterZone(''); setFilterShelf(''); setFilterProduct(''); }}
-              className="px-3 py-1.5 border rounded text-sm w-36"
-            >
-              <option value="">全部主体</option>
-              {owners.filter(o => o.status !== 'STOPPED').map(o => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
-            <select
               value={filterWarehouse}
               onChange={(e) => { setFilterWarehouse(e.target.value); setFilterZone(''); setFilterShelf(''); }}
-              disabled={!filterOwner}
-              className="px-3 py-2 border rounded text-sm w-36 disabled:opacity-50"
+              className="px-3 py-2 border rounded text-sm w-36"
             >
               <option value="">全部仓库</option>
-              {warehouses.filter(w => !filterOwner || w.ownerId === filterOwner).map(w => (
+              {warehouses.map(w => (
                 <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
               ))}
             </select>
@@ -488,7 +473,7 @@ export default function InventoryPage() {
               }
             </select>
             <button
-              onClick={() => { setFilterOwner(''); setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); setFilterBatchNo(''); }}
+              onClick={() => { setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); setFilterBatchNo(''); }}
               className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded text-sm"
             >
               重置
@@ -515,7 +500,6 @@ export default function InventoryPage() {
         </div>
         {(() => {
           const filteredStocks = stocks.filter((stock: any) => {
-            if (filterOwner && stock.warehouse?.ownerId !== filterOwner) return false;
             if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
             if (filterZone && stock.location?.shelf?.zoneId !== filterZone) return false;
             if (filterShelf && stock.location?.shelfId !== filterShelf) return false;
