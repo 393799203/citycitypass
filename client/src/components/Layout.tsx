@@ -75,6 +75,7 @@ export default function Layout() {
   const [owners, setOwners] = useState<any[]>([]);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any>(null);
+  const [contentKey, setContentKey] = useState(0);
   const { user, logout } = useAuthStore();
   const { currentOwnerId, currentOwnerName, setCurrentOwner } = useOwnerStore();
   const { confirm } = useConfirm();
@@ -98,6 +99,10 @@ export default function Layout() {
     logout();
     navigate('/login');
   };
+
+  useEffect(() => {
+    setContentKey(k => k + 1);
+  }, [currentOwnerId]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,7 +265,6 @@ export default function Layout() {
                         onClick={() => {
                           setCurrentOwner(null, null);
                           setOwnerDropdownOpen(false);
-                          window.location.reload();
                         }}
                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${!currentOwnerId ? 'text-primary-600 font-medium' : 'text-gray-600'}`}
                       >
@@ -275,7 +279,6 @@ export default function Layout() {
                             onClick={() => {
                               setCurrentOwner(o.id, o.name);
                               setOwnerDropdownOpen(false);
-                              window.location.reload();
                             }}
                             className="flex items-center gap-2 flex-1"
                           >
@@ -346,11 +349,14 @@ export default function Layout() {
         </header>
         <main className="p-4 lg:p-6 pt-0">
           <Suspense fallback={
-            <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
               <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+              <span className="mt-2 text-sm text-gray-500">加载中...</span>
             </div>
           }>
-            <Outlet />
+            <div key={contentKey}>
+              <Outlet />
+            </div>
           </Suspense>
         </main>
       </div>
