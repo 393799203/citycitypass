@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useConfirm } from './ConfirmProvider';
 import OwnerModal from './OwnerModal';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/auth';
 import { useOwnerStore } from '../stores/owner';
 import { ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
+import { Loader2 } from 'lucide-react';
 import {
   Truck,
   ShoppingCart,
@@ -44,11 +45,10 @@ const roleMap: Record<string, string> = {
 };
 
 const configMenuItems = [
-  { path: '/warehouses', icon: Warehouse, label: '仓库配置' },
+  { path: '/warehouses', icon: Warehouse, label: '仓库管理' },
   { path: '/products', icon: Package, label: '商品管理' },
   { path: '/customers', icon: Users, label: '客户管理' },
   { path: '/suppliers', icon: Users, label: '供应商管理' },
-  { path: '/transport', icon: Truck, label: '运力管理' },
   { path: '/carriers', icon: Factory, label: '承运商管理' },
 ];
 
@@ -61,6 +61,7 @@ const businessMenuItems = [
   { path: '/stock-transfers', icon: ArrowRightLeft, label: '移库管理' },
   { path: '/inbound', icon: Package, label: '入库管理' },
   { path: '/batch-trace', icon: GitBranch, label: '批次追踪' },
+  { path: '/transport', icon: Truck, label: '运力看板' },
 ];
 
 const adminMenuItems = [
@@ -344,7 +345,13 @@ export default function Layout() {
           </div>
         </header>
         <main className="p-4 lg:p-6 pt-0">
-          <Outlet />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            </div>
+          }>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

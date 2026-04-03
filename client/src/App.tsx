@@ -1,9 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import React, { Suspense, lazy } from 'react';
+import React, { lazy } from 'react';
 import Layout from './components/Layout';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
-import { Loader2 } from 'lucide-react';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -28,14 +27,6 @@ const Users = lazy(() => import('./pages/Users'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Suppliers = lazy(() => import('./pages/Suppliers'));
 
-function Loading() {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-    </div>
-  );
-}
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
   if (!token) {
@@ -48,44 +39,42 @@ function App() {
   return (
     <BrowserRouter>
       <ConfirmProvider>
-        <Suspense fallback={<Loading />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/orders" replace />} />
-              <Route path="orders" element={<Orders />} />
-              <Route path="orders/:id" element={<OrderDetail />} />
-              <Route path="products" element={<Products />} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="warehouses" element={<Warehouses />} />
-              <Route path="warehouses/:id" element={<WarehouseDetail />} />
-              <Route path="inventory" element={<StockIns />} />
-              <Route path="stock-transfers" element={<StockTransfers />} />
-              <Route path="batch-trace" element={<BatchTracePage />} />
-              <Route path="batch-trace/:batchNo" element={<BatchTracePage />} />
-              <Route path="inbound" element={<Inbound />} />
-              <Route path="outbound" element={<Outbound />} />
-              <Route path="transport" element={<Transport />} />
-              <Route path="dispatch" element={<DispatchCenter />} />
-              <Route path="dispatch/:id" element={<DispatchDetail />} />
-              <Route path="returns" element={<Returns />} />
-              <Route path="returns/:id" element={<ReturnDetail />} />
-              <Route path="carriers" element={<Carriers />} />
-              <Route path="owners" element={<Owners />} />
-              <Route path="users" element={<Users />} />
-            </Route>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/orders" replace />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="products" element={<Products />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="warehouses" element={<Warehouses />} />
+            <Route path="warehouses/:id" element={<WarehouseDetail />} />
+            <Route path="inventory" element={<StockIns />} />
+            <Route path="stock-transfers" element={<StockTransfers />} />
+            <Route path="batch-trace" element={<BatchTracePage />} />
+            <Route path="batch-trace/:batchNo" element={<BatchTracePage />} />
+            <Route path="inbound" element={<Inbound />} />
+            <Route path="outbound" element={<Outbound />} />
+            <Route path="transport" element={<Transport />} />
+            <Route path="dispatch" element={<DispatchCenter />} />
+            <Route path="dispatch/:id" element={<DispatchDetail />} />
+            <Route path="returns" element={<Returns />} />
+            <Route path="returns/:id" element={<ReturnDetail />} />
+            <Route path="carriers" element={<Carriers />} />
+            <Route path="owners" element={<Owners />} />
+            <Route path="users" element={<Users />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </Suspense>
+          </Route>
+        </Routes>
       </ConfirmProvider>
     </BrowserRouter>
   );

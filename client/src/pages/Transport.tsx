@@ -369,7 +369,7 @@ export default function TransportPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Truck className="w-6 h-6" />
-          运力管理
+          运力看板
         </h1>
       </div>
 
