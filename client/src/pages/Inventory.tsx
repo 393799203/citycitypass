@@ -174,7 +174,7 @@ export default function InventoryPage() {
       }
       if (stockRes.data.success) {
         const data = stockRes.data.data;
-        setStocks([...(data.productStocks || []), ...(data.bundleStocks || [])]);
+        setStocks([...(data.productStocks || []), ...(data.bundleStocks || []), ...(data.materialStocks || [])]);
       }
       if (bundleRes.data.success) {
         setBundles(bundleRes.data.data);
@@ -336,23 +336,23 @@ export default function InventoryPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-gray-500 text-sm">有库存商品SKU</div>
-          <div className="text-2xl font-bold text-primary-600">{new Set(stocks.filter(s => s.type === 'product' && (s.totalQuantity || 0) > 0).map(s => s.skuId)).size}</div>
+          <div className="text-2xl font-bold text-primary-600">{new Set(stocks.filter(s => s.type === 'product' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.skuId)).size}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-gray-500 text-sm">有库存套装SKU</div>
-          <div className="text-2xl font-bold text-purple-600">{new Set(stocks.filter(s => s.type === 'bundle' && (s.totalQuantity || 0) > 0).map(s => s.bundleId)).size}</div>
+          <div className="text-2xl font-bold text-purple-600">{new Set(stocks.filter(s => s.type === 'bundle' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.bundleId)).size}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-gray-500 text-sm">今日入库</div>
-          <div className="text-2xl font-bold text-green-600">{stockIns.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, i) => sum + i.quantity, 0)}</div>
+          <div className="text-2xl font-bold text-green-600">{stockIns.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, i) => sum + i.quantity, 0)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-gray-500 text-sm">今日出库</div>
-          <div className="text-2xl font-bold text-orange-600">{stockOuts.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
+          <div className="text-2xl font-bold text-orange-600">{stockOuts.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-gray-500 text-sm">总库存</div>
-          <div className="text-2xl font-bold text-gray-700">{stocks.reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
+          <div className="text-gray-500 text-sm">总库存(不含原料仓)</div>
+          <div className="text-2xl font-bold text-gray-700">{stocks.filter(s => s.warehouse?.type !== 'MATERIAL').reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
         </div>
       </div>
 
@@ -513,7 +513,7 @@ export default function InventoryPage() {
               }
             }
             if (filterBatchNo) {
-              const batchNo = stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo;
+              const batchNo = stock.type === 'product' ? stock.skuBatch?.batchNo : stock.type === 'bundle' ? stock.bundleBatch?.batchNo : stock.materialBatch?.batchNo;
               if (!batchNo || batchNo.toLowerCase().indexOf(filterBatchNo.toLowerCase()) === -1) return false;
             }
             return true;
@@ -541,6 +541,8 @@ export default function InventoryPage() {
                 const groupedBySku = list.reduce((acc: any, stock: any) => {
                   const key = stock.type === 'bundle'
                     ? `bundle-${stock.bundleId}`
+                    : stock.type === 'material'
+                    ? `material-${stock.supplierMaterialId}`
                     : `product-${stock.skuId}`;
                   if (!acc[key]) {
                     acc[key] = {
@@ -559,13 +561,13 @@ export default function InventoryPage() {
                     total: stock.totalQuantity,
                     locked: stock.lockedQuantity,
                     available: stock.availableQuantity,
-                    batchNo: stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo,
-                    expiryDate: stock.type === 'product' ? stock.skuBatch?.expiryDate : stock.bundleBatch?.expiryDate,
+                    batchNo: stock.type === 'product' ? stock.skuBatch?.batchNo : stock.type === 'bundle' ? stock.bundleBatch?.batchNo : stock.materialBatch?.batchNo,
+                    expiryDate: stock.type === 'product' ? stock.skuBatch?.expiryDate : stock.type === 'bundle' ? stock.bundleBatch?.expiryDate : stock.materialBatch?.expiryDate,
                   });
                   acc[key].totalQuantity += stock.totalQuantity;
                   acc[key].lockedQuantity += stock.lockedQuantity;
                   acc[key].availableQuantity += stock.availableQuantity;
-                  const stockBatchNo = stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo;
+                  const stockBatchNo = stock.type === 'product' ? stock.skuBatch?.batchNo : stock.type === 'bundle' ? stock.bundleBatch?.batchNo : stock.materialBatch?.batchNo;
                   const stockExpiryDate = stock.type === 'product' ? stock.skuBatch?.expiryDate : undefined;
                   if (stockBatchNo && !acc[key].batchNos.includes(stockBatchNo)) {
                     acc[key].batchNos.push(stockBatchNo);
@@ -616,13 +618,17 @@ export default function InventoryPage() {
                         <div className="px-4 py-3 flex items-center gap-3">
                           <span
                             className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded cursor-help ${
-                              stock.type === 'bundle'
+                              stock.type === 'material'
+                                ? (stock.supplierMaterial?.category === 'OTHER' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-green-100 text-green-700 hover:bg-green-200')
+                                : stock.type === 'bundle'
                                 ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                             }`}
                             onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? (
                               <div>
-                                <div className="font-semibold mb-2 text-purple-400">批次信息：</div>
+                                <div className={`font-semibold mb-2 ${stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? 'text-orange-400' : 'text-green-400') : stock.type === 'bundle' ? 'text-purple-400' : 'text-blue-400'}`}>
+                                  {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原材料') : stock.type === 'bundle' ? '套装' : '商品'}
+                                </div>
                                 {stock.batchNos.map((bn: string, i: number) => {
                                   const ed = stock.expiryDates[i] || stock.expiryDates[0];
                                   return (
@@ -636,7 +642,9 @@ export default function InventoryPage() {
                             onMouseLeave={() => setTooltip(null)}
                             onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? (
                               <div>
-                                <div className="font-semibold mb-2 text-purple-400">批次信息：</div>
+                                <div className={`font-semibold mb-2 ${stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? 'text-orange-400' : 'text-green-400') : stock.type === 'bundle' ? 'text-purple-400' : 'text-blue-400'}`}>
+                                  {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原材料') : stock.type === 'bundle' ? '套装' : '商品'}
+                                </div>
                                 {stock.batchNos.map((bn: string, i: number) => {
                                   const ed = stock.expiryDates[i] || stock.expiryDates[0];
                                   return (
@@ -648,7 +656,7 @@ export default function InventoryPage() {
                               </div>
                             ) : <div className="text-gray-400">无批次信息</div> })}
                           >
-                            {stock.type === 'bundle' ? '套装' : '商品'}
+                            {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原材料') : stock.type === 'bundle' ? '套装' : '商品'}
                           </span>
                           <div className="flex-1 min-w-0">
                             {stock.type === 'bundle' ? (
@@ -667,6 +675,11 @@ export default function InventoryPage() {
                                   </button>
                                 )}
                               </div>
+                            ) : stock.type === 'material' ? (
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-800 truncate">{stock.supplierMaterial?.name}</span>
+                                <span className="text-gray-400 text-sm truncate">({stock.supplierMaterial?.unit || '-'})</span>
+                              </div>
                             ) : (
                               <div className="flex items-center gap-2">
                                 <Package className="w-4 h-4 text-blue-500 shrink-0" />
@@ -682,9 +695,9 @@ export default function InventoryPage() {
                                   <div
                                     key={idx}
                                     className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1"
-                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/>{stock.type !== 'bundle' && <> <span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></>}</div> })}
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/>{stock.type === 'product' && <> <span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></>}</div> })}
                                     onMouseLeave={() => setTooltip(null)}
-                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/>{stock.type !== 'bundle' && <> <span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></>}</div> })}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><span className="text-purple-400">批号：</span><span className="text-gray-200">{shelf.batchNo || '-'}</span><br/>{stock.type === 'product' && <> <span className="text-green-400">有效期：</span><span className="text-gray-200">{shelf.expiryDate ? new Date(shelf.expiryDate).toLocaleDateString() : '-'}</span></>}</div> })}
                                   >
                                     <MapPin className="w-3 h-3 text-gray-400" />
                                     <span className="font-mono text-gray-600 text-xs">{shelf.code}</span>

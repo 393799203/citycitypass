@@ -58,9 +58,10 @@ const businessMenuItems = [
   { path: '/dispatch', icon: Route, label: '运力调度' },
   { path: '/returns', icon: RotateCcw, label: '退货管理' },
   { path: '/inventory', icon: Boxes, label: '库存看板' },
-  { path: '/stock-transfers', icon: ArrowRightLeft, label: '移库管理' },
-  { path: '/inbound', icon: Package, label: '入库管理' },
   { path: '/batch-trace', icon: GitBranch, label: '批次追踪' },
+  { path: '/purchases', icon: Truck, label: '采购管理' },
+  { path: '/inbound', icon: Package, label: '入库管理' },
+  { path: '/stock-transfers', icon: ArrowRightLeft, label: '移库管理' },
   { path: '/transport', icon: Truck, label: '运力看板' },
 ];
 
@@ -85,7 +86,11 @@ export default function Layout() {
   useEffect(() => {
     ownerApi.list().then(res => {
       if (res.data.success) {
-        setOwners(res.data.data.filter((o: any) => o.status !== 'STOPPED'));
+        const activeOwners = res.data.data.filter((o: any) => o.status !== 'STOPPED');
+        setOwners(activeOwners);
+        if (activeOwners.length === 0) {
+          setShowOwnerModal(true);
+        }
       }
     });
   }, []);
@@ -93,7 +98,7 @@ export default function Layout() {
   const canGoBack = location.pathname !== '/orders' && location.pathname !== '/inventory' &&
     !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
        '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
-       '/carriers', '/users', '/dispatch', '/returns'].includes(location.pathname);
+       '/carriers', '/users', '/dispatch', '/returns', '/purchases'].includes(location.pathname);
 
   const handleLogout = () => {
     logout();
@@ -245,18 +250,17 @@ export default function Layout() {
             </button>
           </div>
           <div className="flex items-center gap-4">
-            {owners.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setOwnerDropdownOpen(!ownerDropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-                >
-                  <Building2 className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-700">
-                    {currentOwnerName || '全部主体'}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${ownerDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+            <div className="relative">
+              <button
+                onClick={() => owners.length > 0 ? setOwnerDropdownOpen(!ownerDropdownOpen) : (setEditingOwner(null), setShowOwnerModal(true))}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+              >
+                <Building2 className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-700">
+                  {currentOwnerName || (owners.length === 0 ? '创建主体' : '全部主体')}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${ownerDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
                 {ownerDropdownOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOwnerDropdownOpen(false)} />
@@ -296,27 +300,29 @@ export default function Layout() {
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const ok = await confirm({ message: `确定要删除主体"${o.name}"吗？` });
-                                if (!ok) return;
-                                try {
-                                  await ownerApi.delete(o.id);
-                                  toast.success('主体已删除');
-                                  ownerApi.list().then(res => {
-                                    if (res.data.success) {
-                                      setOwners(res.data.data.filter((owner: any) => owner.status !== 'STOPPED'));
-                                    }
-                                  });
-                                } catch (error: any) {
-                                  toast.error(error.response?.data?.message || '删除失败');
-                                }
-                              }}
-                              className="p-0.5 hover:bg-gray-200 rounded text-red-500"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            {currentOwnerId !== o.id && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const ok = await confirm({ message: `确定要删除主体"${o.name}"吗？` });
+                                  if (!ok) return;
+                                  try {
+                                    await ownerApi.delete(o.id);
+                                    toast.success('主体已删除');
+                                    ownerApi.list().then(res => {
+                                      if (res.data.success) {
+                                        setOwners(res.data.data.filter((owner: any) => owner.status !== 'STOPPED'));
+                                      }
+                                    });
+                                  } catch (error: any) {
+                                    toast.error(error.response?.data?.message || '删除失败');
+                                  }
+                                }}
+                                className="p-0.5 hover:bg-gray-200 rounded text-red-500"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -329,13 +335,12 @@ export default function Layout() {
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 text-primary-600"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        新增主体
+                        {owners.length === 0 ? '创建主体' : '新增主体'}
                       </button>
                     </div>
                   </>
                 )}
               </div>
-            )}
             <div className="h-6 w-px bg-gray-200" />
             <span className="text-sm text-gray-600">{roleMap[user?.role || '']}：{user?.name}</span>
             <button

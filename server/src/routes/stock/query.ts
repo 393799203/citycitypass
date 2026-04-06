@@ -76,6 +76,29 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    const materialStocks = await prisma.materialStock.findMany({
+      where: {
+        ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
+        ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
+        ...(ownerId ? { warehouse: { ownerId: ownerId as string } } : {}),
+      },
+      include: {
+        supplierMaterial: true,
+        warehouse: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
+        materialBatch: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
     const isSalesZoneType = (zoneType: string) => zoneType === 'STORAGE' || zoneType === 'PICKING';
 
     const processStocks = (stocks: any[]) => {
@@ -106,9 +129,24 @@ router.get('/', async (req: Request, res: Response) => {
       });
     };
 
+    const processMaterialStocks = (stocks: any[]) => {
+      return stocks.map(s => {
+        const zoneType = s.location?.shelf?.zone?.type;
+        const isSales = isSalesZoneType(zoneType);
+        return {
+          ...s,
+          type: 'material',
+          totalQuantity: s.totalQuantity,
+          lockedQuantity: isSales ? s.lockedQuantity : 0,
+          availableQuantity: isSales ? s.availableQuantity : 0,
+        };
+      });
+    };
+
     const result = {
       productStocks: processStocks(productStocks),
       bundleStocks: processBundleStocks(bundleStocks),
+      materialStocks: processMaterialStocks(materialStocks),
     };
 
     res.json({ success: true, data: result });

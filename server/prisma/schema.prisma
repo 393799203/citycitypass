@@ -210,6 +210,7 @@ model Owner {
   customers       Customer[]
   suppliers       Supplier[]
   carriers        Carrier[]
+  purchaseOrders  PurchaseOrder[]
 }
 
 model ProductCategory {
@@ -313,11 +314,163 @@ model Supplier {
   contracts      SupplierContract[]
   skuBatches     SKUBatch[]
   bundleBatches  BundleBatch[]
+  materialBatches MaterialBatch[]
+  purchaseOrders PurchaseOrder[]
+  supplierProducts SupplierProduct[]
+  supplierMaterials SupplierMaterial[]
+  inboundOrderItems InboundOrderItem[]
+}
+
+model SupplierProduct {
+  id          String   @id @default(uuid())
+
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  itemType    ItemType  // PRODUCT, BUNDLE
+  skuId       String?
+  bundleId    String?
+
+  sku         ProductSKU? @relation(fields: [skuId], references: [id])
+  bundle      BundleSKU?  @relation(fields: [bundleId], references: [id])
+
+  price       Decimal?  @db.Decimal(12, 2)  // 供应价
+  minQty      Int?      @default(1)         // 最小采购量
+  leadDays    Int?      // 交货周期(天)
+
+  status      SupplierProductStatus @default(ACTIVE)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([supplierId])
+  @@index([skuId])
+  @@index([bundleId])
+}
+
+model SupplierMaterial {
+  id          String   @id @default(uuid())
+
+  name        String   // 原材料/其他商品名称
+  category    String   // MATERIAL 或 OTHER
+  unit        String?  // 单位(个/箱/千克/吨等)
+  price       Decimal? @db.Decimal(12, 2)  // 供应价
+  minQty      Int?     @default(1)         // 最小采购量
+  leadDays    Int?     // 交货周期(天)
+
+  status      SupplierProductStatus @default(ACTIVE)
+
+  supplierId  String?  // 所属供应商
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchaseOrderItems PurchaseOrderItem[]
+  batches     MaterialBatch[]
+  materialStocks MaterialStock[]
+}
+
+enum SupplierProductStatus {
+  ACTIVE      // 启用
+  INACTIVE    // 停用
 }
 
 enum SupplierStatus {
   ACTIVE      // 启用
   INACTIVE    // 停用
+}
+
+// ========== 采购模块 ==========
+
+model PurchaseOrder {
+  id              String   @id @default(uuid())
+  orderNo         String   @unique
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+
+  warehouseId     String?
+  ownerId         String?
+  owner           Owner?   @relation(fields: [ownerId], references: [id])
+
+  status          PurchaseOrderStatus @default(PENDING)
+  orderDate       DateTime
+  expectedDate    DateTime?
+  actualDate      DateTime?
+
+  totalAmount     Decimal?  @db.Decimal(12, 2)
+  remark          String?
+
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           PurchaseOrderItem[]
+
+  inboundOrders   InboundOrder[]
+
+  @@index([supplierId])
+  @@index([warehouseId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+enum PurchaseOrderStatus {
+  PENDING      // 待确认
+  CONFIRMED    // 已确认
+  PARTIAL      // 部分到货
+  ARRIVED      // 全部到货
+  CANCELLED    // 已取消
+}
+
+model PurchaseOrderItem {
+  id                  String   @id @default(uuid())
+  purchaseOrderId     String
+  purchaseOrder       PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  itemType            ItemType
+  skuId               String?
+  bundleId            String?
+  supplierMaterialId  String?   // 当类型是 MATERIAL 或 OTHER 时关联供应商原材料表
+
+  sku                 ProductSKU? @relation(fields: [skuId], references: [id])
+  bundle              BundleSKU? @relation(fields: [bundleId], references: [id])
+  supplierMaterial    SupplierMaterial? @relation(fields: [supplierMaterialId], references: [id])
+
+  skuBatchId          String?
+  bundleBatchId       String?
+
+  quantity            Int
+  receivedQuantity    Int      @default(0)
+  price               Decimal?  @db.Decimal(12, 2)
+  amount              Decimal?  @db.Decimal(12, 2)
+
+  productionDate      DateTime?
+  expireDate          DateTime?
+
+  status              PurchaseItemStatus @default(PENDING)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([skuId])
+  @@index([bundleId])
+}
+
+enum PurchaseItemStatus {
+  PENDING       // 待到货
+  PARTIAL       // 部分到货
+  RECEIVED      // 已到货
+  REJECTED      // 拒收
+  CANCELLED     // 取消
+}
+
+enum ItemType {
+  PRODUCT
+  BUNDLE
+  MATERIAL
+  OTHER
 }
 
 model Product {
@@ -358,6 +511,8 @@ model ProductSKU {
   bundleItems BundleSKUItem[]
   transferItems StockTransferItem[]
   skuBatches  SKUBatch[]
+  purchaseOrderItems PurchaseOrderItem[]
+  supplierProducts SupplierProduct[]
 }
 
 model BundleSKU {
@@ -382,6 +537,8 @@ model BundleSKU {
   orderItems  OrderItem[]
   transferItems StockTransferItem[]
   bundleBatches BundleBatch[]
+  supplierProducts SupplierProduct[]
+  purchaseOrderItems PurchaseOrderItem[]
 }
 
 model BundleSKUItem {
@@ -430,6 +587,25 @@ model BundleStockLock {
   quantity    Int
   createdAt   DateTime @default(now())
   pickOrderItems PickOrderItem[]
+}
+
+model MaterialStock {
+  id              String    @id @default(uuid())
+  supplierMaterialId String
+  supplierMaterial  SupplierMaterial @relation(fields: [supplierMaterialId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  locationId      String?
+  location        Location? @relation(fields: [locationId], references: [id])
+  materialBatchId String
+  materialBatch   MaterialBatch @relation(fields: [materialBatchId], references: [id])
+  totalQuantity   Int       @default(0)
+  lockedQuantity  Int       @default(0)
+  availableQuantity Int     @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([warehouseId, locationId, materialBatchId])
 }
 
 model BundleStockIn {
@@ -543,6 +719,7 @@ model PickOrderItem {
 enum WarehouseType {
   NORMAL    // 普通仓
   COLD      // 冷链仓
+  MATERIAL  // 原料仓
 }
 
 enum WarehouseStatus {
@@ -580,6 +757,7 @@ model Warehouse {
   bundleStocks    BundleStock[]
   bundleStockLocks BundleStockLock[]
   bundleStockIns BundleStockIn[]
+  materialStocks MaterialStock[]
   stockTransfers StockTransfer[]
   inboundOrders InboundOrder[]
   createdAt   DateTime        @default(now())
@@ -629,6 +807,7 @@ model Location {
   bundleStocks     BundleStock[]
   bundleStockLocks BundleStockLock[]
   bundleStockIns   BundleStockIn[]
+  materialStocks   MaterialStock[]
   transferFrom StockTransferItem[] @relation("TransferFromLocation")
   transferTo   StockTransferItem[] @relation("TransferToLocation")
   inboundOrderItems InboundOrderItem[]
@@ -642,11 +821,6 @@ enum LockStatus {
   LOCKED      // 已锁定（待拣货）
   RELEASED    // 已释放（订单取消）
   USED        // 已使用（拣货完成）
-}
-
-enum ItemType {
-  PRODUCT  // 商品
-  BUNDLE   // 套装
 }
 
 enum TransferStatus {
@@ -791,6 +965,9 @@ model InboundOrder {
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   remark      String?
 
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
   // 到货信息
   arrivalQuantity Int?    // 到货数量
   palletNo       String? // 托盘号
@@ -822,6 +999,9 @@ model InboundOrderItem {
   type        ItemType  // 使用现有的 ItemType enum
   skuId       String?
   bundleId    String?
+  supplierMaterialId String?
+  supplierId  String?   // 供应商ID
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
   locationId  String?
   location    Location? @relation(fields: [locationId], references: [id])
 
@@ -834,6 +1014,8 @@ model InboundOrderItem {
   skuBatch        SKUBatch? @relation(fields: [skuBatchId], references: [id])
   bundleBatchId   String?
   bundleBatch     BundleBatch? @relation(fields: [bundleBatchId], references: [id])
+  materialBatchId     String?
+  materialBatch      MaterialBatch? @relation(fields: [materialBatchId], references: [id])
 
   // 验收结果
   inspectionResult String? // OK / SHORT / DAMAGED
@@ -1229,6 +1411,24 @@ model CarrierVehicle {
   updatedAt    DateTime @updatedAt
 
   dispatches   Dispatch[]
+}
+
+model MaterialBatch {
+  id              String    @id @default(uuid())
+  batchNo         String    // 批次号
+  supplierMaterialId String // 原材料/其他商品ID
+  supplierMaterial  SupplierMaterial @relation(fields: [supplierMaterialId], references: [id])
+  productionDate  DateTime? // 生产日期
+  expiryDate      DateTime? // 有效期
+  supplierId      String?   // 供应商ID
+  supplier        Supplier?  @relation(fields: [supplierId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  inboundItems    InboundOrderItem[]
+  materialStocks MaterialStock[]
+
+  @@unique([supplierMaterialId, batchNo])
 }
 
 model SKUBatch {

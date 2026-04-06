@@ -14,6 +14,7 @@ import { useOwnerStore } from '../stores/owner';
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
   COLD: '冷链仓',
+  MATERIAL: '原料仓',
 };
 
 const statusMap: Record<string, string> = {
@@ -367,6 +368,7 @@ export default function WarehousesPage() {
                   >
                     <option value="NORMAL">普通仓</option>
                     <option value="COLD">冷链仓</option>
+                    <option value="MATERIAL">原料仓</option>
                   </select>
                 </div>
                 <div>

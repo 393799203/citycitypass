@@ -26,6 +26,8 @@ const Owners = lazy(() => import('./pages/Owners'));
 const Users = lazy(() => import('./pages/Users'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Suppliers = lazy(() => import('./pages/Suppliers'));
+const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'));
+const PurchaseDetail = lazy(() => import('./pages/PurchaseDetail'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -56,6 +58,8 @@ function App() {
             <Route path="products" element={<Products />} />
             <Route path="customers" element={<Customers />} />
             <Route path="suppliers" element={<Suppliers />} />
+            <Route path="purchases" element={<PurchaseOrders />} />
+            <Route path="purchases/:id" element={<PurchaseDetail />} />
             <Route path="warehouses" element={<Warehouses />} />
             <Route path="warehouses/:id" element={<WarehouseDetail />} />
             <Route path="inventory" element={<StockIns />} />

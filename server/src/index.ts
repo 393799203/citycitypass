@@ -23,9 +23,12 @@ import contractRoutes from './routes/contracts';
 import uploadRoutes from './routes/upload';
 import supplierRoutes from './routes/suppliers';
 import supplierContractRoutes from './routes/supplierContracts';
+import supplierProductRoutes from './routes/supplierProducts';
+import supplierMaterialRoutes from './routes/supplierMaterials';
 import carrierRoutes from './routes/carriers';
 import skuBatchRoutes from './routes/skuBatches';
 import bundleBatchRoutes from './routes/bundleBatches';
+import purchaseOrderRoutes from './routes/purchaseOrders';
 
 dotenv.config();
 
@@ -55,9 +58,12 @@ app.use('/api/contracts', ownerMiddleware, contractRoutes);
 app.use('/api/upload', ownerMiddleware, uploadRoutes);
 app.use('/api/suppliers', ownerMiddleware, supplierRoutes);
 app.use('/api/supplier-contracts', ownerMiddleware, supplierContractRoutes);
+app.use('/api/supplier-products', ownerMiddleware, supplierProductRoutes);
+app.use('/api/supplier-materials', ownerMiddleware, supplierMaterialRoutes);
 app.use('/api/carriers', ownerMiddleware, carrierRoutes);
 app.use('/api/sku-batches', ownerMiddleware, skuBatchRoutes);
 app.use('/api/bundle-batches', ownerMiddleware, bundleBatchRoutes);
+app.use('/api/purchase-orders', ownerMiddleware, purchaseOrderRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

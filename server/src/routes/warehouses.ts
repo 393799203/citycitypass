@@ -7,7 +7,7 @@ const router = Router();
 const warehouseSchema = z.object({
   code: z.string().min(1, '仓库编码不能为空'),
   name: z.string().min(1, '仓库名称不能为空'),
-  type: z.enum(['NORMAL', 'COLD']).optional(),
+  type: z.enum(['NORMAL', 'COLD', 'MATERIAL']).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']).optional(),
   province: z.string().optional(),
   city: z.string().optional(),
@@ -159,8 +159,24 @@ router.get('/:id', async (req: Request, res: Response) => {
       }
     });
 
+    const materialStocks = await prisma.materialStock.findMany({
+      where: { warehouseId: id, location: { shelfId: { in: shelfIds } } },
+      include: {
+        supplierMaterial: true,
+        materialBatch: true,
+        location: {
+          include: {
+            shelf: {
+              include: { zone: true }
+            }
+          }
+        }
+      }
+    });
+
     const shelfStocksMap: Record<string, any[]> = {};
     const shelfBundleStocksMap: Record<string, any[]> = {};
+    const shelfMaterialStocksMap: Record<string, any[]> = {};
 
     for (const stock of stocks) {
       if (stock.location?.shelfId) {
@@ -180,10 +196,20 @@ router.get('/:id', async (req: Request, res: Response) => {
       }
     }
 
+    for (const stock of materialStocks) {
+      if (stock.location?.shelfId) {
+        if (!shelfMaterialStocksMap[stock.location.shelfId]) {
+          shelfMaterialStocksMap[stock.location.shelfId] = [];
+        }
+        shelfMaterialStocksMap[stock.location.shelfId].push(stock);
+      }
+    }
+
     const shelvesWithStocks = allShelves.map(shelf => ({
       ...shelf,
       stocks: shelfStocksMap[shelf.id] || [],
       bundleStocks: shelfBundleStocksMap[shelf.id] || [],
+      materialStocks: shelfMaterialStocksMap[shelf.id] || [],
     }));
 
     const stockStats = await prisma.stock.aggregate({
@@ -465,15 +491,21 @@ router.get('/:id/zones', async (req: Request, res: Response) => {
     const allLocations = zones.flatMap(z => z.shelves.flatMap(s => s.locations.map(l => l.id)));
     const locationIds = allLocations.length > 0 ? allLocations : ['none'];
 
-    const [stocks, bundleStocks] = await Promise.all([
+    const [stocks, bundleStocks, materialStocks] = await Promise.all([
       prisma.stock.findMany({ where: { locationId: { in: locationIds } } }),
       prisma.bundleStock.findMany({ where: { locationId: { in: locationIds } } }),
+      prisma.materialStock.findMany({
+        where: { locationId: { in: locationIds } },
+        include: { supplierMaterial: true }
+      }),
     ]);
 
     const stockMap: Record<string, any> = {};
     const bundleStockMap: Record<string, any> = {};
+    const materialStockMap: Record<string, any> = {};
     stocks.forEach(s => { if (s.locationId) stockMap[s.locationId] = s; });
     bundleStocks.forEach(b => { if (b.locationId) bundleStockMap[b.locationId] = b; });
+    materialStocks.forEach(m => { if (m.locationId) materialStockMap[m.locationId] = m; });
 
     const zonesWithStocks = zones.map(zone => ({
       ...zone,
@@ -483,6 +515,7 @@ router.get('/:id/zones', async (req: Request, res: Response) => {
           ...loc,
           stock: stockMap[loc.id] || null,
           bundleStock: bundleStockMap[loc.id] || null,
+          materialStock: materialStockMap[loc.id] || null,
         })),
       })),
     }));

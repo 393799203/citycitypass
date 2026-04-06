@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../../lib/prisma';
-import { findOrCreateSkuBatch, findOrCreateBundleBatch } from '../../utils/stockHelpers';
+import { findOrCreateSkuBatch, findOrCreateBundleBatch, findOrCreateMaterialBatch } from '../../utils/stockHelpers';
 
 const router = Router();
 
@@ -100,7 +100,7 @@ router.get('/stock-in', async (req: Request, res: Response) => {
 // POST /inbound-order
 router.post('/inbound-order', async (req: Request, res: Response) => {
   try {
-    const { warehouseId, source, remark, items, returnOrderId } = req.body;
+    const { warehouseId, source, remark, items, returnOrderId, purchaseOrderId } = req.body;
 
     if (!warehouseId) {
       return res.status(400).json({ success: false, message: '仓库不能为空' });
@@ -118,8 +118,19 @@ router.post('/inbound-order', async (req: Request, res: Response) => {
           source: source || 'PURCHASE',
           remark: remark || null,
           status: source === 'RETURN' ? 'RECEIVED' : 'PENDING',
+          purchaseOrderId: purchaseOrderId || null,
         },
       });
+
+      // 如果有关联采购单，获取供应商ID
+      let purchaseOrderSupplierId = null;
+      if (purchaseOrderId) {
+        const purchaseOrder = await tx.purchaseOrder.findUnique({
+          where: { id: purchaseOrderId },
+          select: { supplierId: true },
+        });
+        purchaseOrderSupplierId = purchaseOrder?.supplierId || null;
+      }
 
       await tx.inboundOrderItem.createMany({
         data: items.map((item: any) => ({
@@ -127,6 +138,8 @@ router.post('/inbound-order', async (req: Request, res: Response) => {
           type: item.type,
           skuId: item.skuId || null,
           bundleId: item.bundleId || null,
+          supplierMaterialId: item.supplierMaterialId || null,
+          supplierId: purchaseOrderSupplierId,
           locationId: item.locationId || undefined,
           quantity: item.quantity,
           expectedQuantity: item.quantity,
@@ -176,6 +189,7 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
       where,
       include: {
         warehouse: { include: { owner: true } },
+        purchaseOrder: { select: { id: true, orderNo: true } },
         items: {
           include: {
             location: {
@@ -189,6 +203,8 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
             },
             skuBatch: true,
             bundleBatch: true,
+            materialBatch: true,
+            supplier: true,
           },
         },
       },
@@ -212,6 +228,11 @@ router.get('/inbound-orders', async (req: Request, res: Response) => {
                 include: { items: { include: { sku: { include: { product: true } } } } },
               });
               return { ...item, bundle };
+            } else if ((itemType === 'MATERIAL' || itemType === 'OTHER') && item.supplierMaterialId) {
+              const supplierMaterial = await prisma.supplierMaterial.findUnique({
+                where: { id: item.supplierMaterialId },
+              });
+              return { ...item, supplierMaterial };
             }
             return item;
           })
@@ -277,6 +298,14 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
             supplierId: item.supplierId || undefined,
           });
           updateItemData.bundleBatchId = bundleBatch.id;
+        } else if (item.batchNo && (item.type === 'MATERIAL' || item.type === 'OTHER') && item.supplierMaterialId) {
+          const materialBatch = await findOrCreateMaterialBatch(prisma, {
+            supplierMaterialId: item.supplierMaterialId,
+            batchNo: item.batchNo,
+            expiryDate: item.expiryDate,
+            supplierId: item.supplierId || undefined,
+          });
+          updateItemData.materialBatchId = materialBatch.id;
         }
 
         await prisma.inboundOrderItem.update({
@@ -415,6 +444,55 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                   status: 'COMPLETED',
                 },
               });
+            } else if ((item.type === 'MATERIAL' || item.type === 'OTHER') && item.supplierMaterialId && item.locationId) {
+              const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
+                ? item.receivedQuantity
+                : (item.expectedQuantity || 0);
+
+              let materialBatchId = item.materialBatchId;
+              if (!materialBatchId) {
+                const defaultBatch = await tx.materialBatch.findFirst({
+                  where: { supplierMaterialId: item.supplierMaterialId, batchNo: '' }
+                });
+                if (defaultBatch) {
+                  materialBatchId = defaultBatch.id;
+                } else {
+                  const newBatch = await tx.materialBatch.create({
+                    data: { supplierMaterialId: item.supplierMaterialId, batchNo: '' }
+                  });
+                  materialBatchId = newBatch.id;
+                }
+              }
+
+              let materialStock = await tx.materialStock.findFirst({
+                where: {
+                  supplierMaterialId: item.supplierMaterialId,
+                  warehouseId: orderWithItems.warehouseId,
+                  locationId: item.locationId || undefined,
+                  materialBatchId,
+                },
+              });
+
+              if (materialStock) {
+                await tx.materialStock.update({
+                  where: { id: materialStock.id },
+                  data: {
+                    totalQuantity: { increment: quantity },
+                    availableQuantity: { increment: quantity },
+                  },
+                });
+              } else {
+                await tx.materialStock.create({
+                  data: {
+                    supplierMaterialId: item.supplierMaterialId,
+                    warehouseId: orderWithItems.warehouseId,
+                    locationId: item.locationId || undefined,
+                    materialBatchId,
+                    totalQuantity: quantity,
+                    availableQuantity: quantity,
+                  },
+                });
+              }
             }
           }
         });
@@ -427,8 +505,16 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
       include: {
         warehouse: true,
         items: true,
+        purchaseOrder: true,
       },
     });
+
+    if (arrivedAt && updated.purchaseOrderId && updated.purchaseOrder) {
+      await prisma.purchaseOrder.update({
+        where: { id: updated.purchaseOrderId },
+        data: { status: 'ARRIVED' },
+      });
+    }
 
     res.json({ success: true, data: updated });
   } catch (error) {

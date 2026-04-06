@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle, Sparkles } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
@@ -952,10 +952,10 @@ export default function OrdersPage() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
           >
-            <Download className="w-5 h-5" />
-            导入
+            <Sparkles className="w-5 h-5" />
+            AI智慧导入
           </button>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}

@@ -265,3 +265,34 @@ export const bundleBatchApi = {
   update: (id: string, data: any) => api.put(`/bundle-batches/${id}`, data),
   delete: (id: string) => api.delete(`/bundle-batches/${id}`),
 };
+
+export const purchaseOrderApi = {
+  list: (params?: any) => api.get('/purchase-orders', { params }),
+  get: (id: string) => api.get(`/purchase-orders/${id}`),
+  create: (data: any) => api.post('/purchase-orders', data),
+  update: (id: string, data: any) => api.put(`/purchase-orders/${id}`, data),
+  delete: (id: string) => api.delete(`/purchase-orders/${id}`),
+  confirm: (id: string) => api.patch(`/purchase-orders/${id}/confirm`),
+  cancel: (id: string) => api.patch(`/purchase-orders/${id}/cancel`),
+  createDelivery: (orderId: string, data: any) => api.post(`/purchase-orders/${orderId}/deliveries`, data),
+  listDeliveries: (orderId: string) => api.get(`/purchase-orders/${orderId}/deliveries`),
+  receiveDelivery: (deliveryId: string, data: any) => api.patch(`/purchase-orders/deliveries/${deliveryId}/receive`, data),
+};
+
+export const supplierProductApi = {
+  list: (params?: any) => api.get('/supplier-products', { params }),
+  getBySupplier: (supplierId: string) => api.get('/supplier-products', { params: { supplierId } }),
+  create: (data: any) => api.post('/supplier-products', data),
+  batch: (supplierId: string, items: any[]) => api.post('/supplier-products/batch', { supplierId, items }),
+  update: (id: string, data: any) => api.put(`/supplier-products/${id}`, data),
+  delete: (id: string) => api.delete(`/supplier-products/${id}`),
+};
+
+export const supplierMaterialApi = {
+  list: (params?: any) => api.get('/supplier-materials', { params }),
+  getBySupplier: (supplierId: string) => api.get('/supplier-materials', { params: { supplierId } }),
+  create: (data: any) => api.post('/supplier-materials', data),
+  batch: (supplierId: string, items: any[]) => api.post('/supplier-materials/batch', { supplierId, items }),
+  update: (id: string, data: any) => api.put(`/supplier-materials/${id}`, data),
+  delete: (id: string) => api.delete(`/supplier-materials/${id}`),
+};

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText, Package } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
-import { supplierApi, supplierContractApi, ownerApi } from '../api';
+import { supplierApi, supplierContractApi, supplierProductApi, supplierMaterialApi, productApi, bundleApi, ownerApi } from '../api';
 import OwnerStamp from '../components/OwnerStamp';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
@@ -102,6 +102,15 @@ export default function SuppliersPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [supplierContracts, setSupplierContracts] = useState<SupplierContract[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [supplierProducts, setSupplierProducts] = useState<any[]>([]);
+  const [supplierMaterials, setSupplierMaterials] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [allBundles, setAllBundles] = useState<any[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [selectedBundles, setSelectedBundles] = useState<any[]>([]);
+  const [productType, setProductType] = useState<'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER'>('PRODUCT');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   const fetchSuppliers = async () => {
     setLoading(true);
@@ -399,16 +408,66 @@ export default function SuppliersPage() {
                 )}
                 <div className="flex gap-2 pt-2 border-t">
                   <button
-                    onClick={() => handleEdit(supplier)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
-                  >
-                    <Pencil className="w-4 h-4" /> 编辑
-                  </button>
-                  <button
                     onClick={() => handleOpenContractModal(supplier)}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-green-200 text-green-600 rounded text-sm hover:bg-green-50"
                   >
                     <FileText className="w-4 h-4" /> 合同
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!supplier) return;
+                      try {
+                        const [productRes, bundleRes, supplierProductRes, materialRes] = await Promise.all([
+                          productApi.list({ ownerId: supplier.ownerId }),
+                          bundleApi.list({ ownerId: supplier.ownerId }),
+                          supplierProductApi.getBySupplier(supplier.id),
+                          supplierMaterialApi.getBySupplier(supplier.id),
+                        ]);
+                        setAllProducts(productRes.data.data || []);
+                        setAllBundles(bundleRes.data.data || []);
+                        setSupplierMaterials(materialRes.data.data || []);
+                        const existingProducts = supplierProductRes.data.data || [];
+                        const selectedSkus: any[] = [];
+                        const selectedBdles: any[] = [];
+                        existingProducts.forEach((p: any) => {
+                          if (p.itemType === 'PRODUCT' && p.sku) {
+                            selectedSkus.push({
+                              skuId: p.skuId,
+                              productId: p.sku.productId,
+                              productName: p.sku.product?.name,
+                              spec: p.sku.spec,
+                              packaging: p.sku.packaging,
+                              price: p.price,
+                              supplierPrice: p.price,
+                            });
+                          } else if (p.itemType === 'BUNDLE' && p.bundle) {
+                            selectedBdles.push({
+                              bundleId: p.bundleId,
+                              bundleName: p.bundle.name,
+                              spec: p.bundle.spec,
+                              packaging: p.bundle.packaging,
+                              price: p.bundle.price,
+                              supplierPrice: p.price,
+                            });
+                          }
+                        });
+                        setSelectedProducts(selectedSkus);
+                        setSelectedBundles(selectedBdles);
+                        setSelectedSupplier(supplier);
+                        setShowProductModal(true);
+                      } catch (error) {
+                        toast.error('加载商品失败');
+                      }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-purple-200 text-purple-600 rounded text-sm hover:bg-purple-50"
+                  >
+                    <Package className="w-4 h-4" /> 商品
+                  </button>
+                  <button
+                    onClick={() => handleEdit(supplier)}
+                    className="px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
+                  >
+                    <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(supplier.id)}
@@ -757,6 +816,395 @@ export default function SuppliersPage() {
                   <p className="text-gray-500 text-sm">暂无合同</p>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+              <h2 className="text-lg font-bold">供应商品管理 {selectedSupplier && `- ${selectedSupplier.name}`}</h2>
+              <button onClick={() => { setShowProductModal(false); setSelectedProducts([]); setSelectedBundles([]); }}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-1 overflow-hidden">
+              <div className="w-1/2 border-r flex flex-col">
+                <div className="flex border-b bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => setProductType('PRODUCT')}
+                    className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
+                      productType === 'PRODUCT' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
+                    }`}
+                  >
+                    商品
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductType('BUNDLE')}
+                    className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
+                      productType === 'BUNDLE' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
+                    }`}
+                  >
+                    套装
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductType('MATERIAL')}
+                    className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
+                      productType === 'MATERIAL' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500'
+                    }`}
+                  >
+                    原材料
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductType('OTHER')}
+                    className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
+                      productType === 'OTHER' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500'
+                    }`}
+                  >
+                    其他
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 px-4 py-2 border-b bg-gray-50">
+                  <input
+                    type="text"
+                    placeholder={productType === 'PRODUCT' ? "搜索商品..." : productType === 'BUNDLE' ? "搜索套装..." : "搜索..."}
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-2">
+                  {productType === 'PRODUCT' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {allProducts
+                        .filter((p: any) => p.name.toLowerCase().includes(searchKeyword.toLowerCase()))
+                        .map((p: any) => (
+                          <div key={p.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                            <div className="p-2 font-medium text-gray-700 text-xs bg-gray-50">{p.name}</div>
+                            <div className="p-1">
+                              {(p.skus || []).map((sku: any) => {
+                                const isSelected = selectedProducts.some(s => s.skuId === sku.id);
+                                return (
+                                  <div
+                                    key={sku.id}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setSelectedProducts(selectedProducts.filter(s => s.skuId !== sku.id));
+                                      } else {
+                                        setSelectedProducts([...selectedProducts, {
+                                          skuId: sku.id,
+                                          productId: p.id,
+                                          productName: p.name,
+                                          spec: sku.spec,
+                                          packaging: sku.packaging,
+                                          price: sku.price,
+                                          supplierPrice: sku.price,
+                                        }]);
+                                      }
+                                    }}
+                                    className={`p-2 rounded cursor-pointer text-xs mb-1 last:mb-0 ${
+                                      isSelected
+                                        ? 'bg-blue-50 border border-blue-400 text-blue-700'
+                                        : 'hover:bg-gray-50 border border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span>{sku.spec} / {sku.packaging}</span>
+                                      {sku.price && <span className="text-green-600">¥{sku.price}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : productType === 'BUNDLE' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {allBundles
+                        .filter((b: any) => b.name.toLowerCase().includes(searchKeyword.toLowerCase()))
+                        .map((b: any) => {
+                          const isSelected = selectedBundles.some(s => s.bundleId === b.id);
+                          return (
+                            <div
+                              key={b.id}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedBundles(selectedBundles.filter(s => s.bundleId !== b.id));
+                                } else {
+                                  setSelectedBundles([...selectedBundles, {
+                                    bundleId: b.id,
+                                    bundleName: b.name,
+                                    spec: b.spec,
+                                    packaging: b.packaging,
+                                    price: b.price,
+                                    supplierPrice: b.price,
+                                  }]);
+                                }
+                              }}
+                              className={`p-2 border rounded-lg cursor-pointer text-xs bg-white ${
+                                isSelected
+                                  ? 'border-purple-500 bg-purple-50'
+                                  : 'border-purple-200 hover:border-purple-500 hover:bg-purple-50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-purple-600 truncate">{b.name}</span>
+                                {b.price && <span className="text-green-600 shrink-0 ml-1">¥{b.price}</span>}
+                              </div>
+                              {b.spec && <div className="text-xs text-gray-400 mt-1">{b.spec} / {b.packaging}</div>}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : null}
+                  {(productType === 'MATERIAL' || productType === 'OTHER') && (
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <input
+                          type="text"
+                          placeholder="名称"
+                          id="materialName"
+                          className="flex-1 px-2 py-1.5 border rounded text-sm"
+                        />
+                        <input
+                          type="text"
+                          placeholder="单位"
+                          id="materialUnit"
+                          className="w-16 px-2 py-1.5 border rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          placeholder="单价"
+                          id="materialPrice"
+                          className="w-20 px-2 py-1.5 border rounded text-sm"
+                        />
+                        <button
+                          onClick={() => {
+                            const nameInput = document.getElementById('materialName') as HTMLInputElement;
+                            const unitInput = document.getElementById('materialUnit') as HTMLInputElement;
+                            const priceInput = document.getElementById('materialPrice') as HTMLInputElement;
+                            const name = nameInput?.value?.trim();
+                            if (!name) return;
+                            const exists = supplierMaterials.some(m => m.name === name && m.category === productType);
+                            if (!exists) {
+                              setSupplierMaterials([...supplierMaterials, {
+                                id: `new-${Date.now()}`,
+                                name,
+                                category: productType,
+                                unit: unitInput?.value?.trim() || '',
+                                price: priceInput?.value ? parseFloat(priceInput.value) : null,
+                              }]);
+                              nameInput.value = '';
+                              unitInput.value = '';
+                              priceInput.value = '';
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                        >
+                          添加
+                        </button>
+                      </div>
+                      {supplierMaterials.filter(m => m.category === productType).length > 0 && (
+                        <div className="space-y-1">
+                          {supplierMaterials.filter(m => m.category === productType).map((item: any) => (
+                            <div key={item.id} className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded text-sm">
+                              <span className="text-sm font-medium text-green-700">{item.name}</span>
+                              {item.unit && <span className="text-xs text-gray-500">({item.unit})</span>}
+                              <span className="text-xs text-gray-400 ml-auto mr-2">{item.price ? `¥${item.price}` : ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="w-1/2 flex flex-col max-h-[70vh]">
+                <div className="p-4 border-b bg-gray-50">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-700">供货商品</span>
+                    <span className="text-xs text-gray-500">
+                      {selectedProducts.length + selectedBundles.length + supplierMaterials.length} 个
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4">
+                  {selectedProducts.length === 0 && selectedBundles.length === 0 && supplierMaterials.length === 0 ? (
+                    <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
+                      点击左侧商品添加到清单
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedProducts.map((item: any, idx: number) => (
+                        <div key={`p-${item.skuId}`} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-600">商</span>
+                              <span className="font-medium truncate">{item.productName}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 ml-6">{item.spec} / {item.packaging}</div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">供货价:</span>
+                              <input
+                                type="number"
+                                value={item.supplierPrice}
+                                onChange={(e) => {
+                                  const newPrice = parseFloat(e.target.value) || 0;
+                                  setSelectedProducts(selectedProducts.map((s: any, i: number) =>
+                                    i === idx ? { ...s, supplierPrice: newPrice } : s
+                                  ));
+                                }}
+                                className="w-20 px-2 py-1 border rounded text-center text-sm"
+                              />
+                            </div>
+                            <button
+                              onClick={() => setSelectedProducts(selectedProducts.filter((_: any, i: number) => i !== idx))}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {selectedBundles.map((item: any, idx: number) => (
+                        <div key={`b-${item.bundleId}`} className="flex items-center justify-between p-3 bg-purple-50 border border-purple-100 rounded-lg text-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-purple-100 text-purple-600">套</span>
+                              <span className="font-medium truncate">{item.bundleName}</span>
+                            </div>
+                            {item.spec && <div className="text-xs text-gray-500 ml-6">{item.spec} / {item.packaging}</div>}
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">供货价:</span>
+                              <input
+                                type="number"
+                                value={item.supplierPrice}
+                                onChange={(e) => {
+                                  const newPrice = parseFloat(e.target.value) || 0;
+                                  setSelectedBundles(selectedBundles.map((b: any, i: number) =>
+                                    i === idx ? { ...b, supplierPrice: newPrice } : b
+                                  ));
+                                }}
+                                className="w-20 px-2 py-1 border rounded text-center text-sm"
+                              />
+                            </div>
+                            <button
+                              onClick={() => setSelectedBundles(selectedBundles.filter((_: any, i: number) => i !== idx))}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {supplierMaterials.map((item: any) => {
+                        const isMaterial = item.category === 'MATERIAL';
+                        return (
+                        <div key={item.id} className={`flex items-center justify-between p-3 ${isMaterial ? 'bg-green-50 border border-green-100' : 'bg-orange-50 border border-orange-100'} rounded-lg text-sm`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-1.5 py-0.5 text-xs rounded ${isMaterial ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{isMaterial ? '原' : '其他'}</span>
+                              <span className="font-medium truncate">{item.name}</span>
+                              {item.unit && <span className="text-xs text-gray-400">({item.unit})</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">供货价:</span>
+                              <input
+                                type="number"
+                                value={item.price || ''}
+                                onChange={(e) => {
+                                  const newMaterials = supplierMaterials.map((m: any) =>
+                                    m.id === item.id ? { ...m, price: e.target.value } : m
+                                  );
+                                  setSupplierMaterials(newMaterials);
+                                }}
+                                className="w-20 px-2 py-1 border rounded text-center text-sm"
+                              />
+                            </div>
+                            <button
+                              onClick={() => setSupplierMaterials(supplierMaterials.filter((m: any) => m.id !== item.id))}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-4 border-t">
+              <button
+                onClick={() => { setShowProductModal(false); setSelectedProducts([]); setSelectedBundles([]); setSearchKeyword(''); }}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const productItems: any[] = [];
+                    selectedProducts.forEach((item: any) => {
+                      productItems.push({
+                        itemType: 'PRODUCT',
+                        skuId: item.skuId,
+                        price: item.supplierPrice,
+                      });
+                    });
+                    selectedBundles.forEach((item: any) => {
+                      productItems.push({
+                        itemType: 'BUNDLE',
+                        bundleId: item.bundleId,
+                        price: item.supplierPrice,
+                      });
+                    });
+                    const materialItems = supplierMaterials.map((item: any) => ({
+                      name: item.name,
+                      category: item.category,
+                      unit: item.unit,
+                      price: item.price,
+                    }));
+                    if (selectedSupplier) {
+                      await supplierProductApi.batch(selectedSupplier.id, productItems);
+                      await supplierMaterialApi.batch(selectedSupplier.id, materialItems);
+                      toast.success('供应商品已保存');
+                      setShowProductModal(false);
+                      setSelectedProducts([]);
+                      setSelectedBundles([]);
+                      setSearchKeyword('');
+                    }
+                  } catch (error: any) {
+                    toast.error(error.response?.data?.message || '保存失败');
+                  }
+                }}
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                保存
+              </button>
             </div>
           </div>
         </div>

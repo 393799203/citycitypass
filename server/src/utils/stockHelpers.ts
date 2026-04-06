@@ -71,6 +71,35 @@ export async function findOrCreateBundleBatch(
   return batch;
 }
 
+export async function findOrCreateMaterialBatch(
+  tx: any,
+  data: {
+    supplierMaterialId: string;
+    batchNo: string;
+    expiryDate?: string;
+    productionDate?: string;
+    supplierId?: string;
+  }
+) {
+  let batch = await tx.materialBatch.findFirst({
+    where: { supplierMaterialId: data.supplierMaterialId, batchNo: data.batchNo },
+  });
+
+  if (!batch) {
+    batch = await tx.materialBatch.create({
+      data: {
+        supplierMaterialId: data.supplierMaterialId,
+        batchNo: data.batchNo,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+        productionDate: data.productionDate ? new Date(data.productionDate) : null,
+        supplierId: data.supplierId,
+      },
+    });
+  }
+
+  return batch;
+}
+
 export async function findOrCreateStock(
   tx: any,
   data: {

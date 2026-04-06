@@ -78,12 +78,14 @@ interface InboundItemInput {
 
 interface ArrivalItemInput {
   id: string;
-  type: 'PRODUCT' | 'BUNDLE';
+  type: 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER';
   skuId?: string;
   bundleId?: string;
+  supplierMaterialId?: string;
   productName: string;
   spec?: string;
   packaging?: string;
+  unit?: string;
   expectedQuantity: number;
   arrivalQuantity: number;
   supplierId?: string;
@@ -94,28 +96,33 @@ interface ArrivalItemInput {
 
 interface ReceivingItemInput {
   id: string;
-  type: 'PRODUCT' | 'BUNDLE';
+  type: 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER';
   skuId?: string;
   bundleId?: string;
+  supplierMaterialId?: string;
   productName: string;
   spec?: string;
   packaging?: string;
+  unit?: string;
   expectedQuantity: number;
   receivedQuantity: number;
   batchNo?: string;
   expiryDate?: string;
+  supplierId?: string;
   inspectionResult: 'OK' | 'SHORT' | 'DAMAGED' | 'PENDING';
   inspectionNote: string;
 }
 
 interface PutawayItemInput {
   id: string;
-  type: 'PRODUCT' | 'BUNDLE';
+  type: 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER';
   skuId?: string;
   bundleId?: string;
+  supplierMaterialId?: string;
   productName: string;
   spec?: string;
   packaging?: string;
+  unit?: string;
   quantity: number;
   originalLocationId?: string;
   originalLocationCode?: string;
@@ -423,9 +430,7 @@ export default function InboundPage() {
     setArrivalVehicleNo('');
 
     try {
-      const ownerId = order.warehouse?.ownerId;
-      const params = ownerId ? { ownerId } : {};
-      const res = await supplierApi.list(params);
+      const res = await supplierApi.list();
       if (res.data.success) {
         setSuppliers(res.data.data || []);
       }
@@ -440,21 +445,27 @@ export default function InboundPage() {
       const itemBatches = allBatches.filter((b: any) => {
         if (item.type === 'PRODUCT') {
           return b.type === 'PRODUCT' && b.skuId === item.skuId;
-        } else {
+        } else if (item.type === 'BUNDLE') {
           return b.type === 'BUNDLE' && b.bundleId === item.bundleId;
         }
+        return false;
       });
+      const isMaterialOrOther = item.type === 'MATERIAL' || item.type === 'OTHER';
       return {
         id: item.id,
-        type: item.type as 'PRODUCT' | 'BUNDLE',
+        type: item.type as 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER',
         skuId: item.skuId,
         bundleId: item.bundleId,
-        productName: item.sku?.product?.name || item.bundle?.name || '',
-        spec: item.sku?.spec || item.bundle?.spec || '',
-        packaging: item.sku?.packaging || item.bundle?.packaging || '',
+        supplierMaterialId: item.supplierMaterialId,
+        productName: isMaterialOrOther
+          ? (item.supplierMaterial?.name || '')
+          : (item.sku?.product?.name || item.bundle?.name || ''),
+        spec: isMaterialOrOther ? '' : (item.sku?.spec || item.bundle?.spec || ''),
+        packaging: isMaterialOrOther ? '' : (item.sku?.packaging || item.bundle?.packaging || ''),
+        unit: isMaterialOrOther ? (item.supplierMaterial?.unit || '') : '',
         expectedQuantity: item.expectedQuantity || 0,
         arrivalQuantity: item.arrivalQuantity || item.expectedQuantity || 0,
-        supplierId: '',
+        supplierId: (item as any).supplierId || '',
         batchNo: '',
         expiryDate: '',
         availableBatches: itemBatches,
@@ -471,6 +482,7 @@ export default function InboundPage() {
         type: item.type,
         skuId: item.skuId,
         bundleId: item.bundleId,
+        supplierMaterialId: item.supplierMaterialId,
         arrivalQuantity: item.arrivalQuantity,
         supplierId: item.supplierId || null,
         batchNo: item.batchNo || null,
@@ -502,19 +514,25 @@ export default function InboundPage() {
   const openReceivingModal = (order: InboundOrder) => {
     setSelectedReceivingOrder(order);
     setReceivingItems(order.items.map(item => {
-      const batch = item.type === 'PRODUCT' ? item.skuBatch : item.bundleBatch;
+      const batch = item.type === 'PRODUCT' ? item.skuBatch : item.type === 'BUNDLE' ? item.bundleBatch : item.materialBatch;
+      const isMaterialOrOther = item.type === 'MATERIAL' || item.type === 'OTHER';
       return {
         id: item.id,
-        type: item.type as 'PRODUCT' | 'BUNDLE',
+        type: item.type as 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER',
         skuId: item.skuId,
         bundleId: item.bundleId,
-        productName: item.sku?.product?.name || item.bundle?.name || '',
-        spec: item.sku?.spec || item.bundle?.spec || '',
-        packaging: item.sku?.packaging || item.bundle?.packaging || '',
+        supplierMaterialId: item.supplierMaterialId,
+        productName: isMaterialOrOther
+          ? (item as any).supplierMaterial?.name || ''
+          : (item as any).sku?.product?.name || (item as any).bundle?.name || '',
+        spec: isMaterialOrOther ? '' : ((item as any).sku?.spec || (item as any).bundle?.spec || ''),
+        packaging: isMaterialOrOther ? '' : ((item as any).sku?.packaging || (item as any).bundle?.packaging || ''),
+        unit: isMaterialOrOther ? (item as any).supplierMaterial?.unit || '' : '',
         expectedQuantity: item.expectedQuantity || 0,
         receivedQuantity: item.receivedQuantity || 0,
         batchNo: batch?.batchNo || '',
         expiryDate: batch?.expiryDate ? batch.expiryDate.split('T')[0] : '',
+        supplierId: (item as any).supplierId || '',
         inspectionResult: (item.inspectionResult as any) || 'PENDING',
         inspectionNote: item.inspectionNote || '',
       };
@@ -594,19 +612,24 @@ export default function InboundPage() {
       const items = order.items.map(item => {
         const location = item.location;
         const locationCode = location ? `${location.shelf?.zone?.code || ''}-${location.shelf?.code || ''}-L${location.level || ''}` : '';
-
         const recommendedLocation = recommendLocation(item, zonesData, order.source);
         const actualQty = item.receivedQuantity !== undefined && item.receivedQuantity !== null ? item.receivedQuantity : (item.expectedQuantity || 0);
+        const batch = item.type === 'PRODUCT' ? item.skuBatch : item.type === 'BUNDLE' ? item.bundleBatch : item.materialBatch;
+        const isMaterialOrOther = item.type === 'MATERIAL' || item.type === 'OTHER';
 
         return {
           id: item.id,
-          type: item.type as 'PRODUCT' | 'BUNDLE',
+          type: item.type as 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER',
           skuId: item.skuId,
           bundleId: item.bundleId,
-          productName: item.sku?.product?.name || item.bundle?.name || '',
-          spec: item.sku?.spec || item.bundle?.spec || '',
-          packaging: item.sku?.packaging || item.bundle?.packaging || '',
-          batchNo: item.batchNo || '',
+          supplierMaterialId: item.supplierMaterialId,
+          productName: isMaterialOrOther
+            ? (item as any).supplierMaterial?.name || ''
+            : (item as any).sku?.product?.name || (item as any).bundle?.name || '',
+          spec: isMaterialOrOther ? '' : ((item as any).sku?.spec || (item as any).bundle?.spec || ''),
+          packaging: isMaterialOrOther ? '' : ((item as any).sku?.packaging || (item as any).bundle?.packaging || ''),
+          unit: isMaterialOrOther ? (item as any).supplierMaterial?.unit || '' : '',
+          batchNo: batch?.batchNo || item.batchNo || '',
           quantity: actualQty,
           originalLocationId: item.locationId,
           originalLocationCode: locationCode,
@@ -941,18 +964,22 @@ export default function InboundPage() {
                 const orderRows = order.items?.map((item: any, idx: number) => {
                   const itemName = item.type === 'BUNDLE'
                     ? item.bundle?.name || '-'
+                    : item.type === 'MATERIAL' || item.type === 'OTHER'
+                    ? item.supplierMaterial?.name || '-'
                     : item.sku?.product?.name || '-';
                   const itemSpec = item.type === 'BUNDLE' ? item.bundle?.spec : item.sku?.spec;
                   const itemPackaging = item.type === 'BUNDLE' ? item.bundle?.packaging : item.sku?.packaging;
+                  const itemUnit = item.type === 'MATERIAL' || item.type === 'OTHER' ? item.supplierMaterial?.unit : null;
                   const locationCode = item.location?.shelf?.code
                     ? `${item.location.shelf?.zone?.code || ''}-${item.location.shelf?.code || ''}-L${item.location.level || ''}`
                     : '-';
-                  const batch = item.type === 'PRODUCT' ? item.skuBatch : item.bundleBatch;
+                  const batch = item.type === 'PRODUCT' ? item.skuBatch : item.type === 'BUNDLE' ? item.bundleBatch : item.materialBatch;
                   return {
                     idx,
                     itemName,
                     itemSpec,
                     itemPackaging,
+                    itemUnit,
                     locationCode,
                     quantity: item.receivedQuantity || item.expectedQuantity || item.quantity || 0,
                     batchNo: batch?.batchNo || '-',
@@ -966,8 +993,23 @@ export default function InboundPage() {
                   <tr key={`${order.id}-${row.idx}`} className="hover:bg-gray-50">
                     {rowIdx === 0 && (
                       <>
-                        <td className="px-4 py-3 text-sm font-mono text-center" rowSpan={orderRows.length}>
-                          {order.inboundNo}
+                        <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
+                          <div className="font-mono">{order.inboundNo}</div>
+                          {(order as any).purchaseOrder?.orderNo && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              采购单:{' '}
+                              <a
+                                href={`/purchases/${(order as any).purchaseOrder.id}`}
+                                className="hover:underline"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.location.pathname = `/purchases/${(order as any).purchaseOrder.id}`;
+                                }}
+                              >
+                                {(order as any).purchaseOrder.orderNo}
+                              </a>
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center" rowSpan={orderRows.length}>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${SOURCE_COLORS[order.source] || 'bg-gray-100 text-gray-700'}`}>
@@ -985,11 +1027,12 @@ export default function InboundPage() {
                     <td className="px-4 py-3 text-sm text-center">
                       <div className="flex items-center justify-center gap-1">
                         <span className={`px-1.5 py-0.5 text-xs rounded ${
-                          row.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                          row.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : row.itemType === 'MATERIAL' ? 'bg-green-100 text-green-600' : row.itemType === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
                         }`}>
-                          {row.itemType === 'BUNDLE' ? '套装' : '商品'}
+                          {row.itemType === 'BUNDLE' ? '套装' : row.itemType === 'MATERIAL' ? '原材料' : row.itemType === 'OTHER' ? '其他' : '商品'}
                         </span>
                         <span className="font-medium">{row.itemName}</span>
+                        {row.itemUnit && <span className="text-xs text-gray-500">({row.itemUnit})</span>}
                         {row.itemType === 'BUNDLE' && row.items && row.items.length > 0 && (
                           <button
                             type="button"
@@ -1465,7 +1508,7 @@ export default function InboundPage() {
                     {selectedOrder.items?.map((item: any, idx: number) => (
                       <tr key={idx}>
                         <td className="px-3 py-2 text-sm">
-                          {item.type === 'BUNDLE' ? item.bundle?.name : item.sku?.product?.name}
+                          {item.type === 'BUNDLE' ? item.bundle?.name : item.type === 'MATERIAL' || item.type === 'OTHER' ? item.supplierMaterial?.name : item.sku?.product?.name}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-500">{item.sku?.spec || '-'}</td>
                         <td className="px-3 py-2 text-sm text-gray-500">{item.sku?.packaging || '-'}</td>
@@ -1485,7 +1528,12 @@ export default function InboundPage() {
                         <td className="px-3 py-2 text-sm">
                           {item.location ? `${item.location.shelf?.zone?.code || ''}-${item.location.shelf?.code || ''}-L${item.location.level || ''}` : '-'}
                         </td>
-                        <td className="px-3 py-2 text-sm">{item.batchNo || '-'}</td>
+                        <td className="px-3 py-2 text-sm">
+                          {item.type === 'PRODUCT' ? item.skuBatch?.batchNo || item.batchNo || '-' :
+                           item.type === 'BUNDLE' ? item.bundleBatch?.batchNo || item.batchNo || '-' :
+                           item.type === 'MATERIAL' || item.type === 'OTHER' ? item.materialBatch?.batchNo || item.batchNo || '-' :
+                           '-'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1508,7 +1556,7 @@ export default function InboundPage() {
                         item.snCodes.map((sn: string, snIdx: number) => (
                           <tr key={`${idx}-${snIdx}`}>
                             <td className="px-3 py-2 text-sm">
-                              {item.type === 'BUNDLE' ? item.bundle?.name : item.sku?.product?.name}
+                              {item.type === 'BUNDLE' ? item.bundle?.name : item.type === 'MATERIAL' || item.type === 'OTHER' ? item.supplierMaterial?.name : item.sku?.product?.name}
                             </td>
                             <td className="px-3 py-2 text-sm">{item.batchNo || '-'}</td>
                             <td className="px-3 py-2 text-sm font-mono text-blue-600">{sn}</td>
@@ -1569,17 +1617,28 @@ export default function InboundPage() {
                     <th className="px-3 py-2 text-center text-xs">到货数</th>
                     <th className="px-3 py-2 text-center text-xs">供应商</th>
                     <th className="px-3 py-2 text-center text-xs">批次号</th>
-                    {arrivalItems.some(i => i.type === 'PRODUCT') && (
-                      <th className="px-3 py-2 text-center text-xs">有效期</th>
+                    {arrivalItems.some(i => i.type === 'PRODUCT' || i.type === 'BUNDLE') && (
+                      <>
+                        {arrivalItems.some(i => i.type === 'PRODUCT') && (
+                          <th className="px-3 py-2 text-center text-xs">有效期</th>
+                        )}
+                      </>
                     )}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {arrivalItems.map((item, idx) => (
                     <tr key={item.id}>
-                      <td className="px-3 py-2 text-sm">{item.productName}</td>
+                      <td className="px-3 py-2 text-sm">
+                        <span className={`px-1.5 py-0.5 text-xs rounded mr-1 ${
+                          item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' : item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                          {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
+                        </span>
+                        {item.productName}
+                      </td>
                       <td className="px-3 py-2 text-sm text-gray-500">
-                        {item.spec || '-'}{item.packaging ? ` / ${item.packaging}` : ''}
+                        {item.type === 'MATERIAL' || item.type === 'OTHER' ? (item.unit || '-') : (item.spec || '-')}{item.type !== 'MATERIAL' && item.type !== 'OTHER' && item.packaging ? ` / ${item.packaging}` : ''}
                       </td>
                       <td className="px-3 py-2 text-sm text-center">{item.expectedQuantity}</td>
                       <td className="px-3 py-2 text-center">
@@ -1736,7 +1795,9 @@ export default function InboundPage() {
                     <th className="px-3 py-2 text-center text-xs">计划</th>
                     <th className="px-3 py-2 text-center text-xs">实收</th>
                     <th className="px-3 py-2 text-center text-xs">批次</th>
-                    <th className="px-3 py-2 text-center text-xs">有效期</th>
+                    {receivingItems.some(i => i.type === 'PRODUCT') && (
+                      <th className="px-3 py-2 text-center text-xs">有效期</th>
+                    )}
                     <th className="px-3 py-2 text-center text-xs">验收</th>
                     <th className="px-3 py-2 text-left text-xs">备注</th>
                   </tr>
@@ -1794,19 +1855,20 @@ export default function InboundPage() {
                           placeholder="批次号"
                         />
                       </td>
-                      <td className="px-3 py-2 text-center">
-                        <input
-                          type="date"
-                          value={item.expiryDate || ''}
-                          onChange={(e) => {
-                            const newItems = [...receivingItems];
-                            newItems[idx].expiryDate = e.target.value;
-                            setReceivingItems(newItems);
-                          }}
-                          className="border rounded px-1 py-0.5 text-sm"
-                          disabled={item.type === 'BUNDLE'}
-                        />
-                      </td>
+                      {item.type === 'PRODUCT' && (
+                        <td className="px-3 py-2 text-center">
+                          <input
+                            type="date"
+                            value={item.expiryDate || ''}
+                            onChange={(e) => {
+                              const newItems = [...receivingItems];
+                              newItems[idx].expiryDate = e.target.value;
+                              setReceivingItems(newItems);
+                            }}
+                            className="border rounded px-1 py-0.5 text-sm"
+                          />
+                        </td>
+                      )}
                       <td className="px-3 py-2 text-center">
                         <select
                           value={item.inspectionResult}
@@ -1879,7 +1941,7 @@ export default function InboundPage() {
               <>
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="text-sm text-blue-800">
-                    <strong>推荐规则：</strong>优先推荐同批次同商品库位 → 空库位 → 任意库位
+                    <strong>AI推荐规则：</strong>优先推荐同批次同商品库位 → 空库位 → 任意库位
                   </div>
                 </div>
 
@@ -1891,7 +1953,7 @@ export default function InboundPage() {
                         <th className="px-3 py-2 text-left text-xs">商品</th>
                         <th className="px-3 py-2 text-center text-xs">数量</th>
                         <th className="px-3 py-2 text-left text-xs">原预计库位</th>
-                        <th className="px-3 py-2 text-center text-xs">推荐库位</th>
+                        <th className="px-3 py-2 text-center text-xs">AI推荐库位</th>
                         <th className="px-3 py-2 text-center text-xs">目标库位</th>
                       </tr>
                     </thead>
@@ -1899,8 +1961,14 @@ export default function InboundPage() {
                       {putawayItems.map((item, idx) => (
                         <tr key={item.id}>
                           <td className="px-3 py-2 text-sm">
-                            <div>{item.productName}</div>
-                            <div className="text-xs text-gray-500">{item.spec}/{item.packaging}</div>
+                            <span className={`px-1.5 py-0.5 text-xs rounded mr-1 ${
+                              item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' : item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
+                            </span>
+                            {item.productName}
+                            {item.unit && <span className="text-xs text-gray-500 ml-1">({item.unit})</span>}
+                            {!item.unit && (item.spec || item.packaging) && <span className="text-xs text-gray-500 ml-1">{item.spec}/{item.packaging}</span>}
                           </td>
                           <td className="px-3 py-2 text-sm text-center">{item.quantity}</td>
                           <td className="px-3 py-2 text-sm text-gray-500">{item.originalLocationCode || '-'}</td>

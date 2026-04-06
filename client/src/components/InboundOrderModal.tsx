@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { warehouseApi, stockApi } from '../api';
+import { warehouseApi, stockApi, purchaseOrderApi } from '../api';
 import { Package, X, Layers } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface InboundItemInput {
-  type: 'PRODUCT' | 'BUNDLE';
+  type: 'PRODUCT' | 'BUNDLE' | 'MATERIAL' | 'OTHER';
   skuId?: string;
   bundleId?: string;
+  supplierMaterialId?: string;
   productName: string;
   spec?: string;
   packaging?: string;
+  unit?: string;
   quantity: number;
   batchNo?: string;
   expiryDate?: string;
@@ -28,6 +30,7 @@ interface InboundOrderModalProps {
   warehouseId?: string;
   source?: 'PURCHASE' | 'RETURN' | 'TRANSFER' | 'OTHER';
   returnOrderId?: string;
+  purchaseOrderId?: string;
   orderNo?: string;
   returnNo?: string;
   defaultItems?: InboundItemInput[];
@@ -40,6 +43,7 @@ export default function InboundOrderModal({
   warehouseId,
   source = 'PURCHASE',
   returnOrderId,
+  purchaseOrderId,
   orderNo,
   returnNo,
   defaultItems = [],
@@ -58,6 +62,8 @@ export default function InboundOrderModal({
   const [saving, setSaving] = useState(false);
 
   const returnZones = zones.filter((z: any) => z.type === 'RETURNING');
+  const inboundZones = zones.filter((z: any) => z.type === 'INBOUND');
+  const relevantZones = formSource === 'RETURN' ? returnZones : inboundZones;
   const getZoneShelves = (zoneId: string) => zones.find((z: any) => z.id === zoneId)?.shelves || [];
   const getShelfLocations = (shelfId: string, shelves: any[]) => shelves.find((s: any) => s.id === shelfId)?.locations || [];
 
@@ -65,14 +71,23 @@ export default function InboundOrderModal({
     if (open) {
       loadWarehouses();
       setFormSource(source);
-      setFormWarehouseId(warehouseId || '');
-      setInboundItems(defaultItems.map(item => ({ ...item, locationId: '', locationCode: '', zoneId: '', shelfId: '' })));
+      if (!formWarehouseId && warehouseId) {
+        setFormWarehouseId(warehouseId);
+        loadZones(warehouseId);
+      }
+      if (purchaseOrderId) {
+        loadPurchaseOrderItems();
+      } else if (defaultItems && defaultItems.length > 0) {
+        setInboundItems(defaultItems.map(item => ({ ...item, locationId: '', locationCode: '', zoneId: '', shelfId: '' })));
+      } else {
+        setInboundItems([]);
+      }
       const defaultRemark = isReturn
         ? `订单号：${orderNo || '-'}  退货单号：${returnNo || '-'}`
         : '';
       setInboundRemark(defaultRemark);
     }
-  }, [open, warehouseId, source, defaultItems]);
+  }, [open, source, defaultItems, purchaseOrderId]);
 
   useEffect(() => {
     if (formWarehouseId) {
@@ -81,13 +96,15 @@ export default function InboundOrderModal({
   }, [formWarehouseId]);
 
   useEffect(() => {
-    if (open && isReturn && zones.length > 0) {
-      const returnZonesList = zones.filter((z: any) => z.type === 'RETURNING');
-      if (returnZonesList.length === 1) {
-        setInboundItems(prev => prev.map(item => ({ ...item, zoneId: returnZonesList[0].id })));
+    if (open && zones.length > 0 && inboundItems.length > 0) {
+      const filteredZones = zones.filter((z: any) =>
+        (isReturn && z.type === 'RETURNING') || (!isReturn && z.type === 'INBOUND')
+      );
+      if (filteredZones.length === 1) {
+        setInboundItems(prev => prev.map(item => item.zoneId ? item : { ...item, zoneId: filteredZones[0].id }));
       }
     }
-  }, [open, zones, isReturn]);
+  }, [open, zones, isReturn, inboundItems.length]);
 
   const loadWarehouses = async () => {
     try {
@@ -108,6 +125,34 @@ export default function InboundOrderModal({
       }
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const loadPurchaseOrderItems = async () => {
+    try {
+      const res = await purchaseOrderApi.get(purchaseOrderId!);
+      if (res.data.success && res.data.data.items) {
+        const items = res.data.data.items.map((item: any) => ({
+          type: item.itemType,
+          skuId: item.skuId,
+          bundleId: item.bundleId,
+          supplierMaterialId: item.supplierMaterialId,
+          productName: item.itemType === 'BUNDLE' ? item.bundle?.name :
+                       item.itemType === 'MATERIAL' || item.itemType === 'OTHER' ? item.supplierMaterial?.name :
+                       item.sku?.product?.name,
+          spec: item.sku?.spec || item.bundle?.spec,
+          packaging: item.sku?.packaging || item.bundle?.packaging,
+          unit: item.supplierMaterial?.unit,
+          quantity: item.quantity,
+          locationId: '',
+          locationCode: '',
+          zoneId: '',
+          shelfId: '',
+        }));
+        setInboundItems(items);
+      }
+    } catch (error) {
+      console.error('Failed to load purchase order items:', error);
     }
   };
 
@@ -142,11 +187,13 @@ export default function InboundOrderModal({
         warehouseId: formWarehouseId,
         source: formSource,
         returnOrderId,
+        purchaseOrderId,
         remark: inboundRemark,
         items: inboundItems.map(item => ({
           type: item.type,
           skuId: item.skuId,
           bundleId: item.bundleId,
+          supplierMaterialId: item.supplierMaterialId,
           quantity: item.quantity,
           skuBatchId: item.skuBatchId,
           bundleBatchId: item.bundleBatchId,
@@ -181,7 +228,7 @@ export default function InboundOrderModal({
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {isReturn ? (
+          {isReturn || inboundItems.length > 0 ? (
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="p-4 border-b bg-blue-50">
                 <div className="grid grid-cols-2 gap-4">
@@ -189,7 +236,7 @@ export default function InboundOrderModal({
                     <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
                     <select
                       value={formWarehouseId}
-                      onChange={(e) => setFormWarehouseId(e.target.value)}
+                      onChange={(e) => { setFormWarehouseId(e.target.value); loadZones(e.target.value); }}
                       className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
                       disabled={isReturn}
                     >
@@ -232,15 +279,23 @@ export default function InboundOrderModal({
                           <div className="flex items-center gap-2 min-w-0">
                             {item.type === 'BUNDLE' ? (
                               <Layers className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                            ) : item.type === 'MATERIAL' ? (
+                              <Package className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            ) : item.type === 'OTHER' ? (
+                              <Package className="w-4 h-4 text-orange-500 flex-shrink-0" />
                             ) : (
                               <Package className="w-4 h-4 text-blue-500 flex-shrink-0" />
                             )}
                             <span className={`px-1.5 py-0.5 text-xs rounded font-medium flex-shrink-0 ${
-                              item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                              item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' :
+                              item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' :
+                              item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' :
+                              'bg-blue-100 text-blue-600'
                             }`}>
-                              {item.type === 'BUNDLE' ? '套装' : '商品'}
+                              {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
                             </span>
                             <span className="font-medium truncate">{item.productName}</span>
+                            {item.unit && <span className="text-xs text-gray-500">({item.unit})</span>}
                             {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
                               <div className="flex flex-col gap-1">
                                 {item.skuBatch?.batchNo && (
@@ -272,7 +327,7 @@ export default function InboundOrderModal({
                               className="px-1 py-1 border rounded text-xs w-20"
                             >
                               <option value="">选择仓区</option>
-                              {returnZones.map(z => (
+                              {(formSource === 'RETURN' ? returnZones : inboundZones).map(z => (
                                 <option key={z.id} value={z.id}>{z.name}</option>
                               ))}
                             </select>
@@ -334,14 +389,14 @@ export default function InboundOrderModal({
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col gap-2">
               <div className="p-4 border-b">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
                     <select
                       value={formWarehouseId}
-                      onChange={(e) => setFormWarehouseId(e.target.value)}
+                      onChange={(e) => { setFormWarehouseId(e.target.value); loadZones(e.target.value); }}
                       className="w-full px-3 py-2 border rounded-lg text-sm"
                     >
                       <option value="">选择仓库</option>

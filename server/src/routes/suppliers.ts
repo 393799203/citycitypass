@@ -10,19 +10,11 @@ router.get('/', async (req: Request, res: Response) => {
     const where: Prisma.SupplierWhereInput = {};
 
     if (ownerId) {
-      where.OR = [
-        { ownerId: String(ownerId) },
-        { ownerId: undefined },
-      ];
+      where.ownerId = String(ownerId);
     }
 
     if (keyword) {
-      where.OR = (where.OR || []).concat([
-        { name: { contains: keyword as string } },
-        { code: { contains: keyword as string } },
-        { contact: { contains: keyword as string } },
-        { phone: { contains: keyword as string } },
-      ]);
+      where.name = { contains: keyword as string };
     }
 
     if (status) {

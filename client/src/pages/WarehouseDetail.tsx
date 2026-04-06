@@ -70,6 +70,7 @@ export default function WarehouseDetailPage() {
                 ...shelf,
                 stocks: shelfData.stocks || [],
                 bundleStocks: shelfData.bundleStocks || [],
+                materialStocks: shelfData.materialStocks || [],
                 totalStock: (shelfData.stocks || []).reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0),
               };
             }),
@@ -113,6 +114,7 @@ export default function WarehouseDetailPage() {
                 ...shelf,
                 stocks: shelfData.stocks || [],
                 bundleStocks: shelfData.bundleStocks || [],
+                materialStocks: shelfData.materialStocks || [],
                 totalStock: shelfData.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
               };
             }),
@@ -149,6 +151,7 @@ export default function WarehouseDetailPage() {
                 ...shelf,
                 stocks: shelfData.stocks || [],
                 bundleStocks: shelfData.bundleStocks || [],
+                materialStocks: shelfData.materialStocks || [],
                 totalStock: shelfData.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
               };
             }),
@@ -197,6 +200,7 @@ export default function WarehouseDetailPage() {
             ...shelf,
             stocks: shelvesMap.get(shelf.id)?.stocks || [],
             bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+            materialStocks: shelvesMap.get(shelf.id)?.materialStocks || [],
             totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
           })),
         }));
@@ -238,6 +242,7 @@ export default function WarehouseDetailPage() {
             ...shelf,
             stocks: shelvesMap.get(shelf.id)?.stocks || [],
             bundleStocks: shelvesMap.get(shelf.id)?.bundleStocks || [],
+            materialStocks: shelvesMap.get(shelf.id)?.materialStocks || [],
             totalStock: shelvesMap.get(shelf.id)?.stocks?.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0) || 0,
           })),
         }));
@@ -451,7 +456,7 @@ export default function WarehouseDetailPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2">
-                            {(shelf.stocks?.length > 0 || shelf.bundleStocks?.length > 0) ? (
+                            {(shelf.stocks?.length > 0 || shelf.bundleStocks?.length > 0 || shelf.materialStocks?.length > 0) ? (
                               <div className="text-xs space-y-1">
                                 {shelf.stocks?.filter((s: any) => (s.totalQuantity || 0) > 0).map((s: any) => {
                                   const isReturnZone = s.location?.shelf?.zone?.type === 'RETURNING';
@@ -492,6 +497,16 @@ export default function WarehouseDetailPage() {
                                       <span className="text-gray-400 mx-1">×</span>
                                       <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{b.totalQuantity || 0}</span>
                                       <span className="text-gray-400">套</span>
+                                    </div>
+                                  );
+                                })}
+                                {shelf.materialStocks?.filter((m: any) => (m.totalQuantity || 0) > 0).map((m: any) => {
+                                  return (
+                                    <div key={m.id} className="flex items-center gap-1 text-green-600">
+                                      <span>[原料] {m.supplierMaterial?.name || '未知'}</span>
+                                      <span className="text-gray-400 mx-1">×</span>
+                                      <span className="font-medium">{m.totalQuantity || 0}</span>
+                                      <span className="text-gray-400">{m.supplierMaterial?.unit || '件'}</span>
                                     </div>
                                   );
                                 })}
@@ -537,7 +552,7 @@ export default function WarehouseDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">仓库类型</span>
-                <span className="font-medium">{warehouse.type === 'NORMAL' ? '普通仓库' : warehouse.type}</span>
+                <span className="font-medium">{warehouse.type === 'NORMAL' ? '普通仓' : warehouse.type === 'COLD' ? '冷链仓' : warehouse.type === 'MATERIAL' ? '原料仓' : warehouse.type}</span>
               </div>
               {formatAddress(warehouse.province, warehouse.city, warehouse.address, warehouse.district) !== '-' && (
                 <div className="flex justify-between">

@@ -77,12 +77,27 @@ const alcoholData = {
         { name: "百加得", code: 'BJD', packagings: ['单瓶', '罐装', '箱(6瓶)', '箱(12瓶)'], specs: ['200ml', '375ml', '700ml', '1L'] },
         { name: "绝对伏特加", code: 'JD', packagings: ['单瓶', '箱(6瓶)','箱(12瓶)'], specs: ['200ml', '375ml', '700ml', '1L'] }
       ]
+    },
+    {
+      categoryName: "纸制品",
+      categoryCode: "ZHI_ZHIPIN",
+      subCategories: [
+        { code: 'ZT', name: '纸托' },
+        { code: 'ZX', name: '纸箱' },
+        { code: 'ZH', name: '纸盒' }
+      ],
+      brands: [
+        { name: "合东纸托", code: 'HD_ZT', packagings: ['箱(100只)', '箱(200只)', '托(500只)'], specs: ['6瓶装', '12瓶装', '24瓶装'] },
+        { name: "辰泰蜂窝纸箱", code: 'CT_ZX', packagings: ['箱(10只)', '箱(20只)', '托(50只)'], specs: ['6瓶装', '12瓶装', '24瓶装'] },
+        { name: "捷顺酒盒", code: 'JS_ZH', packagings: ['箱(50只)', '箱(100只)'], specs: ['单瓶装', '双瓶装', '6瓶装'] },
+        { name: "通用纸箱", code: 'TY_ZX', packagings: ['箱(20只)', '箱(50只)', '托(100只)'], specs: ['6瓶装', '12瓶装', '24瓶装'] }
+      ]
     }
   ]
 };
 
-const allPackagings = ['单瓶', '双瓶', '箱(4瓶)', '箱(6瓶)', '箱(12瓶)', '箱(24瓶)', '罐装'];
-const allSpecs = ['100ml', '200ml', '250ml', '330ml', '350ml', '375ml', '475ml', '500ml', '700ml', '750ml', '1L', '1.5L', '2.5L'];
+const allPackagings = ['单瓶', '双瓶', '箱(4瓶)', '箱(6瓶)', '箱(12瓶)', '箱(24瓶)', '罐装', '箱(10只)', '箱(20只)', '箱(50只)', '箱(100只)', '箱(200只)', '托(50只)', '托(100只)', '托(500只)'];
+const allSpecs = ['100ml', '200ml', '250ml', '330ml', '350ml', '375ml', '475ml', '500ml', '700ml', '750ml', '1L', '1.5L', '2.5L', '6瓶装', '12瓶装', '24瓶装', '单瓶装', '双瓶装'];
 
 async function main() {
   console.log('开始初始化数据...\n');
@@ -93,6 +108,7 @@ async function main() {
   await prisma.order.deleteMany();
   await prisma.stockIn.deleteMany();
   await prisma.stock.deleteMany();
+  await prisma.bundleSKUItem.deleteMany();
   await prisma.productSKU.deleteMany();
   await prisma.product.deleteMany();
   await prisma.brandSpec.deleteMany();
