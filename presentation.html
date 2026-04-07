@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企管通智能仓储管理系统 - 产品介绍</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px;
+      page-break-after: always;
+      position: relative;
+    }
+    .slide-number {
+      position: absolute;
+      bottom: 30px;
+      right: 40px;
+      font-size: 14px;
+      color: #999;
+    }
+    .watermark {
+      position: absolute;
+      top: 30px;
+      left: 40px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    /* Slide 1: Title */
+    .slide-1 {
+      background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #3182ce 100%);
+      color: white;
+      text-align: center;
+    }
+    .slide-1 h1 {
+      font-size: 56px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .slide-1 .subtitle {
+      font-size: 28px;
+      opacity: 0.9;
+      margin-bottom: 60px;
+    }
+    .slide-1 .author {
+      font-size: 20px;
+      opacity: 0.8;
+      margin-top: 40px;
+    }
+    .slide-1 .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 8px 24px;
+      border-radius: 20px;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    /* Slide 2: About Me */
+    .slide-2 {
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    .slide-2 h2 {
+      font-size: 42px;
+      color: #2c5282;
+      margin-bottom: 50px;
+      border-bottom: 4px solid #3182ce;
+      padding-bottom: 15px;
+    }
+    .slide-2 .content {
+      display: flex;
+      gap: 60px;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .slide-2 .left {
+      flex: 1;
+    }
+    .slide-2 .right {
+      flex: 1;
+    }
+    .slide-2 .role {
+      font-size: 28px;
+      color: #2b6cb0;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+    .slide-2 ul {
+      list-style: none;
+      font-size: 22px;
+      line-height: 2.2;
+    }
+    .slide-2 li::before {
+      content: "✦ ";
+      color: #3182ce;
+    }
+    .slide-2 .highlight {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      border-radius: 16px;
+      margin-top: 30px;
+    }
+    .slide-2 .highlight-title {
+      font-size: 24px;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    .slide-2 .highlight-text {
+      font-size: 18px;
+      opacity: 0.9;
+      line-height: 1.8;
+    }
+
+    /* Slide 3: Core Value */
+    .slide-3 {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      text-align: center;
+    }
+    .slide-3 h2 {
+      font-size: 48px;
+      margin-bottom: 60px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    .slide-3 .highlight-box {
+      background: rgba(255,255,255,0.2);
+      padding: 40px 60px;
+      border-radius: 20px;
+      font-size: 28px;
+      line-height: 1.8;
+      max-width: 1000px;
+    }
+    .slide-3 .big-number {
+      font-size: 80px;
+      font-weight: bold;
+      display: block;
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Slide 4: System Architecture */
+    .slide-4 {
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    .slide-4 h2 {
+      font-size: 42px;
+      color: #2c5282;
+      margin-bottom: 50px;
+      border-bottom: 4px solid #3182ce;
+      padding-bottom: 15px;
+    }
+    .slide-4 .modules {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    .slide-4 .module {
+      flex: 1;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-top: 4px solid;
+    }
+    .slide-4 .module.oms { border-color: #e53e3e; }
+    .slide-4 .module.wms { border-color: #38a169; }
+    .slide-4 .module.tms { border-color: #3182ce; }
+    .slide-4 .module-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    .slide-4 .module-name {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .slide-4 .module-desc {
+      font-size: 16px;
+      color: #666;
+    }
+    .slide-4 .scenarios {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+    .slide-4 .scenario {
+      background: #2c5282;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 18px;
+    }
+
+    /* Slide 5: Features */
+    .slide-5 {
+      background: white;
+      color: #1a202c;
+    }
+    .slide-5 h2 {
+      font-size: 42px;
+      color: #2c5282;
+      margin-bottom: 50px;
+      border-bottom: 4px solid #3182ce;
+      padding-bottom: 15px;
+    }
+    .slide-5 .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      width: 100%;
+      max-width: 1100px;
+    }
+    .slide-5 .feature {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 25px;
+      background: #f7fafc;
+      border-radius: 12px;
+    }
+    .slide-5 .feature-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .slide-5 .feature-icon.blue { background: #ebf8ff; }
+    .slide-5 .feature-icon.green { background: #f0fff4; }
+    .slide-5 .feature-icon.purple { background: #faf5ff; }
+    .slide-5 .feature-icon.orange { background: #fffaf0; }
+    .slide-5 .feature-content h3 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .slide-5 .feature-content p {
+      font-size: 16px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    /* Slide 6: AI Capabilities */
+    .slide-6 {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .slide-6 h2 {
+      font-size: 42px;
+      margin-bottom: 50px;
+    }
+    .slide-6 .ai-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 30px;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .slide-6 .ai-card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+    }
+    .slide-6 .ai-icon {
+      font-size: 50px;
+      margin-bottom: 20px;
+    }
+    .slide-6 .ai-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    .slide-6 .ai-desc {
+      font-size: 16px;
+      opacity: 0.9;
+      line-height: 1.7;
+    }
+
+    /* Slide 7: Data Summary */
+    .slide-7 {
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    .slide-7 h2 {
+      font-size: 42px;
+      color: #2c5282;
+      margin-bottom: 50px;
+      border-bottom: 4px solid #3182ce;
+      padding-bottom: 15px;
+    }
+    .slide-7 .stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .slide-7 .stat {
+      text-align: center;
+      padding: 30px 50px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .slide-7 .stat-value {
+      font-size: 56px;
+      font-weight: bold;
+      color: #2c5282;
+    }
+    .slide-7 .stat-label {
+      font-size: 18px;
+      color: #666;
+      margin-top: 10px;
+    }
+    .slide-7 .stat-sub {
+      font-size: 14px;
+      color: #999;
+      margin-top: 5px;
+    }
+
+    /* Slide 8: Thank You */
+    .slide-8 {
+      background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #3182ce 100%);
+      color: white;
+      text-align: center;
+    }
+    .slide-8 h2 {
+      font-size: 64px;
+      margin-bottom: 40px;
+    }
+    .slide-8 .slogan {
+      font-size: 28px;
+      opacity: 0.9;
+      margin-bottom: 60px;
+    }
+    .slide-8 .contact {
+      font-size: 20px;
+      opacity: 0.7;
+    }
+
+    @media print {
+      .slide { page-break-after: always; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide slide-1">
+  <div class="watermark">企管通 WMS</div>
+  <h1>智能仓储管理系统</h1>
+  <div class="subtitle">OMS + WMS + TMS 全链路数字化解决方案</div>
+  <div class="badge">10天从零构建 · AI赋能</div>
+  <div class="author">前华为云企业解决方案首席架构师</div>
+  <div class="slide-number">1 / 8</div>
+</div>
+
+<!-- Slide 2: About Me -->
+<div class="slide slide-2">
+  <div class="watermark">企管通 WMS</div>
+  <h2>自我介绍</h2>
+  <div class="content">
+    <div class="left">
+      <div class="role">前华为云 · 企业解决方案首席架构师</div>
+      <ul>
+        <li>主导云编排设计器架构设计</li>
+        <li>负责低代码开发平台落地</li>
+        <li>设计AI智能引擎核心模块</li>
+        <li>落地企业ERP全流程系统</li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="highlight">
+        <div class="highlight-title">本系统：10天从零构建</div>
+        <div class="highlight-text">
+          从技术选型、架构设计、数据库建模，到前后端开发、测试部署——仅用10天完成了一套功能完备的智能仓储管理系统。依靠的是成熟架构、模块积累、AI辅助开发。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">2 / 8</div>
+</div>
+
+<!-- Slide 3: Core Highlight -->
+<div class="slide slide-3">
+  <div class="watermark" style="color: rgba(255,255,255,0.5)">企管通 WMS</div>
+  <h2>核心亮点</h2>
+  <div class="highlight-box">
+    <span class="big-number">OMS + WMS + TMS</span>
+    <br><br>
+    打通了订单管理系统、仓储管理系统、运输管理系统三大核心模块<br>
+    实现从订单接收到配送交付的<strong>全链路数字化管控</strong><br><br>
+    适配<strong>制造业、物流业、电商</strong>等主流业务场景
+  </div>
+  <div class="slide-number" style="color: rgba(255,255,255,0.5)">3 / 8</div>
+</div>
+
+<!-- Slide 4: System Architecture -->
+<div class="slide slide-4">
+  <div class="watermark">企管通 WMS</div>
+  <h2>系统架构 · 三大核心模块</h2>
+  <div class="modules">
+    <div class="module oms">
+      <div class="module-icon">📋</div>
+      <div class="module-name">OMS</div>
+      <div class="module-desc">订单管理系统<br>客户下单、订单处理<br>状态追踪全流程</div>
+    </div>
+    <div class="module wms">
+      <div class="module-icon">🏭</div>
+      <div class="module-name">WMS</div>
+      <div class="module-desc">仓储管理系统<br>入库上架、库位管理<br>拣货出库全管控</div>
+    </div>
+    <div class="module tms">
+      <div class="module-icon">🚛</div>
+      <div class="module-name">TMS</div>
+      <div class="module-desc">运输管理系统<br>运力调度、线路优化<br>配送跟踪全链路</div>
+    </div>
+  </div>
+  <div class="scenarios">
+    <div class="scenario">🏭 制造业</div>
+    <div class="scenario">🚚 物流业</div>
+    <div class="scenario">🛒 电商</div>
+  </div>
+  <div class="slide-number">4 / 8</div>
+</div>
+
+<!-- Slide 5: Core Features -->
+<div class="slide slide-5">
+  <div class="watermark">企管通 WMS</div>
+  <h2>核心功能特性</h2>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon blue">🏬</div>
+      <div class="feature-content">
+        <h3>多形态仓库管理</h3>
+        <p>支持普通仓、冷链仓、原料仓，满足不同业务场景的存储需求</p>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon green">📍</div>
+      <div class="feature-content">
+        <h3>精细化库位管控</h3>
+        <p>仓库→分区→货架→库位四级结构，精准定位每一件货品</p>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon purple">🔗</div>
+      <div class="feature-content">
+        <h3>全流程批次追踪</h3>
+        <p>从入库到出库，每一步都有记录可查，质量追溯有据可依</p>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon orange">🔒</div>
+      <div class="feature-content">
+        <h3>库存锁定管理</h3>
+        <p>按SKU或批次精准锁定，确保预留订单不被误用</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">5 / 8</div>
+</div>
+
+<!-- Slide 6: AI Capabilities -->
+<div class="slide slide-6">
+  <div class="watermark" style="color: rgba(255,255,255,0.5)">企管通 WMS</div>
+  <h2>三大AI核心能力</h2>
+  <div class="ai-grid">
+    <div class="ai-card">
+      <div class="ai-icon">🤖</div>
+      <div class="ai-title">AI智慧订单导入</div>
+      <div class="ai-desc">批量处理Excel数据<br>智能识别商品<br>自动纠错去重<br>一键标注异常</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">📦</div>
+      <div class="ai-title">AI推荐拣货单</div>
+      <div class="ai-desc">智能合并订单波次<br>优化拣货路径<br>效率提升40%+<br>减少行走路径</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">🚚</div>
+      <div class="ai-title">AI运力调度</div>
+      <div class="ai-desc">多维度智能匹配<br>出发地/目的地聚类<br>配送成本降低25%+<br>一键确认执行</div>
+    </div>
+  </div>
+  <div class="slide-number" style="color: rgba(255,255,255,0.5)">6 / 8</div>
+</div>
+
+<!-- Slide 7: Value Summary -->
+<div class="slide slide-7">
+  <div class="watermark">企管通 WMS</div>
+  <h2>核心价值总结</h2>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">10天</div>
+      <div class="stat-label">从零构建</div>
+      <div class="stat-sub">快速交付，降本增效</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">40%+</div>
+      <div class="stat-label">拣货效率提升</div>
+      <div class="stat-sub">AI波次智能合并</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">25%+</div>
+      <div class="stat-label">配送成本降低</div>
+      <div class="stat-sub">AI运力优化调度</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">3合1</div>
+      <div class="stat-label">OMS+WMS+TMS</div>
+      <div class="stat-sub">全链路数字化管控</div>
+    </div>
+  </div>
+  <div class="slide-number">7 / 8</div>
+</div>
+
+<!-- Slide 8: Thank You -->
+<div class="slide slide-8">
+  <div class="watermark" style="color: rgba(255,255,255,0.3)">企管通 WMS</div>
+  <h2>感谢观看</h2>
+  <div class="slogan">AI赋能仓储 · 让管理更智能 · 让运营更高效</div>
+  <div class="contact">如需了解更多，欢迎交流探讨</div>
+  <div class="slide-number" style="color: rgba(255,255,255,0.5)">8 / 8</div>
+</div>
+
+</body>
+</html>
