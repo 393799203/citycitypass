@@ -669,6 +669,9 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
             location: {
               include: { shelf: { include: { zone: true } } }
             },
+            sku: {
+              include: { product: true }
+            },
           },
           orderBy: { createdAt: 'asc' },
         })
@@ -679,9 +682,32 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
             location: {
               include: { shelf: { include: { zone: true } } }
             },
+            bundle: true,
           },
           orderBy: { createdAt: 'asc' },
         });
+
+    // 获取入库单号（通过 InboundOrderItem 关联）
+    const stockInsAny = stockIns as any[];
+    const skuBatchIds = stockInsAny.filter(s => s.skuBatchId).map(s => s.skuBatchId);
+    const bundleBatchIds = stockInsAny.filter(s => s.bundleBatchId).map(s => s.bundleBatchId);
+
+    const inboundOrderItems = await prisma.inboundOrderItem.findMany({
+      where: isProduct
+        ? { skuBatchId: { in: skuBatchIds } }
+        : { bundleBatchId: { in: bundleBatchIds } },
+      include: {
+        inbound: true,
+      },
+    });
+
+    const inboundOrderMap = new Map<string, string>();
+    inboundOrderItems.forEach(item => {
+      const key = isProduct ? item.skuBatchId : item.bundleBatchId;
+      if (key && item.inbound?.inboundNo) {
+        inboundOrderMap.set(key, item.inbound.inboundNo);
+      }
+    });
 
     // 当前库位
     const locations = isProduct
@@ -836,7 +862,12 @@ router.get('/batch/:batchNo/trace', async (req: Request, res: Response) => {
           totalReturned: returns.reduce((sum: number, r: any) => sum + r.quantity, 0),
         },
         stockIns: stockIns.map((s: any) => ({
-          type: 'INBOUND',
+          type: isProduct ? 'PRODUCT' : 'BUNDLE',
+          productName: s.sku?.product?.name,
+          bundleName: s.bundle?.name,
+          spec: s.sku?.spec,
+          packaging: s.sku?.packaging,
+          inboundNo: inboundOrderMap.get(s.skuBatchId || s.bundleBatchId),
           quantity: s.quantity,
           warehouse: s.warehouse?.name,
           locationCode: formatLocationCode(s.location),

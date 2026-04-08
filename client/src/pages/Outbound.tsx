@@ -308,18 +308,14 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
             </div>
-          ) : pickOrders.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              暂无数据
-            </div>
           ) : activeTab === 'pending' ? (
             <div>
               <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">已选择 {selectedOrders.length} 个订单</span>
+                <span className="text-gray-600">已选择 {selectedOrders.length} 个订单，共 {pickOrders.filter((o: any) => !o.order?.pickOrder).length} 个订单</span>
                 <div className="flex gap-2">
                   <button
                     onClick={handleAICreatePickOrders}
-                    disabled={aiLoading}
+                    disabled={aiLoading || pickOrders.filter((o: any) => !o.order?.pickOrder).length === 0}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -469,6 +465,13 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                       </td>
                     </tr>
                   ))}
+                  {pickOrders.filter((o: any) => !o.order?.pickOrder).length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-gray-500">
+                        暂无待拣货订单
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

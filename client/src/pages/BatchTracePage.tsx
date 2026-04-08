@@ -29,6 +29,9 @@ interface TraceData {
     type: string;
     productName?: string;
     bundleName?: string;
+    spec?: string;
+    packaging?: string;
+    inboundNo?: string;
     quantity: number;
     expiryDate?: string;
     warehouse: string;
@@ -416,15 +419,18 @@ export default function BatchTracePage() {
               {allStockIns.map((item, idx) => (
                 <div key={idx} className="bg-green-50 rounded-lg p-3 text-sm">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`px-2 py-0.5 text-xs rounded ${
                         item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                       }`}>
                         {item.type === 'BUNDLE' ? '套装' : '商品'}
                       </span>
-                      <span className="ml-2 font-medium">
+                      <span className="font-medium">
                         {item.productName || item.bundleName}
                       </span>
+                      {item.spec && <span className="text-gray-500">{item.spec}</span>}
+                      {item.packaging && <span className="text-gray-500">{item.packaging}</span>}
+                      {item.inboundNo && <span className="text-green-600 font-mono text-xs">入库单: {item.inboundNo}</span>}
                     </div>
                     <span className="text-green-600 font-bold">+{item.quantity}</span>
                   </div>
