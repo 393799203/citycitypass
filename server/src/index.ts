@@ -29,6 +29,7 @@ import carrierRoutes from './routes/carriers';
 import skuBatchRoutes from './routes/skuBatches';
 import bundleBatchRoutes from './routes/bundleBatches';
 import purchaseOrderRoutes from './routes/purchaseOrders';
+import aiRoutes from './routes/ai';
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ app.use('/api/carriers', ownerMiddleware, carrierRoutes);
 app.use('/api/sku-batches', ownerMiddleware, skuBatchRoutes);
 app.use('/api/bundle-batches', ownerMiddleware, bundleBatchRoutes);
 app.use('/api/purchase-orders', ownerMiddleware, purchaseOrderRoutes);
+app.use('/api/ai', ownerMiddleware, aiRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

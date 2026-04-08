@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Package, X, Plus, RefreshCw, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../api';
-import { parseAIResponse } from '../api/ai';
+import { aiApi } from '../api/ai-api';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 
@@ -187,7 +187,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
 
 请只返回JSON，不要其他文字。`;
 
-      const result = await parseAIResponse<{groups: Array<{reason: string, orderIds: string[]}>}>(prompt);
+      const result = await aiApi.parseAIResponse<{groups: Array<{reason: string, orderIds: string[]}>}>(prompt);
       
       if (result && result.groups && result.groups.length > 0) {
         const bestGroup = result.groups[0];
@@ -197,10 +197,10 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
           
           let fullReason = bestGroup.reason;
           if (finalVehicle) {
-            fullReason += `；推荐车辆：${finalVehicle.licensePlate} (${vehicleReason})`;
+            fullReason += `推荐车辆：${finalVehicle.licensePlate} (${vehicleReason});`;
           }
           if (finalDriver) {
-            fullReason += `；推荐司机：${finalDriver.name} - ${finalDriver.phone} (${driverReason})`;
+            fullReason += `推荐司机：${finalDriver.name} - ${finalDriver.phone} (${driverReason})。`;
           }
           setAiRecommendOrders({ 
             orderIds: bestGroup.orderIds, 

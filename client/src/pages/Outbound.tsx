@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { orderApi, pickOrderApi } from '../api';
-import { parseAIResponse } from '../api/ai';
+import { aiApi } from '../api/ai-api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Loader2, Package, CheckCircle, ClipboardList, RefreshCw, Sparkles, Info, Phone, MapPin, ShoppingCart } from 'lucide-react';
@@ -137,7 +137,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
 
       console.log('=== AI 提示词 ===');
       console.log(prompt);
-      const result = await parseAIResponse<{groups: Array<{reason: string, orderIds: string[]}>}>(prompt);
+      const result = await aiApi.parseAIResponse<{groups: Array<{reason: string, orderIds: string[]}>}>(prompt);
       console.log('=== AI 响应 ===');
       console.log(result);
       

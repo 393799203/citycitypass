@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, CheckCircle, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
-import { callAI } from '../api/ai';
+import { aiApi } from '../api/ai-api';
 import { toast } from 'react-toastify';
 
 interface OrderItem {
@@ -105,7 +105,7 @@ ${rawRows}
   ]
 }`;
 
-      const result = await callAI(prompt);
+      const result = await aiApi.callAI(prompt);
       console.log('AI 原始输出:', result);
       const jsonMatch = result.match(/\{[\s\S]*\}/);
 

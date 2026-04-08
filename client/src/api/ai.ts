@@ -1,5 +1,5 @@
 const API_KEY = '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';
-const MODEL = 'stepfun/step-3.5-flash:free';
+const MODEL = 'google/gemma-4-26b-a4b-it:free';
 
 export async function callAI(prompt: string): Promise<string> {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {

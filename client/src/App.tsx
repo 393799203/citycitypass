@@ -3,6 +3,7 @@ import React, { lazy } from 'react';
 import Layout from './components/Layout';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
+import AIAssistant from './components/AIAssistant';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -49,6 +50,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout />
+                <AIAssistant />
               </ProtectedRoute>
             }
           >
