@@ -293,7 +293,7 @@ export default function ReturnDetail() {
                   <line 
                     x1="40" y1="0" x2="60" y2="0" 
                     stroke={getReturnStepStatus('RETURN_QUALIFIED') === 'completed' || getReturnStepStatus('RETURN_QUALIFIED') === 'current' ? '#10B981' : '#E5E7EB'} 
-                    strokeWidth="0.6"
+                    strokeWidth="0.5"
                   />
                   
                   {/* 仓库收货到验收部分 */}
@@ -305,14 +305,14 @@ export default function ReturnDetail() {
                   <line 
                     x1="40" y1="22" x2="60" y2="22" 
                     stroke={getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' || getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'current' ? '#10B981' : '#E5E7EB'} 
-                    strokeWidth="0.6"
+                    strokeWidth="0.5"
                   />
                   
                   {/* 验收全部到入库 */}
                   <line 
                     x1="74" y1="0" x2="94" y2="0" 
                     stroke={(getReturnStepStatus('RETURN_QUALIFIED') === 'completed' && (getReturnStepStatus('RETURN_STOCK_IN') === 'completed' || getReturnStepStatus('RETURN_STOCK_IN') === 'current')) ? '#10B981' : '#E5E7EB'} 
-                    strokeWidth="0.6"
+                    strokeWidth="0.5"
                   />
                   <line 
                     x1="94" y1="0" x2="94" y2="11" 
@@ -324,7 +324,7 @@ export default function ReturnDetail() {
                   <line 
                     x1="74" y1="22" x2="94" y2="22" 
                     stroke={(getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' && (getReturnStepStatus('RETURN_STOCK_IN') === 'completed' || getReturnStepStatus('RETURN_STOCK_IN') === 'current')) ? '#10B981' : '#E5E7EB'} 
-                    strokeWidth="0.6"
+                    strokeWidth="0.5"
                   />
                   <line 
                     x1="94" y1="22" x2="94" y2="11" 
