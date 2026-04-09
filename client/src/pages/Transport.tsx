@@ -1,95 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Truck, Plus, Trash2, Edit2, User, Car, X, MapPin } from 'lucide-react';
+import { Truck, Plus, Car, User } from 'lucide-react';
 import { vehicleApi, driverApi, geocodeApi, carrierApi } from '../api';
-import LicensePlateInput from '../components/LicensePlateInput';
-import PhoneInput from '../components/PhoneInput';
-import LicenseNoInput from '../components/LicenseNoInput';
 import { formatPhone } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
-
-const licenseTypeColors: Record<string, { bg: string; text: string; border: string }> = {
-  '小型货车': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
-  '中型货车': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
-  '大型货车': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
-  '平板车': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
-  '厢式货车': { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' },
-  '冷藏车': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
-};
-
-const vehicleTypeColors: Record<string, { bg: string; text: string; border: string }> = {
-  '小型货车': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
-  '中型货车': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
-  '大型货车': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
-  '平板车': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
-  '厢式货车': { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200' },
-  '冷藏车': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
-};
-
-const vehicleStatusMap: Record<string, string> = {
-  AVAILABLE: '空闲',
-  IN_TRANSIT: '配送中',
-  MAINTENANCE: '维修',
-  DISABLED: '停用',
-};
-
-const driverStatusMap: Record<string, string> = {
-  AVAILABLE: '空闲',
-  IN_TRANSIT: '配送中',
-  RESTING: '休息',
-  DISABLED: '停用',
-};
-
-interface Vehicle {
-  id: string;
-  licensePlate: string;
-  vehicleType: string;
-  brand?: string;
-  model?: string;
-  capacity: number;
-  volume?: number;
-  licenseNo?: string;
-  insuranceNo?: string;
-  status: string;
-  warehouseId: string;
-  warehouse?: { id: string; name: string };
-  latitude?: number;
-  longitude?: number;
-  location?: string;
-  drivers?: Driver[];
-}
-
-interface Driver {
-  id: string;
-  name: string;
-  phone: string;
-  licenseNo: string;
-  licenseTypes?: string[];
-  status: string;
-  warehouseId: string;
-  warehouse?: { id: string; name: string };
-  vehicle?: Vehicle;
-  latitude?: number;
-  longitude?: number;
-  location?: string;
-}
+import { Vehicle, Driver, Warehouse, FormData, LocationForm } from './types';
+import VehicleTable from './components/VehicleTable';
+import DriverTable from './components/DriverTable';
+import VehicleDriverForm from './components/VehicleDriverForm';
+import LocationModal from './components/LocationModal';
 
 export default function TransportPage() {
   const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<'vehicle' | 'driver'>('vehicle');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [locationItem, setLocationItem] = useState<any>(null);
-  const [locationForm, setLocationForm] = useState({ address: '', latitude: '', longitude: '', location: '' });
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [locationItem, setLocationItem] = useState<Vehicle | Driver | null>(null);
+  const [locationForm, setLocationForm] = useState<LocationForm>({ address: '', latitude: '', longitude: '', location: '' });
+  const [editingItem, setEditingItem] = useState<Vehicle | Driver | null>(null);
+  const [formData, setFormData] = useState<FormData>({
     warehouseId: '',
-    warehouse: null as { id: string; name: string } | null,
+    warehouse: null,
     licensePlate: '',
     vehicleType: '小型货车',
     brand: '',
@@ -139,7 +75,7 @@ export default function TransportPage() {
   const handleSubmit = async () => {
     try {
       if (activeTab === 'vehicle') {
-        if (!(editingItem?.sourceType === 'CARRIER') && !formData.warehouseId) {
+        if (!(editingItem && 'sourceType' in editingItem && editingItem.sourceType === 'CARRIER') && !formData.warehouseId) {
           toast.error('请选择仓库');
           return;
         }
@@ -161,7 +97,7 @@ export default function TransportPage() {
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           location: formData.location || null,
         };
-        if (editingItem) {
+        if (editingItem && 'sourceType' in editingItem) {
           if (editingItem.sourceType === 'CARRIER') {
             await carrierApi.updateVehicle(editingItem.id, vehicleData);
           } else {
@@ -191,7 +127,7 @@ export default function TransportPage() {
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           location: formData.location || null,
         };
-        if (editingItem) {
+        if (editingItem && 'licenseTypes' in editingItem) {
           await driverApi.update(editingItem.id, driverData);
           toast.success('司机更新成功');
         } else {
@@ -207,18 +143,18 @@ export default function TransportPage() {
     }
   };
 
-  const handleDelete = async (id: string, item?: any) => {
+  const handleDelete = async (id: string, item?: Vehicle) => {
     const ok = await confirm({ message: '确定要删除吗？' });
     if (!ok) return;
     try {
-      if (activeTab === 'vehicle') {
-        if (item?.sourceType === 'CARRIER') {
+      if (activeTab === 'vehicle' && item && 'sourceType' in item) {
+        if (item.sourceType === 'CARRIER') {
           await carrierApi.deleteVehicle(id);
         } else {
           await vehicleApi.delete(id);
         }
         toast.success('车辆删除成功');
-      } else {
+      } else if (activeTab === 'driver') {
         await driverApi.delete(id);
         toast.success('司机删除成功');
       }
@@ -228,7 +164,7 @@ export default function TransportPage() {
     }
   };
 
-  const handleOpenLocationModal = (item: any) => {
+  const handleOpenLocationModal = (item: Vehicle | Driver) => {
     setLocationItem(item);
     setLocationForm({
       address: item.address || item.location || '',
@@ -269,14 +205,14 @@ export default function TransportPage() {
       if (activeTab === 'driver' || activeTab === 'vehicle') {
         updateData.address = locationForm.address;
       }
-      if (activeTab === 'vehicle') {
+      if (activeTab === 'vehicle' && locationItem && 'sourceType' in locationItem) {
         if (locationItem.sourceType === 'CARRIER') {
           await carrierApi.updateVehicleLocation(locationItem.id, updateData);
         } else {
           await vehicleApi.update(locationItem.id, updateData);
         }
         toast.success('车辆位置更新成功');
-      } else {
+      } else if (activeTab === 'driver' && locationItem && 'licenseTypes' in locationItem) {
         await driverApi.update(locationItem.id, updateData);
         toast.success('司机位置更新成功');
       }
@@ -287,9 +223,9 @@ export default function TransportPage() {
     }
   };
 
-  const openEditModal = (item: any) => {
+  const openEditModal = (item: Vehicle | Driver) => {
     setEditingItem(item);
-    if (activeTab === 'vehicle') {
+    if ('licensePlate' in item) {
       setFormData({
         warehouseId: item.warehouseId || '',
         warehouse: item.warehouse || null,
@@ -311,7 +247,7 @@ export default function TransportPage() {
         location: item.location || '',
         address: item.address || '',
       });
-    } else {
+    } else if ('licenseTypes' in item) {
       setFormData({
         warehouseId: item.warehouseId || '',
         warehouse: item.warehouse || null,
@@ -361,6 +297,33 @@ export default function TransportPage() {
       address: '',
     });
     setShowModal(true);
+  };
+
+  const handleFormChange = (key: keyof FormData, value: any) => {
+    setFormData({ ...formData, [key]: value });
+  };
+
+  const handleWarehouseChange = (warehouseId: string) => {
+    const warehouse = warehouses.find(w => w.id === warehouseId);
+    setFormData({
+      ...formData,
+      warehouseId: warehouseId,
+      latitude: warehouse?.latitude?.toString() || '',
+      longitude: warehouse?.longitude?.toString() || '',
+      location: warehouse?.address || '',
+    });
+  };
+
+  const handleLicenseTypeToggle = (type: string) => {
+    if (formData.licenseTypes.includes(type)) {
+      setFormData({ ...formData, licenseTypes: formData.licenseTypes.filter(t => t !== type) });
+    } else {
+      setFormData({ ...formData, licenseTypes: [...formData.licenseTypes, type] });
+    }
+  };
+
+  const handleLocationFormChange = (key: keyof LocationForm, value: string) => {
+    setLocationForm({ ...locationForm, [key]: value });
   };
 
   return (
@@ -413,599 +376,44 @@ export default function TransportPage() {
           {loading ? (
             <div className="text-center py-8 text-gray-500">加载中...</div>
           ) : activeTab === 'vehicle' ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-center text-gray-500 text-sm border-b">
-                    <th className="pb-3">仓库</th>
-                    <th className="pb-3">车牌号</th>
-                    <th className="pb-3">车型</th>
-                    <th className="pb-3">品牌-型号</th>
-                    <th className="pb-3">载重/容积</th>
-                    <th className="pb-3">证照信息</th>
-                    <th className="pb-3">当前位置</th>
-                    <th className="pb-3">当前司机</th>
-                    <th className="pb-3">状态</th>
-                    <th className="pb-3">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const warehouseVehicles = vehicles.filter((v: any) => v.sourceType === 'WAREHOUSE');
-                    const carrierVehicles = vehicles.filter((v: any) => v.sourceType === 'CARRIER');
-                    const groupedWarehouse = warehouseVehicles.reduce((acc: any, v) => {
-                      const key = v.warehouse?.name || '未知仓库';
-                      if (!acc[key]) acc[key] = [];
-                      acc[key].push(v);
-                      return acc;
-                    }, {});
-                    const groupedCarrier = carrierVehicles.reduce((acc: any, v) => {
-                      const key = v.warehouse?.name + ' (承运商)' || '未知承运商';
-                      if (!acc[key]) acc[key] = [];
-                      acc[key].push(v);
-                      return acc;
-                    }, {});
-                    const warehouseEntries = Object.entries(groupedWarehouse);
-                    const carrierEntries = Object.entries(groupedCarrier);
-                    return [...warehouseEntries.map(([k, v]) => [k, v, 'warehouse'] as [string, any, string]), 
-                            ...carrierEntries.map(([k, v]) => [k, v, 'carrier'] as [string, any, string])].map(([groupName, list, source]) => (
-                      <React.Fragment key={groupName}>
-                        {list.map((vehicle: any, idx: number) => (
-                          <tr key={vehicle.id} className="border-b hover:bg-gray-50">
-                            {idx === 0 && <td rowSpan={list.length} className="py-3 align-middle text-center">
-                              <span className="text-primary-600 font-medium">{groupName.replace(' (承运商)', '')}</span>
-                              {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded">承运商</span>}
-                            </td>}
-                            <td className="py-3 text-center">
-                              <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
-                                {vehicle.licensePlate ? vehicle.licensePlate.slice(0, 2) + '·' + vehicle.licensePlate.slice(2) : '-'}
-                              </div>
-                            </td>
-                            <td className="py-3 text-center">
-                              {vehicle.vehicleType && vehicleTypeColors[vehicle.vehicleType] ? (
-                                <span className={`px-2 py-0.5 text-xs rounded-full ${vehicleTypeColors[vehicle.vehicleType].bg} ${vehicleTypeColors[vehicle.vehicleType].text} border ${vehicleTypeColors[vehicle.vehicleType].border}`}>
-                                  {vehicle.vehicleType}
-                                </span>
-                              ) : vehicle.vehicleType || '-'}
-                            </td>
-                            <td className="py-3 text-sm text-center">
-                              {vehicle.brand || vehicle.model ? `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() : '-'}
-                            </td>
-                            <td className="py-3 text-sm text-center">
-                              <div>载重: {vehicle.capacity}吨</div>
-                              <div>容积: {vehicle.volume || '-'}m³</div>
-                            </td>
-                            <td className="py-3 text-sm text-gray-500 text-center">
-                              <div>证:{vehicle.licenseNo || '-'}</div>
-                              <div>险:{vehicle.insuranceNo || '-'}</div>
-                            </td>
-                            <td className="py-3 text-gray-500 text-sm text-center">
-                              <div>{vehicle.location || '-'}</div>
-                              <div className="text-xs">{vehicle.address || '-'}</div>
-                              {vehicle.latitude && vehicle.longitude && (
-                                <div className="text-xs text-gray-400">({vehicle.latitude},{vehicle.longitude})</div>
-                              )}
-                            </td>
-                            <td className="py-3 text-center">
-                              {vehicle.drivers && vehicle.drivers.length > 0
-                                ? vehicle.drivers.map((d: any) => (
-                                    <div key={d.id} className="text-sm">
-                                      <div className="font-medium">{d.name}</div>
-                                      <div className="text-gray-400 text-xs">{formatPhone(d.phone)}</div>
-                                    </div>
-                                  ))
-                                : '-'}
-                            </td>
-                            <td className="py-3 text-center">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                vehicle.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
-                                vehicle.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
-                                vehicle.status === 'MAINTENANCE' ? 'bg-yellow-600 text-white' :
-                                'bg-gray-600 text-white'
-                              }`}>
-                                {vehicleStatusMap[vehicle.status]}
-                              </span>
-                            </td>
-                            <td className="py-3 text-center">
-                              <button
-                                onClick={() => handleOpenLocationModal(vehicle)}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
-                                title="更新位置"
-                              >
-                                <MapPin className="w-4 h-4" />
-                              </button>
-                              {vehicle.sourceType !== 'CARRIER' && (
-                                <>
-                                  <button
-                                    onClick={() => openEditModal(vehicle)}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(vehicle.id, vehicle)}
-                                    className={`p-1.5 rounded ${
-                                      vehicle.status === 'AVAILABLE'
-                                        ? 'text-red-600 hover:bg-red-50'
-                                        : 'text-gray-300 cursor-not-allowed'
-                                    }`}
-                                    disabled={vehicle.status !== 'AVAILABLE'}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </React.Fragment>
-                    ));
-                  })()}
-                  {vehicles.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-500">
-                        暂无车辆数据
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <VehicleTable
+              vehicles={vehicles}
+              onUpdateLocation={handleOpenLocationModal}
+              onEdit={openEditModal}
+              onDelete={handleDelete}
+            />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-center text-gray-500 text-sm border-b">
-                    <th className="pb-3">仓库</th>
-                    <th className="pb-3">司机/电话</th>
-                    <th className="pb-3">驾驶证号</th>
-                    <th className="pb-3">准驾车型</th>
-                    <th className="pb-3">当前位置</th>
-                    <th className="pb-3">当前车辆</th>
-                    <th className="pb-3">状态</th>
-                    <th className="pb-3">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const groupedDrivers = drivers.reduce((acc: any, d) => {
-                      const key = d.warehouse?.name || '未知仓库';
-                      if (!acc[key]) acc[key] = [];
-                      acc[key].push(d);
-                      return acc;
-                    }, {});
-                    return Object.entries(groupedDrivers).map(([warehouseName, list]: [string, any]) => (
-                      <React.Fragment key={warehouseName}>
-                        {list.map((driver: any, idx: number) => (
-                          <tr key={driver.id} className="border-b hover:bg-gray-50">
-                            {idx === 0 && <td rowSpan={list.length} className="py-3 text-primary-600 font-medium align-middle text-center">{warehouseName}</td>}
-                            <td className="py-3 text-sm text-center">
-                              <div className="font-medium">{driver.name}</div>
-                              <div className="text-gray-400 text-xs">{formatPhone(driver.phone)}</div>
-                            </td>
-                            <td className="py-3 font-mono text-sm text-center">{driver.licenseNo ? driver.licenseNo.replace(/(\d{6})(\d{6})(\d{2})/, '$1 $2 $3').replace(/(\d{6})(\d{10})(\d{2})/, '$1 $2 $3') : '-'}</td>
-                            <td className="py-3 text-center">
-                              <div className="flex flex-wrap gap-1 justify-center">
-                                {driver.licenseTypes?.map((type: string) => (
-                                  <span key={type} className={`px-2 py-0.5 text-xs rounded-full ${licenseTypeColors[type]?.bg || 'bg-gray-100'} ${licenseTypeColors[type]?.text || 'text-gray-700'} border ${licenseTypeColors[type]?.border || 'border-gray-200'}`}>
-                                    {type}
-                                  </span>
-                                )) || '-'}
-                              </div>
-                            </td>
-                            <td className="py-3 text-gray-500 text-sm text-center">
-                              <div>{driver.location || '-'}</div>
-                              <div className="text-xs">{driver.address || '-'}</div>
-                              {driver.latitude && driver.longitude && (
-                                <div className="text-xs text-gray-400">({driver.latitude},{driver.longitude})</div>
-                              )}
-                            </td>
-                            <td className="py-3 text-center">
-                              {driver.vehicle?.licensePlate
-                                ? <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
-                                    {driver.vehicle.licensePlate.slice(0, 2)}·{driver.vehicle.licensePlate.slice(2)}
-                                  </div>
-                                : '-'}
-                            </td>
-                            <td className="py-3 text-center">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                driver.status === 'AVAILABLE' ? 'bg-green-600 text-white' :
-                                driver.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
-                                driver.status === 'RESTING' ? 'bg-yellow-600 text-white' :
-                                'bg-gray-600 text-white'
-                              }`}>
-                                {driverStatusMap[driver.status]}
-                              </span>
-                            </td>
-                            <td className="py-3 text-center">
-                              <button
-                                onClick={() => handleOpenLocationModal(driver)}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
-                                title="更新位置"
-                              >
-                                <MapPin className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => openEditModal(driver)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(driver.id)}
-                                className={`p-1.5 rounded ${
-                                  driver.status === 'AVAILABLE' 
-                                    ? 'text-red-600 hover:bg-red-50' 
-                                    : 'text-gray-300 cursor-not-allowed'
-                                }`}
-                                disabled={driver.status !== 'AVAILABLE'}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </React.Fragment>
-                    ));
-                  })()}
-                  {drivers.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-500">
-                        暂无司机数据
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DriverTable
+              drivers={drivers}
+              onUpdateLocation={handleOpenLocationModal}
+              onEdit={openEditModal}
+              onDelete={handleDelete}
+            />
           )}
         </div>
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
-                {editingItem ? '编辑' : '添加'}{activeTab === 'vehicle' ? '车辆' : '司机'}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <VehicleDriverForm
+        isOpen={showModal}
+        isEditing={!!editingItem}
+        activeTab={activeTab}
+        editingItem={editingItem}
+        formData={formData}
+        warehouses={warehouses}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleSubmit}
+        onFormChange={handleFormChange}
+        onWarehouseChange={handleWarehouseChange}
+        onLicenseTypeToggle={handleLicenseTypeToggle}
+      />
 
-            <div className="space-y-4">
-              {activeTab === 'vehicle' ? (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    {editingItem?.sourceType === 'CARRIER' ? (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">承运商</label>
-                        <input
-                          type="text"
-                          value={formData.warehouse?.name || ''}
-                          disabled
-                          className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
-                        />
-                      </div>
-                    ) : editingItem ? (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
-                        <input
-                          type="text"
-                          value={warehouses.find(w => w.id === formData.warehouseId)?.name || ''}
-                          disabled
-                          className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">仓库 *</label>
-                        <select
-                          value={formData.warehouseId}
-                          onChange={e => {
-                            const warehouse = warehouses.find(w => w.id === e.target.value);
-                            setFormData({
-                              ...formData,
-                              warehouseId: e.target.value,
-                              latitude: warehouse?.latitude?.toString() || '',
-                              longitude: warehouse?.longitude?.toString() || '',
-                              location: warehouse?.address || '',
-                            });
-                          }}
-                          className="w-full px-3 py-2 border rounded-lg"
-                        >
-                          <option value="">请选择仓库</option>
-                          {warehouses.map(w => (
-                            <option key={w.id} value={w.id}>{w.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">车牌号</label>
-                      {editingItem ? (
-                        <input
-                          type="text"
-                          value={formData.licensePlate}
-                          disabled
-                          className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
-                        />
-                      ) : (
-                        <LicensePlateInput
-                          value={formData.licensePlate}
-                          onChange={(val) => setFormData({ ...formData, licensePlate: val })}
-                          className="w-full"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">车型</label>
-                      <select
-                        value={formData.vehicleType}
-                        onChange={e => setFormData({ ...formData, vehicleType: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      >
-                        <option value="小型货车">小型货车</option>
-                        <option value="中型货车">中型货车</option>
-                        <option value="大型货车">大型货车</option>
-                        <option value="平板车">平板车</option>
-                        <option value="厢式货车">厢式货车</option>
-                        <option value="冷藏车">冷藏车</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
-                      <input
-                        type="text"
-                        value={formData.brand}
-                        onChange={e => setFormData({ ...formData, brand: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="可选"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
-                      <input
-                        type="text"
-                        value={formData.model}
-                        onChange={e => setFormData({ ...formData, model: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="可选"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">载重(吨)</label>
-                      <input
-                        type="number"
-                        value={formData.capacity}
-                        onChange={e => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">容积(m³)</label>
-                      <input
-                        type="number"
-                        value={formData.volume}
-                        onChange={e => setFormData({ ...formData, volume: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="可选"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">行驶证号</label>
-                      <input
-                        type="text"
-                        value={formData.licenseNo}
-                        onChange={e => setFormData({ ...formData, licenseNo: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="可选"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">保险单号</label>
-                      <input
-                        type="text"
-                        value={formData.insuranceNo}
-                        onChange={e => setFormData({ ...formData, insuranceNo: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="可选"
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
-                    <select
-                      value={formData.warehouseId}
-                      onChange={e => {
-                        const warehouse = warehouses.find(w => w.id === e.target.value);
-                        setFormData({
-                          ...formData,
-                          warehouseId: e.target.value,
-                          latitude: warehouse?.latitude?.toString() || '',
-                          longitude: warehouse?.longitude?.toString() || '',
-                          location: warehouse?.address || '',
-                        });
-                      }}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="">请选择仓库</option>
-                      {warehouses.map(w => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
-                      <PhoneInput
-                        value={formData.phone}
-                        onChange={(val) => setFormData({ ...formData, phone: val })}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">驾驶证号</label>
-                      <LicenseNoInput
-                        value={formData.licenseNo}
-                        onChange={(val) => setFormData({ ...formData, licenseNo: val })}
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">准驾车型</label>
-                      <div className="flex flex-wrap gap-2">
-                        {['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'].map(type => (
-                          <label key={type} className="flex items-center gap-1 px-3 py-1 border rounded-lg cursor-pointer hover:bg-gray-50">
-                            <input
-                              type="checkbox"
-                              checked={formData.licenseTypes.includes(type)}
-                              onChange={e => {
-                                if (e.target.checked) {
-                                  setFormData({ ...formData, licenseTypes: [...formData.licenseTypes, type] });
-                                } else {
-                                  setFormData({ ...formData, licenseTypes: formData.licenseTypes.filter(t => t !== type) });
-                                }
-                              }}
-                              className="w-4 h-4 rounded border-gray-300 text-primary-600"
-                            />
-                            <span className="text-sm">{type}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  {formData.latitude && formData.longitude && (
-                    <p className="text-xs text-green-600 mt-1">
-                      已设置位置: {formData.latitude}, {formData.longitude} {formData.location && `(${formData.location})`}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                确定
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showLocationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">更新位置</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
-                <input
-                  type="text"
-                  value={locationForm.address}
-                  onChange={e => setLocationForm({ ...locationForm, address: e.target.value })}
-                  onBlur={async () => {
-                    if (locationForm.address) {
-                      try {
-                        const res = await geocodeApi.geocode(locationForm.address);
-                        if (res.data.success) {
-                          setLocationForm(prev => ({
-                            ...prev,
-                            latitude: res.data.data.latitude.toString(),
-                            longitude: res.data.data.longitude.toString(),
-                            location: res.data.data.location,
-                          }));
-                        }
-                      } catch (e) {
-                        // ignore
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="输入地址自动获取经纬度"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">纬度</label>
-                  <input
-                    type="text"
-                    value={locationForm.latitude}
-                    onChange={e => setLocationForm({ ...locationForm, latitude: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="如: 39.9042"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">经度</label>
-                  <input
-                    type="text"
-                    value={locationForm.longitude}
-                    onChange={e => setLocationForm({ ...locationForm, longitude: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="如: 116.4074"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">位置描述</label>
-                <input
-                  type="text"
-                  value={locationForm.location}
-                  onChange={e => setLocationForm({ ...locationForm, location: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="可选"
-                />
-              </div>
-              <p className="text-xs text-gray-500">提示：输入地址后点击保存会自动调用高德API获取经纬度</p>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowLocationModal(false)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleUpdateLocation}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LocationModal
+        isOpen={showLocationModal}
+        locationForm={locationForm}
+        onClose={() => setShowLocationModal(false)}
+        onSubmit={handleUpdateLocation}
+        onFormChange={handleLocationFormChange}
+      />
     </div>
   );
 }
