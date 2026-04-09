@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, CheckCircle, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
-import { aiApi } from '../api/ai-api';
+import { aiApi } from '../api/ai';
 import { toast } from 'react-toastify';
 
 interface OrderItem {

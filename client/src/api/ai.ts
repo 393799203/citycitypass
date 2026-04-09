@@ -1,44 +1,125 @@
-const API_KEY = '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';
-const MODEL = 'google/gemma-4-26b-a4b-it:free';
+import axios from 'axios';
 
-export async function callAI(prompt: string): Promise<string> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-    }),
-  });
+const apiClient = axios.create({
+  baseURL: '/api/ai',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  const data = await response.json();
+export const aiApi = {
+  async analyzeImage(image: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('image', image);
 
-  if (!response.ok || !data.choices?.[0]?.message?.content) {
-    console.error('AI API error:', data);
-    throw new Error(data.error?.message || 'AI请求失败');
-  }
+    const response = await apiClient.post('/image/analyze', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
-  return data.choices[0].message.content;
-}
+    return response.data;
+  },
 
-export async function parseAIResponse<T>(prompt: string): Promise<T | null> {
-  try {
-    const content = await callAI(prompt);
-    console.log('AI response:', content);
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+  async analyzeImageUrl(imageUrl: string): Promise<any> {
+    const response = await apiClient.post('/image/analyze-url', {
+      imageUrl,
+    });
 
-    if (!jsonMatch) {
-      console.error('No JSON found in response:', content);
+    return response.data;
+  },
+
+  async addDocument(content: string, metadata?: Record<string, any>): Promise<any> {
+    const response = await apiClient.post('/knowledge/add', {
+      content,
+      metadata,
+    });
+
+    return response.data;
+  },
+
+  async queryDocuments(query: string, topK?: number): Promise<any> {
+    const response = await apiClient.post('/rag/search', {
+      query,
+      topK: topK || 3,
+      mode: 'keyword',
+    });
+
+    return response.data;
+  },
+
+  async queryDocumentsHybrid(query: string, topK?: number, filters?: Record<string, any>): Promise<any> {
+    const response = await apiClient.post('/rag/search', {
+      query,
+      topK: topK || 5,
+      filters,
+      mode: 'hybrid',
+    });
+
+    return response.data;
+  },
+
+  async getDocumentCount(): Promise<any> {
+    const response = await apiClient.get('/rag/stats');
+    return response.data;
+  },
+
+  async clearDocuments(): Promise<any> {
+    const response = await apiClient.delete('/rag/clear');
+    return response.data;
+  },
+
+  async healthCheck(): Promise<any> {
+    const response = await apiClient.get('/health');
+    return response.data;
+  },
+
+  async chat(messages: any[], context: string[] = [], structured: boolean = false): Promise<any> {
+    const response = await apiClient.post('/chat', {
+      messages,
+      context,
+      structured,
+    });
+    return response.data;
+  },
+
+  async callAI(prompt: string): Promise<string> {
+    try {
+      const response = await apiClient.post('/chat', {
+        messages: [{ role: 'user', content: prompt }],
+        context: [],
+        structured: false,
+      });
+      const data = response.data;
+      if (data.success && data.data?.content) {
+        return data.data.content;
+      }
+      throw new Error('AI call failed');
+    } catch (error) {
+      console.error('callAI error:', error);
+      throw error;
+    }
+  },
+
+  async parseAIResponse<T>(prompt: string): Promise<T | null> {
+    try {
+      const response = await apiClient.post('/chat', {
+        messages: [{ role: 'user', content: prompt }],
+        context: [],
+        structured: true,
+      });
+      const data = response.data;
+      if (data.success && data.data?.content) {
+        const content = data.data.content;
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]) as T;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('parseAIResponse error:', error);
       return null;
     }
-
-    return JSON.parse(jsonMatch[0]) as T;
-  } catch (error) {
-    console.error('parseAIResponse error:', error);
-    throw error;
-  }
-}
+  },
+};

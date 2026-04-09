@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const API_KEY = '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';
-const MODEL = 'stepfun/step-3.5-flash:free';
+const API_KEY = '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';
+const MODEL = 'openrouter/free';
 const LOG_FILE = path.join(process.cwd(), 'ai-calls.log');
 
 let logContent = '';

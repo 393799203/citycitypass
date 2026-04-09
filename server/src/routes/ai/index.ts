@@ -1,12 +1,12 @@
 import { Router, type Request, type Response } from 'express';
 import imageRouter from './image';
-import knowledgeRouter from './knowledge';
+import ragRouter from './rag';
 import { callAI } from '../../api/ai';
 
 const router = Router();
 
 router.use('/image', imageRouter);
-router.use('/knowledge', knowledgeRouter);
+router.use('/rag', ragRouter);
 
 router.get('/health', (req, res) => {
   res.json({ success: true, message: 'AI service is healthy' });

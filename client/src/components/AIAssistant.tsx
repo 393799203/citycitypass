@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCart, Package, ClipboardList, AlertCircle, Minus, GripVertical, Square } from 'lucide-react';
 import ImageUploader from './ImageUploader';
 import MessageFlow from './MessageFlow';
-import { aiApi } from '../api/ai-api';
+import { aiApi } from '../api/ai';
 
 interface Message {
   id: string;
@@ -241,6 +241,7 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
           {intent === 'create_order' && (
             <>
               <div className="flex gap-2"><span className="text-gray-500">客户：</span><span>{data.customerName || data.receiver || '-'}</span></div>
+              {data.phone && <div className="flex gap-2"><span className="text-gray-500">电话：</span><span>{data.phone}</span></div>}
               <div className="flex gap-2"><span className="text-gray-500">配送地址：</span><span>{[data.province, data.city, data.address].filter(Boolean).join('') || '-'}</span></div>
               <div className="mt-2">
                 <span className="text-gray-500">商品明细：</span>

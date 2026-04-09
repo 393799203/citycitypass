@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { orderApi, pickOrderApi } from '../api';
-import { aiApi } from '../api/ai-api';
+import { aiApi } from '../api/ai';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Loader2, Package, CheckCircle, ClipboardList, RefreshCw, Sparkles, Info, Phone, MapPin, ShoppingCart } from 'lucide-react';

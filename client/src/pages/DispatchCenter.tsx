@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Package, X, Plus, RefreshCw, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../api';
-import { aiApi } from '../api/ai-api';
+import { aiApi } from '../api/ai';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 
