@@ -49,6 +49,7 @@ class RAGService {
 
       await this.checkVectorExtension();
       await this.ensureTables();
+      await this.initializeKnowledgeBase();
 
       const mode = process.env.RAG_SEARCH_MODE as SearchMode;
       if (mode && Object.values(SearchMode).includes(mode)) {
@@ -63,6 +64,110 @@ class RAGService {
       console.error('[RAG] Failed to initialize:', error);
       this.pool = null;
     }
+  }
+
+  private async initializeKnowledgeBase() {
+    if (!this.pool) return;
+
+    const result = await this.pool.query('SELECT COUNT(*) FROM rag_documents');
+    if (Number(result.rows[0].count) > 0) {
+      console.log('[RAG] Knowledge base already exists, skipping init');
+      return;
+    }
+
+    console.log('[RAG] Initializing knowledge base...');
+
+    const knowledgeBase = [
+      {
+        originalId: 'fmt_order',
+        type: 'format',
+        category: 'order',
+        title: '销售订单格式',
+        content: '销售订单格式：intent: create_order，必需字段: ownerId, receiver, phone, province, city, address，items: [{productName, spec, packaging, quantity}]。创建订单后，系统会自动计算商品单价、金额、应付总额。'
+      },
+      {
+        originalId: 'fmt_purchase',
+        type: 'format',
+        category: 'order',
+        title: '采购订单格式',
+        content: '采购订单格式：intent: create_purchase_order，必需字段: supplierId，items: [{productName, quantity, price}]。采购订单用于向供应商采购商品，采购价由供应商设定。'
+      },
+      {
+        originalId: 'fmt_inbound',
+        type: 'format',
+        category: 'inventory',
+        title: '入库单格式',
+        content: '入库单格式：intent: create_inbound，必需字段: warehouseId, items: [{productName, quantity}]。入库单用于将采购或退货的商品入库到指定仓库。'
+      },
+      {
+        originalId: 'fmt_dispatch',
+        type: 'format',
+        category: 'dispatch',
+        title: '调度配送格式',
+        content: '调度配送格式：intent: create_dispatch，必需字段: orderId, items: [{orderItemId, vehicleId, driverId}]。调度将订单商品分配给车辆和司机进行配送。'
+      },
+      {
+        originalId: 'rule_order_cancel',
+        type: 'rule',
+        category: 'order',
+        title: '订单取消规则',
+        content: '订单取消规则：订单只有在一键待审核、待确认、待配货、已确认、待发货状态下可以取消。已发货、已配送、已完成、已取消的订单不能取消。'
+      },
+      {
+        originalId: 'rule_stock',
+        type: 'rule',
+        category: 'inventory',
+        title: '库存查询规则',
+        content: '库存查询规则：库存按SKU和仓库维度存储。可以通过商品名称、品牌、SKU编码搜索库存。库存不足时需要先入库再出库。'
+      },
+      {
+        originalId: 'rule_batch',
+        type: 'rule',
+        category: 'batch',
+        title: '批次追踪规则',
+        content: '批次追踪规则：批次记录商品的入库和出库历史。每笔入库生成批次号，每笔出库关联批次号。支持按批次号查询商品流向。'
+      },
+      {
+        originalId: 'proc_order_create',
+        type: 'process',
+        category: 'order',
+        title: '创建订单流程',
+        content: '创建订单流程：1) 填写客户信息(姓名、电话、地址) 2) 选择商品(名称、规格、包装、数量) 3) 确认订单信息 4) 提交审核。订单创建后需要审核才能配货。'
+      },
+      {
+        originalId: 'proc_dispatch',
+        type: 'process',
+        category: 'dispatch',
+        title: '调度配送流程',
+        content: '调度配送流程：1) 查看待配送订单 2) 选择订单进行调度 3) 分配车辆和司机 4) 确认发车。配送完成后系统自动更新订单状态。'
+      },
+      {
+        originalId: 'proc_return',
+        type: 'process',
+        category: 'return',
+        title: '退货处理流程',
+        content: '退货处理流程：客户申请退货 → 审核通过 → 仓库收货 → 质检(合格/不合格) → 合格商品入库 → 退款给客户。退货单需要关联原订单。'
+      }
+    ];
+
+    for (const doc of knowledgeBase) {
+      try {
+        const embedding = await this.generateEmbedding(doc.content);
+        await this.pool.query(`
+          INSERT INTO rag_documents (content, metadata, embedding)
+          VALUES ($1, $2, $3)
+        `, [doc.content, JSON.stringify({
+          originalId: doc.originalId,
+          type: doc.type,
+          category: doc.category,
+          title: doc.title
+        }), JSON.stringify(embedding)]);
+      } catch (error) {
+        console.error(`[RAG] Failed to insert document ${doc.originalId}:`, error);
+      }
+    }
+
+    console.log(`[RAG] Knowledge base initialized with ${knowledgeBase.length} documents`);
   }
 
   private async ensureInitialized() {
