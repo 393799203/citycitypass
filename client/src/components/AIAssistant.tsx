@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCart, Package, ClipboardList, AlertCircle, Minus, GripVertical, Square } from 'lucide-react';
+import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCart, Package, ClipboardList, AlertCircle, Minus, GripVertical, Square, Trash2 } from 'lucide-react';
 import ImageUploader from './ImageUploader';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
@@ -30,14 +30,42 @@ interface AIStructuredData {
 
 interface AIAssistantProps {
   onDocumentCreate?: (document: any) => void;
+  onUnload?: () => void;
 }
 
-export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantProps) {
+  const [isOpen, setIsOpen] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
-  const [messages, setMessages] = useState<Message[]>([]);
+
+  const initialMessages: Message[] = [
+    {
+      id: '1',
+      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮张三订购100箱茅台500ml，发往北京..."\n🛒 采购订单 - "向供应商A采购100瓶茅台"\n📦 入库操作 - "将100瓶茅台入库到北京仓库"\n🚚 调度配送 - "调度车辆配送订单12345"\n\n直接说出您的需求，我会帮您生成单据确认！',
+      type: 'system',
+      timestamp: new Date()
+    }
+  ];
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem('ai-chat-messages');
+      if (saved && saved !== '[]') {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((m: any) => ({
+            ...m,
+            timestamp: new Date(m.timestamp),
+            structuredData: m.structuredData || null
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('[AI] Init load error:', e);
+    }
+    return initialMessages;
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
@@ -72,6 +100,20 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (messages.length > 0) {
+      const trimmed = messages.slice(-100);
+      localStorage.setItem('ai-chat-messages', JSON.stringify(trimmed));
+    } else {
+      localStorage.removeItem('ai-chat-messages');
+    }
+  }, [messages]);
+
+  const clearMessages = () => {
+    setMessages([]);
+    localStorage.removeItem('ai-chat-messages');
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.no-drag')) return;
     setIsDragging(true);
@@ -96,15 +138,6 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
   const handleMouseUp = () => {
     setIsDragging(false);
   };
-
-  const initialMessages: Message[] = [
-    {
-      id: '1',
-      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮张三订购100箱茅台500ml，发往北京..."\n🛒 采购订单 - "向供应商A采购100瓶茅台"\n📦 入库操作 - "将100瓶茅台入库到北京仓库"\n🚚 调度配送 - "调度车辆配送订单12345"\n\n直接说出您的需求，我会帮您生成单据确认！',
-      type: 'system',
-      timestamp: new Date()
-    }
-  ];
 
   const parseAIResponse = (content: string): AIStructuredData | null => {
     try {
@@ -450,18 +483,6 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
 
   return (
     <>
-      {/* 悬浮按钮 - 固定在右下角 */}
-      {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            onClick={() => { setIsOpen(true); setMessages(initialMessages); }}
-            className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
-          >
-            <Bot className="w-6 h-6" />
-          </button>
-        </div>
-      )}
-
       {/* AI助手窗口 - 可拖动 */}
       {isOpen && (
         <div
@@ -497,8 +518,17 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
                   <Minus className="w-4 h-4" />
                 )}
               </button>
+              {messages.length > 0 && (
+                <button
+                  onClick={clearMessages}
+                  className="text-white hover:bg-white/20 p-1 rounded transition-colors"
+                  title="清除聊天记录"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => { setIsOpen(false); onUnload?.(); }}
                 className="text-white hover:bg-white/20 p-1 rounded transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -514,7 +544,7 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
           ) : (
             <>
               {/* 消息区域 */}
-              <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[400px]">
+              <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[400px] min-h-[400px]">
                 <MessageFlow messages={messages} />
                 {showConfirmCard && <ConfirmCard />}
               </div>

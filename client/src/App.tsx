@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import React, { lazy } from 'react';
+import React, { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
-import AIAssistant from './components/AIAssistant';
+import AIAssistantWrapper from './components/AIAssistantWrapper';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -50,7 +50,9 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout />
-                <AIAssistant />
+                <Suspense fallback={null}>
+                  <AIAssistantWrapper />
+                </Suspense>
               </ProtectedRoute>
             }
           >
