@@ -514,7 +514,8 @@ async function allocateItemsToWarehouses(prisma: any, warehouses: any[], skuItem
   }
   for (const item of skuItems) {
     if ((skuAvailability.get(item.skuId) || 0) < item.quantity) {
-      return { success: false, error: `商品 ${item.productName} 库存不足` };
+      const skuInfo = item.spec || item.packaging ? `（${item.spec || ''} ${item.packaging || ''}）`.trim() : '';
+      return { success: false, error: `商品 ${item.productName}${skuInfo} 库存不足` };
     }
   }
 

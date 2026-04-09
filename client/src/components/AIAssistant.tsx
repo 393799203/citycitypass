@@ -3,6 +3,7 @@ import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCa
 import ImageUploader from './ImageUploader';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
+import { orderApi, purchaseOrderApi, productApi, bundleApi, ownerApi } from '../api';
 
 interface Message {
   id: string;
@@ -60,6 +61,17 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    (window as any).openAIPanel = (data: AIStructuredData) => {
+      setConfirmData(data);
+      setShowConfirmCard(true);
+      if (!isOpen) setIsOpen(true);
+    };
+    return () => {
+      delete (window as any).openAIPanel;
+    };
+  }, [isOpen]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.no-drag')) return;
     setIsDragging(true);
@@ -96,12 +108,23 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
 
   const parseAIResponse = (content: string): AIStructuredData | null => {
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      let jsonStr = content;
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.intent && parsed.type) {
-          return parsed as AIStructuredData;
-        }
+        jsonStr = jsonMatch[1].trim();
+      }
+      jsonStr = jsonStr.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+
+      let parsed = JSON.parse(jsonStr);
+      if (parsed.data?.content) {
+        parsed = JSON.parse(parsed.data.content);
+      }
+      if (parsed.intent && ['create_order', 'create_purchase_order', 'create_inbound', 'create_dispatch', 'query'].includes(parsed.intent)) {
+        return {
+          intent: parsed.intent,
+          type: parsed.type || 'order',
+          data: parsed.data || parsed
+        } as AIStructuredData;
       }
     } catch (e) {
       console.error('Failed to parse AI response:', e);
@@ -186,22 +209,136 @@ export default function AIAssistant({ onDocumentCreate }: AIAssistantProps) {
     }
   };
 
-  const handleConfirm = () => {
-    if (confirmData && onDocumentCreate) {
-      onDocumentCreate({
-        type: confirmData.type,
-        data: confirmData.data,
-        intent: confirmData.intent
-      });
+  const handleConfirm = async () => {
+    if (!confirmData) return;
+
+    try {
+      let result: any;
+
+      if (confirmData.intent === 'create_order') {
+        const ownerId = confirmData.data.ownerId || 'default-owner-id';
+        const ownerRes = await ownerApi.list({});
+        const owners = ownerRes.data.data || [];
+        const owner = owners.find((o: any) => o.name === ownerId) || owners[0];
+        const finalOwnerId = owner?.id || ownerId;
+        console.log('[AI] Owner:', owner);
+
+        const skuPromises = confirmData.data.items?.map(async (item: any) => {
+          console.log('[AI] Searching product:', item.productName, 'ownerId:', finalOwnerId);
+          const productRes = await productApi.list({ name: item.productName, ownerId: finalOwnerId });
+          const products = productRes.data.data || [];
+          console.log('[AI] Found products:', products.length, products.map((p: any) => ({name: p.name, skus: p.skus?.map((s: any) => ({id: s.id, spec: s.spec, packaging: s.packaging}))})));
+
+          for (const product of products) {
+            console.log('[AI] Product:', JSON.stringify(product));
+            if (!product.skus || product.skus.length === 0) continue;
+
+            const matchSku = (sku: any, item: any) => {
+              const aiPackaging = item.packaging?.toLowerCase() || '';
+              const aiSpec = item.spec?.toLowerCase() || '';
+              const skuPackaging = sku.packaging?.toLowerCase() || '';
+              const skuSpec = sku.spec?.toLowerCase() || '';
+
+              if (aiPackaging && aiSpec) {
+                return (skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging)) &&
+                       (skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec));
+              }
+              if (aiPackaging) {
+                return skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging);
+              }
+              if (aiSpec) {
+                return skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
+              }
+              return false;
+            };
+
+            let sku = product.skus.find((s: any) => matchSku(s, item));
+            if (sku) {
+              return { skuId: sku.id, bundleId: null, price: item.price || sku.price || 0, quantity: item.quantity || 1 };
+            }
+
+            sku = product.skus.find((s: any) =>
+              s.packaging === item.packaging || s.spec === item.spec
+            );
+            if (sku) {
+              return { skuId: sku.id, bundleId: null, price: item.price || sku.price || 0, quantity: item.quantity || 1 };
+            }
+
+            if (product.skus.length > 0) {
+              sku = product.skus[0];
+              return { skuId: sku.id, bundleId: null, price: item.price || sku.price || 0, quantity: item.quantity || 1 };
+            }
+          }
+
+          const bundleRes = await bundleApi.list({ name: item.productName });
+          const bundles = bundleRes.data.data || [];
+          if (bundles.length > 0) {
+            const bundle = bundles[0];
+            return { skuId: null, bundleId: bundle.id, price: item.price || bundle.price || 0, quantity: item.quantity || 1 };
+          }
+
+          return { skuId: null, bundleId: null, price: item.price || 0, quantity: item.quantity || 1 };
+        }) || [];
+
+        const skuItems = await Promise.all(skuPromises);
+        const orderData = {
+          ownerId: finalOwnerId,
+          receiver: confirmData.data.receiver,
+          phone: confirmData.data.phone,
+          province: confirmData.data.province,
+          city: confirmData.data.city,
+          address: confirmData.data.address,
+          items: skuItems.map((sku: any, idx: number) => ({
+            skuId: sku.skuId,
+            bundleId: sku.bundleId,
+            productName: confirmData.data.items[idx].productName,
+            spec: confirmData.data.items[idx].spec || '标准',
+            packaging: confirmData.data.items[idx].packaging || '散装',
+            price: Number(sku.price) || 0,
+            quantity: Number(sku.quantity) || 1,
+          })),
+        };
+
+        const response = await orderApi.create(orderData);
+        result = response.data;
+      } else if (confirmData.intent === 'create_purchase_order') {
+        const purchaseData = {
+          supplierId: confirmData.data.supplierId || 'default-supplier-id',
+          items: confirmData.data.items?.map((item: any) => ({
+            productName: item.productName,
+            quantity: item.quantity || 1,
+            price: item.price || 0,
+          })),
+        };
+        const response = await purchaseOrderApi.create(purchaseData);
+        result = response.data;
+      } else if (confirmData.intent === 'create_inbound') {
+        result = { success: true, message: '入库单创建功能待对接' };
+      }
 
       const successMessage: Message = {
         id: Date.now().toString(),
-        content: '✅ 单据已创建成功！',
+        content: result?.success !== false ? '✅ 单据已创建成功！' : `❌ 创建失败：${result?.message || '未知错误'}`,
         type: 'ai',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, successMessage]);
+    } catch (error: any) {
+      let errorMsg = '请重试';
+      if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: `❌ 创建失败：${errorMsg}`,
+        type: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
+
     setShowConfirmCard(false);
     setConfirmData(null);
   };

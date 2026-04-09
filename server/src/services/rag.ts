@@ -83,28 +83,42 @@ class RAGService {
         type: 'format',
         category: 'order',
         title: '销售订单格式',
-        content: '销售订单格式：intent: create_order，必需字段: ownerId, receiver, phone, province, city, address，items: [{productName, spec, packaging, quantity}]。创建订单后，系统会自动计算商品单价、金额、应付总额。'
+        content: '销售订单格式/订购/下单：{"intent": "create_order", "type": "sales_order", "data": {"ownerId": null, "receiver": "客户姓名", "phone": "电话", "province": "省份", "city": "城市", "address": "详细地址", "items": [{"productName": "商品名称", "spec": "规格", "packaging": "包装", "quantity": 数量}]}}'
       },
       {
         originalId: 'fmt_purchase',
         type: 'format',
         category: 'order',
         title: '采购订单格式',
-        content: '采购订单格式：intent: create_purchase_order，必需字段: supplierId，items: [{productName, quantity, price}]。采购订单用于向供应商采购商品，采购价由供应商设定。'
+        content: '采购订单格式/采购：{"intent": "create_purchase_order", "type": "purchase_order", "data": {"supplierId": null, "items": [{"productName": "商品名称", "quantity": 数量, "price": 单价}]}}'
       },
       {
         originalId: 'fmt_inbound',
         type: 'format',
         category: 'inventory',
         title: '入库单格式',
-        content: '入库单格式：intent: create_inbound，必需字段: warehouseId, items: [{productName, quantity}]。入库单用于将采购或退货的商品入库到指定仓库。'
+        content: '入库单格式/入库：{"intent": "create_inbound", "type": "inbound_order", "data": {"warehouseId": null, "items": [{"productName": "商品名称", "quantity": 数量}]}}'
       },
       {
         originalId: 'fmt_dispatch',
         type: 'format',
         category: 'dispatch',
         title: '调度配送格式',
-        content: '调度配送格式：intent: create_dispatch，必需字段: orderId, items: [{orderItemId, vehicleId, driverId}]。调度将订单商品分配给车辆和司机进行配送。'
+        content: '调度配送格式：{"intent": "create_dispatch", "type": "dispatch_order", "data": {"orderId": null, "items": [{"orderItemId": null, "vehicleId": null, "driverId": null}]}}'
+      },
+      {
+        originalId: 'prod_maotai',
+        type: 'product',
+        category: 'product',
+        title: '茅台商品规格',
+        content: '【茅台商品】品牌：茅台 规格：500ml 包装：箱(6瓶)/双瓶/单瓶 价格：箱(6瓶)约9500元/双瓶约3300元/单瓶约1700元'
+      },
+      {
+        originalId: 'prod_qingdao',
+        type: 'product',
+        category: 'product',
+        title: '青岛啤酒商品规格',
+        content: '【青岛啤酒】品牌：青岛啤酒 规格：500ml/330ml 包装：箱(12瓶)/箱(24瓶)/瓶 啤酒类商品常用包装：箱(12瓶)、箱(24瓶)、瓶装'
       },
       {
         originalId: 'rule_order_cancel',
