@@ -340,306 +340,324 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                 </div>
               </div>
               <div className="overflow-x-visible">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-center text-gray-500 text-sm border-b">
-                    <th className="pb-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrders.length === pickOrders.filter((o: any) => !o.order?.pickOrder).length && selectedOrders.length > 0}
-                        onChange={(e) => {
-                          const availableOrders = pickOrders.filter((o: any) => !o.order?.pickOrder);
-                          if (e.target.checked) {
-                            setSelectedOrders(availableOrders.map((o: any) => o.order?.id));
-                          } else {
-                            setSelectedOrders([]);
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300"
-                      />
-                    </th>
-                    <th className="pb-3 text-center">订单号</th>
-                    <th className="pb-3 text-center">下单时间</th>
-                    <th className="pb-3 text-center">主体</th>
-                    <th className="pb-3 text-center">仓库</th>
-                    <th className="pb-3 text-center">商品[库位]</th>
-                    <th className="pb-3 text-center">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pickOrders.filter((o: any) => !o.order?.pickOrder).map(order => (
-                    <tr key={order.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-center text-gray-500 text-sm border-b">
+                      <th className="pb-3 w-10">
                         <input
                           type="checkbox"
-                          checked={selectedOrders.includes(order.order?.id)}
+                          checked={selectedOrders.length === pickOrders.filter((o: any) => !o.order?.pickOrder).length && selectedOrders.length > 0}
                           onChange={(e) => {
+                            const availableOrders = pickOrders.filter((o: any) => !o.order?.pickOrder);
                             if (e.target.checked) {
-                              setSelectedOrders([...selectedOrders, order.order?.id]);
+                              setSelectedOrders(availableOrders.map((o: any) => o.order?.id));
                             } else {
-                              setSelectedOrders(selectedOrders.filter(id => id !== order.order?.id));
+                              setSelectedOrders([]);
                             }
                           }}
                           className="w-4 h-4 rounded border-gray-300"
                         />
-                      </td>
-                      <td className="py-3 text-center">
-                        {order.order?.id ? (
-                          <Link to={`/orders/${order.order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
-                            {order.order?.orderNo}
-                          </Link>
-                        ) : order.order?.orderNo}
-                      </td>
-                      <td className="py-3 text-gray-500 text-sm text-center">{order.order?.createdAt ? new Date(order.order.createdAt).toLocaleString() : '-'}</td>
-                      <td className="py-3 text-center">{order.order?.owner?.name}</td>
-                      <td className="py-3 text-center text-blue-600">{order.order?.warehouse?.name}</td>
-                      <td className="py-3 text-center">
-                        {order.items?.flatMap((item: any) => {
-                          const locks = item.bundleId
-                            ? order.bundleStockLocks?.filter((l: any) => l.bundleId === item.bundleId)
-                            : order.stockLocks?.filter((l: any) => l.skuId === item.skuId);
-                          if (!locks || locks.length === 0) {
-                            return [
-                              <div key={item.id} className="text-sm mb-1 flex items-center justify-center">
-                                <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
-                                  {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
-                                  {item.productName}
-                                  {item.spec && `(${item.spec})`}
-                                </span>
-                                <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{item.quantity}</span>
-                              </div>
-                            ];
-                          }
-                          return locks.map((lock: any, idx: number) => {
-                            const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
-                            const showInfo = item.bundleId && item.bundle?.items?.length > 0;
-                            return (
-                              <div key={`${item.id}-${idx}`} className="text-sm mb-1 flex items-center justify-center">
-                                <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
-                                  {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
-                                  {item.productName}
-                                  {item.spec && `(${item.spec})`}
-                                  {showInfo && idx === 0 && (
-                                    <button
-                                      type="button"
-                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                      onMouseLeave={() => setTooltip(null)}
-                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                      className="hover:bg-gray-100 rounded ml-1"
-                                    >
-                                      <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
-                                    </button>
-                                  )}
-                                </span>
-                                <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{lock.quantity}</span>
-                                {locationStr && (
-                                  <span className="ml-1 text-orange-500 text-sm">
-                                    [{locationStr}]
+                      </th>
+                      <th className="pb-3 text-center">订单号</th>
+                      <th className="pb-3 text-center">下单时间</th>
+                      <th className="pb-3 text-center">主体</th>
+                      <th className="pb-3 text-center">仓库</th>
+                      <th className="pb-3 text-center">商品[库位]</th>
+                      <th className="pb-3 text-center">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pickOrders.filter((o: any) => !o.order?.pickOrder).map(order => (
+                      <tr key={order.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedOrders.includes(order.order?.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedOrders([...selectedOrders, order.order?.id]);
+                              } else {
+                                setSelectedOrders(selectedOrders.filter(id => id !== order.order?.id));
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                        </td>
+                        <td className="py-3 text-center">
+                          {order.order?.id ? (
+                            <Link to={`/orders/${order.order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
+                              {order.order?.orderNo}
+                            </Link>
+                          ) : order.order?.orderNo}
+                        </td>
+                        <td className="py-3 text-gray-500 text-sm text-center">{order.order?.createdAt ? new Date(order.order.createdAt).toLocaleString() : '-'}</td>
+                        <td className="py-3 text-center">{order.order?.owner?.name}</td>
+                        <td className="py-3 text-center text-blue-600">{order.order?.warehouse?.name}</td>
+                        <td className="py-3 text-center">
+                          {order.items?.flatMap((item: any) => {
+                            const locks = item.bundleId
+                              ? order.bundleStockLocks?.filter((l: any) => l.bundleId === item.bundleId)
+                              : order.stockLocks?.filter((l: any) => l.skuId === item.skuId);
+                            if (!locks || locks.length === 0) {
+                              return [
+                                <div key={item.id} className="text-sm mb-1 flex items-center justify-center">
+                                  <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                                    {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
+                                    {item.productName}
+                                    {item.spec && `(${item.spec})`}
                                   </span>
-                                )}
-                                {(lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo) && (
-                                  <span className="ml-1 text-purple-500 text-xs">
-                                    批:{lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          });
-                        })}
-                      </td>
-                      <td className="py-3 text-center">
-                        <button
-                          onClick={async () => {
-                            try {
-                              await pickOrderApi.create({ orderId: order.order?.id });
-                              toast.success('拣货单已生成');
-                              fetchData();
-                            } catch (error) {
-                              toast.error('生成拣货单失败');
+                                  <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{item.quantity}</span>
+                                </div>
+                              ];
                             }
-                          }}
-                          className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
-                        >
-                          生成拣货单
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {pickOrders.filter((o: any) => !o.order?.pickOrder).length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-12 text-center text-gray-500">
-                        暂无待拣货订单
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            </div>
-           ) : (
-            <div className="space-y-4">
-              {pickOrders.map(pickOrder => (
-                <div key={pickOrder.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <span className="font-medium text-gray-900">{pickOrder.pickNo}</span>
-                      <span className="text-sm text-gray-500">订单: {pickOrder.orders?.map((o: any) => {
-                        const orderId = o?.id;
-                        const orderNo = o?.orderNo;
-                        if (!orderId || !orderNo) return null;
-                        return (
-                          <Link key={orderId} to={`/orders/${orderId}`} className="text-primary-600 hover:text-primary-800 hover:underline mx-0.5">
-                            {orderNo}
-                          </Link>
-                        );
-                      })}</span>
-                      <span className="text-sm text-gray-500">{pickOrder.orders?.[0]?.owner?.name}</span>
-                      <span className="text-sm text-blue-600">{pickOrder.orders?.[0]?.warehouse?.name}</span>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
-                        pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
-                        'bg-green-600 text-white'
-                      }`}>
-                        {pickStatusMap[pickOrder.status]}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {pickOrder.status === 'PICKING' && !pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && (
-                        <>
-                          <button
-                            onClick={() => handlePickComplete(pickOrder.id)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            拣货完成
-                          </button>
-                        </>
-                      )}
-                      {pickOrder.status === 'PICKING' && pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && (
-                        <span className="text-sm text-red-500">订单已取消</span>
-                      )}
-                      {pickOrder.status === 'PICKED' && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleOutboundReview(pickOrder.id, true)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                          >
-                            审核通过
-                          </button>
-                          <button
-                            onClick={() => handleOutboundReview(pickOrder.id, false)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
-                          >
-                            审核不通过
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="overflow-x-visible bg-gray-50 rounded-lg p-3">
-                    <table className="w-full table-fixed">
-                      <thead>
-                        <tr className="text-xs text-gray-500 text-center">
-                          <th className="py-1 w-1/4">商品</th>
-                          <th className="py-1 w-1/4">包装/规格</th>
-                          <th className="py-1 w-12">数量</th>
-                          <th className="py-1 w-1/4">库位(货位)-批号</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-sm">
-                        {(pickOrder.items || []).map((item: any) => (
-                          <tr key={item.id} className="border-t border-gray-200">
-                            <td className="py-2 align-top text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
-                                <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
-                                {item.bundleId && item.bundle?.items?.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                    onMouseLeave={() => setTooltip(null)}
-                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                    className="p-0.5 hover:bg-gray-100 rounded"
-                                  >
-                                    <Info className="w-3 h-3 text-purple-500 cursor-help" />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-2 align-top text-gray-500 text-center">{item.packaging} · {item.spec}</td>
-                            <td className="py-2 align-top text-center">{item.quantity}</td>
-                            <td className="py-2 align-top text-gray-500 text-center">
-                              {(() => {
-                                const loc = item.stockLock?.location || item.bundleStockLock?.location;
-                                const locCode = loc ? `${loc.shelf?.zone?.code}-${loc.shelf?.code}-L${loc.level}` : (item.warehouseLocation || '-');
-                                const batchNo = item.stockLock?.skuBatch?.batchNo || item.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo || item.bundleBatch?.batchNo;
-                                const batchSuffix = batchNo ? `(${batchNo})` : '';
-                                const isCompleted = pickOrder.status === 'COMPLETED' || pickOrder.orders?.some((o: any) => o.status === 'DELIVERED' || o.status === 'IN_TRANSIT');
-                                const statusSuffix = isCompleted ? ' (已出库)' : (pickOrder.status === 'CANCELLED' ? ' (已出库)' : '');
-                                return `${locCode}${batchSuffix}${statusSuffix}`;
-                              })()}
-                              {pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && ' (已退回)'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {pickOrder.orders && pickOrder.orders.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      {pickOrder.orders.map((o: any) => (
-                        <div key={o.id} className="text-sm border-l-2 border-primary-300 pl-2 space-y-1">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Phone className="w-4 h-4" />
-                            <span>{o.receiver}</span>
-                            <span className="text-gray-400">{formatPhone(o.phone)}</span>
-                          </div>
-                          <div className="flex items-start gap-2 text-gray-600">
-                            <MapPin className="w-4 h-4 mt-0.5" />
-                            <span>{formatAddress(o.province, o.city, o.address)}</span>
-                          </div>
-                          <div className="flex items-start gap-2 text-gray-600">
-                            <ShoppingCart className="w-4 h-4 mt-0.5" />
-                            <div>
-                              {o.items?.map((item: any) => {
-                                const pickItem = pickOrder.items?.find((pi: any) =>
-                                  (item.skuId && pi.skuId === item.skuId) || (item.bundleId && pi.bundleId === item.bundleId)
-                                );
-                                const batchNo = pickItem?.skuBatch?.batchNo || pickItem?.bundleBatch?.batchNo;
-                                return (
-                                  <span key={item.id} className="mr-2 inline-flex items-center">
-                                    {item.bundleId ? <span className="text-purple-600">[套装]</span> : <span className="text-blue-600">[商品]</span>}
-                                    <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
-                                    {batchNo && <span className="text-orange-500 ml-1">({batchNo})</span>}
-                                    {item.bundleId && item.bundle?.items?.length > 0 && (
+                            return locks.map((lock: any, idx: number) => {
+                              const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
+                              const showInfo = item.bundleId && item.bundle?.items?.length > 0;
+                              return (
+                                <div key={`${item.id}-${idx}`} className="text-sm mb-1 flex items-center justify-center">
+                                  <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                                    {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
+                                    {item.productName}
+                                    {item.spec && `(${item.spec})`}
+                                    {showInfo && idx === 0 && (
                                       <button
                                         type="button"
                                         onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                                         onMouseLeave={() => setTooltip(null)}
                                         onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                        className="p-0.5 hover:bg-gray-100 rounded mx-1"
+                                        className="hover:bg-gray-100 rounded ml-1"
                                       >
-                                        <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                        <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
                                       </button>
                                     )}
-                                    x{item.quantity}
                                   </span>
-                                );
-                              })}
+                                  <span className="text-gray-500 ml-1">{item.packaging && `${item.packaging} `}x{lock.quantity}</span>
+                                  {locationStr && (
+                                    <span className="ml-1 text-orange-500 text-sm">
+                                      [{locationStr}]
+                                    </span>
+                                  )}
+                                  {(lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo) && (
+                                    <span className="ml-1 text-purple-500 text-xs">
+                                      批:{lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            });
+                          })}
+                        </td>
+                        <td className="py-3 text-center">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await pickOrderApi.create({ orderId: order.order?.id });
+                                toast.success('拣货单已生成');
+                                fetchData();
+                              } catch (error) {
+                                toast.error('生成拣货单失败');
+                              }
+                            }}
+                            className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
+                          >
+                            生成拣货单
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {pickOrders.filter((o: any) => !o.order?.pickOrder).length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-gray-500">
+                          暂无待拣货订单
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+           ) : (
+            <div className="space-y-4">
+              {pickOrders.length === 0 ? (
+                <div className="flex items-center justify-center h-64 text-gray-500">
+                  <div className="text-center">
+                    {activeTab === 'pick' ? (
+                      <>
+                        <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>暂无波次拣货单</p>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>暂无出库审核单</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                pickOrders.map(pickOrder => (
+                  <div key={pickOrder.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <span className="font-medium text-gray-900">{pickOrder.pickNo}</span>
+                        <span className="text-sm text-gray-500">订单: {pickOrder.orders?.map((o: any) => {
+                          const orderId = o?.id;
+                          const orderNo = o?.orderNo;
+                          if (!orderId || !orderNo) return null;
+                          return (
+                            <Link key={orderId} to={`/orders/${orderId}`} className="text-primary-600 hover:text-primary-800 hover:underline mx-0.5">
+                              {orderNo}
+                            </Link>
+                          );
+                        })}</span>
+                        <span className="text-sm text-gray-500">{pickOrder.orders?.[0]?.owner?.name}</span>
+                        <span className="text-sm text-blue-600">{pickOrder.orders?.[0]?.warehouse?.name}</span>
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                          pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
+                          'bg-green-600 text-white'
+                        }`}>
+                          {pickStatusMap[pickOrder.status]}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {pickOrder.status === 'PICKING' && !pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && (
+                          <>
+                            <button
+                              onClick={() => handlePickComplete(pickOrder.id)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              拣货完成
+                            </button>
+                          </>
+                        )}
+                        {pickOrder.status === 'PICKING' && pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && (
+                          <span className="text-sm text-red-500">订单已取消</span>
+                        )}
+                        {pickOrder.status === 'PICKED' && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleOutboundReview(pickOrder.id, true)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                            >
+                              审核通过
+                            </button>
+                            <button
+                              onClick={() => handleOutboundReview(pickOrder.id, false)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                            >
+                              审核不通过
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="overflow-x-visible bg-gray-50 rounded-lg p-3">
+                      <table className="w-full table-fixed">
+                        <thead>
+                          <tr className="text-xs text-gray-500 text-center">
+                            <th className="py-1 w-1/4">商品</th>
+                            <th className="py-1 w-1/4">包装/规格</th>
+                            <th className="py-1 w-12">数量</th>
+                            <th className="py-1 w-1/4">库位(货位)-批号</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                          {(pickOrder.items || []).map((item: any) => (
+                            <tr key={item.id} className="border-t border-gray-200">
+                              <td className="py-2 align-top text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
+                                  <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
+                                  {item.bundleId && item.bundle?.items?.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      onMouseLeave={() => setTooltip(null)}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                      className="p-0.5 hover:bg-gray-100 rounded"
+                                    >
+                                      <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-2 align-top text-gray-500 text-center">{item.packaging} · {item.spec}</td>
+                              <td className="py-2 align-top text-center">{item.quantity}</td>
+                              <td className="py-2 align-top text-gray-500 text-center">
+                                {(() => {
+                                  const loc = item.stockLock?.location || item.bundleStockLock?.location;
+                                  const locCode = loc ? `${loc.shelf?.zone?.code}-${loc.shelf?.code}-L${loc.level}` : (item.warehouseLocation || '-');
+                                  const batchNo = item.stockLock?.skuBatch?.batchNo || item.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo || item.bundleBatch?.batchNo;
+                                  const batchSuffix = batchNo ? `(${batchNo})` : '';
+                                  const isCompleted = pickOrder.status === 'COMPLETED' || pickOrder.orders?.some((o: any) => o.status === 'DELIVERED' || o.status === 'IN_TRANSIT');
+                                  const statusSuffix = isCompleted ? ' (已出库)' : (pickOrder.status === 'CANCELLED' ? ' (已出库)' : '');
+                                  return `${locCode}${batchSuffix}${statusSuffix}`;
+                                })()}
+                                {pickOrder.orders?.some((o: any) => o.status === 'CANCELLED') && ' (已退回)'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {pickOrder.orders && pickOrder.orders.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {pickOrder.orders.map((o: any) => (
+                          <div key={o.id} className="text-sm border-l-2 border-primary-300 pl-2 space-y-1">
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <Phone className="w-4 h-4" />
+                              <span>{o.receiver}</span>
+                              <span className="text-gray-400">{formatPhone(o.phone)}</span>
+                            </div>
+                            <div className="flex items-start gap-2 text-gray-600">
+                              <MapPin className="w-4 h-4 mt-0.5" />
+                              <span>{formatAddress(o.province, o.city, o.address)}</span>
+                            </div>
+                            <div className="flex items-start gap-2 text-gray-600">
+                              <ShoppingCart className="w-4 h-4 mt-0.5" />
+                              <div>
+                                {o.items?.map((item: any) => {
+                                  const pickItem = pickOrder.items?.find((pi: any) =>
+                                    (item.skuId && pi.skuId === item.skuId) || (item.bundleId && pi.bundleId === item.bundleId)
+                                  );
+                                  const batchNo = pickItem?.skuBatch?.batchNo || pickItem?.bundleBatch?.batchNo;
+                                  return (
+                                    <span key={item.id} className="mr-2 inline-flex items-center">
+                                      {item.bundleId ? <span className="text-purple-600">[套装]</span> : <span className="text-blue-600">[商品]</span>}
+                                      <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
+                                      {batchNo && <span className="text-orange-500 ml-1">({batchNo})</span>}
+                                      {item.bundleId && item.bundle?.items?.length > 0 && (
+                                        <button
+                                          type="button"
+                                          onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                          onMouseLeave={() => setTooltip(null)}
+                                          onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                          className="p-0.5 hover:bg-gray-100 rounded mx-1"
+                                        >
+                                          <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                        </button>
+                                      )}
+                                      x{item.quantity}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {(pickOrder.picker || pickOrder.approver) && (
-                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 justify-end">
-                      {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
-                      {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
-                    </div>
-                  )}
-                </div>
-              ))}
+                        ))}
+                      </div>
+                    )}
+                    {(pickOrder.picker || pickOrder.approver) && (
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 justify-end">
+                        {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
+                        {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
