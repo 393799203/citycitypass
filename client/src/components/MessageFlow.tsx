@@ -125,7 +125,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                       {message.structuredData.data?.items?.length > 0 && (
                         <div>商品：{message.structuredData.data.items.map((item: any, idx: number) => (
                           <span key={idx} className="inline-block mr-2">
-                            {item.productName} × {item.quantity}
+                            {item.productName}{item.spec ? ` ${item.spec}` : ''}{item.packaging ? ` ${item.packaging}` : ''} × {item.quantity}
                           </span>
                         ))}</div>
                       )}

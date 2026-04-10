@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import { getCurrentConfig } from '../config/ai';
 
-const API_KEY = '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';
-const MODEL = 'openrouter/free';
 const LOG_FILE = path.join(process.cwd(), 'ai-calls.log');
+const aiConfig = getCurrentConfig();
 
 let logContent = '';
 
@@ -40,20 +40,20 @@ export async function callAI(prompt: string): Promise<AICallResult> {
   appendLog('----------------------------------');
 
   try {
-    const url = 'https://openrouter.ai/api/v1/chat/completions';
+    const url = aiConfig.apiUrl;
     const body = JSON.stringify({
-      model: MODEL,
+      model: aiConfig.model,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
     });
 
-    appendLog('正在调用 OpenRouter API...');
+    appendLog(`正在调用 ${aiConfig.name} API...`);
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
+        'Authorization': `Bearer ${aiConfig.apiKey}`,
       },
       body: body,
     });
