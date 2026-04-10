@@ -838,9 +838,9 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
                     onChange={(e) => setSearchMode(e.target.value as 'keyword' | 'vector' | 'hybrid')}
                     className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
                   >
-                    <option value="keyword">关键词</option>
-                    <option value="vector">向量</option>
-                    <option value="hybrid">混合</option>
+                    <option value="keyword">关键词搜索</option>
+                    <option value="vector">向量搜索</option>
+                    <option value="hybrid">混合搜索</option>
                   </select>
                 </div>
                 {showImageUpload ? (

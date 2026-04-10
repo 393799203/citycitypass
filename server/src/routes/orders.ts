@@ -285,8 +285,28 @@ router.post('/', async (req: Request, res: Response) => {
       totalAmount += realPrice * item.quantity;
     }
 
-    if (data.contractDiscount && data.contractDiscount > 0 && data.contractDiscount <= 1) {
-      totalAmount = totalAmount * data.contractDiscount;
+    // 查询客户的合同折扣
+    let contractDiscount = data.contractDiscount;
+    if (data.customerId && !contractDiscount) {
+      try {
+        const customer = await prisma.customer.findUnique({
+          where: { id: data.customerId },
+          include: { contracts: { where: { status: 'ACTIVE' } } }
+        });
+        // 查找有效的合同折扣
+        const activeContract = customer?.contracts?.[0];
+        const discountValue = activeContract?.discount ? Number(activeContract.discount) : 0;
+        if (discountValue > 0 && discountValue <= 1) {
+          contractDiscount = discountValue;
+          console.log(`[订单] 客户合同折扣: ${contractDiscount}`);
+        }
+      } catch (error) {
+        console.error('[订单] 查询客户合同折扣失败:', error);
+      }
+    }
+
+    if (contractDiscount && contractDiscount > 0 && contractDiscount <= 1) {
+      totalAmount = totalAmount * contractDiscount;
     }
 
     const skuItems = data.items.filter((i: any) => i.skuId);
