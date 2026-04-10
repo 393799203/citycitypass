@@ -29,7 +29,7 @@ const orderItemSchema = z.object({
   productName: z.string(),
   packaging: z.string(),
   spec: z.string(),
-  price: z.number().min(0),
+  price: z.number().min(0).optional(),
   quantity: z.number().int().min(1),
 }).refine(data => data.skuId || data.bundleId, {
   message: "必须提供 skuId 或 bundleId"
@@ -265,17 +265,39 @@ router.post('/', async (req: Request, res: Response) => {
     console.log('创建订单请求体:', JSON.stringify(req.body, null, 2));
     const data = orderSchema.parse(req.body);
 
+    // 收集所有skuId并查询真实价格
+    const skuIds = data.items.filter((i: any) => i.skuId).map((i: any) => i.skuId);
+    const skuPricesMap: Record<string, any> = {};
+    if (skuIds.length > 0) {
+      const skus = await prisma.productSKU.findMany({
+        where: { id: { in: skuIds } },
+        select: { id: true, price: true, packaging: true }
+      });
+      for (const sku of skus) {
+        skuPricesMap[sku.id] = { price: sku.price, packaging: sku.packaging };
+      }
+    }
+
+    // 计算totalAmount，使用真实价格
     let totalAmount = 0;
     for (const item of data.items) {
-      totalAmount += item.price * item.quantity;
+      const realPrice = item.skuId && skuPricesMap[item.skuId] ? Number(skuPricesMap[item.skuId].price) : (item.price || 0);
+      totalAmount += realPrice * item.quantity;
     }
 
     if (data.contractDiscount && data.contractDiscount > 0 && data.contractDiscount <= 1) {
       totalAmount = totalAmount * data.contractDiscount;
     }
 
-    const skuItems = data.items.filter(i => i.skuId);
-    const bundleItems = data.items.filter(i => i.bundleId);
+    const skuItems = data.items.filter((i: any) => i.skuId);
+    const bundleItems = data.items.filter((i: any) => i.bundleId);
+
+    // 更新skuItems中的真实价格
+    for (const item of skuItems) {
+      if (item.skuId && skuPricesMap[item.skuId]) {
+        item.price = Number(skuPricesMap[item.skuId].price);
+      }
+    }
 
     if (data.warehouseId) {
       const order = await createSingleWarehouseOrder(prisma, data, totalAmount, skuItems, bundleItems);

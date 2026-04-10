@@ -222,6 +222,39 @@ router.post('/mode', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/update-embedding/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Document ID is required'
+      });
+    }
+
+    const success = await ragService.updateEmbedding(id);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Embedding updated successfully'
+    });
+  } catch (error: any) {
+    console.error('Update embedding error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update embedding'
+    });
+  }
+});
+
 router.post('/generate-embedding', async (req: Request, res: Response) => {
   try {
     const { text } = req.body;

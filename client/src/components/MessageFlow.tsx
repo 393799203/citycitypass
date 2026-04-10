@@ -80,6 +80,10 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
               <div
                 className="mb-2 p-3 bg-white rounded border border-purple-200 cursor-pointer hover:bg-purple-50 transition-colors text-sm"
                 onClick={() => {
+                  // 只在创建订单、入库单、采购单场景下打开确认框
+                  if (!['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData?.intent || '')) {
+                    return;
+                  }
                   if (typeof window !== 'undefined' && (window as any).openAIPanel) {
                     (window as any).openAIPanel(message.structuredData);
                   }
@@ -157,37 +161,31 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
                   </div>
                 )}
-                {message.structuredData.intent === 'query' && (
+                {(message.structuredData.intent === 'query' || !['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData.intent)) && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-purple-700 font-medium">
                       <FileText className="w-4 h-4" />
-                      <span>查询结果</span>
+                      <span>{message.structuredData.intent === 'query' ? '查询结果' : message.structuredData.intent}</span>
                     </div>
                     <div className="text-gray-600 text-xs space-y-0.5">
-                      {message.structuredData.data?.type && (
-                        <div>类型：{message.structuredData.data.type}</div>
-                      )}
-                      {message.structuredData.data?.productName && (
-                        <div>产品名称：{message.structuredData.data.productName}</div>
-                      )}
-                      {message.structuredData.data?.spec && (
-                        <div>规格：{message.structuredData.data.spec}</div>
-                      )}
-                      {message.structuredData.data?.packaging && (
-                        <div>包装：{message.structuredData.data.packaging}</div>
-                      )}
-                      {message.structuredData.data?.content && (
-                        <div>内容：{message.structuredData.data.content}</div>
-                      )}
-                      {message.structuredData.data?.results && message.structuredData.data.results.length > 0 && (
-                        <div>结果：{message.structuredData.data.results.map((result: any, idx: number) => (
-                          <span key={idx} className="inline-block mr-2">
-                            {result.title || result.content?.substring(0, 30) || '无标题'}
-                          </span>
-                        ))}</div>
+                      {typeof message.structuredData.data === 'string' ? (
+                        <div className="whitespace-pre-wrap">{message.structuredData.data}</div>
+                      ) : (
+                        message.structuredData.data && Object.entries(message.structuredData.data).map(([key, value]) => {
+                          if (value === null || value === undefined) return null;
+                          return (
+                            <div key={key} className="flex gap-2 flex-wrap">
+                              <span className="font-medium">{key}：</span>
+                              <span className="flex-1 break-all">
+                                {typeof value === 'object' ? (
+                                  Array.isArray(value) ? value.join(', ') : JSON.stringify(value)
+                                ) : String(value)}
+                              </span>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
-                    <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
                   </div>
                 )}
               </div>

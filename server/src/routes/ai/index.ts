@@ -54,20 +54,44 @@ router.post('/chat', async (req: Request, res: Response) => {
 - "向XX供应商采购/进货" = create_purchase_order（采购订单）
 
 ## 数据格式要求
-与物流仓库系统有关的业务数据格式要求：{"intent": "类型", "type": "分类", "data": {"数据内容"}}
+若无相关业务数据格式要求，则返回普通文本回复，不要返回JSON。
+
+【销售订单格式】：当用户订购商品时，必须返回此格式：
+{"intent": "create_order", "type": "sales_order", "data": {"ownerId": "主体ID", "receiver": "客户姓名", "phone": "电话", "province": "省份", "city": "城市", "address": "详细地址", "items": [{"productName": "商品名称", "spec": "规格", "packaging": "包装", "quantity": 数量}]}}
+
+【采购订单格式】：当用户采购商品时，必须返回此格式：
+{"intent": "create_purchase_order", "type": "purchase_order", "data": {"supplierId": "供应商ID", "warehouseId": "仓库ID", "orderDate": "订单日期", "expectedDate": "预计到货日期", "remark": "备注", "items": [{"itemType": "PRODUCT", "skuId": "SKU ID", "bundleId": "套装ID", "quantity": 数量, "price": 单价}]}}
+
+【入库单格式】：当用户创建入库单时，必须返回此格式：
+{"intent": "create_inbound", "type": "inbound_order", "data": {"warehouseId": "仓库ID", "source": "来源", "remark": "备注", "items": [{"productName": "商品名称", "type": "PRODUCT", "skuId": "SKU ID", "bundleId": "套装ID", "quantity": 数量}]}}
+
+【其他格式】其他与物流仓库系统有关的业务数据格式要求：
+{"intent": "类型", "type": "other", "data": "结果" }
+
+## 重要规则
+1. 如果是仓储相关问题，必须只返回JSON，不要任何其他文字
+2. 数量必须是数字，不是字符串
+3. 地址要拆分：address="详细地址（不含省市）"，province="省份"，city="城市"
+4. 如果信息不完整，相关字段填null或留空
+5. productName是最重要的字段，必须从用户输入中提取
+6. spec和packaging必须从知识库获取，不要自行编造
 
 ## 知识库内容
 
-${context?.length > 0 ? '\n\n【知识库内容】：\n' + context.join('\n\n') : ''}
+${context?.length > 0 ? '\n\n' + context.join('\n\n') : ''}
 
 ## 重要规则
 
-1. 如果用户输入与仓储管理无关，直接用普通文本回答，不要返回JSON
-2. 如果是仓储相关问题，必须只返回JSON，不要任何其他文字
-3. 数量必须是数字，不是字符串
-4. 地址要拆分：address="详细地址（不含省市）"，province="省份"，city="城市"
-5. 如果信息不完整，相关字段填null或留空
-6. productName是最重要的字段，必须从用户输入中提取`;
+1. 如果是仓储相关问题，必须只返回JSON，不要任何其他文字
+2. 数量必须是数字，不是字符串
+3. 地址要拆分：address="详细地址（不含省市）"，province="省份"，city="城市"
+4. 如果信息不完整，相关字段填null或留空
+5. productName是最重要的字段，必须从用户输入中提取
+6. **【查询类问题-价格】**：当用户询问进货价/采购价格时：
+   - 必须从知识库中找到"采购价格"或"进货"相关的数据
+   - 例如知识库中写的是"采购价格：箱(6瓶)约6000元/双瓶约2000元/单瓶约1000元"
+   - 必须把这个精准的价格信息填入data字段，问采购价只返回采购价，问销售价就返回销售价
+   - data="采购价格：箱(6瓶)约6000元/双瓶约2000元/单瓶约1000元"`;
     } else {
       systemPrompt = `你是一个专业的WMS仓储管理系统助手。基于提供的知识库上下文信息回答用户问题。
 

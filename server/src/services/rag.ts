@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { getCurrentConfig } from '../config/ai';
 
 const EMBEDDING_DIMENSION = 1536;
 const DEFAULT_TOP_K = 5;
@@ -13,7 +14,7 @@ interface SearchResult {
   id: string;
   content: string;
   metadata?: Record<string, any>;
-  embedding?: string;
+  embedding?: boolean;
   score: number;
   rank: number;
 }
@@ -333,7 +334,28 @@ class RAGService {
     topK: number,
     filters?: Record<string, any>
   ): Promise<SearchResult[]> {
+    console.log(`[RAG] Vector search for query: "${query}"`);
     const queryEmbedding = await this.generateEmbedding(query);
+    console.log(`[RAG] Generated query embedding (first 5 values):`, queryEmbedding.slice(0, 5));
+
+    // 先获取所有文档的嵌入向量，以便调试
+    const allDocsResult = await this.pool!.query(`
+      SELECT id, content, metadata, embedding
+      FROM rag_documents
+      WHERE embedding IS NOT NULL
+    `);
+    console.log(`[RAG] Found ${allDocsResult.rows.length} documents with embedding`);
+    
+    // 打印所有文档的内容和嵌入向量（前5个值）
+    for (const doc of allDocsResult.rows) {
+      console.log(`[RAG] Document: ${doc.content.substring(0, 50)}...`);
+      try {
+        const docEmbedding = JSON.parse(doc.embedding);
+        console.log(`[RAG] Embedding (first 5 values):`, docEmbedding.slice(0, 5));
+      } catch (error) {
+        console.error(`[RAG] Failed to parse embedding for document ${doc.id}:`, error);
+      }
+    }
 
     let queryStr = `
       SELECT
@@ -361,9 +383,11 @@ class RAGService {
     queryStr += ` ORDER BY embedding::vector <=> $1::vector LIMIT $${paramIndex}`;
     params.push(topK);
 
+    console.log(`[RAG] Executing vector search query with params:`, params);
     const result = await this.pool!.query(queryStr, params);
+    console.log(`[RAG] Vector search returned ${result.rows.length} results`);
 
-    return result.rows.map(row => ({
+    const searchResults = result.rows.map(row => ({
       id: row.id,
       content: row.content,
       metadata: row.metadata,
@@ -371,6 +395,9 @@ class RAGService {
       score: Number(row.score),
       rank: Number(row.rank)
     }));
+
+    console.log(`[RAG] Search results:`, searchResults.map(r => ({ id: r.id, score: r.score, content: r.content.substring(0, 50) })));
+    return searchResults;
   }
 
   private async keywordSearch(
@@ -615,14 +642,20 @@ class RAGService {
     }
 
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/embeddings', {
+      // 使用SiliconFlow的嵌入向量API
+      const aiConfig = getCurrentConfig();
+      console.log(`[RAG] Using AI config for embedding: ${aiConfig.name}`);
+      
+      // SiliconFlow的embedding API端点
+      const embeddingApiUrl = aiConfig.apiUrl.replace('/chat/completions', '/embeddings');
+      const response = await fetch(embeddingApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || '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'}`,
+          'Authorization': `Bearer ${aiConfig.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'openai/text-embedding-3-small',
+          model: 'BAAI/bge-m3',  // 使用支持中文的embedding模型
           input: text,
         }),
       });
@@ -632,6 +665,7 @@ class RAGService {
       }
 
       const data: any = await response.json();
+      console.log(`[RAG] Embedding API response:`, JSON.stringify(data).substring(0, 200));
       const embedding = data.data[0].embedding;
 
       this.embeddingCache.set(cacheKey, { embedding, timestamp: now });
@@ -694,6 +728,35 @@ class RAGService {
 
     const result = await this.pool.query(`DELETE FROM rag_documents`);
     return result.rowCount || 0;
+  }
+
+  async updateEmbedding(id: string): Promise<boolean> {
+    await this.ensureInitialized();
+
+    if (!this.pool) {
+      throw new Error('Database pool not initialized');
+    }
+
+    // 先获取文档内容
+    const docResult = await this.pool.query(`
+      SELECT content FROM rag_documents WHERE id = $1
+    `, [id]);
+
+    if (docResult.rowCount === 0) {
+      return false;
+    }
+
+    const content = docResult.rows[0].content;
+    const embedding = await this.generateEmbedding(content);
+
+    // 更新向量嵌入
+    const updateResult = await this.pool.query(`
+      UPDATE rag_documents
+      SET embedding = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [JSON.stringify(embedding), id]);
+
+    return (updateResult.rowCount || 0) > 0;
   }
 
   async getDocumentCount(): Promise<number> {

@@ -163,6 +163,24 @@ export default function KnowledgeBase() {
     }
   };
 
+  const handleRefreshEmbedding = async (document: Document) => {
+    setLoading(true);
+    try {
+      // 直接更新向量嵌入
+      const response = await aiApi.updateDocumentEmbedding(document.id);
+      if (response.success) {
+        toast.success('向量刷新成功');
+        fetchDocuments();
+      } else {
+        toast.error('向量刷新失败');
+      }
+    } catch (error) {
+      toast.error('向量刷新失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (document: Document) => {
     setCurrentDocument(document);
     setFormData({
@@ -273,6 +291,13 @@ export default function KnowledgeBase() {
                     className="text-primary-600 hover:text-primary-900 mr-3"
                   >
                     <Pencil className="w-4 h-4 inline" />
+                  </button>
+                  <button
+                    onClick={() => handleRefreshEmbedding(doc)}
+                    className="text-blue-600 hover:text-blue-900 mr-3"
+                    title="刷新向量"
+                  >
+                    <RefreshCw className="w-4 h-4 inline" />
                   </button>
                   <button
                     onClick={() => handleDeleteDocument(doc.id)}

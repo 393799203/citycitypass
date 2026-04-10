@@ -30,6 +30,8 @@ import skuBatchRoutes from './routes/skuBatches';
 import bundleBatchRoutes from './routes/bundleBatches';
 import purchaseOrderRoutes from './routes/purchaseOrders';
 import aiRoutes from './routes/ai';
+import { ragService } from './services/rag';
+import { SearchMode } from './services/rag';
 
 dotenv.config();
 
@@ -73,8 +75,36 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 测试向量搜索
+app.get('/api/test-vector-search', async (req, res) => {
+  try {
+    console.log('[TEST] Testing vector search for "茅台不同规格的进货价"');
+    const results = await ragService.search('茅台不同规格的进货价', {
+      topK: 5,
+      mode: SearchMode.VECTOR
+    });
+    console.log('[TEST] Vector search results:', results.map(r => ({ id: r.id, score: r.score, content: r.content.substring(0, 50) })));
+    res.json({ success: true, data: results });
+  } catch (error) {
+    console.error('[TEST] Vector search error:', error);
+    res.status(500).json({ success: false, message: 'Test failed' });
+  }
+});
+
 app.use(errorHandler);
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  
+  // 启动时自动测试向量搜索
+  try {
+    console.log('\n[TEST] Running vector search test on startup...');
+    const results = await ragService.search('茅台不同规格的进货价', {
+      topK: 5,
+      mode: SearchMode.VECTOR
+    });
+    console.log('[TEST] Vector search results:', results.map(r => ({ id: r.id, score: r.score, content: r.content.substring(0, 50) })));
+  } catch (error) {
+    console.error('[TEST] Vector search test failed:', error);
+  }
 });

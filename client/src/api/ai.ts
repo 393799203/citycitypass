@@ -56,11 +56,26 @@ export const aiApi = {
   async queryDocumentsHybrid(query: string, topK?: number, filters?: Record<string, any>): Promise<any> {
     const response = await apiClient.post('/rag/search', {
       query,
-      topK: topK || 5,
+      topK: topK || 3,
       filters,
       mode: 'hybrid',
     });
 
+    return response.data;
+  },
+
+  async queryDocumentsVector(query: string, topK?: number, filters?: Record<string, any>): Promise<any> {
+    const response = await apiClient.post('/rag/search', {
+      query,
+      topK: topK || 3,
+      filters,
+      mode: 'vector',
+    });
+    return response.data;
+  },
+
+  async updateDocumentEmbedding(id: string): Promise<any> {
+    const response = await apiClient.post(`/rag/update-embedding/${id}`);
     return response.data;
   },
 

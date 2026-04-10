@@ -71,6 +71,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showConfirmCard, setShowConfirmCard] = useState(false);
   const [confirmData, setConfirmData] = useState<AIStructuredData | null>(null);
+  const [searchMode, setSearchMode] = useState<'keyword' | 'vector' | 'hybrid'>('hybrid');
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
 
@@ -149,14 +150,11 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       jsonStr = jsonStr.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
 
       let parsed = JSON.parse(jsonStr);
-      if (parsed.data?.content) {
-        parsed = JSON.parse(parsed.data.content);
-      }
-      if (parsed.intent && ['create_order', 'create_purchase_order', 'create_inbound', 'create_dispatch', 'query'].includes(parsed.intent)) {
+      if (parsed.intent) {
         return {
           intent: parsed.intent,
-          type: parsed.type || 'order',
-          data: parsed.data || parsed
+          type: parsed.type || '',
+          data: parsed.data || {}
         } as AIStructuredData;
       }
     } catch (e) {
@@ -229,21 +227,30 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     const skuPackaging = sku.packaging?.toLowerCase() || '';
     const skuSpec = sku.spec?.toLowerCase() || '';
 
+    console.log('[matchSku] AI input:', { aiPackaging, aiSpec }, 'SKU:', { skuPackaging, skuSpec, skuId: sku.id });
+
     if (aiPackaging && aiSpec) {
-      return (skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging)) &&
+      const match = (skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging)) &&
              (skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec));
+      console.log('[matchSku] Match with both:', match);
+      return match;
     }
     if (aiPackaging) {
-      return skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging);
+      const match = skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging);
+      console.log('[matchSku] Match with packaging only:', match);
+      return match;
     }
     if (aiSpec) {
-      return skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
+      const match = skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
+      console.log('[matchSku] Match with spec only:', match);
+      return match;
     }
+    console.log('[matchSku] No match');
     return false;
   };
 
   // 查找商品SKU或套装
-  const findProductOrBundle = async (productName: string, ownerId?: string, supplierId?: string) => {
+  const findProductOrBundle = async (productName: string, item?: any, ownerId?: string, supplierId?: string) => {
     try {
       // 尝试查找SKU
       const productRes = await productApi.list({ 
@@ -256,7 +263,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
         if (!product.skus || product.skus.length === 0) continue;
 
         // 尝试匹配SKU
-        let sku = product.skus.find((s: any) => matchSku(s, { productName }));
+        let sku = product.skus.find((s: any) => matchSku(s, item));
         if (sku) {
           let price = sku.price || 0;
           // 尝试查找供应商对应的SKU价格
@@ -276,28 +283,6 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
           }
           return { skuId: sku.id, bundleId: null, price };
         }
-
-        // 如果没有匹配，使用第一个SKU
-        if (product.skus.length > 0) {
-          const firstSku = product.skus[0];
-          let price = firstSku.price || 0;
-          // 尝试查找供应商对应的SKU价格
-          if (supplierId) {
-            try {
-              const supplierProductRes = await supplierProductApi.list({ 
-                supplierId,
-                skuId: firstSku.id
-              });
-              const supplierProducts = supplierProductRes.data.data || [];
-              if (supplierProducts.length > 0) {
-                price = supplierProducts[0].price || price;
-              }
-            } catch (error) {
-              console.error('Failed to get supplier product price:', error);
-            }
-          }
-          return { skuId: firstSku.id, bundleId: null, price };
-        }
       }
 
       // 尝试查找套装
@@ -316,9 +301,12 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
   // 补全订单商品信息
   const completeOrderItems = async (items: any[], ownerId?: string) => {
+    console.log('[completeOrderItems] Input items:', JSON.stringify(items, null, 2));
     return await Promise.all(
       items.map(async (item: any) => {
-        const { skuId, bundleId, price } = await findProductOrBundle(item.productName, ownerId);
+        console.log('[completeOrderItems] Processing item:', item);
+        const { skuId, bundleId, price } = await findProductOrBundle(item.productName, item, ownerId);
+        console.log('[completeOrderItems] Found skuId:', skuId, 'bundleId:', bundleId);
         return {
           skuId,
           bundleId,
@@ -337,7 +325,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
         let bundleId = item.bundleId || null;
 
         if (!skuId && !bundleId) {
-          const { skuId: foundSkuId, bundleId: foundBundleId } = await findProductOrBundle(item.productName);
+          const { skuId: foundSkuId, bundleId: foundBundleId } = await findProductOrBundle(item.productName, item);
           skuId = foundSkuId;
           bundleId = foundBundleId;
         }
@@ -371,11 +359,24 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     setLoading(true);
 
     try {
-      const ragResponse = await aiApi.queryDocuments(input);
+      let ragResponse;
+      switch (searchMode) {
+        case 'vector':
+          ragResponse = await aiApi.queryDocumentsVector(input);
+          break;
+        case 'hybrid':
+          ragResponse = await aiApi.queryDocumentsHybrid(input);
+          break;
+        case 'keyword':
+        default:
+          ragResponse = await aiApi.queryDocuments(input);
+          break;
+      }
 
       let context: string[] = [];
       if (ragResponse.success && ragResponse.data && ragResponse.data.length > 0) {
         context = ragResponse.data.map((doc: any) => doc.content);
+        console.log(`[AI] ${searchMode} search results:`, ragResponse.data.map((doc: any) => ({ id: doc.id, score: doc.score, content: doc.content.substring(0, 50) })));
       }
 
       const chatResponse = await aiApi.chat([{ role: 'user', content: input }], context, true);
@@ -457,7 +458,6 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
             productName: confirmData.data.items[idx].productName,
             spec: confirmData.data.items[idx].spec || '标准',
             packaging: confirmData.data.items[idx].packaging || '散装',
-            price: Number(sku.price) || 0,
             quantity: Number(sku.quantity) || 1,
           })),
         };
@@ -482,7 +482,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
             let price = item.price || 0;
 
             if (!skuId && !bundleId) {
-              const { skuId: foundSkuId, bundleId: foundBundleId, price: foundPrice } = await findProductOrBundle(item.productName, undefined, supplierId);
+              const { skuId: foundSkuId, bundleId: foundBundleId, price: foundPrice } = await findProductOrBundle(item.productName, item, undefined, supplierId);
               skuId = foundSkuId;
               bundleId = foundBundleId;
               price = foundPrice;
@@ -716,10 +716,10 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
                 <div className="mt-2">
                   <span className="text-gray-500">查询结果：</span>
                   <div className="mt-1 bg-white px-2 py-1 rounded text-sm">
-                    {Object.entries(data.data || data).map(([key, value], idx) => (
+                    {Object.entries((data.data || data || {}) as Record<string, unknown>).map(([key, value], idx) => (
                       <div key={idx} className="flex gap-2">
                         <span className="font-medium">{key}：</span>
-                        <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                        <span>{value != null ? (typeof value === 'object' ? JSON.stringify(value) : String(value)) : '无'}</span>
                       </div>
                     ))}
                   </div>
@@ -830,6 +830,19 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
               {/* 输入区域 */}
               <div className="border-t border-gray-200 p-3 no-drag">
+                {/* 搜索模式选择器 */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-gray-500">搜索模式：</span>
+                  <select
+                    value={searchMode}
+                    onChange={(e) => setSearchMode(e.target.value as 'keyword' | 'vector' | 'hybrid')}
+                    className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                  >
+                    <option value="keyword">关键词</option>
+                    <option value="vector">向量</option>
+                    <option value="hybrid">混合</option>
+                  </select>
+                </div>
                 {showImageUpload ? (
                   <ImageUploader
                     onUpload={(url) => { setShowImageUpload(false); }}
