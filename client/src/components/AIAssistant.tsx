@@ -475,22 +475,95 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
               </div>
             </>
           )}
+
+          {intent === 'query' && (
+            <>
+              <div className="flex gap-2"><span className="text-gray-500">查询类型：</span><span>{data.type || data.data?.type || '信息查询'}</span></div>
+              {data.query && <div className="flex gap-2"><span className="text-gray-500">查询内容：</span><span>{data.query}</span></div>}
+              
+              {/* 处理产品规格查询 */}
+              {(data.data?.productName || data.productName) && (
+                <div className="mt-2">
+                  <span className="text-gray-500">产品信息：</span>
+                  <div className="mt-1 bg-white px-2 py-1 rounded">
+                    {data.data?.productName && <div className="flex gap-2"><span className="font-medium">产品名称：</span><span>{data.data.productName}</span></div>}
+                    {data.productName && <div className="flex gap-2"><span className="font-medium">产品名称：</span><span>{data.productName}</span></div>}
+                    {data.data?.spec && <div className="flex gap-2"><span className="font-medium">规格：</span><span>{data.data.spec}</span></div>}
+                    {data.spec && <div className="flex gap-2"><span className="font-medium">规格：</span><span>{data.spec}</span></div>}
+                    {data.data?.packaging && <div className="flex gap-2"><span className="font-medium">包装：</span><span>{data.data.packaging}</span></div>}
+                    {data.packaging && <div className="flex gap-2"><span className="font-medium">包装：</span><span>{data.packaging}</span></div>}
+                  </div>
+                </div>
+              )}
+              
+              {/* 处理查询结果列表 */}
+              {(data.results && data.results.length > 0) && (
+                <div className="mt-2">
+                  <span className="text-gray-500">查询结果：</span>
+                  <ul className="mt-1 space-y-1">
+                    {data.results.map((result: any, idx: number) => (
+                      <li key={idx} className="bg-white px-2 py-1 rounded">
+                        {result.title || result.content?.substring(0, 50) || '无标题'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* 处理文本内容 */}
+              {(data.content || data.data?.content) && (
+                <div className="mt-2">
+                  <span className="text-gray-500">查询结果：</span>
+                  <div className="mt-1 bg-white px-2 py-1 rounded text-sm">
+                    {data.content || data.data?.content}
+                  </div>
+                </div>
+              )}
+              
+              {/* 处理其他数据字段 */}
+              {(!data.content && !data.data?.content && !data.results && !data.data?.productName && !data.productName) && (
+                <div className="mt-2">
+                  <span className="text-gray-500">查询结果：</span>
+                  <div className="mt-1 bg-white px-2 py-1 rounded text-sm">
+                    {Object.entries(data.data || data).map(([key, value], idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <span className="font-medium">{key}：</span>
+                        <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="flex gap-2 mt-4">
-          <button
-            onClick={handleConfirm}
-            className="flex-1 flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700"
-          >
-            <Check className="w-4 h-4" />
-            确认创建
-          </button>
-          <button
-            onClick={() => { setShowConfirmCard(false); setConfirmData(null); }}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            取消
-          </button>
+          {intent === 'query' ? (
+            <button
+              onClick={() => { setShowConfirmCard(false); setConfirmData(null); }}
+              className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200"
+            >
+              <X className="w-4 h-4" />
+              关闭
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleConfirm}
+                className="flex-1 flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700"
+              >
+                <Check className="w-4 h-4" />
+                确认创建
+              </button>
+              <button
+                onClick={() => { setShowConfirmCard(false); setConfirmData(null); }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                取消
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

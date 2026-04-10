@@ -154,6 +154,39 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
                   </div>
                 )}
+                {message.structuredData.intent === 'query' && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-purple-700 font-medium">
+                      <FileText className="w-4 h-4" />
+                      <span>查询结果</span>
+                    </div>
+                    <div className="text-gray-600 text-xs space-y-0.5">
+                      {message.structuredData.data?.type && (
+                        <div>类型：{message.structuredData.data.type}</div>
+                      )}
+                      {message.structuredData.data?.productName && (
+                        <div>产品名称：{message.structuredData.data.productName}</div>
+                      )}
+                      {message.structuredData.data?.spec && (
+                        <div>规格：{message.structuredData.data.spec}</div>
+                      )}
+                      {message.structuredData.data?.packaging && (
+                        <div>包装：{message.structuredData.data.packaging}</div>
+                      )}
+                      {message.structuredData.data?.content && (
+                        <div>内容：{message.structuredData.data.content}</div>
+                      )}
+                      {message.structuredData.data?.results && message.structuredData.data.results.length > 0 && (
+                        <div>结果：{message.structuredData.data.results.map((result: any, idx: number) => (
+                          <span key={idx} className="inline-block mr-2">
+                            {result.title || result.content?.substring(0, 30) || '无标题'}
+                          </span>
+                        ))}</div>
+                      )}
+                    </div>
+                    <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
+                  </div>
+                )}
               </div>
             )}
 

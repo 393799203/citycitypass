@@ -4,6 +4,33 @@ import { aiApi } from '../api/ai';
 import { ToastContainer, toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, Search, RefreshCw, Save, X } from 'lucide-react';
 
+// 类型和分类的中英文映射
+const typeMap: Record<string, string> = {
+  'format': '格式',
+  'product': '商品',
+  'rule': '规则',
+  'process': '流程'
+};
+
+const categoryMap: Record<string, string> = {
+  'order': '订单',
+  'inventory': '库存',
+  'dispatch': '调度',
+  'return': '退货',
+  'batch': '批次',
+  'product': '商品'
+};
+
+// 获取中文类型
+const getTypeName = (type: string): string => {
+  return typeMap[type] || type;
+};
+
+// 获取中文分类
+const getCategoryName = (category: string): string => {
+  return categoryMap[category] || category;
+};
+
 interface Document {
   id: string;
   content: string;
@@ -229,10 +256,10 @@ export default function KnowledgeBase() {
                   {doc.metadata.title}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {doc.metadata.type}
+                  {getTypeName(doc.metadata.type)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {doc.metadata.category}
+                  {getCategoryName(doc.metadata.category)}
                 </td>
                 <td className="px-10 py-4 text-sm text-gray-500 max-w-md truncate">
                   {doc.content}
@@ -346,6 +373,7 @@ export default function KnowledgeBase() {
                   <option value="dispatch">调度</option>
                   <option value="return">退货</option>
                   <option value="batch">批次</option>
+                  <option value="product">商品</option>
                 </select>
               </div>
               <div>
@@ -461,6 +489,7 @@ export default function KnowledgeBase() {
                   <option value="dispatch">调度</option>
                   <option value="return">退货</option>
                   <option value="batch">批次</option>
+                  <option value="product">商品</option>
                 </select>
               </div>
               <div>

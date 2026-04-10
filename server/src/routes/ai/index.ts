@@ -53,6 +53,9 @@ router.post('/chat', async (req: Request, res: Response) => {
 - "帮XX订购/购买/下单" = create_order（销售订单）
 - "向XX供应商采购/进货" = create_purchase_order（采购订单）
 
+## 数据格式要求
+与物流仓库系统有关的业务数据格式要求：{"intent": "类型", "type": "分类", "data": {"数据内容"}}
+
 ## 知识库内容
 
 ${context?.length > 0 ? '\n\n【知识库内容】：\n' + context.join('\n\n') : ''}
