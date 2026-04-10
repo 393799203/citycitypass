@@ -3,7 +3,7 @@ import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCa
 import ImageUploader from './ImageUploader';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
-import { orderApi, purchaseOrderApi, productApi, bundleApi, ownerApi } from '../api';
+import { orderApi, purchaseOrderApi, productApi, bundleApi, ownerApi, inboundApi, warehouseApi } from '../api';
 
 interface Message {
   id: string;
@@ -165,6 +165,145 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     return null;
   };
 
+  // 查找仓库ID
+  const findWarehouseId = async (warehouseNameOrId: string) => {
+    try {
+      const warehouseRes = await warehouseApi.list({});
+      const warehouses = warehouseRes.data.data || [];
+      
+      // 尝试匹配仓库（带空格处理）
+      const trimmedInput = warehouseNameOrId.trim();
+      const warehouse = warehouses.find((w: any) => 
+        w.name.trim() === trimmedInput || w.id === trimmedInput
+      );
+      
+      if (warehouse) {
+        return warehouse.id;
+      } else if (warehouses.length > 0) {
+        // 如果没有找到，使用第一个仓库
+        return warehouses[0].id;
+      }
+    } catch (error) {
+      console.error('Failed to get warehouse list:', error);
+    }
+    return warehouseNameOrId;
+  };
+
+  // 查找所有者ID
+  const findOwnerId = async (ownerNameOrId: string) => {
+    try {
+      const ownerRes = await ownerApi.list({});
+      const owners = ownerRes.data.data || [];
+      const owner = owners.find((o: any) => o.name === ownerNameOrId) || owners[0];
+      return owner?.id || ownerNameOrId;
+    } catch (error) {
+      console.error('Failed to get owner list:', error);
+      return ownerNameOrId;
+    }
+  };
+
+  // 匹配SKU
+  const matchSku = (sku: any, item: any) => {
+    const aiPackaging = item.packaging?.toLowerCase() || '';
+    const aiSpec = item.spec?.toLowerCase() || '';
+    const skuPackaging = sku.packaging?.toLowerCase() || '';
+    const skuSpec = sku.spec?.toLowerCase() || '';
+
+    if (aiPackaging && aiSpec) {
+      return (skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging)) &&
+             (skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec));
+    }
+    if (aiPackaging) {
+      return skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging);
+    }
+    if (aiSpec) {
+      return skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
+    }
+    return false;
+  };
+
+  // 查找商品SKU或套装
+  const findProductOrBundle = async (productName: string, ownerId?: string) => {
+    try {
+      // 尝试查找SKU
+      const productRes = await productApi.list({ 
+        name: productName,
+        ...(ownerId && { ownerId })
+      });
+      const products = productRes.data.data || [];
+
+      for (const product of products) {
+        if (!product.skus || product.skus.length === 0) continue;
+
+        // 尝试匹配SKU
+        let sku = product.skus.find((s: any) => matchSku(s, { productName }));
+        if (sku) {
+          return { skuId: sku.id, bundleId: null, price: sku.price || 0 };
+        }
+
+        // 如果没有匹配，使用第一个SKU
+        if (product.skus.length > 0) {
+          const firstSku = product.skus[0];
+          return { skuId: firstSku.id, bundleId: null, price: firstSku.price || 0 };
+        }
+      }
+
+      // 尝试查找套装
+      const bundleRes = await bundleApi.list({ name: productName });
+      const bundles = bundleRes.data.data || [];
+      if (bundles.length > 0) {
+        const bundle = bundles[0];
+        return { skuId: null, bundleId: bundle.id, price: bundle.price || 0 };
+      }
+    } catch (error) {
+      console.error('Failed to search products/bundles:', error);
+    }
+
+    return { skuId: null, bundleId: null, price: 0 };
+  };
+
+  // 补全订单商品信息
+  const completeOrderItems = async (items: any[], ownerId?: string) => {
+    return await Promise.all(
+      items.map(async (item: any) => {
+        const { skuId, bundleId, price } = await findProductOrBundle(item.productName, ownerId);
+        return {
+          skuId,
+          bundleId,
+          price: item.price || price || 0,
+          quantity: item.quantity || 1
+        };
+      })
+    );
+  };
+
+  // 补全入库商品信息
+  const completeInboundItems = async (items: any[]) => {
+    return await Promise.all(
+      items.map(async (item: any) => {
+        let skuId = item.skuId || null;
+        let bundleId = item.bundleId || null;
+
+        if (!skuId && !bundleId) {
+          const { skuId: foundSkuId, bundleId: foundBundleId } = await findProductOrBundle(item.productName);
+          skuId = foundSkuId;
+          bundleId = foundBundleId;
+        }
+
+        return {
+          type: item.type || (bundleId ? 'BUNDLE' : 'PRODUCT'),
+          skuId,
+          bundleId,
+          supplierMaterialId: item.supplierMaterialId || null,
+          quantity: item.quantity || 1,
+          locationId: item.locationId || null,
+          skuBatchId: item.skuBatchId || null,
+          bundleBatchId: item.bundleBatchId || null,
+        };
+      })
+    );
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -250,70 +389,9 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
       if (confirmData.intent === 'create_order') {
         const ownerId = confirmData.data.ownerId || 'default-owner-id';
-        const ownerRes = await ownerApi.list({});
-        const owners = ownerRes.data.data || [];
-        const owner = owners.find((o: any) => o.name === ownerId) || owners[0];
-        const finalOwnerId = owner?.id || ownerId;
-        console.log('[AI] Owner:', owner);
+        const finalOwnerId = await findOwnerId(ownerId);
 
-        const skuPromises = confirmData.data.items?.map(async (item: any) => {
-          console.log('[AI] Searching product:', item.productName, 'ownerId:', finalOwnerId);
-          const productRes = await productApi.list({ name: item.productName, ownerId: finalOwnerId });
-          const products = productRes.data.data || [];
-          console.log('[AI] Found products:', products.length, products.map((p: any) => ({name: p.name, skus: p.skus?.map((s: any) => ({id: s.id, spec: s.spec, packaging: s.packaging}))})));
-
-          for (const product of products) {
-            console.log('[AI] Product:', JSON.stringify(product));
-            if (!product.skus || product.skus.length === 0) continue;
-
-            const matchSku = (sku: any, item: any) => {
-              const aiPackaging = item.packaging?.toLowerCase() || '';
-              const aiSpec = item.spec?.toLowerCase() || '';
-              const skuPackaging = sku.packaging?.toLowerCase() || '';
-              const skuSpec = sku.spec?.toLowerCase() || '';
-
-              if (aiPackaging && aiSpec) {
-                return (skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging)) &&
-                       (skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec));
-              }
-              if (aiPackaging) {
-                return skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging);
-              }
-              if (aiSpec) {
-                return skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
-              }
-              return false;
-            };
-
-            let sku = product.skus.find((s: any) => matchSku(s, item));
-            if (sku) {
-              return { skuId: sku.id, bundleId: null, price: item.price || sku.price || 0, quantity: item.quantity || 1 };
-            }
-
-            sku = product.skus.find((s: any) =>
-              s.packaging === item.packaging || s.spec === item.spec
-            );
-            if (sku) {
-              return { skuId: sku.id, bundleId: null, price: item.price || sku.price || 0, quantity: item.quantity || 1 };
-            }
-
-            if (product.skus.length > 0) {
-              sku = product.skus[0];
-              return { skuId: sku.id, bundleId: null, price: item.price || sku.price || 0, quantity: item.quantity || 1 };
-            }
-          }
-
-          const bundleRes = await bundleApi.list({ name: item.productName });
-          const bundles = bundleRes.data.data || [];
-          if (bundles.length > 0) {
-            const bundle = bundles[0];
-            return { skuId: null, bundleId: bundle.id, price: item.price || bundle.price || 0, quantity: item.quantity || 1 };
-          }
-
-          return { skuId: null, bundleId: null, price: item.price || 0, quantity: item.quantity || 1 };
-        }) || [];
-
-        const skuItems = await Promise.all(skuPromises);
+        const skuItems = await completeOrderItems(confirmData.data.items || [], finalOwnerId);
         const orderData = {
           ownerId: finalOwnerId,
           receiver: confirmData.data.receiver,
@@ -355,7 +433,24 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
         const response = await purchaseOrderApi.create(purchaseData);
         result = response.data;
       } else if (confirmData.intent === 'create_inbound') {
-        result = { success: true, message: '入库单创建功能待对接' };
+        // 查找仓库ID
+        const warehouseId = await findWarehouseId(confirmData.data.warehouseId);
+
+        // 补全商品信息
+        const itemsWithDetails = await completeInboundItems(confirmData.data.items || []);
+
+        const inboundData = {
+          warehouseId,
+          source: confirmData.data.source || 'PURCHASE',
+          remark: confirmData.data.remark || '',
+          purchaseOrderId: confirmData.data.purchaseOrderId || null,
+          returnOrderId: confirmData.data.returnOrderId || null,
+          items: itemsWithDetails,
+        };
+
+        console.log('[AI] Creating inbound order with data:', inboundData);
+        const response = await inboundApi.create(inboundData);
+        result = response.data;
       }
 
       const successMessage: Message = {

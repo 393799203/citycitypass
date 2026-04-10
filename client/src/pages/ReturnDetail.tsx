@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { ArrowLeft, Package, Truck, CheckCircle, Warehouse, DollarSign, Phone, FileText, Clock, Pencil, Info } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
 import InboundOrderModal from '../components/InboundOrderModal';
+import { useConfirm } from '../components/ConfirmProvider';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   RETURN_REQUESTED: { label: '待发货', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
@@ -43,6 +44,7 @@ const returnStatusFlow = [
 export default function ReturnDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const [returnOrder, setReturnOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -187,8 +189,11 @@ export default function ReturnDetail() {
   const handleQualify = async () => {
     if (!returnOrder) return;
     const totalRejected = qualifyItems.reduce((sum, item) => sum + (item.rejectedQuantity || 0), 0);
-    if (totalRejected > 0 && !window.confirm(`有 ${totalRejected} 件商品验收不合格，确认继续吗？`)) {
-      return;
+    if (totalRejected > 0) {
+      const ok = await confirm({ message: `有 ${totalRejected} 件商品验收不合格，确认继续吗？` });
+      if (!ok) {
+        return;
+      }
     }
     try {
       await returnApi.qualify(returnOrder.id, { items: qualifyItems });
