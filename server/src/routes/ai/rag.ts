@@ -59,16 +59,9 @@ router.post('/search', async (req: Request, res: Response) => {
   try {
     const { query, topK, filters, mode } = req.body;
 
-    if (!query) {
-      return res.status(400).json({
-        success: false,
-        message: 'Query is required'
-      });
-    }
-
     const validMode = mode && Object.values(SearchMode).includes(mode) ? mode as SearchMode : undefined;
 
-    const results = await ragService.search(query, {
+    const results = await ragService.search(query || '', {
       topK: topK || 5,
       filters,
       mode: validMode

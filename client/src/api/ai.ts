@@ -30,11 +30,16 @@ export const aiApi = {
   },
 
   async addDocument(content: string, metadata?: Record<string, any>): Promise<any> {
-    const response = await apiClient.post('/knowledge/add', {
+    const response = await apiClient.post('/rag/add', {
       content,
       metadata,
     });
 
+    return response.data;
+  },
+
+  async deleteDocument(id: string): Promise<any> {
+    const response = await apiClient.delete(`/rag/delete/${id}`);
     return response.data;
   },
 

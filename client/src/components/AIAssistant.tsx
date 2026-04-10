@@ -337,10 +337,19 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       } else if (confirmData.intent === 'create_purchase_order') {
         const purchaseData = {
           supplierId: confirmData.data.supplierId || 'default-supplier-id',
+          warehouseId: confirmData.data.warehouseId || null,
+          orderDate: confirmData.data.orderDate || new Date().toISOString(),
+          expectedDate: confirmData.data.expectedDate || null,
+          remark: confirmData.data.remark || '',
           items: confirmData.data.items?.map((item: any) => ({
-            productName: item.productName,
+            itemType: item.itemType || 'PRODUCT',
+            skuId: item.skuId || null,
+            bundleId: item.bundleId || null,
+            supplierMaterialId: item.supplierMaterialId || null,
             quantity: item.quantity || 1,
             price: item.price || 0,
+            productionDate: item.productionDate || null,
+            expireDate: item.expireDate || null,
           })),
         };
         const response = await purchaseOrderApi.create(purchaseData);
@@ -431,12 +440,18 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
           {intent === 'create_purchase_order' && (
             <>
               <div className="flex gap-2"><span className="text-gray-500">供应商：</span><span>{data.supplierName || data.supplierId || '-'}</span></div>
+              {data.warehouseId && <div className="flex gap-2"><span className="text-gray-500">仓库：</span><span>{data.warehouseId}</span></div>}
+              {data.orderDate && <div className="flex gap-2"><span className="text-gray-500">订单日期：</span><span>{data.orderDate}</span></div>}
+              {data.expectedDate && <div className="flex gap-2"><span className="text-gray-500">预计到货日期：</span><span>{data.expectedDate}</span></div>}
+              {data.remark && <div className="flex gap-2"><span className="text-gray-500">备注：</span><span>{data.remark}</span></div>}
               <div className="mt-2">
                 <span className="text-gray-500">采购商品：</span>
                 <ul className="mt-1 space-y-1">
                   {data.items?.map((item: any, idx: number) => (
                     <li key={idx} className="bg-white px-2 py-1 rounded">
                       {item.productName} - {item.spec || ''} × {item.quantity} @ ¥{item.price || '-'}
+                      {item.productionDate && <span className="text-gray-400 ml-2">生产日期: {item.productionDate}</span>}
+                      {item.expireDate && <span className="text-gray-400 ml-2">过期日期: {item.expireDate}</span>}
                     </li>
                   )) || <li className="text-gray-400">暂无商品信息</li>}
                 </ul>

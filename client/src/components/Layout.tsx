@@ -343,6 +343,13 @@ export default function Layout() {
               </div>
             <div className="h-6 w-px bg-gray-200" />
             <span className="text-sm text-gray-600">{roleMap[user?.role || '']}：{user?.name}</span>
+            <NavLink
+              to="/knowledge-base"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              <FileText className="w-4 h-4" />
+              知识库管理
+            </NavLink>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"

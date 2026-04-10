@@ -53,12 +53,7 @@ router.post('/chat', async (req: Request, res: Response) => {
 - "帮XX订购/购买/下单" = create_order（销售订单）
 - "向XX供应商采购/进货" = create_purchase_order（采购订单）
 
-## 数据格式要求
-
-当用户输入与仓储管理相关时，请从知识库中查找对应的数据格式并返回JSON。如果知识库中没有对应格式，可参考以下格式示例：
-- 销售订单格式：{"intent": "create_order", "type": "sales_order", "data": {"ownerId": null, "receiver": "客户姓名", "phone": "电话", "province": "省份", "city": "城市", "address": "详细地址", "items": [{"productName": "商品名称", "spec": "规格", "packaging": "包装", "quantity": 数量}]}}
-- 采购订单格式：{"intent": "create_purchase_order", "type": "purchase_order", "data": {"supplierId": null, "items": [{"productName": "商品名称", "quantity": 数量, "price": 单价}]}}
-- 入库单格式：{"intent": "create_inbound", "type": "inbound_order", "data": {"warehouseId": null, "items": [{"productName": "商品名称", "quantity": 数量}]}}
+## 知识库内容
 
 ${context?.length > 0 ? '\n\n【知识库内容】：\n' + context.join('\n\n') : ''}
 

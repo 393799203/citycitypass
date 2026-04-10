@@ -13,6 +13,7 @@ interface SearchResult {
   id: string;
   content: string;
   metadata?: Record<string, any>;
+  embedding?: string;
   score: number;
   rank: number;
 }
@@ -69,6 +70,13 @@ class RAGService {
   private async initializeKnowledgeBase() {
     if (!this.pool) return;
 
+    // 检查是否需要初始化知识库
+    const shouldInitialize = process.env.RAG_INITIALIZE_KNOWLEDGE_BASE === 'true';
+    if (!shouldInitialize) {
+      console.log('[RAG] Knowledge base initialization is disabled via environment variable');
+      return;
+    }
+
     const result = await this.pool.query('SELECT COUNT(*) FROM rag_documents');
     if (Number(result.rows[0].count) > 0) {
       console.log('[RAG] Knowledge base already exists, skipping init');
@@ -83,21 +91,21 @@ class RAGService {
         type: 'format',
         category: 'order',
         title: '销售订单格式',
-        content: '销售订单格式/订购/下单：{"intent": "create_order", "type": "sales_order", "data": {"ownerId": null, "receiver": "客户姓名", "phone": "电话", "province": "省份", "city": "城市", "address": "详细地址", "items": [{"productName": "商品名称", "spec": "规格", "packaging": "包装", "quantity": 数量}]}}'
+        content: '销售订单格式/订购/下单：{"intent": "create_order", "type": "sales_order", "data": {"ownerId": "主体ID", "receiver": "客户姓名", "phone": "电话", "province": "省份", "city": "城市", "address": "详细地址", "items": [{"productName": "商品名称", "spec": "规格", "packaging": "包装", "quantity": 数量}]}}'
       },
       {
         originalId: 'fmt_purchase',
         type: 'format',
         category: 'order',
         title: '采购订单格式',
-        content: '采购订单格式/采购：{"intent": "create_purchase_order", "type": "purchase_order", "data": {"supplierId": null, "items": [{"productName": "商品名称", "quantity": 数量, "price": 单价}]}}'
+        content: '采购订单格式/采购：{"intent": "create_purchase_order", "type": "purchase_order", "data": {"supplierId": "供应商ID", "warehouseId": "仓库ID", "orderDate": "订单日期", "expectedDate": "预计到货日期", "remark": "备注", "items": [{"productName": "商品名称", "itemType": "PRODUCT", "skuId": "SKU ID", "bundleId": "套装ID", "quantity": 数量, "price": 单价, "productionDate": "生产日期", "expireDate": "过期日期"}]}}'
       },
       {
         originalId: 'fmt_inbound',
         type: 'format',
         category: 'inventory',
         title: '入库单格式',
-        content: '入库单格式/入库：{"intent": "create_inbound", "type": "inbound_order", "data": {"warehouseId": null, "items": [{"productName": "商品名称", "quantity": 数量}]}}'
+        content: '入库单格式/入库：{"intent": "create_inbound", "type": "inbound_order", "data": {"warehouseId": "仓库ID", "source": "PURCHASE", "remark": "备注", "purchaseOrderId": "采购单ID", "returnOrderId": "退货单ID", "items": [{"productName": "商品名称", "type": "PRODUCT", "skuId": "SKU ID", "bundleId": "套装ID", "supplierMaterialId": "供应商物料ID", "quantity": 数量, "locationId": "库位ID", "skuBatchId": "SKU批次ID", "bundleBatchId": "套装批次ID"}]}}'
       },
       {
         originalId: 'fmt_dispatch',
@@ -332,6 +340,7 @@ class RAGService {
         id,
         content,
         metadata,
+        embedding,
         1 - (embedding::vector <=> $1::vector) as score,
         ROW_NUMBER() OVER (ORDER BY (1 - (embedding::vector <=> $1::vector)) DESC) as rank
       FROM rag_documents
@@ -358,6 +367,7 @@ class RAGService {
       id: row.id,
       content: row.content,
       metadata: row.metadata,
+      embedding: !!row.embedding,
       score: Number(row.score),
       rank: Number(row.rank)
     }));
@@ -368,6 +378,33 @@ class RAGService {
     topK: number,
     filters?: Record<string, any>
   ): Promise<SearchResult[]> {
+    // 处理空查询的情况
+    if (!query || query.trim() === '') {
+      const limit = Number(topK);
+      const queryStr = `
+        SELECT
+          id,
+          content,
+          metadata,
+          embedding,
+          0 as score,
+          ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
+        FROM rag_documents
+        LIMIT $1
+      `;
+
+      const result = await this.pool!.query(queryStr, [limit]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        content: row.content,
+        metadata: row.metadata,
+        embedding: !!row.embedding,
+        score: Number(row.score),
+        rank: Number(row.rank)
+      }));
+    }
+
     let searchTerms = query.split(/\s+/).filter(w => w.length > 0);
 
     if (searchTerms.length === 1 && /[\u4e00-\u9fa5]/.test(searchTerms[0])) {
@@ -384,6 +421,33 @@ class RAGService {
     }
     const uniquePatterns = [...new Set(likePatterns)].slice(0, 10);
 
+    // 如果没有搜索词，返回所有文档
+    if (uniquePatterns.length === 0) {
+      const limit = Number(topK);
+      const queryStr = `
+        SELECT
+          id,
+          content,
+          metadata,
+          embedding,
+          0 as score,
+          ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
+        FROM rag_documents
+        LIMIT $1
+      `;
+
+      const result = await this.pool!.query(queryStr, [limit]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        content: row.content,
+        metadata: row.metadata,
+        embedding: !!row.embedding,
+        score: Number(row.score),
+        rank: Number(row.rank)
+      }));
+    }
+
     const scoreCases = uniquePatterns.map((_, i) =>
       `CASE WHEN content ILIKE $${i + 1} THEN 0.1 ELSE 0 END`
     ).join(' + ');
@@ -397,6 +461,7 @@ class RAGService {
         id,
         content,
         metadata,
+        embedding,
         ${scoreCases} as score,
         ROW_NUMBER() OVER (ORDER BY ${scoreCases} DESC) as rank
       FROM rag_documents
@@ -413,6 +478,7 @@ class RAGService {
       id: row.id,
       content: row.content,
       metadata: row.metadata,
+      embedding: !!row.embedding,
       score: Number(row.score),
       rank: Number(row.rank)
     }));
@@ -425,11 +491,65 @@ class RAGService {
     vectorWeight: number = 0.5,
     keywordWeight: number = 0.5
   ): Promise<SearchResult[]> {
+    // 处理空查询的情况
+    if (!query || query.trim() === '') {
+      const limit = Number(topK);
+      const queryStr = `
+        SELECT
+          id,
+          content,
+          metadata,
+          embedding,
+          0 as score,
+          ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
+        FROM rag_documents
+        LIMIT $1
+      `;
+
+      const result = await this.pool!.query(queryStr, [limit]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        content: row.content,
+        metadata: row.metadata,
+        embedding: !!row.embedding,
+        score: Number(row.score),
+        rank: Number(row.rank)
+      }));
+    }
+
     const queryEmbedding = await this.generateEmbedding(query);
     const searchTerms = query.split(/\s+/).filter(w => w.length > 0);
 
     const likePatterns: string[] = searchTerms.map(term => `%${term}%`);
     const uniquePatterns = [...new Set(likePatterns)].slice(0, 5);
+
+    // 处理没有搜索词的情况
+    if (uniquePatterns.length === 0) {
+      const limit = Number(topK);
+      const queryStr = `
+        SELECT
+          id,
+          content,
+          metadata,
+          embedding,
+          0 as score,
+          ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
+        FROM rag_documents
+        LIMIT $1
+      `;
+
+      const result = await this.pool!.query(queryStr, [limit]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        content: row.content,
+        metadata: row.metadata,
+        embedding: !!row.embedding,
+        score: Number(row.score),
+        rank: Number(row.rank)
+      }));
+    }
 
     let queryStr = `
       WITH vector_results AS (
@@ -437,6 +557,7 @@ class RAGService {
           id,
           content,
           metadata,
+          embedding,
           1 - (embedding::vector <=> $1::vector) as vector_score,
           ROW_NUMBER() OVER (ORDER BY (1 - (embedding::vector <=> $1::vector)) DESC) as vector_rank
         FROM rag_documents
@@ -458,6 +579,7 @@ class RAGService {
         v.id,
         v.content,
         v.metadata,
+        v.embedding,
         (${vectorWeight} * COALESCE(v.vector_score / NULLIF(v.vector_rank, 0), 0) +
          ${keywordWeight} * COALESCE(k.keyword_score / NULLIF(k.keyword_rank, 0), 0)) as score,
         ROW_NUMBER() OVER (ORDER BY (${vectorWeight} * COALESCE(v.vector_score / NULLIF(v.vector_rank, 0), 0) +
@@ -465,10 +587,10 @@ class RAGService {
       FROM vector_results v
       LEFT JOIN keyword_results k ON v.id = k.id
       ORDER BY rank
-      LIMIT ${Number(topK)}
+      LIMIT $${uniquePatterns.length + 2}
     `;
 
-    const params: any[] = [JSON.stringify(queryEmbedding), ...uniquePatterns];
+    const params: any[] = [JSON.stringify(queryEmbedding), ...uniquePatterns, topK];
 
     const result = await this.pool!.query(queryStr, params);
 
@@ -476,6 +598,7 @@ class RAGService {
       id: row.id,
       content: row.content,
       metadata: row.metadata,
+      embedding: !!row.embedding,
       score: Number(row.score),
       rank: Number(row.rank)
     }));
