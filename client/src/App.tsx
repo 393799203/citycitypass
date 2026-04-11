@@ -12,7 +12,7 @@ const OrderDetail = lazy(() => import('./pages/OrderDetail'));
 const Products = lazy(() => import('./pages/Products'));
 const Warehouses = lazy(() => import('./pages/Warehouses'));
 const WarehouseDetail = lazy(() => import('./pages/WarehouseDetail'));
-const StockIns = lazy(() => import('./pages/Inventory'));
+const Inventory = lazy(() => import('./pages/Inventory'));
 const StockTransfers = lazy(() => import('./pages/StockTransfers'));
 const BatchTracePage = lazy(() => import('./pages/BatchTracePage'));
 const Inbound = lazy(() => import('./pages/Inbound'));
@@ -67,7 +67,7 @@ function App() {
             <Route path="purchases/:id" element={<PurchaseDetail />} />
             <Route path="warehouses" element={<Warehouses />} />
             <Route path="warehouses/:id" element={<WarehouseDetail />} />
-            <Route path="inventory" element={<StockIns />} />
+            <Route path="inventory" element={<Inventory />} />
             <Route path="stock-transfers" element={<StockTransfers />} />
             <Route path="batch-trace" element={<BatchTracePage />} />
             <Route path="batch-trace/:batchNo" element={<BatchTracePage />} />
