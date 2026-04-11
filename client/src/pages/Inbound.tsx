@@ -1855,18 +1855,22 @@ export default function InboundPage() {
                           placeholder="批次号"
                         />
                       </td>
-                      {item.type === 'PRODUCT' && (
+                      {receivingItems.some(i => i.type === 'PRODUCT') && (
                         <td className="px-3 py-2 text-center">
-                          <input
-                            type="date"
-                            value={item.expiryDate || ''}
-                            onChange={(e) => {
-                              const newItems = [...receivingItems];
-                              newItems[idx].expiryDate = e.target.value;
-                              setReceivingItems(newItems);
-                            }}
-                            className="border rounded px-1 py-0.5 text-sm"
-                          />
+                          {item.type === 'PRODUCT' ? (
+                            <input
+                              type="date"
+                              value={item.expiryDate || ''}
+                              onChange={(e) => {
+                                const newItems = [...receivingItems];
+                                newItems[idx].expiryDate = e.target.value;
+                                setReceivingItems(newItems);
+                              }}
+                              className="border rounded px-1 py-0.5 text-sm"
+                            />
+                          ) : (
+                            <span>-</span>
+                          )}
                         </td>
                       )}
                       <td className="px-3 py-2 text-center">
