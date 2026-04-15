@@ -151,8 +151,93 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    await prisma.owner.delete({ where: { id } });
-    res.json({ success: true, message: '主体已删除' });
+    // 开始事务
+    await prisma.$transaction(async (prisma) => {
+      // 1. 删除关联的客户及合同
+      const customers = await prisma.customer.findMany({ where: { ownerId: id } });
+      for (const customer of customers) {
+        await prisma.contract.deleteMany({ where: { customerId: customer.id } });
+        await prisma.customer.delete({ where: { id: customer.id } });
+      }
+      
+      // 2. 删除关联的供应商及相关资源
+      const suppliers = await prisma.supplier.findMany({ where: { ownerId: id } });
+      for (const supplier of suppliers) {
+        await prisma.supplierContract.deleteMany({ where: { supplierId: supplier.id } });
+        await prisma.supplierProduct.deleteMany({ where: { supplierId: supplier.id } });
+        await prisma.supplierMaterial.deleteMany({ where: { supplierId: supplier.id } });
+        await prisma.supplier.delete({ where: { id: supplier.id } });
+      }
+      
+      // 3. 删除关联的承运商及相关资源
+      const carriers = await prisma.carrier.findMany({ where: { ownerId: id } });
+      for (const carrier of carriers) {
+        await prisma.carrierContract.deleteMany({ where: { carrierId: carrier.id } });
+        await prisma.carrierVehicle.deleteMany({ where: { carrierId: carrier.id } });
+        await prisma.carrier.delete({ where: { id: carrier.id } });
+      }
+      
+      // 4. 删除关联的商品及SKU
+      const products = await prisma.product.findMany({ where: { ownerId: id } });
+      for (const product of products) {
+        const skus = await prisma.productSKU.findMany({ where: { productId: product.id } });
+        for (const sku of skus) {
+          // 删除与SKU相关的资源
+          await prisma.supplierProduct.deleteMany({ where: { skuId: sku.id } });
+          await prisma.productSKU.delete({ where: { id: sku.id } });
+        }
+        await prisma.product.delete({ where: { id: product.id } });
+      }
+      
+      // 5. 删除关联的套装
+      const bundles = await prisma.bundleSKU.findMany({ where: { ownerId: id } });
+      for (const bundle of bundles) {
+        await prisma.bundleSKUItem.deleteMany({ where: { bundleId: bundle.id } });
+        await prisma.supplierProduct.deleteMany({ where: { bundleId: bundle.id } });
+        await prisma.bundleSKU.delete({ where: { id: bundle.id } });
+      }
+      
+      // 6. 删除关联的仓库及相关资源
+      const warehouses = await prisma.warehouse.findMany({ where: { ownerId: id } });
+      for (const warehouse of warehouses) {
+        // 删除仓库相关的资源
+        await prisma.zone.deleteMany({ where: { warehouseId: warehouse.id } });
+        await prisma.vehicle.deleteMany({ where: { warehouseId: warehouse.id } });
+        await prisma.driver.deleteMany({ where: { warehouseId: warehouse.id } });
+        await prisma.warehouse.delete({ where: { id: warehouse.id } });
+      }
+      
+      // 7. 删除关联的订单及相关资源
+      const orders = await prisma.order.findMany({ where: { ownerId: id } });
+      for (const order of orders) {
+        await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
+        await prisma.stockLock.deleteMany({ where: { orderId: order.id } });
+        await prisma.bundleStockLock.deleteMany({ where: { orderId: order.id } });
+        await prisma.dispatchOrder.deleteMany({ where: { orderId: order.id } });
+        await prisma.returnOrder.deleteMany({ where: { orderId: order.id } });
+        await prisma.order.delete({ where: { id: order.id } });
+      }
+      
+      // 8. 删除关联的退货订单
+      const returnOrders = await prisma.returnOrder.findMany({ where: { ownerId: id } });
+      for (const returnOrder of returnOrders) {
+        await prisma.returnItem.deleteMany({ where: { returnOrderId: returnOrder.id } });
+        await prisma.returnLog.deleteMany({ where: { returnOrderId: returnOrder.id } });
+        await prisma.returnOrder.delete({ where: { id: returnOrder.id } });
+      }
+      
+      // 9. 删除关联的采购订单
+      const purchaseOrders = await prisma.purchaseOrder.findMany({ where: { ownerId: id } });
+      for (const purchaseOrder of purchaseOrders) {
+        await prisma.purchaseOrderItem.deleteMany({ where: { purchaseOrderId: purchaseOrder.id } });
+        await prisma.purchaseOrder.delete({ where: { id: purchaseOrder.id } });
+      }
+      
+      // 10. 最后删除主体
+      await prisma.owner.delete({ where: { id } });
+    });
+    
+    res.json({ success: true, message: '主体及关联资源已删除' });
   } catch (error) {
     console.error('Delete owner error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

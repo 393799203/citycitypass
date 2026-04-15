@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { productApi, bundleApi, warehouseApi, ownerApi } from '../api';
+import { productApi, bundleApi, warehouseApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'lucide-react';
@@ -101,7 +101,7 @@ const defaultBundleSpecs = ['单品', '组合'];
 
 export default function ProductsPage() {
   const { confirm } = useConfirm();
-  const { currentOwnerId } = useOwnerStore();
+  const { currentOwnerId, owners } = useOwnerStore();
   const [activeTab, setActiveTab] = useState<'product' | 'bundle'>('product');
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
@@ -114,7 +114,6 @@ export default function ProductsPage() {
   const [brandSpecs, setBrandSpecs] = useState<any[]>([]);
   const [skus, setSkus] = useState<SKUWithProduct[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [owners, setOwners] = useState<Owner[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -263,14 +262,13 @@ export default function ProductsPage() {
     setLoading(true);
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
-      const [productsRes, bundlesRes, categoriesRes, brandsRes, subCategoriesRes, warehousesRes, ownersRes] = await Promise.all([
+      const [productsRes, bundlesRes, categoriesRes, brandsRes, subCategoriesRes, warehousesRes] = await Promise.all([
         productApi.list(filterOwner ? { ownerId: filterOwner } : {}),
         bundleApi.list(filterOwner ? { ownerId: filterOwner } : {}),
         fetch('/api/products/categories', { headers }).then(r => r.json()),
         fetch('/api/products/brands', { headers }).then(r => r.json()),
         fetch('/api/products/sub-categories', { headers }).then(r => r.json()),
         warehouseApi.list(),
-        ownerApi.list(),
       ]);
 
       if (productsRes.data.success) {
@@ -288,7 +286,6 @@ export default function ProductsPage() {
       if (brandsRes.success) setBrands(brandsRes.data);
       if (subCategoriesRes.success) setSubCategories(subCategoriesRes.data);
       if (warehousesRes.data.success) setWarehouses(warehousesRes.data.data);
-      if (ownersRes.data.success) setOwners(ownersRes.data.data);
     } catch (error) {
       console.error(error);
     } finally {

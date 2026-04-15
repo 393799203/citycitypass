@@ -1,10 +1,10 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useConfirm } from './ConfirmProvider';
 import OwnerModal from './OwnerModal';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
 import { useOwnerStore } from '../stores/owner';
-import { ownerApi } from '../api';
+import { ownerApi, authApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
 import {
@@ -33,75 +33,120 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
+import { usePermission } from '../hooks/usePermission';
+import { MENU_ITEMS } from '../constants/menuPermissions';
 
 const roleMap: Record<string, string> = {
-  ADMIN: '管理员',
-  MANAGER: '经理',
-  OPERATOR: '操作员',
-  WAREHOUSE_STAFF: '仓管',
-  DRIVER: '司机',
-  CUSTOMER: '访客',
-  OWNER: '主体',
+  ADMIN: '系统管理员',
+  MANAGER: '管理员',
+  WAREHOUSE_MANAGER: '仓储管理',
+  TRANSPORT_MANAGER: '运力管理',
+  AFTER_SALES_MANAGER: '售后管理',
+  GUEST: '访客',
 };
 
-const configMenuItems = [
-  { path: '/warehouses', icon: Warehouse, label: '仓库管理' },
-  { path: '/products', icon: Package, label: '商品管理' },
-  { path: '/customers', icon: Users, label: '客户管理' },
-  { path: '/suppliers', icon: Users, label: '供应商管理' },
-  { path: '/carriers', icon: Factory, label: '承运商管理' },
-];
+const MenuIconMap: Record<string, any> = {
+  '/orders': ShoppingCart,
+  '/outbound': ArrowUpFromLine,
+  '/dispatch': Route,
+  '/returns': RotateCcw,
+  '/inventory': Boxes,
+  '/batch-trace': GitBranch,
+  '/purchases': Truck,
+  '/inbound': Package,
+  '/stock-transfers': ArrowRightLeft,
+  '/transport': Truck,
+  '/warehouses': Warehouse,
+  '/products': Package,
+  '/customers': Users,
+  '/suppliers': Users,
+  '/carriers': Factory,
+  '/system': Settings,
+};
 
-const businessMenuItems = [
-  { path: '/orders', icon: ShoppingCart, label: '订单中心' },
-  { path: '/outbound', icon: ArrowUpFromLine, label: '发货管理' },
-  { path: '/dispatch', icon: Route, label: '运力调度' },
-  { path: '/returns', icon: RotateCcw, label: '退货管理' },
-  { path: '/inventory', icon: Boxes, label: '库存看板' },
-  { path: '/batch-trace', icon: GitBranch, label: '批次追踪' },
-  { path: '/purchases', icon: Truck, label: '采购管理' },
-  { path: '/inbound', icon: Package, label: '入库管理' },
-  { path: '/stock-transfers', icon: ArrowRightLeft, label: '移库管理' },
-  { path: '/transport', icon: Truck, label: '运力看板' },
-];
-
-const adminMenuItems = [
-  { path: '/users', icon: Settings, label: '用户中心' },
-];
+// 辅助函数来渲染菜单图标
+const MenuIcon = ({ path, className }: { path: string; className?: string }) => {
+  const Icon = MenuIconMap[path];
+  if (!Icon) return null;
+  return <Icon className={className} />;
+};
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ownerDropdownOpen, setOwnerDropdownOpen] = useState(false);
-  const [owners, setOwners] = useState<any[]>([]);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any>(null);
   const [contentKey, setContentKey] = useState(0);
-  const { user, logout } = useAuthStore();
-  const { currentOwnerId, currentOwnerName, setCurrentOwner } = useOwnerStore();
+  const { user, permissions, logout, token, setAuth } = useAuthStore();
+  const { currentOwnerId, currentOwnerName, setCurrentOwner, owners, setOwners, logout: logoutOwner } = useOwnerStore();
   const { confirm } = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasPermission, accessibleModules } = usePermission();
 
+  // 初始化时调用 /me 获取最新用户信息和权限
   useEffect(() => {
-    ownerApi.list().then(res => {
-      if (res.data.success) {
-        const activeOwners = res.data.data.filter((o: any) => o.status !== 'STOPPED');
-        setOwners(activeOwners);
-        if (activeOwners.length === 0) {
-          setShowOwnerModal(true);
-        }
-      }
-    });
-  }, []);
+    if (token) {
+      authApi.me()
+        .then(res => {
+          if (res.data.success) {
+            const { user: freshUser, permissions: freshPermissions, owners: userOwners } = res.data.data;
+            setAuth(token, freshUser, freshPermissions);
+            // 设置主体列表 - 只显示当前用户拥有的主体
+            if (userOwners && userOwners.length > 0) {
+              setOwners(userOwners);
+              // 非ADMIN用户默认选中第一个主体（如果没有选中的主体）
+              if (freshUser.role !== 'ADMIN' && !currentOwnerId) {
+                setCurrentOwner(userOwners[0].id, userOwners[0].name);
+              }
+            }
+          }
+        })
+        .catch(() => {
+          // token 无效，跳转登录
+          logout();
+          window.location.href = '/login';
+        });
+    }
+  }, [token]);
 
-  const canGoBack = location.pathname !== '/orders' && location.pathname !== '/inventory' &&
-    !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
-       '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
-       '/carriers', '/users', '/dispatch', '/returns', '/purchases'].includes(location.pathname);
+  // 根据用户权限过滤菜单
+  const filteredMenuItems = useMemo(() => {
+    return MENU_ITEMS.filter(item => {
+      // ADMIN可以看到所有菜单
+      if (user?.role === 'ADMIN') return true;
+      // 检查用户是否有该菜单的权限
+      if (!user?.role || !permissions) return false;
+
+      const modulePermissions = permissions[item.module];
+      if (!modulePermissions) return false;
+
+      const permission = modulePermissions[item.permission];
+      return permission === 'READ' || permission === 'WRITE';
+    });
+  }, [user?.role, permissions]);
+
+  // 分离业务菜单和配置菜单
+  const businessMenuItems = filteredMenuItems.filter(item =>
+    ['/orders', '/outbound', '/dispatch', '/returns', '/inventory', '/batch-trace', '/purchases', '/inbound', '/stock-transfers', '/transport'].includes(item.path)
+  );
+
+  const configMenuItems = filteredMenuItems.filter(item =>
+    ['/warehouses', '/products', '/customers', '/suppliers', '/carriers'].includes(item.path)
+  );
+
+  const adminMenuItems = filteredMenuItems.filter(item =>
+    ['/system'].includes(item.path)
+  );
+
+  const canGoBack = !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
+      '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
+      '/carriers', '/dispatch', '/returns', '/purchases', '/system'].includes(location.pathname);
 
   const handleLogout = () => {
     logout();
+    logoutOwner();
     window.location.href = '/login';
   };
 
@@ -119,7 +164,7 @@ export default function Layout() {
         <div className="h-14 flex items-center justify-between px-3 border-b bg-primary-600">
           <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
             <Truck className="w-7 h-7 text-white flex-shrink-0" />
-            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">企管通</span>}
+            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链云仓</span>}
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -130,81 +175,90 @@ export default function Layout() {
         </div>
 
         <nav className="p-2 space-y-1">
-          <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
-            <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
-            {!collapsed && <span className="text-xs text-gray-400">业务</span>}
-            <div className="h-px bg-gray-200 flex-1" />
-          </div>
+          {businessMenuItems.length > 0 && (
+          <>
+            <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
+              <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
+              {!collapsed && <span className="text-xs text-gray-400">业务</span>}
+              <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
+            </div>
 
-          {businessMenuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/orders'}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-100'
-                } ${collapsed ? 'justify-center' : ''}`
-              }
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-            </NavLink>
-          ))}
+            {businessMenuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/orders'}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+              >
+                <MenuIcon path={item.path} className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+              </NavLink>
+            ))}
+          </>
+        )}
 
-          <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
-            <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
-            {!collapsed && <span className="text-xs text-gray-400">配置</span>}
-            <div className="h-px bg-gray-200 flex-1" />
-          </div>
+        {configMenuItems.length > 0 && (
+          <>
+            <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
+              <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
+              {!collapsed && <span className="text-xs text-gray-400">配置</span>}
+              <div className="h-px bg-gray-200 flex-1" />
+            </div>
 
-          {configMenuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-100'
-                } ${collapsed ? 'justify-center' : ''}`
-              }
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-            </NavLink>
-          ))}
-          
-          {user?.role === 'ADMIN' && (
-            <>
-              <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
-                <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
-                {!collapsed && <span className="text-xs text-gray-400">权限</span>}
-                <div className="h-px bg-gray-200 flex-1" />
-              </div>
-              {adminMenuItems.map((item: any) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-primary-50 text-primary-600'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    } ${collapsed ? 'justify-center' : ''}`
-                  }
-                >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-                </NavLink>
-              ))}
-            </>
-          )}
+            {configMenuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+              >
+                <MenuIcon path={item.path} className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        {adminMenuItems.length > 0 && (
+          <>
+            <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
+              <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
+              {!collapsed && <span className="text-xs text-gray-400">权限</span>}
+              <div className="h-px bg-gray-200 flex-1" />
+            </div>
+
+            {adminMenuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+              >
+                <MenuIcon path={item.path} className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+              </NavLink>
+            ))}
+          </>
+        )}
         </nav>
 
         <div className={`absolute bottom-0 left-0 right-0 p-2 border-t ${collapsed ? 'flex justify-center' : ''}`}>
@@ -309,11 +363,14 @@ export default function Layout() {
                                   try {
                                     await ownerApi.delete(o.id);
                                     toast.success('主体已删除');
-                                    ownerApi.list().then(res => {
-                                      if (res.data.success) {
-                                        setOwners(res.data.data.filter((owner: any) => owner.status !== 'STOPPED'));
-                                      }
-                                    });
+                                    // 重新调用 /me 获取当前用户拥有的主体列表
+                                    authApi.me()
+                                      .then(res => {
+                                        if (res.data.success) {
+                                          const { owners: userOwners } = res.data.data;
+                                          setOwners(userOwners || []);
+                                        }
+                                      });
                                   } catch (error: any) {
                                     toast.error(error.response?.data?.message || '删除失败');
                                   }
@@ -378,11 +435,16 @@ export default function Layout() {
         editingOwner={editingOwner}
         onClose={() => setShowOwnerModal(false)}
         onSuccess={() => {
-          ownerApi.list().then(res => {
-            if (res.data.success) {
-              setOwners(res.data.data.filter((o: any) => o.status !== 'STOPPED'));
-            }
-          });
+          // 重新调用 /me 获取当前用户拥有的主体列表
+          authApi.me()
+            .then(res => {
+              if (res.data.success) {
+                const { owners: userOwners } = res.data.data;
+                if (userOwners && userOwners.length > 0) {
+                  setOwners(userOwners);
+                }
+              }
+            });
         }}
       />
 

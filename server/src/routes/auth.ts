@@ -15,9 +15,10 @@ const registerSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
   name: z.string().min(1),
-  role: z.enum(['ADMIN', 'MANAGER', 'OPERATOR', 'WAREHOUSE_STAFF', 'DRIVER', 'CUSTOMER', 'OWNER']).optional().default('CUSTOMER'),
+  role: z.enum(['ADMIN', 'MANAGER', 'WAREHOUSE_MANAGER', 'TRANSPORT_MANAGER', 'AFTER_SALES_MANAGER', 'GUEST']).optional().default('GUEST'),
   phone: z.string().optional(),
   email: z.string().email().optional(),
+  ownerId: z.string().optional(),
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -54,6 +55,7 @@ router.post('/login', async (req: Request, res: Response) => {
           role: user.role,
           phone: user.phone,
           email: user.email,
+          ownerId: user.ownerId,
         },
       },
     });
@@ -111,16 +113,64 @@ router.get('/me', async (req: Request, res: Response) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
+    // 获取用户信息、权限和主体
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, username: true, name: true, role: true, phone: true, email: true },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        phone: true,
+        email: true,
+      },
     });
 
     if (!user) {
       return res.status(401).json({ success: false, message: '用户不存在' });
     }
 
-    res.json({ success: true, data: user });
+    // 获取用户所属的角色权限
+    const role = await prisma.role.findUnique({
+      where: { code: user.role },
+    });
+
+    // 获取用户所属的所有主体
+    let owners = [];
+    if (user.role === 'ADMIN') {
+      // ADMIN可以看到所有主体
+      owners = await prisma.owner.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      });
+    } else {
+      // 其他用户只能看到自己所属的主体（通过UserOwner关联）
+      const userOwners = await prisma.userOwner.findMany({
+        where: { userId: user.id },
+        include: {
+          owner: {
+            select: { id: true, name: true },
+          }
+        }
+      });
+      owners = userOwners.map(uo => uo.owner);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          phone: user.phone,
+          email: user.email,
+        },
+        permissions: role?.permissions || {},
+        owners,
+      },
+    });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(401).json({ success: false, message: '令牌无效' });

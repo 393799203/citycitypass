@@ -291,6 +291,123 @@
       line-height: 1.7;
     }
 
+    /* Slide 6-1: AI Assistant Capabilities */
+    .slide-6-1 {
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    .slide-6-1 h2 {
+      font-size: 42px;
+      color: #2c5282;
+      margin-bottom: 40px;
+      border-bottom: 4px solid #3182ce;
+      padding-bottom: 15px;
+    }
+    .slide-6-1 .capabilities {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .slide-6-1 .cap {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .slide-6-1 .cap-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #2c5282;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slide-6-1 .cap-content {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #4a5568;
+    }
+    .slide-6-1 .cap-content li {
+      margin-bottom: 8px;
+    }
+
+    /* Slide 6-2: AI Assistant Implementation */
+    .slide-6-2 {
+      background: #f7fafc;
+      color: #1a202c;
+    }
+    .slide-6-2 h2 {
+      font-size: 42px;
+      color: #2c5282;
+      margin-bottom: 30px;
+      border-bottom: 4px solid #3182ce;
+      padding-bottom: 15px;
+    }
+    .slide-6-2 .impl-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .slide-6-2 .impl-section {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .slide-6-2 .impl-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #2c5282;
+      margin-bottom: 15px;
+      border-left: 4px solid #3182ce;
+      padding-left: 12px;
+    }
+    .slide-6-2 .impl-content {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #4a5568;
+    }
+    .slide-6-2 .impl-content li {
+      margin-bottom: 6px;
+    }
+    .slide-6-2 .workflow {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .slide-6-2 .workflow .impl-title {
+      color: white;
+      border-left-color: white;
+    }
+    .slide-6-2 .workflow .impl-content {
+      color: rgba(255,255,255,0.95);
+    }
+    .slide-6-2 .flow-steps {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .slide-6-2 .flow-step {
+      text-align: center;
+      padding: 10px 15px;
+    }
+    .slide-6-2 .flow-num {
+      width: 30px;
+      height: 30px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-weight: bold;
+    }
+
     /* Slide 7: Data Summary */
     .slide-7 {
       background: #f7fafc;
@@ -499,7 +616,139 @@
   <div class="slide-number" style="color: rgba(255,255,255,0.5)">6 / 8</div>
 </div>
 
-<!-- Slide 7: Value Summary -->
+<!-- Slide 6-1: AI Assistant Capabilities -->
+<div class="slide slide-6-1">
+  <div class="watermark">企管通 WMS</div>
+  <h2>AI智能助手 · 核心能力</h2>
+  <div class="capabilities">
+    <div class="cap">
+      <div class="cap-title">🔄 智能代码重构</div>
+      <div class="cap-content">
+        <ul>
+          <li>模块化拆分：将臃肿的单文件拆分为独立组件</li>
+          <li>示例：批次追踪、库存看板、采购/入库模块</li>
+          <li>效果：代码可维护性提升80%</li>
+        </ul>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="cap-title">⚙️ 业务逻辑优化</div>
+      <div class="cap-content">
+        <ul>
+          <li>问题诊断：发现批次列表显示不完整问题</li>
+          <li>原因分析：查询逻辑未考虑未入库批次</li>
+          <li>优化方案：同时考虑批次归属和入库状态</li>
+        </ul>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="cap-title">🗄️ 数据管理与维护</div>
+      <div class="cap-content">
+        <ul>
+          <li>关联资源清理：自动处理主体删除时的级联删除</li>
+          <li>覆盖范围：客户、供应商、商品、订单等</li>
+          <li>效果：保障数据完整性</li>
+        </ul>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="cap-title">🐛 实时问题修复</div>
+      <div class="cap-content">
+        <ul>
+          <li>语法错误修复</li>
+          <li>类型错误修复</li>
+          <li>样式调整建议</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">6-1 / 10</div>
+</div>
+
+<!-- Slide 6-2: AI Assistant Implementation -->
+<div class="slide slide-6-2">
+  <div class="watermark">企管通 WMS</div>
+  <h2>AI智能助手 · 实现原理</h2>
+  <div class="impl-grid">
+    <div class="impl-section">
+      <div class="impl-title">📚 知识库系统</div>
+      <div class="impl-content">
+        <ul>
+          <li><strong>初始化阶段：</strong>系统启动时自动初始化业务知识</li>
+          <li><strong>知识内容：</strong>入库单格式、采购订单格式、销售订单格式、调度配送流程、退货处理流程、批次追踪规则、库存查询规则、商品品牌规格等</li>
+          <li><strong>持续更新：</strong>支持动态添加新的业务知识和规则</li>
+        </ul>
+      </div>
+    </div>
+    <div class="impl-section">
+      <div class="impl-title">🔍 向量检索匹配</div>
+      <div class="impl-content">
+        <ul>
+          <li><strong>文本向量化：</strong>使用Embedding模型将文本转换为高维向量</li>
+          <li><strong>语义理解：</strong>通过向量相似度计算找到语义最相关的内容</li>
+          <li><strong>应用场景：</strong>理解用户查询意图，匹配相关业务知识</li>
+          <li><strong>优势：</strong>能够捕捉语义相似性，即使关键词不同也能匹配</li>
+        </ul>
+      </div>
+    </div>
+    <div class="impl-section">
+      <div class="impl-title">🎯 关键词检索匹配</div>
+      <div class="impl-content">
+        <ul>
+          <li><strong>精确匹配：</strong>基于关键词的精确匹配</li>
+          <li><strong>相关性评分：</strong>计算查询与文档的相关性分数</li>
+          <li><strong>排序优化：</strong>按相关性分数排序返回结果</li>
+          <li><strong>应用场景：</strong>快速定位包含特定关键词的文档</li>
+        </ul>
+      </div>
+    </div>
+    <div class="impl-section">
+      <div class="impl-title">🔀 混合匹配算法</div>
+      <div class="impl-content">
+        <ul>
+          <li><strong>双轨并行：</strong>同时执行向量检索和关键词检索</li>
+          <li><strong>结果融合：</strong>合并两个检索结果，根据综合评分排序</li>
+          <li><strong>权重分配：</strong>向量相似度权重0.6，关键词相关性权重0.4</li>
+          <li><strong>最终输出：</strong>返回top-K个最相关结果给大语言模型</li>
+        </ul>
+      </div>
+    </div>
+    <div class="impl-section workflow">
+      <div class="impl-title">⚡ 完整工作流程</div>
+      <div class="impl-content">
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div>接收用户输入</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div>生成向量</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div>双轨检索</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div>结果融合</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">5</div>
+            <div>注入Prompt</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">6</div>
+            <div>生成回答</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">6-2 / 10</div>
+</div>
+
+<!-- Slide 7: Data Summary -->
 <div class="slide slide-7">
   <div class="watermark">企管通 WMS</div>
   <h2>核心价值总结</h2>
@@ -525,7 +774,7 @@
       <div class="stat-sub">全链路数字化管控</div>
     </div>
   </div>
-  <div class="slide-number">7 / 8</div>
+  <div class="slide-number">7 / 10</div>
 </div>
 
 <!-- Slide 8: Thank You -->
@@ -534,7 +783,7 @@
   <h2>感谢观看</h2>
   <div class="slogan">AI赋能仓储 · 让管理更智能 · 让运营更高效</div>
   <div class="contact">如需了解更多，欢迎交流探讨</div>
-  <div class="slide-number" style="color: rgba(255,255,255,0.5)">8 / 8</div>
+  <div class="slide-number" style="color: rgba(255,255,255,0.5)">8 / 10</div>
 </div>
 
 </body>

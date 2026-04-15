@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { warehouseApi, ownerApi } from '../api';
+import { warehouseApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
@@ -8,8 +8,8 @@ import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Cl
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
-import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
+import OwnerStamp from '../components/OwnerStamp';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -26,9 +26,8 @@ const statusMap: Record<string, string> = {
 export default function WarehousesPage() {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
-  const { currentOwnerId } = useOwnerStore();
+  const { currentOwnerId, owners } = useOwnerStore();
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [owners, setOwners] = useState<any[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -57,15 +56,9 @@ export default function WarehousesPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [warehouseRes, ownerRes] = await Promise.all([
-        warehouseApi.list(filterOwner ? { ownerId: filterOwner } : {}),
-        ownerApi.list(),
-      ]);
+      const warehouseRes = await warehouseApi.list(filterOwner ? { ownerId: filterOwner } : {});
       if (warehouseRes.data.success) {
         setWarehouses(warehouseRes.data.data);
-      }
-      if (ownerRes.data.success) {
-        setOwners(ownerRes.data.data);
       }
     } catch (error) {
       console.error('Fetch data error:', error);

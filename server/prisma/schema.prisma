@@ -148,13 +148,18 @@ datasource db {
 }
 
 enum UserRole {
-  ADMIN
-  MANAGER
-  OPERATOR
-  WAREHOUSE_STAFF
-  DRIVER
-  CUSTOMER
-  OWNER
+  ADMIN                    // 系统管理员 - 跨所有主体，拥有最高权限
+  MANAGER                  // 管理员 - 某主体内的全部权限
+  WAREHOUSE_MANAGER        // 仓储管理
+  TRANSPORT_MANAGER        // 运力管理
+  AFTER_SALES_MANAGER      // 售后管理
+  GUEST                    // 访客
+}
+
+enum PermissionType {
+  READ     // 只读
+  WRITE    // 读写
+  NONE     // 无权限
 }
 
 enum OrderStatus {
@@ -183,6 +188,36 @@ model User {
   updatedAt DateTime @updatedAt
   pickerOrders  PickOrder[] @relation("PickerOrders")
   approverOrders PickOrder[] @relation("ApproverOrders")
+  userOwners    UserOwner[]
+}
+
+model UserOwner {
+  id        String   @id @default(uuid())
+  userId    String
+  ownerId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, ownerId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique  // 角色代码
+  name        String   // 角色名称
+  description String?  // 角色描述
+  permissions Json     // 权限配置，JSON格式
+  // {
+  //   "oms": { "orders": "WRITE", "import": "NONE", ... },
+  //   "wms": { "inbound": "WRITE", "outbound": "WRITE", ... },
+  //   "tms": { "dispatch": "WRITE", "vehicle": "WRITE", ... },
+  //   "afterSales": { "returns": "WRITE", "refund": "WRITE", ... },
+  //   "system": { "users": "WRITE", "owners": "WRITE", ... }
+  // }
+  isDefault   Boolean  @default(false)  // 是否为默认角色
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Owner {
@@ -211,6 +246,7 @@ model Owner {
   suppliers       Supplier[]
   carriers        Carrier[]
   purchaseOrders  PurchaseOrder[]
+  userOwners      UserOwner[]
 }
 
 model ProductCategory {

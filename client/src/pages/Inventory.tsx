@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
-import { stockApi, productApi, warehouseApi, bundleApi, ownerApi } from '../api';
+import { useOwnerStore } from '../stores/owner';
+import { stockApi, productApi, warehouseApi, bundleApi } from '../api';
 
 interface Product {
   id: string;
@@ -63,7 +64,7 @@ export default function InventoryPage() {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [stocks, setStocks] = useState<any[]>([]);
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
-  const [owners, setOwners] = useState<any[]>([]);
+  const { owners } = useOwnerStore();
   const [showStockOutModal, setShowStockOutModal] = useState(false);
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
@@ -156,21 +157,17 @@ export default function InventoryPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productRes, warehouseRes, stockRes, bundleRes, ownerRes] = await Promise.all([
+      const [productRes, warehouseRes, stockRes, bundleRes] = await Promise.all([
         productApi.list(),
         warehouseApi.list({ status: 'ACTIVE' }),
         stockApi.list({ inventoryType }),
         bundleApi.list(),
-        ownerApi.list(),
       ]);
       if (productRes.data.success) {
         setProducts(productRes.data.data);
       }
       if (warehouseRes.data.success) {
         setWarehouses(warehouseRes.data.data);
-      }
-      if (ownerRes.data.success) {
-        setOwners(ownerRes.data.data);
       }
       if (stockRes.data.success) {
         const data = stockRes.data.data;

@@ -7,7 +7,6 @@ import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
-import { ownerApi } from '../api';
 import { useOwnerStore } from '../stores/owner';
 
 interface Customer {
@@ -87,9 +86,8 @@ const defaultFormData: Customer = {
 
 export default function CustomersPage() {
   const { confirm } = useConfirm();
-  const { currentOwnerId } = useOwnerStore();
+  const { currentOwnerId, owners } = useOwnerStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [owners, setOwners] = useState<any[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -129,16 +127,10 @@ export default function CustomersPage() {
       if (filters.search) params.append('search', filters.search);
       if (filterOwner) params.append('ownerId', filterOwner);
 
-      const [res, ownerRes] = await Promise.all([
-        fetch(`/api/customers?${params}`, { headers }),
-        ownerApi.list(),
-      ]);
+      const res = await fetch(`/api/customers?${params}`, { headers });
       const data = await res.json();
       if (data.success) {
         setCustomers(data.data);
-      }
-      if (ownerRes.data.success) {
-        setOwners(ownerRes.data.data);
       }
     } catch (error) {
       console.error(error);

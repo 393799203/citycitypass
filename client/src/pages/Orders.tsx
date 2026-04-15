@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { orderApi, ownerApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi } from '../api';
+import { orderApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle, Sparkles } from 'lucide-react';
@@ -12,6 +12,7 @@ import ImportPreviewModal from '../components/ImportPreviewModal';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
+import { useAuthStore } from '../stores/auth';
 
 
 interface Order {
@@ -111,7 +112,8 @@ const statusOptions = [
 export default function OrdersPage() {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
-  const { currentOwnerId } = useOwnerStore();
+  const { currentOwnerId, owners } = useOwnerStore();
+  const { user } = useAuthStore();
   const getLatestActiveReturn = (order: any) => {
     if (!order.returnOrders?.length) return null;
     return order.returnOrders
@@ -119,7 +121,6 @@ export default function OrdersPage() {
       .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
   };
   const [orders, setOrders] = useState<Order[]>([]);
-  const [owners, setOwners] = useState<Owner[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -491,23 +492,21 @@ export default function OrdersPage() {
   };
 
   const fetchOwners = async () => {
-    try {
-      const res = await ownerApi.list();
-      if (res.data.success) {
-        setOwners(res.data.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    // 不需要调用，Layout 已从 /me 接口获取 owners
   };
 
   const fetchProducts = async () => {
     try {
-      const res = await productApi.list();
+      const params: any = {};
+      // 非ADMIN用户按当前主体过滤
+      if (user?.role !== 'ADMIN' && currentOwnerId) {
+        params.ownerId = currentOwnerId;
+      }
+      const res = await productApi.list(params);
       if (res.data.success) {
         setProducts(res.data.data);
       }
-      const bundleRes = await bundleApi.list();
+      const bundleRes = await bundleApi.list(params);
       if (bundleRes.data.success) {
         setBundles(bundleRes.data.data);
       }
@@ -518,7 +517,12 @@ export default function OrdersPage() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await warehouseApi.list({ status: 'ACTIVE' });
+      const params: any = { status: 'ACTIVE' };
+      // 非ADMIN用户按当前主体过滤
+      if (user?.role !== 'ADMIN' && currentOwnerId) {
+        params.ownerId = currentOwnerId;
+      }
+      const res = await warehouseApi.list(params);
       if (res.data.success) {
         setWarehouses(res.data.data);
       }
@@ -1300,7 +1304,7 @@ export default function OrdersPage() {
                     disabled={!!editingId || !!currentOwnerId}
                   >
                     <option value="">选择主体</option>
-                    {(currentOwnerId ? owners.filter(o => o.id === currentOwnerId) : owners).filter(o => o.status !== 'STOPPED').map(o => (
+                    {(currentOwnerId ? owners.filter(o => o.id === currentOwnerId) : owners).map(o => (
                       <option key={o.id} value={o.id}>{o.name}</option>
                     ))}
                   </select>

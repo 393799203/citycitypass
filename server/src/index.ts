@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { ownerMiddleware } from './middleware/owner';
+import { authMiddleware } from './middleware/auth';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import ownerRoutes from './routes/owners';
@@ -30,6 +31,7 @@ import skuBatchRoutes from './routes/skuBatches';
 import bundleBatchRoutes from './routes/bundleBatches';
 import purchaseOrderRoutes from './routes/purchaseOrders';
 import aiRoutes from './routes/ai';
+import permissionRoutes from './routes/permissions';
 import { ragService } from './services/rag';
 import { SearchMode } from './services/rag';
 
@@ -68,6 +70,7 @@ app.use('/api/sku-batches', ownerMiddleware, skuBatchRoutes);
 app.use('/api/bundle-batches', ownerMiddleware, bundleBatchRoutes);
 app.use('/api/purchase-orders', ownerMiddleware, purchaseOrderRoutes);
 app.use('/api/ai', ownerMiddleware, aiRoutes);
+app.use('/api/permissions', authMiddleware, permissionRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

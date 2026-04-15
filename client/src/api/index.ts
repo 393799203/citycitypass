@@ -46,11 +46,20 @@ export const authApi = {
   me: () => api.get('/auth/me'),
 };
 
+export const permissionApi = {
+  getMyPermissions: () => api.get('/permissions/my-permissions'),
+  getRoles: () => api.get('/permissions/roles'),
+  getRole: (id: string) => api.get(`/permissions/roles/${id}`),
+  createRole: (data: any) => api.post('/permissions/roles', data),
+  updateRole: (id: string, data: any) => api.put(`/permissions/roles/${id}`, data),
+  deleteRole: (id: string) => api.delete(`/permissions/roles/${id}`),
+};
+
 export const userApi = {
-  list: (params?: any) => api.get('/users', { params }),
-  get: (id: string) => api.get(`/users/${id}`),
-  update: (id: string, data: any) => api.put(`/users/${id}`, data),
-  delete: (id: string) => api.delete(`/users/${id}`),
+  list: (params?: any) => api.get('/permissions/users', { params }),
+  get: (id: string) => api.get(`/permissions/users/${id}`),
+  update: (id: string, data: any) => api.put(`/permissions/users/${id}`, data),
+  delete: (id: string) => api.delete(`/permissions/users/${id}`),
   register: (data: any) => api.post('/auth/register', data),
 };
 

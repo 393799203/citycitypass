@@ -13,7 +13,9 @@ interface User {
 interface AuthState {
   token: string | null;
   user: User | null;
-  setAuth: (token: string, user: User) => void;
+  permissions: Record<string, Record<string, string>> | null;
+  setAuth: (token: string, user: User, permissions?: Record<string, Record<string, string>>) => void;
+  setPermissions: (permissions: Record<string, Record<string, string>>) => void;
   logout: () => void;
   clearAuth: () => void;
 }
@@ -23,12 +25,14 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      setAuth: (token, user) => set({ token, user }),
+      permissions: null,
+      setAuth: (token, user, permissions) => set({ token, user, permissions: permissions || null }),
+      setPermissions: (permissions) => set({ permissions }),
       logout: () => {
-        set({ token: null, user: null });
-        localStorage.removeItem('auth-storage');
+        set({ token: null, user: null, permissions: null });
+        localStorage.clear();
       },
-      clearAuth: () => set({ token: null, user: null }),
+      clearAuth: () => set({ token: null, user: null, permissions: null }),
     }),
     {
       name: 'auth-storage',

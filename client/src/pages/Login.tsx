@@ -33,7 +33,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username || !password) {
       toast.error('请输入用户名和密码');
       return;
@@ -42,7 +42,9 @@ export default function Login() {
     try {
       const res = await authApi.login({ username, password });
       if (res.data.success) {
-        setAuth(res.data.data.token, res.data.data.user);
+        const { token, user } = res.data.data;
+        setAuth(token, user);
+
         if (rememberMe) {
           localStorage.setItem('savedUsername', username);
           localStorage.setItem('savedPassword', password);
@@ -103,7 +105,7 @@ export default function Login() {
             <Truck className="w-24 h-24" />
           </div>
           <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            企管通
+            智链云仓
           </h1>
           <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
             智慧物流管理系统
@@ -200,7 +202,7 @@ export default function Login() {
           {/* 移动端Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
             <Truck className="w-10 h-10 text-primary-600" />
-            <span className="text-3xl font-bold text-primary-600">企管通</span>
+            <span className="text-3xl font-bold text-primary-600">智链云仓</span>
           </div>
 
           {/* 欢迎文字 */}

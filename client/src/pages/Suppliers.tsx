@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText, Package } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
-import { supplierApi, supplierContractApi, supplierProductApi, supplierMaterialApi, productApi, bundleApi, ownerApi } from '../api';
+import { supplierApi, supplierContractApi, supplierProductApi, supplierMaterialApi, productApi, bundleApi } from '../api';
 import OwnerStamp from '../components/OwnerStamp';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
@@ -82,9 +82,8 @@ const defaultContractForm: SupplierContract = {
 };
 
 export default function SuppliersPage() {
-  const { currentOwnerId } = useOwnerStore();
+  const { currentOwnerId, owners } = useOwnerStore();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [owners, setOwners] = useState<any[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -117,15 +116,9 @@ export default function SuppliersPage() {
     try {
       const params: any = {};
       if (filterOwner) params.ownerId = filterOwner;
-      const [res, ownerRes] = await Promise.all([
-        supplierApi.list(params),
-        ownerApi.list(),
-      ]);
+      const res = await supplierApi.list(params);
       if (res.data.success) {
         setSuppliers(res.data.data);
-      }
-      if (ownerRes.data.success) {
-        setOwners(ownerRes.data.data);
       }
     } catch (error) {
       console.error(error);

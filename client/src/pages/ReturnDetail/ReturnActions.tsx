@@ -1,0 +1,69 @@
+import React from 'react';
+import { Pencil, CheckCircle, Warehouse, DollarSign } from 'lucide-react';
+
+interface ReturnActionsProps {
+  returnOrder: any;
+  onOpenTrackingModal: () => void;
+  onReceive: () => void;
+  onOpenQualifyModal: () => void;
+  onOpenStockInModal: () => void;
+  onOpenRefundModal: () => void;
+}
+
+export default function ReturnActions({ 
+  returnOrder, 
+  onOpenTrackingModal, 
+  onReceive, 
+  onOpenQualifyModal, 
+  onOpenStockInModal, 
+  onOpenRefundModal 
+}: ReturnActionsProps) {
+  if (['REFUNDED', 'CANCELLED'].includes(returnOrder.status)) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border p-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">操作</h3>
+      <div className="space-y-3">
+        {returnOrder.status === 'RETURN_REQUESTED' && (
+          <button
+            onClick={onOpenTrackingModal}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2"
+          >
+            <Pencil className="w-4 h-4" /> 填写快递单号
+          </button>
+        )}
+        {returnOrder.status === 'RETURN_SHIPPED' && (
+          <button onClick={onReceive} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2">
+            <CheckCircle className="w-4 h-4" /> 确认收到退货
+          </button>
+        )}
+        {returnOrder.status === 'RETURN_RECEIVING' && (
+          <button
+            onClick={onOpenQualifyModal}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg flex items-center justify-center gap-2"
+          >
+            <CheckCircle className="w-4 h-4" /> 验收确认
+          </button>
+        )}
+        {(returnOrder.status === 'RETURN_QUALIFIED' || returnOrder.status === 'RETURN_PARTIAL_QUALIFIED') && (
+          <button
+            onClick={onOpenStockInModal}
+            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-2"
+          >
+            <Warehouse className="w-4 h-4" /> 退货入库
+          </button>
+        )}
+        {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(returnOrder.status) && returnOrder.refundStatus !== 'COMPLETED' && (
+          <button
+            onClick={onOpenRefundModal}
+            className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg flex items-center justify-center gap-2"
+          >
+            <DollarSign className="w-4 h-4" /> 确认退款
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

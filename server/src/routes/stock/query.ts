@@ -561,8 +561,21 @@ router.get('/batch/list', async (req: Request, res: Response) => {
     }
 
     if (warehouseId || ownerId) {
-      skuWhere.stocks = { some: warehouseFilter };
-      bundleWhere.stocks = { some: warehouseFilter };
+      if (ownerId) {
+        // 对于主体查询，考虑批次所属的商品/套装是否属于该主体
+        skuWhere.OR = [
+          { stocks: { some: warehouseFilter } },
+          { sku: { ownerId: ownerId as string } }
+        ];
+        bundleWhere.OR = [
+          { stocks: { some: warehouseFilter } },
+          { bundle: { ownerId: ownerId as string } }
+        ];
+      } else {
+        // 对于仓库查询，只考虑库存记录
+        skuWhere.stocks = { some: warehouseFilter };
+        bundleWhere.stocks = { some: warehouseFilter };
+      }
     }
 
     const skuBatches = await prisma.sKUBatch.findMany({
