@@ -8,6 +8,7 @@ import PhoneInput from '../components/PhoneInput';
 import LicensePlateInput from '../components/LicensePlateInput';
 import { useOwnerStore } from '../stores/owner';
 import { usePermission } from '../hooks/usePermission';
+import { formatPhone } from '../utils/format';
 import OwnerStamp from '../components/OwnerStamp';
 
 interface Carrier {
@@ -478,7 +479,7 @@ export default function CarriersPage() {
                 {carrier.contact && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <Phone className="w-4 h-4" />
-                    {carrier.contact} · {carrier.phone || '-'}
+                    {carrier.contact} · {formatPhone(carrier.phone || '')}
                   </div>
                 )}
                 {carrier.province && (

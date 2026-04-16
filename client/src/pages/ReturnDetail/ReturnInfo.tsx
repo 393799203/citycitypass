@@ -1,5 +1,6 @@
 import React from 'react';
 import { Phone } from 'lucide-react';
+import { formatPhone } from '../../utils/format';
 
 interface ReturnInfoProps {
   returnOrder: any;
@@ -15,7 +16,7 @@ export default function ReturnInfo({ returnOrder }: ReturnInfoProps) {
             <div className="text-base">{returnOrder.receiverName}</div>
             <div className="flex items-center gap-1 text-gray-500 text-sm">
               <Phone className="w-4 h-4" />
-              {returnOrder.receiverPhone}
+              {returnOrder.receiverPhone ? formatPhone(returnOrder.receiverPhone) : '-'}
             </div>
           </div>
           <div className="text-sm text-gray-500 mt-2 mb-1">退货人地址</div>

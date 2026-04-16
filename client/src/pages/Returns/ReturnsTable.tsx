@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone } from 'lucide-react';
 import { ReturnOrder } from '../../types/returns';
+import { formatPhone } from '../../utils/format';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   RETURN_REQUESTED: { label: '待发货', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
@@ -64,7 +65,7 @@ export default function ReturnsTable({
                 <div>{ret.receiverName}</div>
                 <div className="flex items-center justify-center gap-1 text-gray-400 text-sm mt-0.5">
                   <Phone className="w-4 h-4" />
-                  {ret.receiverPhone}
+                  {formatPhone(ret.receiverPhone || '')}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-base text-center">{ret.warehouse?.name}</td>

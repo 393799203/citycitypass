@@ -1,7 +1,10 @@
-export const formatPhone = (phone: string) => {
+export const formatPhone = (phone: string, mask = false) => {
   if (!phone) return '-';
   const digits = phone.replace(/\D/g, '').slice(0, 11);
   if (digits.length === 11) {
+    if (mask) {
+      return `${digits.slice(0, 3)}****${digits.slice(7)}`;
+    }
     return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
   }
   return phone;

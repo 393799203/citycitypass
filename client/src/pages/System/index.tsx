@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Role, User, Owner } from './types';
 import { RoleList, RoleModal } from './RoleManage';
 import { UserList, UserModal } from './UserManage';
-import { PERMISSIONS } from '../../pages/System/types';
 import { useAuthStore } from '../../stores/auth';
 import { useOwnerStore } from '../../stores/owner';
 import { permissionApi, userApi } from '../../api';
 import { usePermission } from '../../hooks/usePermission';
 import { useConfirm } from '../../components/ConfirmProvider';
+import { formatPhone } from '../../utils/format';
 
 type Tab = 'users' | 'roles' | 'members';
 
 export const SystemManage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('members');
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [ownerMembers, setOwnerMembers] = useState<any[]>([]);
@@ -23,10 +22,14 @@ export const SystemManage: React.FC = () => {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>();
   const [editingUser, setEditingUser] = useState<User | undefined>();
-  const { refreshPermissions, owners: authOwners } = useAuthStore();
+  const { refreshPermissions, owners: authOwners, user: currentUser } = useAuthStore();
   const { currentOwnerId, currentOwnerName } = useOwnerStore();
   const { canRead, canWrite } = usePermission('system', 'system');
   const { confirm } = useConfirm();
+
+  const isAdminView = currentUser?.isAdmin && !currentOwnerId;
+  const defaultTab: Tab = isAdminView ? 'users' : 'members';
+  const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
 
   useEffect(() => {
     loadData();
@@ -203,26 +206,30 @@ export const SystemManage: React.FC = () => {
 
       <div className="mb-6 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'members'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            成员管理
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'users'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            用户管理
-          </button>
+          {!isAdminView && (
+            <button
+              onClick={() => setActiveTab('members')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'members'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              成员管理
+            </button>
+          )}
+          {isAdminView && (
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'users'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              用户管理
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('roles')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -250,7 +257,7 @@ export const SystemManage: React.FC = () => {
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            {activeTab === 'roles' ? '新建角色' : '新建用户'}
+            {activeTab === 'roles' ? '新建角色' : '注册新用户'}
           </button>
         )}
       </div>
@@ -305,7 +312,7 @@ export const SystemManage: React.FC = () => {
                     <tr key={member.id}>
                       <td className="px-6 py-4 whitespace-nowrap">{member.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.username}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.phone || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{formatPhone(member.phone)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded text-xs ${
                           member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role === 'OWNER'
@@ -367,11 +374,10 @@ export const SystemManage: React.FC = () => {
           }}
           onDelete={handleDeleteRole}
           canWrite={canWrite}
-          canRead={canRead}
         />
       )}
 
-      {showRoleModal && (
+      {showRoleModal && editingRole && (
         <RoleModal
           role={editingRole}
           onSave={handleSaveRole}

@@ -8,6 +8,7 @@ import { supplierApi, supplierContractApi, supplierProductApi, supplierMaterialA
 import OwnerStamp from '../components/OwnerStamp';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
+import { formatPhone } from '../utils/format';
 import { usePermission } from '../hooks/usePermission';
 
 const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
@@ -443,7 +444,7 @@ export default function SuppliersPage() {
                 <div className="flex items-center justify-between text-gray-600">
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
-                    {supplier.contact || '-'} · {supplier.phone || '-'}
+                    {supplier.contact || '-'} · {formatPhone(supplier.phone)}
                   </div>
                   <span className="text-xs text-gray-500">合同: {supplier.contractCount || 0}</span>
                 </div>

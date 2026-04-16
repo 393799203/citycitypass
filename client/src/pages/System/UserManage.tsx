@@ -3,6 +3,7 @@ import { User, Owner, Role, ROLE_NAMES, ROLE_COLORS } from './types';
 import { useAuthStore } from '../../stores/auth';
 import PhoneInput from '../../components/PhoneInput';
 import EmailInput from '../../components/EmailInput';
+import { formatPhone } from '../../utils/format';
 
 const ALL_ROLES = ['OWNER', 'MANAGER', 'WAREHOUSE_MANAGER', 'TRANSPORT_MANAGER', 'AFTER_SALES_MANAGER', 'GUEST'];
 
@@ -37,7 +38,12 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   const getInitialOwnerRoles = (): OwnerRole[] => {
     if (isMemberMode && currentOwnerId && currentOwnerName) {
-      return [{ ownerId: currentOwnerId, ownerName: currentOwnerName, role: 'MANAGER' }];
+      const existingRole = user?.owners?.find(o => o.ownerId === currentOwnerId);
+      return [{
+        ownerId: currentOwnerId,
+        ownerName: currentOwnerName,
+        role: existingRole?.role || 'MANAGER'
+      }];
     }
     if (user?.owners && user.owners.length > 0) {
       return user.owners.map(o => ({
@@ -297,7 +303,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPhone(user.phone || '')}</td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {user.isAdmin ? (
                     <span className="text-gray-500">所有主体</span>
