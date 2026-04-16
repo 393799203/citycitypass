@@ -23,6 +23,7 @@ interface SearchOptions {
   topK?: number;
   filters?: Record<string, any>;
   mode?: SearchMode;
+  ownerId?: string;
 }
 
 class RAGService {
@@ -195,7 +196,12 @@ class RAGService {
 
   private async ensureInitialized() {
     if (this.initialized) return;
-    if (this.initPromise) await this.initPromise;
+    if (this.initPromise) {
+      await this.initPromise;
+    } else {
+      this.initPromise = this._doInit();
+      await this.initPromise;
+    }
   }
 
   private async checkVectorExtension(): Promise<boolean> {
@@ -226,6 +232,7 @@ class RAGService {
           content TEXT NOT NULL,
           metadata JSONB DEFAULT '{}',
           embedding TEXT,
+          owner_id UUID,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -235,6 +242,25 @@ class RAGService {
         CREATE INDEX IF NOT EXISTS idx_rag_documents_metadata
         ON rag_documents USING GIN (metadata)
       `);
+
+      // 添加 owner_id 列（如果表已存在但没有该列）
+      try {
+        await client.query(`
+          ALTER TABLE rag_documents ADD COLUMN IF NOT EXISTS owner_id UUID
+        `);
+      } catch (e) {
+        // 列可能已存在，忽略错误
+      }
+
+      // 创建 owner_id 索引
+      try {
+        await client.query(`
+          CREATE INDEX IF NOT EXISTS idx_rag_documents_owner_id
+          ON rag_documents (owner_id)
+        `);
+      } catch (e) {
+        // 索引可能已存在，忽略错误
+      }
 
       await client.query('COMMIT');
       console.log('[RAG] Tables ready');
@@ -249,7 +275,8 @@ class RAGService {
 
   async addDocument(
     content: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    ownerId?: string
   ): Promise<string> {
     await this.ensureInitialized();
 
@@ -260,16 +287,17 @@ class RAGService {
     const embedding = await this.generateEmbedding(content);
 
     const result = await this.pool.query(`
-      INSERT INTO rag_documents (content, metadata, embedding)
-      VALUES ($1, $2, $3)
+      INSERT INTO rag_documents (content, metadata, embedding, owner_id)
+      VALUES ($1, $2, $3, $4)
       RETURNING id
-    `, [content, JSON.stringify(metadata || {}), JSON.stringify(embedding)]);
+    `, [content, JSON.stringify(metadata || {}), JSON.stringify(embedding), ownerId || null]);
 
     return result.rows[0].id;
   }
 
   async addDocuments(
-    documents: Array<{ content: string; metadata?: Record<string, any> }>
+    documents: Array<{ content: string; metadata?: Record<string, any> }>,
+    ownerId?: string
   ): Promise<string[]> {
     await this.ensureInitialized();
 
@@ -287,10 +315,10 @@ class RAGService {
         const embedding = await this.generateEmbedding(doc.content);
 
         const result = await client.query(`
-          INSERT INTO rag_documents (content, metadata, embedding)
-          VALUES ($1, $2, $3)
+          INSERT INTO rag_documents (content, metadata, embedding, owner_id)
+          VALUES ($1, $2, $3, $4)
           RETURNING id
-        `, [doc.content, JSON.stringify(doc.metadata || {}), JSON.stringify(embedding)]);
+        `, [doc.content, JSON.stringify(doc.metadata || {}), JSON.stringify(embedding), ownerId || null]);
 
         ids.push(result.rows[0].id);
       }
@@ -315,24 +343,30 @@ class RAGService {
       throw new Error('Database pool not initialized');
     }
 
-    const { topK = DEFAULT_TOP_K, filters, mode } = options;
-    const searchMode = mode || this.searchMode;
+    const { topK = DEFAULT_TOP_K, filters, mode, ownerId } = options;
+    let searchMode = mode || this.searchMode;
+
+    if ((searchMode === SearchMode.VECTOR || searchMode === SearchMode.HYBRID) && !this.hasVectorExtension) {
+      searchMode = SearchMode.KEYWORD;
+      console.log('[RAG] Vector extension not available, falling back to KEYWORD mode');
+    }
 
     switch (searchMode) {
       case SearchMode.VECTOR:
-        return this.vectorSearch(query, topK, filters);
+        return this.vectorSearch(query, topK, filters, ownerId);
       case SearchMode.HYBRID:
-        return this.hybridSearch(query, topK, filters);
+        return this.hybridSearch(query, topK, filters, ownerId);
       case SearchMode.KEYWORD:
       default:
-        return this.keywordSearch(query, topK, filters);
+        return this.keywordSearch(query, topK, filters, ownerId);
     }
   }
 
   private async vectorSearch(
     query: string,
     topK: number,
-    filters?: Record<string, any>
+    filters?: Record<string, any>,
+    ownerId?: string
   ): Promise<SearchResult[]> {
     console.log(`[RAG] Vector search for query: "${query}"`);
     const queryEmbedding = await this.generateEmbedding(query);
@@ -372,6 +406,12 @@ class RAGService {
     const params: any[] = [JSON.stringify(queryEmbedding)];
     let paramIndex = 2;
 
+    if (ownerId) {
+      queryStr += ` AND owner_id = $${paramIndex}`;
+      params.push(ownerId);
+      paramIndex++;
+    }
+
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
         queryStr += ` AND metadata->>'${key}' = $${paramIndex}`;
@@ -403,12 +443,13 @@ class RAGService {
   private async keywordSearch(
     query: string,
     topK: number,
-    filters?: Record<string, any>
+    filters?: Record<string, any>,
+    ownerId?: string
   ): Promise<SearchResult[]> {
     // 处理空查询的情况
     if (!query || query.trim() === '') {
       const limit = Number(topK);
-      const queryStr = `
+      let queryStr = `
         SELECT
           id,
           content,
@@ -417,10 +458,21 @@ class RAGService {
           0 as score,
           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
         FROM rag_documents
-        LIMIT $1
+        WHERE 1=1
       `;
+      const params: any[] = [];
+      let paramIndex = 1;
 
-      const result = await this.pool!.query(queryStr, [limit]);
+      if (ownerId) {
+        queryStr += ` AND owner_id = $${paramIndex}`;
+        params.push(ownerId);
+        paramIndex++;
+      }
+
+      queryStr += ` LIMIT $${paramIndex}`;
+      params.push(limit);
+
+      const result = await this.pool!.query(queryStr, params);
 
       return result.rows.map(row => ({
         id: row.id,
@@ -451,7 +503,7 @@ class RAGService {
     // 如果没有搜索词，返回所有文档
     if (uniquePatterns.length === 0) {
       const limit = Number(topK);
-      const queryStr = `
+      let queryStr = `
         SELECT
           id,
           content,
@@ -460,10 +512,21 @@ class RAGService {
           0 as score,
           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
         FROM rag_documents
-        LIMIT $1
+        WHERE 1=1
       `;
+      const params: any[] = [];
+      let paramIndex = 1;
 
-      const result = await this.pool!.query(queryStr, [limit]);
+      if (ownerId) {
+        queryStr += ` AND owner_id = $${paramIndex}`;
+        params.push(ownerId);
+        paramIndex++;
+      }
+
+      queryStr += ` LIMIT $${paramIndex}`;
+      params.push(limit);
+
+      const result = await this.pool!.query(queryStr, params);
 
       return result.rows.map(row => ({
         id: row.id,
@@ -493,11 +556,19 @@ class RAGService {
         ROW_NUMBER() OVER (ORDER BY ${scoreCases} DESC) as rank
       FROM rag_documents
       WHERE ${whereCases}
-      ORDER BY ${scoreCases} DESC
-      LIMIT ${Number(topK)}
     `;
 
     const params: any[] = [...uniquePatterns];
+    let paramIndex = uniquePatterns.length + 1;
+
+    if (ownerId) {
+      queryStr += ` AND owner_id = $${paramIndex}`;
+      params.push(ownerId);
+      paramIndex++;
+    }
+
+    queryStr += ` ORDER BY ${scoreCases} DESC LIMIT $${paramIndex}`;
+    params.push(Number(topK));
 
     const result = await this.pool!.query(queryStr, params);
 
@@ -515,13 +586,14 @@ class RAGService {
     query: string,
     topK: number,
     filters?: Record<string, any>,
+    ownerId?: string,
     vectorWeight: number = 0.5,
     keywordWeight: number = 0.5
   ): Promise<SearchResult[]> {
     // 处理空查询的情况
     if (!query || query.trim() === '') {
       const limit = Number(topK);
-      const queryStr = `
+      let queryStr = `
         SELECT
           id,
           content,
@@ -530,10 +602,21 @@ class RAGService {
           0 as score,
           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
         FROM rag_documents
-        LIMIT $1
+        WHERE 1=1
       `;
+      const params: any[] = [];
+      let paramIndex = 1;
 
-      const result = await this.pool!.query(queryStr, [limit]);
+      if (ownerId) {
+        queryStr += ` AND owner_id = $${paramIndex}`;
+        params.push(ownerId);
+        paramIndex++;
+      }
+
+      queryStr += ` LIMIT $${paramIndex}`;
+      params.push(limit);
+
+      const result = await this.pool!.query(queryStr, params);
 
       return result.rows.map(row => ({
         id: row.id,
@@ -554,7 +637,7 @@ class RAGService {
     // 处理没有搜索词的情况
     if (uniquePatterns.length === 0) {
       const limit = Number(topK);
-      const queryStr = `
+      let queryStr = `
         SELECT
           id,
           content,
@@ -563,10 +646,21 @@ class RAGService {
           0 as score,
           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rank
         FROM rag_documents
-        LIMIT $1
+        WHERE 1=1
       `;
+      const params: any[] = [];
+      let paramIndex = 1;
 
-      const result = await this.pool!.query(queryStr, [limit]);
+      if (ownerId) {
+        queryStr += ` AND owner_id = $${paramIndex}`;
+        params.push(ownerId);
+        paramIndex++;
+      }
+
+      queryStr += ` LIMIT $${paramIndex}`;
+      params.push(limit);
+
+      const result = await this.pool!.query(queryStr, params);
 
       return result.rows.map(row => ({
         id: row.id,
@@ -578,29 +672,32 @@ class RAGService {
       }));
     }
 
-    let queryStr = `
+    const ownerFilter = ownerId ? ' AND owner_id = $1' : '';
+    const paramOffset = ownerId ? 1 : 0;
+
+    const queryStr = `
       WITH vector_results AS (
         SELECT
           id,
           content,
           metadata,
           embedding,
-          1 - (embedding::vector <=> $1::vector) as vector_score,
-          ROW_NUMBER() OVER (ORDER BY (1 - (embedding::vector <=> $1::vector)) DESC) as vector_rank
+          1 - (embedding::vector <=> $${1 + paramOffset}::vector) as vector_score,
+          ROW_NUMBER() OVER (ORDER BY (1 - (embedding::vector <=> $${1 + paramOffset}::vector)) DESC) as vector_rank
         FROM rag_documents
-        WHERE embedding IS NOT NULL
+        WHERE embedding IS NOT NULL${ownerFilter}
       ),
       keyword_results AS (
         SELECT
           id,
           ${uniquePatterns.map((_, i) =>
-            `CASE WHEN content ILIKE $${i + 2} THEN 1 ELSE 0 END`
+            `CASE WHEN content ILIKE $${1 + paramOffset + 1 + i} THEN 1 ELSE 0 END`
           ).join(' + ')} as keyword_score,
           ROW_NUMBER() OVER (ORDER BY (${uniquePatterns.map((_, i) =>
-            `CASE WHEN content ILIKE $${i + 2} THEN 1 ELSE 0 END`
+            `CASE WHEN content ILIKE $${1 + paramOffset + 1 + i} THEN 1 ELSE 0 END`
           ).join(' + ')}) DESC) as keyword_rank
         FROM rag_documents
-        WHERE ${uniquePatterns.map((_, i) => `content ILIKE $${i + 2}`).join(' OR ')}
+        WHERE ${uniquePatterns.map((_, i) => `content ILIKE $${1 + paramOffset + 1 + i}`).join(' OR ')}${ownerFilter}
       )
       SELECT
         v.id,
@@ -614,10 +711,12 @@ class RAGService {
       FROM vector_results v
       LEFT JOIN keyword_results k ON v.id = k.id
       ORDER BY rank
-      LIMIT $${uniquePatterns.length + 2}
+      LIMIT $${1 + paramOffset + 1 + uniquePatterns.length}
     `;
 
-    const params: any[] = [JSON.stringify(queryEmbedding), ...uniquePatterns, topK];
+    const params: any[] = ownerId
+      ? [ownerId, JSON.stringify(queryEmbedding), ...uniquePatterns, topK]
+      : [JSON.stringify(queryEmbedding), ...uniquePatterns, topK];
 
     const result = await this.pool!.query(queryStr, params);
 

@@ -263,6 +263,14 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     console.log('创建订单请求体:', JSON.stringify(req.body, null, 2));
+
+    // 优先使用 x-owner-id header（AI 创建订单时用）
+    const headerOwnerId = req.headers['x-owner-id'] as string;
+    if (headerOwnerId) {
+      req.body.ownerId = headerOwnerId;
+      console.log(`[订单] 使用 x-owner-id: ${headerOwnerId}`);
+    }
+
     const data = orderSchema.parse(req.body);
 
     // 收集所有skuId并查询真实价格

@@ -161,7 +161,7 @@ export default function Layout() {
 
   const canGoBack = !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
       '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
-      '/carriers', '/dispatch', '/returns', '/purchases', '/system'].includes(location.pathname);
+      '/carriers', '/dispatch', '/returns', '/purchases', '/system', '/knowledge-base'].includes(location.pathname);
 
   const handleLogout = () => {
     logout();

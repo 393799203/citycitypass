@@ -6,6 +6,7 @@ const router = Router();
 router.post('/add', async (req: Request, res: Response) => {
   try {
     const { content, metadata } = req.body;
+    const ownerId = req.headers['x-owner-id'] as string;
 
     if (!content) {
       return res.status(400).json({
@@ -14,7 +15,7 @@ router.post('/add', async (req: Request, res: Response) => {
       });
     }
 
-    const id = await ragService.addDocument(content, metadata);
+    const id = await ragService.addDocument(content, metadata, ownerId);
 
     res.json({
       success: true,
@@ -32,6 +33,7 @@ router.post('/add', async (req: Request, res: Response) => {
 router.post('/add-batch', async (req: Request, res: Response) => {
   try {
     const { documents } = req.body;
+    const ownerId = req.headers['x-owner-id'] as string;
 
     if (!documents || !Array.isArray(documents)) {
       return res.status(400).json({
@@ -40,7 +42,7 @@ router.post('/add-batch', async (req: Request, res: Response) => {
       });
     }
 
-    const ids = await ragService.addDocuments(documents);
+    const ids = await ragService.addDocuments(documents, ownerId);
 
     res.json({
       success: true,
@@ -58,13 +60,15 @@ router.post('/add-batch', async (req: Request, res: Response) => {
 router.post('/search', async (req: Request, res: Response) => {
   try {
     const { query, topK, filters, mode } = req.body;
+    const ownerId = req.headers['x-owner-id'] as string;
 
     const validMode = mode && Object.values(SearchMode).includes(mode) ? mode as SearchMode : undefined;
 
     const results = await ragService.search(query || '', {
       topK: topK || 5,
       filters,
-      mode: validMode
+      mode: validMode,
+      ownerId
     });
 
     res.json({
@@ -83,6 +87,7 @@ router.post('/search', async (req: Request, res: Response) => {
 router.post('/hybrid-search', async (req: Request, res: Response) => {
   try {
     const { query, topK, filters, vectorWeight, keywordWeight } = req.body;
+    const ownerId = req.headers['x-owner-id'] as string;
 
     if (!query) {
       return res.status(400).json({
@@ -94,7 +99,8 @@ router.post('/hybrid-search', async (req: Request, res: Response) => {
     const results = await ragService.search(query, {
       topK: topK || 5,
       filters,
-      mode: SearchMode.HYBRID
+      mode: SearchMode.HYBRID,
+      ownerId
     });
 
     res.json({

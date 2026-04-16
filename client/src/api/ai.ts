@@ -1,18 +1,13 @@
-import axios from 'axios';
+import api from './index';
 
-const apiClient = axios.create({
-  baseURL: '/api/ai',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const AI_BASE = '/ai';
 
 export const aiApi = {
   async analyzeImage(image: File): Promise<any> {
     const formData = new FormData();
     formData.append('image', image);
 
-    const response = await apiClient.post('/image/analyze', formData, {
+    const response = await api.post(`${AI_BASE}/image/analyze`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -22,7 +17,7 @@ export const aiApi = {
   },
 
   async analyzeImageUrl(imageUrl: string): Promise<any> {
-    const response = await apiClient.post('/image/analyze-url', {
+    const response = await api.post(`${AI_BASE}/image/analyze-url`, {
       imageUrl,
     });
 
@@ -30,7 +25,7 @@ export const aiApi = {
   },
 
   async addDocument(content: string, metadata?: Record<string, any>): Promise<any> {
-    const response = await apiClient.post('/rag/add', {
+    const response = await api.post(`${AI_BASE}/rag/add`, {
       content,
       metadata,
     });
@@ -39,12 +34,12 @@ export const aiApi = {
   },
 
   async deleteDocument(id: string): Promise<any> {
-    const response = await apiClient.delete(`/rag/delete/${id}`);
+    const response = await api.delete(`${AI_BASE}/rag/delete/${id}`);
     return response.data;
   },
 
   async queryDocuments(query: string, topK?: number): Promise<any> {
-    const response = await apiClient.post('/rag/search', {
+    const response = await api.post(`${AI_BASE}/rag/search`, {
       query,
       topK: topK || 3,
       mode: 'keyword',
@@ -54,7 +49,7 @@ export const aiApi = {
   },
 
   async queryDocumentsHybrid(query: string, topK?: number, filters?: Record<string, any>): Promise<any> {
-    const response = await apiClient.post('/rag/search', {
+    const response = await api.post(`${AI_BASE}/rag/search`, {
       query,
       topK: topK || 3,
       filters,
@@ -65,7 +60,7 @@ export const aiApi = {
   },
 
   async queryDocumentsVector(query: string, topK?: number, filters?: Record<string, any>): Promise<any> {
-    const response = await apiClient.post('/rag/search', {
+    const response = await api.post(`${AI_BASE}/rag/search`, {
       query,
       topK: topK || 3,
       filters,
@@ -75,27 +70,27 @@ export const aiApi = {
   },
 
   async updateDocumentEmbedding(id: string): Promise<any> {
-    const response = await apiClient.post(`/rag/update-embedding/${id}`);
+    const response = await api.post(`${AI_BASE}/rag/update-embedding/${id}`);
     return response.data;
   },
 
   async getDocumentCount(): Promise<any> {
-    const response = await apiClient.get('/rag/stats');
+    const response = await api.get(`${AI_BASE}/rag/stats`);
     return response.data;
   },
 
   async clearDocuments(): Promise<any> {
-    const response = await apiClient.delete('/rag/clear');
+    const response = await api.delete(`${AI_BASE}/rag/clear`);
     return response.data;
   },
 
   async healthCheck(): Promise<any> {
-    const response = await apiClient.get('/health');
+    const response = await api.get(`${AI_BASE}/health`);
     return response.data;
   },
 
   async chat(messages: any[], context: string[] = [], structured: boolean = false): Promise<any> {
-    const response = await apiClient.post('/chat', {
+    const response = await api.post(`${AI_BASE}/chat`, {
       messages,
       context,
       structured,
@@ -105,7 +100,7 @@ export const aiApi = {
 
   async callAI(prompt: string): Promise<string> {
     try {
-      const response = await apiClient.post('/chat', {
+      const response = await api.post(`${AI_BASE}/chat`, {
         messages: [{ role: 'user', content: prompt }],
         context: [],
         structured: false,
@@ -123,7 +118,7 @@ export const aiApi = {
 
   async parseAIResponse<T>(prompt: string): Promise<T | null> {
     try {
-      const response = await apiClient.post('/chat', {
+      const response = await api.post(`${AI_BASE}/chat`, {
         messages: [{ role: 'user', content: prompt }],
         context: [],
         structured: true,

@@ -964,7 +964,8 @@ export default function OrdersPage() {
           </button>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            disabled={!currentOwnerId}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
             新建订单
@@ -1293,24 +1294,6 @@ export default function OrdersPage() {
             <form onSubmit={handleSubmit} className="flex h-[calc(90vh-60px)]">
               {/* 左侧 - 商品选择 */}
               <div className={`w-1/2 border-r flex flex-col ${editingId ? 'opacity-50 pointer-events-none' : ''}`}>
-                <div className="p-4 border-b bg-gray-50">
-                  <select
-                    value={formData.ownerId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, ownerId: e.target.value, warehouseId: '', items: [] });
-                      setSelectedCustomerId('');
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                    required
-                    disabled={!!editingId || !!currentOwnerId}
-                  >
-                    <option value="">选择主体</option>
-                    {(currentOwnerId ? owners.filter(o => o.id === currentOwnerId) : owners).map(o => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
-                    ))}
-                  </select>
-                </div>
-
                 {(formData.ownerId && ownerStockSummary) && (
                   <div className="flex border-b">
                     <button

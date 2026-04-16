@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import { aiApi } from '../api/ai';
 import { ToastContainer, toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, Search, RefreshCw, Save, X } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmProvider';
 
 // 类型和分类的中英文映射
 const typeMap: Record<string, string> = {
@@ -57,6 +58,7 @@ interface DocumentFormData {
 
 export default function KnowledgeBase() {
   const { user } = useAuthStore();
+  const { confirm } = useConfirm();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,7 +148,8 @@ export default function KnowledgeBase() {
   };
 
   const handleDeleteDocument = async (id: string) => {
-    if (!window.confirm('确定要删除这个文档吗？')) return;
+    const ok = await confirm({ message: '确定要删除这个文档吗？' });
+    if (!ok) return;
     setLoading(true);
     try {
       const response = await aiApi.deleteDocument(id);

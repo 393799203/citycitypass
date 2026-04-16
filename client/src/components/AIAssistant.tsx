@@ -4,6 +4,7 @@ import ImageUploader from './ImageUploader';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
 import { orderApi, purchaseOrderApi, productApi, bundleApi, ownerApi, inboundApi, warehouseApi, supplierApi, supplierProductApi } from '../api';
+import { useOwnerStore } from '../stores/owner';
 
 interface Message {
   id: string;
@@ -38,6 +39,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
+  const currentOwnerId = useOwnerStore((state) => state.currentOwnerId);
 
   const initialMessages: Message[] = [
     {
@@ -229,24 +231,28 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
     console.log('[matchSku] AI input:', { aiPackaging, aiSpec }, 'SKU:', { skuPackaging, skuSpec, skuId: sku.id });
 
+    // 标准化包装名称，去除"装"字，统一"箱"和"瓶/罐"的写法
+    const normalizePackaging = (p: string) => {
+      return p.replace(/装/g, '').replace(/罐/g, '瓶');
+    };
+    const normAiPackaging = normalizePackaging(aiPackaging);
+    const normSkuPackaging = normalizePackaging(skuPackaging);
+
+    let match = false;
     if (aiPackaging && aiSpec) {
-      const match = (skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging)) &&
+      match = (normSkuPackaging.includes(normAiPackaging) || normAiPackaging.includes(normSkuPackaging)) &&
              (skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec));
       console.log('[matchSku] Match with both:', match);
-      return match;
-    }
-    if (aiPackaging) {
-      const match = skuPackaging.includes(aiPackaging) || aiPackaging.includes(skuPackaging);
+    } else if (aiPackaging) {
+      match = normSkuPackaging.includes(normAiPackaging) || normAiPackaging.includes(normSkuPackaging);
       console.log('[matchSku] Match with packaging only:', match);
-      return match;
-    }
-    if (aiSpec) {
-      const match = skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
+    } else if (aiSpec) {
+      match = skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
       console.log('[matchSku] Match with spec only:', match);
-      return match;
+    } else {
+      console.log('[matchSku] No match');
     }
-    console.log('[matchSku] No match');
-    return false;
+    return match;
   };
 
   // 查找商品SKU或套装
@@ -441,12 +447,8 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       let result: any;
 
       if (confirmData.intent === 'create_order') {
-        const ownerId = confirmData.data.ownerId || 'default-owner-id';
-        const finalOwnerId = await findOwnerId(ownerId);
-
-        const skuItems = await completeOrderItems(confirmData.data.items || [], finalOwnerId);
+        const skuItems = await completeOrderItems(confirmData.data.items || [], currentOwnerId);
         const orderData = {
-          ownerId: finalOwnerId,
           receiver: confirmData.data.receiver,
           phone: confirmData.data.phone,
           province: confirmData.data.province,
