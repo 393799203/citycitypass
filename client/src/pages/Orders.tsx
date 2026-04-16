@@ -112,8 +112,9 @@ const statusOptions = [
 export default function OrdersPage() {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
-  const { currentOwnerId, owners } = useOwnerStore();
-  const { user } = useAuthStore();
+  const { currentOwnerId, owners: ownerStoreOwners, setCurrentOwner } = useOwnerStore();
+  const { user, owners: authOwners } = useAuthStore();
+  const owners = authOwners.length > 0 ? authOwners : ownerStoreOwners;
   const getLatestActiveReturn = (order: any) => {
     if (!order.returnOrders?.length) return null;
     return order.returnOrders
@@ -499,7 +500,7 @@ export default function OrdersPage() {
     try {
       const params: any = {};
       // 非ADMIN用户按当前主体过滤
-      if (user?.role !== 'ADMIN' && currentOwnerId) {
+      if (!user?.isAdmin && currentOwnerId) {
         params.ownerId = currentOwnerId;
       }
       const res = await productApi.list(params);
@@ -519,7 +520,7 @@ export default function OrdersPage() {
     try {
       const params: any = { status: 'ACTIVE' };
       // 非ADMIN用户按当前主体过滤
-      if (user?.role !== 'ADMIN' && currentOwnerId) {
+      if (!user?.isAdmin && currentOwnerId) {
         params.ownerId = currentOwnerId;
       }
       const res = await warehouseApi.list(params);

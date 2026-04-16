@@ -1,11 +1,13 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useConfirm } from './ConfirmProvider';
 import OwnerModal from './OwnerModal';
+import AIAssistantWrapper from './AIAssistantWrapper';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
 import { useOwnerStore } from '../stores/owner';
 import { ownerApi, authApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
+import { ROLE_NAMES } from '../pages/System/types';
 import { Loader2 } from 'lucide-react';
 import {
   Truck,
@@ -33,7 +35,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { usePermission } from '../hooks/usePermission';
+
 import { MENU_ITEMS } from '../constants/menuPermissions';
 
 const roleMap: Record<string, string> = {
@@ -78,12 +80,14 @@ export default function Layout() {
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any>(null);
   const [contentKey, setContentKey] = useState(0);
-  const { user, permissions, logout, token, setAuth } = useAuthStore();
-  const { currentOwnerId, currentOwnerName, setCurrentOwner, owners, setOwners, logout: logoutOwner } = useOwnerStore();
+  const { user, permissions, logout, token, setAuth, owners: authOwners } = useAuthStore();
+  const { currentOwnerId, currentOwnerName, setCurrentOwner, logout: logoutOwner } = useOwnerStore();
   const { confirm } = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasPermission, accessibleModules } = usePermission();
+
+  // 使用 authStore 的 owners
+  const owners = authOwners;
 
   // 初始化时调用 /me 获取最新用户信息和权限
   useEffect(() => {
@@ -92,12 +96,11 @@ export default function Layout() {
         .then(res => {
           if (res.data.success) {
             const { user: freshUser, permissions: freshPermissions, owners: userOwners } = res.data.data;
-            setAuth(token, freshUser, freshPermissions);
+            setAuth(token, freshUser, freshPermissions, userOwners);
             // 设置主体列表 - 只显示当前用户拥有的主体
             if (userOwners && userOwners.length > 0) {
-              setOwners(userOwners);
               // 非ADMIN用户默认选中第一个主体（如果没有选中的主体）
-              if (freshUser.role !== 'ADMIN' && !currentOwnerId) {
+              if (!freshUser.isAdmin && !currentOwnerId) {
                 setCurrentOwner(userOwners[0].id, userOwners[0].name);
               }
             }
@@ -111,13 +114,29 @@ export default function Layout() {
     }
   }, [token]);
 
+  // 切换主体时重新获取该主体的权限
+  useEffect(() => {
+    if (token && currentOwnerId && !user?.isAdmin) {
+      authApi.me()
+        .then(res => {
+          if (res.data.success) {
+            const { permissions: freshPermissions, owners: freshOwners } = res.data.data;
+            setAuth(token, user!, freshPermissions, freshOwners);
+          }
+        })
+        .catch(err => {
+          console.error('获取主体权限失败:', err);
+        });
+    }
+  }, [currentOwnerId, token, user?.isAdmin]);
+
   // 根据用户权限过滤菜单
   const filteredMenuItems = useMemo(() => {
     return MENU_ITEMS.filter(item => {
       // ADMIN可以看到所有菜单
-      if (user?.role === 'ADMIN') return true;
+      if (user?.isAdmin) return true;
       // 检查用户是否有该菜单的权限
-      if (!user?.role || !permissions) return false;
+      if (!user || !permissions) return false;
 
       const modulePermissions = permissions[item.module];
       if (!modulePermissions) return false;
@@ -125,7 +144,7 @@ export default function Layout() {
       const permission = modulePermissions[item.permission];
       return permission === 'READ' || permission === 'WRITE';
     });
-  }, [user?.role, permissions]);
+  }, [user?.isAdmin, permissions]);
 
   // 分离业务菜单和配置菜单
   const businessMenuItems = filteredMenuItems.filter(item =>
@@ -319,15 +338,17 @@ export default function Layout() {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOwnerDropdownOpen(false)} />
                     <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
-                      <button
-                        onClick={() => {
-                          setCurrentOwner(null, null);
-                          setOwnerDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${!currentOwnerId ? 'text-primary-600 font-medium' : 'text-gray-600'}`}
-                      >
-                        全部主体
-                      </button>
+                      {user?.isAdmin && (
+                        <button
+                          onClick={() => {
+                            setCurrentOwner(null, null);
+                            setOwnerDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${!currentOwnerId ? 'text-primary-600 font-medium' : 'text-gray-600'}`}
+                        >
+                          全部主体
+                        </button>
+                      )}
                       {owners.map(o => (
                         <div
                           key={o.id}
@@ -344,17 +365,26 @@ export default function Layout() {
                             {o.name}
                           </button>
                           <div className="flex items-center gap-0.5">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingOwner(o);
-                                setShowOwnerModal(true);
-                              }}
-                              className="p-0.5 hover:bg-gray-200 rounded"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                            {currentOwnerId !== o.id && (
+                            {o.role === 'OWNER' && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const res = await ownerApi.get(o.id);
+                                    if (res.data.success) {
+                                      setEditingOwner(res.data.data);
+                                      setShowOwnerModal(true);
+                                    }
+                                  } catch (err) {
+                                    console.error('获取主体详情失败', err);
+                                  }
+                                }}
+                                className="p-0.5 hover:bg-gray-200 rounded"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
+                            {user?.isAdmin && currentOwnerId !== o.id && (
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
@@ -367,8 +397,8 @@ export default function Layout() {
                                     authApi.me()
                                       .then(res => {
                                         if (res.data.success) {
-                                          const { owners: userOwners } = res.data.data;
-                                          setOwners(userOwners || []);
+                                          const { user: freshUser, permissions: freshPermissions, owners: userOwners } = res.data.data;
+                                          setAuth(token, freshUser, freshPermissions, userOwners);
                                         }
                                       });
                                   } catch (error: any) {
@@ -399,7 +429,12 @@ export default function Layout() {
                 )}
               </div>
             <div className="h-6 w-px bg-gray-200" />
-            <span className="text-sm text-gray-600">{roleMap[user?.role || '']}：{user?.name}</span>
+            <span className="text-sm text-gray-600">
+              {user?.isAdmin ? '系统管理员' : (() => {
+                const currentOwnerRole = authOwners.find(o => o.id === currentOwnerId)?.role;
+                return ROLE_NAMES[currentOwnerRole || ''] || currentOwnerRole || '';
+              })()}：{user?.name}
+            </span>
             <NavLink
               to="/knowledge-base"
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
@@ -439,16 +474,16 @@ export default function Layout() {
           authApi.me()
             .then(res => {
               if (res.data.success) {
-                const { owners: userOwners } = res.data.data;
-                if (userOwners && userOwners.length > 0) {
-                  setOwners(userOwners);
-                }
+                const { user: freshUser, permissions: freshPermissions, owners: userOwners } = res.data.data;
+                setAuth(token, freshUser, freshPermissions, userOwners);
               }
             });
         }}
       />
 
       <ToastContainer />
+
+      <AIAssistantWrapper />
 
       {mobileOpen && (
         <div

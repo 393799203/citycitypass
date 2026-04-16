@@ -4,44 +4,78 @@ import { useAuthStore } from '../../stores/auth';
 import PhoneInput from '../../components/PhoneInput';
 import EmailInput from '../../components/EmailInput';
 
+const ALL_ROLES = ['OWNER', 'MANAGER', 'WAREHOUSE_MANAGER', 'TRANSPORT_MANAGER', 'AFTER_SALES_MANAGER', 'GUEST'];
+
+interface OwnerRole {
+  ownerId: string;
+  ownerName: string;
+  role: string;
+}
+
 interface UserModalProps {
   user?: User;
   owners: Owner[];
-  roles: Role[];
-  onSave: (data: Partial<User>) => void;
+  onSave: (data: any) => void;
   onClose: () => void;
 }
 
-export const UserModal: React.FC<UserModalProps> = ({ user, owners, roles, onSave, onClose }) => {
+export const UserModal: React.FC<UserModalProps> = ({ user, owners, onSave, onClose }) => {
   const { user: currentUser } = useAuthStore();
+
+  const getInitialOwnerRoles = (): OwnerRole[] => {
+    if (user?.owners && user.owners.length > 0) {
+      return user.owners.map(o => ({
+        ownerId: o.ownerId,
+        ownerName: o.ownerName,
+        role: o.role,
+      }));
+    }
+    return [];
+  };
+
   const [formData, setFormData] = useState({
     username: user?.username || '',
     password: '',
     name: user?.name || '',
-    role: user?.role || 'WAREHOUSE_MANAGER',
+    isAdmin: user?.isAdmin || false,
     phone: user?.phone || '',
     email: user?.email || '',
-    ownerIds: user?.ownerIds || '',
   });
 
-  const isAdmin = currentUser?.role === 'ADMIN';
-  const selectedRoleIsAdmin = formData.role === 'ADMIN';
+  const [ownerRoles, setOwnerRoles] = useState<OwnerRole[]>(getInitialOwnerRoles());
+
+  const isCurrentUserAdmin = currentUser?.isAdmin === true;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // 如果是ADMIN角色，ownerIds设为空字符串表示关联所有主体
     const dataToSave = {
       ...formData,
-      ownerIds: selectedRoleIsAdmin ? '' : formData.ownerIds,
+      ownerRoles: formData.isAdmin ? [] : ownerRoles,
     };
     onSave(dataToSave);
   };
 
-  const selectedOwnerIds = formData.ownerIds ? formData.ownerIds.split(',').filter(Boolean) : [];
+  const updateOwnerRole = (ownerId: string, role: string) => {
+    setOwnerRoles(prev =>
+      prev.map(or => or.ownerId === ownerId ? { ...or, role } : or)
+    );
+  };
+
+  const removeOwnerRole = (ownerId: string) => {
+    setOwnerRoles(prev => prev.filter(or => or.ownerId !== ownerId));
+  };
+
+  const addOwnerRole = (ownerId: string, ownerName: string) => {
+    if (!ownerRoles.find(or => or.ownerId === ownerId)) {
+      setOwnerRoles(prev => [...prev, { ownerId, ownerName, role: 'MANAGER' }]);
+    }
+  };
+
+  const availableOwners = owners.filter(o => !ownerRoles.find(or => or.ownerId === o.id));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-lg overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b flex justify-between items-center">
           <h3 className="text-lg font-medium">{user ? '编辑用户' : '新建用户'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
@@ -50,30 +84,30 @@ export const UserModal: React.FC<UserModalProps> = ({ user, owners, roles, onSav
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-4">
             {!user && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
-                  required
-                />
-              </div>
-            )}
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
 
-            {!user && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
-                  required={!user}
-                  minLength={6}
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required={!user}
+                    minLength={6}
+                  />
+                </div>
+              </>
             )}
 
             <div>
@@ -87,57 +121,83 @@ export const UserModal: React.FC<UserModalProps> = ({ user, owners, roles, onSav
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">角色</label>
-              <select
-                value={formData.role}
-                onChange={e => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md"
-              >
-                {roles.map(role => (
-                  <option key={role.code} value={role.code}>{role.name}</option>
-                ))}
-              </select>
-            </div>
+            {isCurrentUserAdmin && (
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.isAdmin}
+                    onChange={e => setFormData(prev => ({ ...prev, isAdmin: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">系统管理员</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">系统管理员无需选择主体，可访问所有数据</p>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">关联主体</label>
-              {selectedRoleIsAdmin ? (
-                <div className="border rounded-md p-3 bg-gray-50">
-                  <p className="text-sm text-gray-600">系统管理员无需选择主体，自动关联所有主体</p>
+            {!formData.isAdmin && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">关联主体及角色</label>
+                  {ownerRoles.length === 0 ? (
+                    <p className="text-sm text-gray-500 border rounded-md p-3">暂无关联主体</p>
+                  ) : (
+                    <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-2">
+                      {ownerRoles.map(or => (
+                        <div key={or.ownerId} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded">
+                          <span className="text-sm text-gray-700 flex-1">{or.ownerName}</span>
+                          <select
+                            value={or.role}
+                            onChange={e => updateOwnerRole(or.ownerId, e.target.value)}
+                            className="px-2 py-1 text-sm border rounded"
+                          >
+                            {ALL_ROLES.map(r => (
+                              <option key={r} value={r}>{ROLE_NAMES[r] || r}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeOwnerRole(or.ownerId)}
+                            className="text-red-500 hover:text-red-700 text-sm"
+                          >
+                            解除关联
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : owners.length === 0 ? (
-                <p className="text-sm text-gray-500">暂无主体</p>
-              ) : (
-                <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
-                  {owners.map(owner => {
-                    const isSelected = selectedOwnerIds.includes(owner.id);
-                    return (
-                      <label
-                        key={owner.id}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            let newIds: string[];
-                            if (e.target.checked) {
-                              newIds = [...selectedOwnerIds, owner.id];
-                            } else {
-                              newIds = selectedOwnerIds.filter(id => id !== owner.id);
-                            }
-                            setFormData(prev => ({ ...prev, ownerIds: newIds.join(',') }));
-                          }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">{owner.name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+
+                {availableOwners.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">添加主体</label>
+                    <div className="border rounded-md max-h-32 overflow-y-auto p-2 space-y-1">
+                      {availableOwners.map(owner => (
+                        <label
+                          key={owner.id}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            onChange={e => {
+                              if (e.target.checked) {
+                                addOwnerRole(owner.id, owner.name);
+                              } else {
+                                removeOwnerRole(owner.id);
+                              }
+                            }}
+                            checked={!!ownerRoles.find(or => or.ownerId === owner.id)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">{owner.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
@@ -193,46 +253,64 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete }) =
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">手机</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">关联主体</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {users.map(user => (
-            <tr key={user.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.username}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.name}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <span className={`px-2 py-1 rounded-full text-xs ${ROLE_COLORS[user.role]?.bg || 'bg-gray-100'} ${ROLE_COLORS[user.role]?.text || 'text-gray-800'}`}>
-                  {ROLE_NAMES[user.role] || user.role}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || '-'}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">
-                {user.role === 'ADMIN'
-                  ? '所有主体'
-                  : (user.owners && user.owners.length > 0
-                    ? user.owners.map(o => o.name).join(', ')
-                    : '-')}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <button
-                  onClick={() => onEdit(user)}
-                  className="text-blue-600 hover:text-blue-800 mr-3"
-                >
-                  编辑
-                </button>
-                <button
-                  onClick={() => onDelete(user.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  删除
-                </button>
-              </td>
-            </tr>
-          ))}
+          {users
+            .sort((a, b) => (b.isAdmin ? 1 : 0) - (a.isAdmin ? 1 : 0))
+            .map(user => {
+              const ownerCount = user.isAdmin ? 1 : (user.owners?.length || 0);
+            return (
+              <tr key={user.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.username}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span>{user.name}</span>
+                    {user.isAdmin && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${ROLE_COLORS['ADMIN']?.bg || 'bg-gray-100'} ${ROLE_COLORS['ADMIN']?.text || 'text-gray-800'}`}>
+                        系统管理员
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {user.isAdmin ? (
+                    <span className="text-gray-500">所有主体</span>
+                  ) : (ownerCount > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {user.owners!.map(o => (
+                        <span key={o.ownerId} className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ROLE_COLORS[o.role]?.bg || 'bg-gray-100'} ${ROLE_COLORS[o.role]?.text || 'text-gray-800'}`}>
+                          {o.ownerName}: {ROLE_NAMES[o.role] || o.role}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  ))}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <button
+                    onClick={() => onEdit(user)}
+                    className="text-blue-600 hover:text-blue-800 mr-3"
+                  >
+                    编辑
+                  </button>
+                  {!user.isAdmin && (
+                    <button
+                      onClick={() => onDelete(user.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      删除
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

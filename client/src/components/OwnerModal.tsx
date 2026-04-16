@@ -4,6 +4,7 @@ import { ownerApi } from '../api';
 import { toast } from 'react-toastify';
 import PhoneInput from './PhoneInput';
 import AddressInput from './AddressInput';
+import { useAuthStore } from '../stores/auth';
 
 interface OwnerFormData {
   name: string;
@@ -42,6 +43,7 @@ interface OwnerModalProps {
 const defaultProductTags = ['生鲜', '食品', '医药', '服装', '电器', '家具', '美妆', '母婴', '建材', '日用品', '箱包', '玩具', '车品', '其他'];
 
 export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: OwnerModalProps) {
+  const { user } = useAuthStore();
   const [formData, setFormData] = useState<OwnerFormData>({
     name: '',
     contact: '',
@@ -78,8 +80,8 @@ export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: O
       } else {
         setFormData({
           name: '',
-          contact: '',
-          phone: '',
+          contact: user?.name || '',
+          phone: user?.phone || '',
           productTags: [],
           province: '',
           city: '',

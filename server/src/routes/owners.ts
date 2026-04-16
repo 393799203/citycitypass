@@ -86,6 +86,8 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const data = ownerSchema.parse(req.body);
 
+    console.log('Create owner - user:', req.user);
+
     const owner = await prisma.owner.create({
       data: {
         name: data.name!,
@@ -102,6 +104,20 @@ router.post('/', async (req: Request, res: Response) => {
         isSelfOperated: data.isSelfOperated || false,
       },
     });
+
+    // 将新创建的主体与当前用户关联，创建者为 OWNER
+    if (req.user && req.user.id) {
+      console.log('Creating UserOwner link:', { userId: req.user.id, ownerId: owner.id, role: 'OWNER' });
+      await prisma.userOwner.create({
+        data: {
+          userId: req.user.id,
+          ownerId: owner.id,
+          role: 'OWNER',
+        },
+      });
+    } else {
+      console.log('WARNING: req.user is not set, skipping UserOwner creation');
+    }
 
     res.json({ success: true, data: owner });
   } catch (error) {

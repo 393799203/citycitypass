@@ -36,6 +36,7 @@ export const MODULE_NAMES: Record<keyof typeof PERMISSIONS, string> = {
 
 export const ROLE_NAMES: Record<string, string> = {
   ADMIN: '系统管理员',
+  OWNER: '拥有者',
   MANAGER: '管理员',
   WAREHOUSE_MANAGER: '仓储管理',
   TRANSPORT_MANAGER: '运力管理',
@@ -45,6 +46,7 @@ export const ROLE_NAMES: Record<string, string> = {
 
 export const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
   ADMIN: { bg: 'bg-red-100', text: 'text-red-800' },
+  OWNER: { bg: 'bg-orange-100', text: 'text-orange-800' },
   MANAGER: { bg: 'bg-purple-100', text: 'text-purple-800' },
   WAREHOUSE_MANAGER: { bg: 'bg-blue-100', text: 'text-blue-800' },
   TRANSPORT_MANAGER: { bg: 'bg-green-100', text: 'text-green-800' },
@@ -69,13 +71,13 @@ export interface User {
   id: string;
   username: string;
   name: string;
-  role: string;
+  isAdmin: boolean;
   phone?: string;
   email?: string;
-  ownerIds?: string;
   owners?: Array<{
-    id: string;
-    name: string;
+    ownerId: string;
+    ownerName: string;
+    role: string;
   }>;
   createdAt: string;
   updatedAt: string;
@@ -84,4 +86,5 @@ export interface User {
 export interface Owner {
   id: string;
   name: string;
+  role?: string;
 }

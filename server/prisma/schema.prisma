@@ -149,6 +149,7 @@ datasource db {
 
 enum UserRole {
   ADMIN                    // 系统管理员 - 跨所有主体，拥有最高权限
+  OWNER                    // 主体拥有者 - 该主体的最高权限
   MANAGER                  // 管理员 - 某主体内的全部权限
   WAREHOUSE_MANAGER        // 仓储管理
   TRANSPORT_MANAGER        // 运力管理
@@ -180,7 +181,7 @@ model User {
   id        String   @id @default(uuid())
   username  String   @unique
   password  String
-  role      UserRole
+  isAdmin   Boolean  @default(false)  // 是否系统管理员
   name      String
   phone     String?
   email     String?
@@ -195,6 +196,7 @@ model UserOwner {
   id        String   @id @default(uuid())
   userId    String
   ownerId   String
+  role      UserRole // 用户对该主体的角色
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())

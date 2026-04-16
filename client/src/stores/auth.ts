@@ -1,20 +1,28 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+interface OwnerInfo {
+  id: string;
+  name: string;
+  role: string;
+}
+
 interface User {
   id: string;
   username: string;
   name: string;
-  role: string;
+  isAdmin: boolean;
   phone?: string;
   email?: string;
+  owners?: OwnerInfo[];
 }
 
 interface AuthState {
   token: string | null;
   user: User | null;
   permissions: Record<string, Record<string, string>> | null;
-  setAuth: (token: string, user: User, permissions?: Record<string, Record<string, string>>) => void;
+  owners: OwnerInfo[];
+  setAuth: (token: string, user: User, permissions?: Record<string, Record<string, string>>, owners?: OwnerInfo[]) => void;
   setPermissions: (permissions: Record<string, Record<string, string>>) => void;
   logout: () => void;
   clearAuth: () => void;
@@ -26,13 +34,19 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       permissions: null,
-      setAuth: (token, user, permissions) => set({ token, user, permissions: permissions || null }),
+      owners: [],
+      setAuth: (token, user, permissions, owners) => set({
+        token,
+        user,
+        permissions: permissions || null,
+        owners: owners || []
+      }),
       setPermissions: (permissions) => set({ permissions }),
       logout: () => {
-        set({ token: null, user: null, permissions: null });
+        set({ token: null, user: null, permissions: null, owners: [] });
         localStorage.clear();
       },
-      clearAuth: () => set({ token: null, user: null, permissions: null }),
+      clearAuth: () => set({ token: null, user: null, permissions: null, owners: [] }),
     }),
     {
       name: 'auth-storage',

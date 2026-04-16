@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
+import { ROLE_PERMISSIONS } from '../constants/permissions';
 
 const router = Router();
 
@@ -15,10 +16,9 @@ const registerSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
   name: z.string().min(1),
-  role: z.enum(['ADMIN', 'MANAGER', 'WAREHOUSE_MANAGER', 'TRANSPORT_MANAGER', 'AFTER_SALES_MANAGER', 'GUEST']).optional().default('GUEST'),
+  isAdmin: z.boolean().optional().default(false),
   phone: z.string().optional(),
   email: z.string().email().optional(),
-  ownerId: z.string().optional(),
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -39,7 +39,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
+      { userId: user.id },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -52,10 +52,9 @@ router.post('/login', async (req: Request, res: Response) => {
           id: user.id,
           username: user.username,
           name: user.name,
-          role: user.role,
+          isAdmin: user.isAdmin,
           phone: user.phone,
           email: user.email,
-          ownerId: user.ownerId,
         },
       },
     });
@@ -87,13 +86,13 @@ router.post('/register', async (req: Request, res: Response) => {
         username: data.username,
         password: hashedPassword,
         name: data.name,
-        role: data.role,
+        isAdmin: data.isAdmin,
         phone: data.phone,
         email: data.email,
       },
     });
 
-    res.json({ success: true, data: { id: user.id, username: user.username, name: user.name, role: user.role } });
+    res.json({ success: true, data: { id: user.id, username: user.username, name: user.name, isAdmin: user.isAdmin } });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, message: '参数错误', errors: error.errors });
@@ -103,6 +102,7 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
+// 获取当前用户信息及权限
 router.get('/me', async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
@@ -112,15 +112,15 @@ router.get('/me', async (req: Request, res: Response) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const currentOwnerId = req.headers['x-owner-id'] as string | undefined;
 
-    // 获取用户信息、权限和主体
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
         id: true,
         username: true,
         name: true,
-        role: true,
+        isAdmin: true,
         phone: true,
         email: true,
       },
@@ -130,19 +130,17 @@ router.get('/me', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: '用户不存在' });
     }
 
-    // 获取用户所属的角色权限
-    const role = await prisma.role.findUnique({
-      where: { code: user.role },
-    });
-
-    // 获取用户所属的所有主体
-    let owners = [];
-    if (user.role === 'ADMIN') {
+    // 获取用户所属的所有主体（带角色）
+    let owners: any[] = [];
+    let userRoleCode = '';
+    if (user.isAdmin) {
       // ADMIN可以看到所有主体
-      owners = await prisma.owner.findMany({
+      const allOwners = await prisma.owner.findMany({
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
       });
+      owners = allOwners.map(o => ({ ...o, role: 'ADMIN' }));
+      userRoleCode = 'ADMIN';
     } else {
       // 其他用户只能看到自己所属的主体（通过UserOwner关联）
       const userOwners = await prisma.userOwner.findMany({
@@ -153,7 +151,33 @@ router.get('/me', async (req: Request, res: Response) => {
           }
         }
       });
-      owners = userOwners.map(uo => uo.owner);
+      owners = userOwners.map(uo => ({
+        id: uo.owner.id,
+        name: uo.owner.name,
+        role: uo.role,
+      }));
+      // 如果指定了currentOwnerId，使用该主体的角色
+      if (currentOwnerId) {
+        const currentOwner = owners.find(o => o.id === currentOwnerId);
+        if (currentOwner) {
+          userRoleCode = currentOwner.role;
+        } else if (owners.length > 0) {
+          userRoleCode = owners[0].role;
+        }
+      } else if (owners.length > 0) {
+        userRoleCode = owners[0].role;
+      }
+    }
+
+    // 从数据库读取角色权限
+    let permissions = {};
+    if (userRoleCode) {
+      const role = await prisma.role.findUnique({
+        where: { code: userRoleCode }
+      });
+      if (role) {
+        permissions = role.permissions;
+      }
     }
 
     res.json({
@@ -163,11 +187,11 @@ router.get('/me', async (req: Request, res: Response) => {
           id: user.id,
           username: user.username,
           name: user.name,
-          role: user.role,
+          isAdmin: user.isAdmin,
           phone: user.phone,
           email: user.email,
         },
-        permissions: role?.permissions || {},
+        permissions,
         owners,
       },
     });

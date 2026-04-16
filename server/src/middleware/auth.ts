@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
@@ -9,7 +9,7 @@ declare global {
     interface Request {
       user?: {
         id: string;
-        role: UserRole;
+        isAdmin: boolean;
       };
     }
   }
@@ -29,7 +29,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, role: true }
+      select: { id: true, isAdmin: true }
     });
 
     if (!user) {
@@ -38,7 +38,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
     req.user = {
       id: user.id,
-      role: user.role,
+      isAdmin: user.isAdmin,
     };
 
     next();
@@ -53,7 +53,7 @@ export function ownerDataMiddleware(req: Request, res: Response, next: NextFunct
   }
 
   // ADMIN可以看到所有数据，不需要添加ownerId过滤
-  if (req.user.role === 'ADMIN') {
+  if (req.user.isAdmin) {
     return next();
   }
 

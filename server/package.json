@@ -1,7 +1,7 @@
 {
   "name": "citycitypass-server",
   "version": "1.0.0",
-  "description": "企管通信息化系统后端服务",
+  "description": "智链云仓信息化系统后端服务",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "init": "tsx scripts/init.ts"
+    "init": "node prisma/seed.js",
+    "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

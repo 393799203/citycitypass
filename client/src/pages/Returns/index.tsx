@@ -155,7 +155,7 @@ export default function Returns() {
   const openQualifyModal = (returnOrder: ReturnOrder) => {
     const items = returnOrder.items?.map((i) => ({
       ...i,
-      qualifiedQuantity: i.qualifiedQuantity ?? i.quantity,  // 验收时默认全合格
+      qualifiedQuantity: i.qualifiedQuantity || i.quantity,
       rejectedQuantity: i.rejectedQuantity ?? 0,
     })) || [];
     setQualifyItems(items);

@@ -36,11 +36,18 @@ export const ROLE_PERMISSIONS = {
     system: { system: 'WRITE' },
   },
 
+  // 主体拥有者 - 该主体的最高权限
+  OWNER: {
+    business: { orders: 'WRITE', outbound: 'WRITE', dispatch: 'WRITE', returns: 'WRITE', inventory: 'WRITE', batch: 'WRITE', purchases: 'WRITE', inbound: 'WRITE', transfer: 'WRITE', transport: 'WRITE' },
+    config: { warehouses: 'WRITE', products: 'WRITE', customers: 'WRITE', suppliers: 'WRITE', carriers: 'WRITE' },
+    system: { system: 'READ' },
+  },
+
   // 管理员 - 某主体内的全部权限
   MANAGER: {
     business: { orders: 'WRITE', outbound: 'WRITE', dispatch: 'WRITE', returns: 'WRITE', inventory: 'WRITE', batch: 'WRITE', purchases: 'WRITE', inbound: 'WRITE', transfer: 'WRITE', transport: 'WRITE' },
     config: { warehouses: 'WRITE', products: 'WRITE', customers: 'WRITE', suppliers: 'WRITE', carriers: 'WRITE' },
-    system: { system: 'WRITE' },
+    system: { system: 'NONE' },
   },
 
   // 仓储管理 - WMS全部权限
@@ -78,6 +85,13 @@ export const DEFAULT_ROLES = [
     name: '系统管理员',
     description: '跨所有主体，拥有最高权限，可以看所有主体的数据',
     permissions: ROLE_PERMISSIONS.ADMIN,
+    isDefault: false,
+  },
+  {
+    code: 'OWNER',
+    name: '主体拥有者',
+    description: '该主体的最高权限，可以管理该主体的所有业务',
+    permissions: ROLE_PERMISSIONS.OWNER,
     isDefault: false,
   },
   {

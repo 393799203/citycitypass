@@ -213,7 +213,7 @@ export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete }) =
                     >
                       编辑
                     </button>
-                    {!role.isDefault && (
+                    {!role.isDefault && role.code !== 'ADMIN' && role.code !== 'OWNER' && (
                       <button
                         onClick={() => onDelete(role.id)}
                         className="text-red-600 hover:text-red-800"

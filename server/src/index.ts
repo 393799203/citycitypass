@@ -46,7 +46,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', ownerMiddleware, userRoutes);
-app.use('/api/owners', ownerMiddleware, ownerRoutes);
+app.use('/api/owners', authMiddleware, ownerMiddleware, ownerRoutes);
 app.use('/api/products', ownerMiddleware, productRoutes);
 app.use('/api/bundles', ownerMiddleware, bundleRoutes);
 app.use('/api/orders', ownerMiddleware, orderRoutes);

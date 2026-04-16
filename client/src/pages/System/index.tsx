@@ -18,8 +18,7 @@ export const SystemManage: React.FC = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>();
   const [editingUser, setEditingUser] = useState<User | undefined>();
-  const { user, setPermissions } = useAuthStore();
-  const { owners } = useOwnerStore();
+  const { user, setPermissions, owners: authOwners } = useAuthStore();
 
   useEffect(() => {
     loadData();
@@ -59,8 +58,8 @@ export const SystemManage: React.FC = () => {
         setEditingRole(undefined);
         loadData();
 
-        // 如果更新的角色是当前用户的角色，刷新权限
-        if (editingRole && user?.role === editingRole.code) {
+        // 如果是ADMIN用户，刷新权限
+        if (user?.isAdmin) {
           try {
             const permRes = await permissionApi.getMyPermissions();
             if (permRes.data.success) {
@@ -218,8 +217,7 @@ export const SystemManage: React.FC = () => {
       {showUserModal && (
         <UserModal
           user={editingUser}
-          owners={owners}
-          roles={roles}
+          owners={authOwners}
           onSave={handleSaveUser}
           onClose={() => {
             setShowUserModal(false);
