@@ -69,26 +69,34 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const data = registerSchema.parse(req.body);
+    const { username, password, name, isAdmin, phone, email, ownerRoles } = req.body;
 
     const existingUser = await prisma.user.findUnique({
-      where: { username: data.username },
+      where: { username },
     });
 
     if (existingUser) {
       return res.status(400).json({ success: false, message: '用户名已存在' });
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let userOwnerData: { ownerId: string; role: string }[] = [];
+    if (ownerRoles && Array.isArray(ownerRoles)) {
+      userOwnerData = ownerRoles;
+    }
 
     const user = await prisma.user.create({
       data: {
-        username: data.username,
+        username,
         password: hashedPassword,
-        name: data.name,
-        isAdmin: data.isAdmin,
-        phone: data.phone,
-        email: data.email,
+        name,
+        isAdmin: isAdmin || false,
+        phone,
+        email,
+        userOwners: userOwnerData.length > 0 ? {
+          create: userOwnerData,
+        } : undefined,
       },
     });
 

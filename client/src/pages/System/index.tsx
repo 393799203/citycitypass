@@ -7,20 +7,26 @@ import { useAuthStore } from '../../stores/auth';
 import { useOwnerStore } from '../../stores/owner';
 import { permissionApi, userApi } from '../../api';
 import { usePermission } from '../../hooks/usePermission';
+import { useConfirm } from '../../components/ConfirmProvider';
 
-type Tab = 'users' | 'roles';
+type Tab = 'users' | 'roles' | 'members';
 
 export const SystemManage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('users');
+  const [activeTab, setActiveTab] = useState<Tab>('members');
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [ownerMembers, setOwnerMembers] = useState<any[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>();
   const [editingUser, setEditingUser] = useState<User | undefined>();
   const { refreshPermissions, owners: authOwners } = useAuthStore();
+  const { currentOwnerId, currentOwnerName } = useOwnerStore();
   const { canRead, canWrite } = usePermission('system', 'system');
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     loadData();
@@ -34,16 +40,58 @@ export const SystemManage: React.FC = () => {
         if (rolesRes.data.success) {
           setRoles(rolesRes.data.data);
         }
-      } else {
+      } else if (activeTab === 'users') {
         const usersRes = await userApi.list();
         if (usersRes.data.success) {
           setUsers(usersRes.data.data);
+        }
+      } else if (activeTab === 'members' && currentOwnerId) {
+        const [usersRes, rolesRes] = await Promise.all([
+          userApi.list({ ownerId: currentOwnerId }),
+          permissionApi.getRoles()
+        ]);
+        if (usersRes.data.success) {
+          setOwnerMembers(usersRes.data.data);
+        }
+        if (rolesRes.data.success) {
+          setRoles(rolesRes.data.data);
         }
       }
     } catch (error) {
       console.error('加载数据失败:', error);
     }
     setLoading(false);
+  };
+
+  const fetchAvailableUsers = async () => {
+    try {
+      const res = await userApi.list();
+      if (res.data.success) {
+        const allUsers = res.data.data;
+        const memberIds = ownerMembers.map(m => m.id);
+        setAvailableUsers(allUsers.filter((u: any) =>
+          !memberIds.includes(u.id) && !u.isAdmin
+        ));
+      }
+    } catch (error) {
+      console.error('获取用户列表失败:', error);
+    }
+  };
+
+  const handleAddMember = async (userId: string, role: string) => {
+    try {
+      const res = await userApi.addOwner(userId, { ownerId: currentOwnerId!, role });
+      if (res.data.success) {
+        setShowAddMemberModal(false);
+        loadData();
+        await refreshPermissions();
+      } else {
+        alert(res.data.message || '添加失败');
+      }
+    } catch (error) {
+      console.error('添加成员失败:', error);
+      alert('添加失败');
+    }
   };
 
   const handleSaveRole = async (data: Partial<Role>) => {
@@ -70,7 +118,8 @@ export const SystemManage: React.FC = () => {
   };
 
   const handleDeleteRole = async (id: string) => {
-    if (!confirm('确定要删除该角色吗？')) return;
+    const ok = await confirm({ message: '确定要删除该角色吗？', danger: true });
+    if (!ok) return;
     try {
       const res = await permissionApi.deleteRole(id);
 
@@ -110,7 +159,8 @@ export const SystemManage: React.FC = () => {
   };
 
   const handleDeleteUser = async (id: string) => {
-    if (!confirm('确定要删除该用户吗？')) return;
+    const ok = await confirm({ message: '确定要删除该用户吗？', danger: true });
+    if (!ok) return;
     try {
       const res = await userApi.delete(id);
 
@@ -126,6 +176,24 @@ export const SystemManage: React.FC = () => {
     }
   };
 
+  const handleRemoveOwner = async (userId: string, ownerId: string) => {
+    const ok = await confirm({ message: '确定要解除该成员与当前主体的关联吗？', danger: true });
+    if (!ok) return;
+    try {
+      const res = await userApi.removeOwner(userId, ownerId);
+
+      if (res.data.success) {
+        loadData();
+        await refreshPermissions();
+      } else {
+        alert(res.data.message || '解除关联失败');
+      }
+    } catch (error) {
+      console.error('解除关联失败:', error);
+      alert('解除关联失败');
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -135,6 +203,16 @@ export const SystemManage: React.FC = () => {
 
       <div className="mb-6 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'members'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            成员管理
+          </button>
           <button
             onClick={() => setActiveTab('users')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -159,7 +237,7 @@ export const SystemManage: React.FC = () => {
       </div>
 
       <div className="mb-4 flex justify-end">
-        {canWrite && (
+        {canWrite && activeTab !== 'members' && (
           <button
             onClick={() => {
               if (activeTab === 'roles') {
@@ -179,6 +257,97 @@ export const SystemManage: React.FC = () => {
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">加载中...</div>
+      ) : activeTab === 'members' ? (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">当前主体成员</h3>
+            {canWrite && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setEditingUser(undefined);
+                    setShowUserModal(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  注册新用户
+                </button>
+                <button
+                  onClick={() => setShowAddMemberModal(true)}
+                  className="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50"
+                >
+                  添加已有用户
+                </button>
+              </div>
+            )}
+          </div>
+          {ownerMembers.length > 0 ? (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">手机</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">主体角色</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">加入时间</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {[...ownerMembers].sort((a, b) => {
+                    const aRole = a.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role;
+                    const bRole = b.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role;
+                    if (aRole === 'OWNER' && bRole !== 'OWNER') return -1;
+                    if (aRole !== 'OWNER' && bRole === 'OWNER') return 1;
+                    return 0;
+                  }).map((member) => (
+                    <tr key={member.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">{member.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.username}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.phone || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role === 'OWNER'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {roles.find(r => r.code === member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role)?.name || member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role || '-'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        {new Date(member.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {canWrite && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingUser(member);
+                                setShowUserModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 mr-3"
+                            >
+                              编辑
+                            </button>
+                            <button
+                              onClick={() => handleRemoveOwner(member.id, currentOwnerId!)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              解除关联
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">暂无成员</div>
+          )}
+        </div>
       ) : activeTab === 'users' ? (
         <UserList
           users={users}
@@ -223,8 +392,105 @@ export const SystemManage: React.FC = () => {
             setShowUserModal(false);
             setEditingUser(undefined);
           }}
+          isMemberMode={activeTab === 'members'}
+          currentOwnerId={currentOwnerId}
+          currentOwnerName={currentOwnerName}
+          canWrite={canWrite}
         />
       )}
+
+      {showAddMemberModal && (
+        <AddMemberModal
+          users={availableUsers}
+          onAdd={handleAddMember}
+          onClose={() => setShowAddMemberModal(false)}
+          onOpen={() => { fetchAvailableUsers(); }}
+        />
+      )}
+    </div>
+  );
+};
+
+interface AddMemberModalProps {
+  users: any[];
+  onAdd: (userId: string, role: string) => void;
+  onClose: () => void;
+  onOpen: () => void;
+}
+
+const AddMemberModal: React.FC<AddMemberModalProps> = ({ users, onAdd, onClose, onOpen }) => {
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<string>('MANAGER');
+
+  useEffect(() => {
+    onOpen();
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedUser) {
+      onAdd(selectedUser, selectedRole);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
+        <div className="px-6 py-4 border-b flex justify-between items-center">
+          <h3 className="text-lg font-medium">添加已有用户</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">选择用户</label>
+              <select
+                value={selectedUser}
+                onChange={e => setSelectedUser(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              >
+                <option value="">请选择用户</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.username})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">分配角色</label>
+              <select
+                value={selectedRole}
+                onChange={e => setSelectedRole(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+              >
+                <option value="MANAGER">管理员</option>
+                <option value="WAREHOUSE_MANAGER">仓库管理员</option>
+                <option value="TRANSPORT_MANAGER">运输管理员</option>
+                <option value="AFTER_SALES_MANAGER">售后管理员</option>
+                <option value="GUEST">访客</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-6 border-t mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              disabled={!selectedUser}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              添加
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

@@ -17,12 +17,28 @@ interface UserModalProps {
   owners: Owner[];
   onSave: (data: any) => void;
   onClose: () => void;
+  isMemberMode?: boolean;
+  currentOwnerId?: string | null;
+  currentOwnerName?: string | null;
+  canWrite?: boolean;
 }
 
-export const UserModal: React.FC<UserModalProps> = ({ user, owners, onSave, onClose }) => {
+export const UserModal: React.FC<UserModalProps> = ({
+  user,
+  owners,
+  onSave,
+  onClose,
+  isMemberMode = false,
+  currentOwnerId,
+  currentOwnerName,
+  canWrite = false
+}) => {
   const { user: currentUser } = useAuthStore();
 
   const getInitialOwnerRoles = (): OwnerRole[] => {
+    if (isMemberMode && currentOwnerId && currentOwnerName) {
+      return [{ ownerId: currentOwnerId, ownerName: currentOwnerName, role: 'MANAGER' }];
+    }
     if (user?.owners && user.owners.length > 0) {
       return user.owners.map(o => ({
         ownerId: o.ownerId,
@@ -121,7 +137,7 @@ export const UserModal: React.FC<UserModalProps> = ({ user, owners, onSave, onCl
               />
             </div>
 
-            {isCurrentUserAdmin && (
+            {isCurrentUserAdmin && !isMemberMode && (
               <div>
                 <label className="flex items-center gap-2">
                   <input
@@ -139,7 +155,9 @@ export const UserModal: React.FC<UserModalProps> = ({ user, owners, onSave, onCl
             {!formData.isAdmin && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">关联主体及角色</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    关联主体 {isMemberMode && <span className="text-gray-400 text-xs">（不可更改）</span>}
+                  </label>
                   {ownerRoles.length === 0 ? (
                     <p className="text-sm text-gray-500 border rounded-md p-3">暂无关联主体</p>
                   ) : (
@@ -156,20 +174,22 @@ export const UserModal: React.FC<UserModalProps> = ({ user, owners, onSave, onCl
                               <option key={r} value={r}>{ROLE_NAMES[r] || r}</option>
                             ))}
                           </select>
-                          <button
-                            type="button"
-                            onClick={() => removeOwnerRole(or.ownerId)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            解除关联
-                          </button>
+                          {!isMemberMode && (
+                            <button
+                              type="button"
+                              onClick={() => removeOwnerRole(or.ownerId)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              解除关联
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {availableOwners.length > 0 && (
+                {!isMemberMode && availableOwners.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">添加主体</label>
                     <div className="border rounded-md max-h-32 overflow-y-auto p-2 space-y-1">

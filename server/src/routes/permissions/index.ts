@@ -180,6 +180,11 @@ router.get('/users', async (req: Request, res: Response) => {
         { phone: { contains: keyword as string } },
       ];
     }
+    if (ownerId) {
+      where.userOwners = {
+        some: { ownerId: ownerId as string }
+      };
+    }
 
     const users = await prisma.user.findMany({
       where,
@@ -473,6 +478,59 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('删除用户失败:', error);
     res.status(500).json({ success: false, message: '删除用户失败' });
+  }
+});
+
+// 解除用户与主体的关联
+router.delete('/users/:id/owner/:ownerId', async (req: Request, res: Response) => {
+  try {
+    const { id, ownerId } = req.params;
+
+    await prisma.userOwner.deleteMany({
+      where: {
+        userId: id,
+        ownerId: ownerId,
+      },
+    });
+
+    res.json({ success: true, message: '已解除关联' });
+  } catch (error) {
+    console.error('解除关联失败:', error);
+    res.status(500).json({ success: false, message: '解除关联失败' });
+  }
+});
+
+// 添加用户与主体的关联
+router.post('/users/:id/owner', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { ownerId, role } = req.body;
+
+    if (!ownerId || !role) {
+      return res.status(400).json({ success: false, message: 'ownerId和role为必填项' });
+    }
+
+    // 检查是否已存在关联
+    const existing = await prisma.userOwner.findFirst({
+      where: { userId: id, ownerId }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: '该用户已关联此主体' });
+    }
+
+    await prisma.userOwner.create({
+      data: {
+        userId: id,
+        ownerId,
+        role,
+      },
+    });
+
+    res.json({ success: true, message: '关联成功' });
+  } catch (error) {
+    console.error('添加关联失败:', error);
+    res.status(500).json({ success: false, message: '添加关联失败' });
   }
 });
 
