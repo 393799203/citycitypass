@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
 import { authApi } from '../api';
-import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, Bot, Sparkles } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 
 export default function Login() {
@@ -102,13 +102,13 @@ export default function Login() {
         {/* 内容 */}
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12 text-white">
           <div className="mb-8 animate-bounce-slow">
-            <Truck className="w-24 h-24" />
+            <Bot className="w-24 h-24" />
           </div>
           <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            智链云仓
+            智链AI
           </h1>
           <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
-            智慧物流管理系统
+            进销存AI智能体
           </p>
           
           {/* 特性列表 */}
@@ -201,8 +201,8 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* 移动端Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
-            <Truck className="w-10 h-10 text-primary-600" />
-            <span className="text-3xl font-bold text-primary-600">智链云仓</span>
+            <Bot className="w-10 h-10 text-primary-600" />
+            <span className="text-3xl font-bold text-primary-600">智链AI</span>
           </div>
 
           {/* 欢迎文字 */}

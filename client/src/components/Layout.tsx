@@ -10,7 +10,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { ROLE_NAMES } from '../pages/System/types';
 import { Loader2 } from 'lucide-react';
 import {
-  Truck,
+  Bot as LogoIcon,
   ShoppingCart,
   Package,
   Warehouse,
@@ -34,6 +34,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Truck,
 } from 'lucide-react';
 
 import { MENU_ITEMS } from '../constants/menuPermissions';
@@ -182,8 +183,8 @@ export default function Layout() {
       >
         <div className="h-14 flex items-center justify-between px-3 border-b bg-primary-600">
           <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
-            <Truck className="w-7 h-7 text-white flex-shrink-0" />
-            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链云仓</span>}
+            <LogoIcon className="w-7 h-7 text-white flex-shrink-0" />
+            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链AI</span>}
           </div>
           <button
             onClick={() => setMobileOpen(false)}

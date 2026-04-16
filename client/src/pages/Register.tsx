@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api';
-import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
+import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, ArrowLeft, Bot } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 
 export default function Register() {
@@ -100,10 +100,10 @@ export default function Register() {
         {/* 内容 */}
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12 text-white">
           <div className="mb-8 animate-bounce-slow">
-            <Truck className="w-24 h-24" />
+            <Bot className="w-24 h-24" />
           </div>
           <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            智链云仓
+            智链AI
           </h1>
           <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
             智慧物流管理系统
@@ -205,14 +205,14 @@ export default function Register() {
 
           {/* 移动端Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <Truck className="w-10 h-10 text-primary-600" />
-            <span className="text-3xl font-bold text-primary-600">智链云仓</span>
+            <Bot className="w-10 h-10 text-primary-600" />
+            <span className="text-3xl font-bold text-primary-600">智链AI</span>
           </div>
 
           {/* 欢迎文字 */}
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">创建账号</h2>
-            <p className="text-gray-500">加入智链云仓，开启智慧物流之旅</p>
+            <p className="text-gray-500">加入智链AI，开启智能管理之旅</p>
           </div>
 
           {/* 注册表单 */}
