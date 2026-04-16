@@ -47,7 +47,7 @@ class RAGService {
 
   private async _doInit() {
     try {
-      const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/citycitypass';
+      const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/zlai';
       this.pool = new Pool({ connectionString: databaseUrl });
 
       await this.checkVectorExtension();

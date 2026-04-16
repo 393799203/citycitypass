@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const { Pool } = require('pg');
 
 const prisma = new PrismaClient();
-const pool = new Pool({ connectionString: 'postgresql://dingyuebo@localhost:5432/citycitypass' });
+const pool = new Pool({ connectionString: 'postgresql://dingyuebo@localhost:5432/zlai' });
 
 const EMBEDDING_API = 'https://api.siliconflow.cn/v1/embeddings';
 const EMBEDDING_MODEL = 'BAAI/bge-m3';

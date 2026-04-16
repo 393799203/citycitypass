@@ -1,5 +1,5 @@
 {
-  "name": "citycitypass-server",
+  "name": "zlai-server",
   "version": "1.0.0",
   "description": "智链云仓信息化系统后端服务",
   "main": "dist/index.js",
