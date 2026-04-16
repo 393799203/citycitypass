@@ -36,7 +36,7 @@ export const ROLE_PERMISSIONS: Record<string, Record<string, Record<string, Perm
     system: { system: 'NONE' },
   },
 
-  // 访客 - 全部只读
+  // 访客 - 全部可查看
   GUEST: {
     business: { orders: 'READ', outbound: 'READ', dispatch: 'READ', returns: 'READ', inventory: 'READ', batch: 'READ', purchases: 'READ', inbound: 'READ', transfer: 'READ', transport: 'READ' },
     config: { warehouses: 'READ', products: 'READ', customers: 'READ', suppliers: 'READ', carriers: 'READ' },

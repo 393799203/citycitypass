@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Truck, MapPin, Package, User } from 'lucide-react';
 import { dispatchApi } from '../api';
 import { formatPhone, formatAddress } from '../utils/format';
+import { usePermission } from '../hooks/usePermission';
 
 const dispatchStatusMap: Record<string, string> = {
   PENDING: '待发运',
@@ -15,6 +16,7 @@ const dispatchStatusMap: Record<string, string> = {
 
 export default function DispatchDetailPage() {
   const { id } = useParams();
+  const { canWrite } = usePermission('business', 'dispatch');
   const [dispatch, setDispatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -216,7 +218,7 @@ export default function DispatchDetailPage() {
             }`}>
               {dispatchStatusMap[dispatch.status]}
             </span>
-            {dispatch.status === 'PENDING' && (
+            {dispatch.status === 'PENDING' && canWrite && (
               <button
                 onClick={() => handleStatusChange('IN_TRANSIT')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -224,7 +226,7 @@ export default function DispatchDetailPage() {
                 发车
               </button>
             )}
-            {dispatch.status === 'IN_TRANSIT' && (
+            {dispatch.status === 'IN_TRANSIT' && canWrite && (
               <button
                 onClick={() => handleStatusChange('COMPLETED')}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -232,7 +234,7 @@ export default function DispatchDetailPage() {
                 完成配送
               </button>
             )}
-            {(dispatch.status === 'PENDING' || dispatch.status === 'IN_TRANSIT') && (
+            {(dispatch.status === 'PENDING' || dispatch.status === 'IN_TRANSIT') && canWrite && (
               <button
                 onClick={() => handleStatusChange('CANCELLED')}
                 className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50"

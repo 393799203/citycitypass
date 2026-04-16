@@ -10,9 +10,11 @@ import VehicleTable from './VehicleTable';
 import DriverTable from './DriverTable';
 import VehicleDriverForm from './VehicleDriverForm';
 import LocationModal from './LocationModal';
+import { usePermission } from '../../hooks/usePermission';
 
 export default function TransportPage() {
   const { confirm } = useConfirm();
+  const { canWrite: canTransportWrite } = usePermission('business', 'transport');
   const [activeTab, setActiveTab] = useState<'vehicle' | 'driver'>('vehicle');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -366,7 +368,13 @@ export default function TransportPage() {
           <div className="flex justify-end mb-4">
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              disabled={!canTransportWrite}
+              title={!canTransportWrite ? '无操作权限' : ''}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                canTransportWrite
+                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             >
               <Plus className="w-4 h-4" />
               添加{activeTab === 'vehicle' ? '自有车辆' : '司机'}
@@ -381,6 +389,7 @@ export default function TransportPage() {
               onUpdateLocation={handleOpenLocationModal}
               onEdit={openEditModal}
               onDelete={handleDelete}
+              canWrite={canTransportWrite}
             />
           ) : (
             <DriverTable
@@ -388,6 +397,7 @@ export default function TransportPage() {
               onUpdateLocation={handleOpenLocationModal}
               onEdit={openEditModal}
               onDelete={handleDelete}
+              canWrite={canTransportWrite}
             />
           )}
         </div>

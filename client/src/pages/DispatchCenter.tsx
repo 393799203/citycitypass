@@ -7,6 +7,7 @@ import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../a
 import { aiApi } from '../api/ai';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
+import { usePermission } from '../hooks/usePermission';
 
 const orderStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -28,6 +29,7 @@ const dispatchStatusMap: Record<string, string> = {
 
 export default function DispatchCenterPage() {
   const { confirm } = useConfirm();
+  const { canWrite: canDispatchWrite } = usePermission('business', 'dispatch');
   const [activeTab, setActiveTab] = useState<'pending' | 'dispatches'>('pending');
   const [orders, setOrders] = useState<any[]>([]);
   const [dispatches, setDispatches] = useState<any[]>([]);
@@ -385,7 +387,8 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                 <div className="flex gap-2">
                   <button
                     onClick={handleAICreateDispatch}
-                    disabled={aiLoading || orders.length === 0}
+                    disabled={aiLoading || orders.length === 0 || !canDispatchWrite}
+                    title={!canDispatchWrite ? '无操作权限' : ''}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -393,8 +396,13 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   </button>
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    disabled={selectedOrders.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={selectedOrders.length === 0 || !canDispatchWrite}
+                    title={!canDispatchWrite ? '无操作权限' : ''}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                      canDispatchWrite && selectedOrders.length > 0
+                        ? 'bg-primary-600 text-white hover:bg-primary-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
                     <Plus className="w-4 h-4" />
                     创建配送单
@@ -539,7 +547,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                           </span>
                         </td>
                         <td className="py-3 text-center">
-                          {dispatch.status === 'PENDING' && (
+                          {dispatch.status === 'PENDING' && canDispatchWrite && (
                           <>
                             <button
                               onClick={() => handleDispatchStatus(dispatch.id, 'IN_TRANSIT')}
@@ -555,7 +563,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             </button>
                           </>
                         )}
-                        {(dispatch.status === 'CANCELLED') && (
+                        {(dispatch.status === 'CANCELLED') && canDispatchWrite && (
                           <button
                             onClick={async () => {
                               const ok = await confirm({ message: '确定要删除此配送单吗？' });
@@ -574,7 +582,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                             删除
                           </button>
                         )}
-                        {dispatch.status === 'IN_TRANSIT' && (
+                        {dispatch.status === 'IN_TRANSIT' && canDispatchWrite && (
                           <button
                             onClick={() => handleDispatchStatus(dispatch.id, 'COMPLETED')}
                             className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"

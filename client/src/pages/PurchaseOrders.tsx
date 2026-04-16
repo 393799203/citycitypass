@@ -8,6 +8,7 @@ import { Plus, Search, X, Package, Truck, Check, Eye, Trash2, Edit2, Loader2, Pr
 import { format } from 'date-fns';
 import { useConfirm } from '../components/ConfirmProvider';
 import InboundOrderModal from '../components/InboundOrderModal';
+import { usePermission } from '../hooks/usePermission';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   PENDING: { label: '待确认', color: 'bg-yellow-100 text-yellow-700' },
@@ -44,10 +45,11 @@ interface PurchaseItem {
 }
 
 export default function PurchaseOrders() {
-  const navigate = useNavigate();
   const { id } = useParams();
-  const { currentOwnerId } = useOwnerStore();
+  const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const { currentOwnerId } = useOwnerStore();
+  const { canWrite } = usePermission('business', 'purchases');
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -476,7 +478,13 @@ export default function PurchaseOrders() {
         {!id && (
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              currentOwnerId && canWrite
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <Plus className="w-4 h-4" />
             新建采购单
@@ -557,7 +565,7 @@ export default function PurchaseOrders() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          {order.status === 'PENDING' && (
+                          {order.status === 'PENDING' && canWrite && (
                             <>
                               <button
                                 onClick={() => handleOpenModal(order)}
@@ -579,7 +587,7 @@ export default function PurchaseOrders() {
                               </button>
                             </>
                           )}
-                          {order.status === 'CONFIRMED' && (
+                          {order.status === 'CONFIRMED' && canWrite && (
                             <>
                               {order.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') ? (
                                 <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">

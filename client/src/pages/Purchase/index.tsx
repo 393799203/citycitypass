@@ -12,12 +12,14 @@ import PurchaseOrderList from './PurchaseOrderList';
 import PurchaseOrderFilter from './PurchaseOrderFilter';
 import PurchaseOrderModal from './PurchaseOrderModal';
 import { PurchaseOrder, PurchaseItem, SupplierProduct, CustomItem } from '../../types/purchase';
+import { usePermission } from '../../hooks/usePermission';
 
 export default function PurchaseOrders() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { currentOwnerId } = useOwnerStore();
   const { confirm } = useConfirm();
+  const { canWrite } = usePermission('business', 'purchases');
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -366,7 +368,13 @@ export default function PurchaseOrders() {
         {!id && (
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              currentOwnerId && canWrite
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <Plus className="w-4 h-4" />
             新建采购单
@@ -394,6 +402,7 @@ export default function PurchaseOrders() {
         onDelete={handleDelete}
         onEdit={handleOpenModal}
         onPurchaseInbound={handlePurchaseInbound}
+        canWrite={canWrite}
       />
 
       <PurchaseOrderModal

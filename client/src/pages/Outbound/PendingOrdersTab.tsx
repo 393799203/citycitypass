@@ -13,6 +13,7 @@ interface PendingOrdersTabProps {
   onAICreatePickOrders: () => void;
   onCreateBatchPickOrders: () => void;
   onTooltip: (tooltip: { x: number; y: number; content: React.ReactNode } | null) => void;
+  canWrite?: boolean;
 }
 
 export default function PendingOrdersTab({
@@ -24,7 +25,8 @@ export default function PendingOrdersTab({
   onCreatePickOrder,
   onAICreatePickOrders,
   onCreateBatchPickOrders,
-  onTooltip
+  onTooltip,
+  canWrite = false,
 }: PendingOrdersTabProps) {
   const availableOrders = orders.filter(o => !o.pickOrder);
   const allSelected = selectedOrders.length === availableOrders.length && selectedOrders.length > 0;
@@ -36,19 +38,22 @@ export default function PendingOrdersTab({
         <div className="flex gap-2">
           <button
             onClick={onAICreatePickOrders}
-            disabled={aiLoading || availableOrders.length === 0}
+            disabled={aiLoading || availableOrders.length === 0 || !canWrite}
+            title={!canWrite ? '无操作权限' : ''}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             AI波次拣货单
           </button>
-          <button
-            onClick={onCreateBatchPickOrders}
-            disabled={selectedOrders.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            生成波次拣货单
-          </button>
+          {canWrite && (
+            <button
+              onClick={onCreateBatchPickOrders}
+              disabled={selectedOrders.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              生成波次拣货单
+            </button>
+          )}
         </div>
       </div>
       <div className="overflow-x-visible">
@@ -147,12 +152,14 @@ export default function PendingOrdersTab({
                   })}
                 </td>
                 <td className="py-3 text-center">
-                  <button
-                    onClick={() => onCreatePickOrder(order.id)}
-                    className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
-                  >
-                    生成拣货单
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => onCreatePickOrder(order.id)}
+                      className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
+                    >
+                      生成拣货单
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -22,6 +22,7 @@ interface ReturnsTableProps {
   onOpenQualifyModal: (ret: ReturnOrder) => void;
   onOpenStockInModal: (ret: ReturnOrder) => void;
   onOpenRefundModal: (ret: ReturnOrder) => void;
+  canWrite?: boolean;
 }
 
 export default function ReturnsTable({
@@ -30,7 +31,8 @@ export default function ReturnsTable({
   onReceive,
   onOpenQualifyModal,
   onOpenStockInModal,
-  onOpenRefundModal
+  onOpenRefundModal,
+  canWrite = false,
 }: ReturnsTableProps) {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -79,7 +81,7 @@ export default function ReturnsTable({
               <td className="px-6 py-4 whitespace-nowrap text-base text-gray-500 text-center">{new Date(ret.createdAt).toLocaleString()}</td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
                 <div className="flex flex-col gap-1 items-center">
-                  {ret.status === 'RETURN_REQUESTED' && (
+                  {ret.status === 'RETURN_REQUESTED' && canWrite && (
                     <button
                       onClick={() => onOpenTrackingModal(ret)}
                       className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
@@ -87,7 +89,7 @@ export default function ReturnsTable({
                       填写快递
                     </button>
                   )}
-                  {ret.status === 'RETURN_SHIPPED' && (
+                  {ret.status === 'RETURN_SHIPPED' && canWrite && (
                     <button
                       onClick={() => onReceive(ret)}
                       className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
@@ -95,7 +97,7 @@ export default function ReturnsTable({
                       确认收货
                     </button>
                   )}
-                  {ret.status === 'RETURN_RECEIVING' && (
+                  {ret.status === 'RETURN_RECEIVING' && canWrite && (
                     <button
                       onClick={() => onOpenQualifyModal(ret)}
                       className="px-2 py-1 text-xs text-white bg-green-600 hover:bg-green-700 rounded"
@@ -103,7 +105,7 @@ export default function ReturnsTable({
                       验收确认
                     </button>
                   )}
-                  {(ret.status === 'RETURN_QUALIFIED' || ret.status === 'RETURN_PARTIAL_QUALIFIED') && (
+                  {(ret.status === 'RETURN_QUALIFIED' || ret.status === 'RETURN_PARTIAL_QUALIFIED') && canWrite && (
                     <button
                       onClick={() => onOpenStockInModal(ret)}
                       className="px-2 py-1 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded"
@@ -111,7 +113,7 @@ export default function ReturnsTable({
                       退货入库
                     </button>
                   )}
-                  {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(ret.status) && ret.refundStatus !== 'COMPLETED' && (
+                  {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(ret.status) && ret.refundStatus !== 'COMPLETED' && canWrite && (
                     <button
                       onClick={() => onOpenRefundModal(ret)}
                       className="px-2 py-1 text-xs text-white bg-yellow-600 hover:bg-yellow-700 rounded"

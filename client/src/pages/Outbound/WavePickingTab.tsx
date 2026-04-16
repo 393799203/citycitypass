@@ -8,9 +8,10 @@ interface WavePickingTabProps {
   onPickComplete: (pickOrderId: string) => void;
   onOutboundReview: (pickOrderId: string, approved: boolean) => void;
   onTooltip: (tooltip: { x: number; y: number; content: React.ReactNode } | null) => void;
+  canWrite?: boolean;
 }
 
-export default function WavePickingTab({ pickOrders, onPickComplete, onOutboundReview, onTooltip }: WavePickingTabProps) {
+export default function WavePickingTab({ pickOrders, onPickComplete, onOutboundReview, onTooltip, canWrite = false }: WavePickingTabProps) {
   return (
     <div className="space-y-4">
       {pickOrders.length === 0 ? (
@@ -28,6 +29,7 @@ export default function WavePickingTab({ pickOrders, onPickComplete, onOutboundR
             onPickComplete={onPickComplete}
             onOutboundReview={onOutboundReview}
             onTooltip={onTooltip}
+            canWrite={canWrite}
           />
         ))
       )}

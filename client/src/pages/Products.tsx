@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'luc
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
+import { usePermission } from '../hooks/usePermission';
 
 interface Product {
   id: string;
@@ -102,6 +103,7 @@ const defaultBundleSpecs = ['单品', '组合'];
 export default function ProductsPage() {
   const { confirm } = useConfirm();
   const { currentOwnerId, owners } = useOwnerStore();
+  const { canWrite } = usePermission('config', 'products');
   const [activeTab, setActiveTab] = useState<'product' | 'bundle'>('product');
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
@@ -553,10 +555,10 @@ export default function ProductsPage() {
               else resetBundleForm();
               setShowModal(true);
             }}
-            disabled={!filterOwner}
-            title={!filterOwner ? '请先选择主体' : ''}
+            disabled={!filterOwner || !canWrite}
+            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              filterOwner
+              filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
@@ -657,12 +659,14 @@ export default function ProductsPage() {
                     <Pencil className="w-4 h-4" />
                     编辑
                   </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleDelete(product.id)}
+                      className="px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -730,12 +734,14 @@ export default function ProductsPage() {
                     <Pencil className="w-4 h-4" />
                     编辑
                   </button>
-                  <button
-                    onClick={() => handleBundleDelete(bundle.id)}
-                    className="px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleBundleDelete(bundle.id)}
+                      className="px-3 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -979,11 +985,13 @@ export default function ProductsPage() {
                                     onClick={() => updateBundleItemQuantity(item.skuId, item.quantity + 1)} 
                                     className="w-6 h-6 flex items-center justify-center border rounded hover:bg-gray-100"
                                   >+</button>
-                                  <button 
-                                    type="button" 
-                                    onClick={() => removeBundleItem(item.skuId)} 
-                                    className="ml-2 text-red-500 hover:bg-red-50 rounded p-1"
-                                  ><Trash2 className="w-4 h-4" /></button>
+                                  {canWrite && (
+                                    <button 
+                                      type="button" 
+                                      onClick={() => removeBundleItem(item.skuId)} 
+                                      className="ml-2 text-red-500 hover:bg-red-50 rounded p-1"
+                                    ><Trash2 className="w-4 h-4" /></button>
+                                  )}
                                 </div>
                               </div>
                             );

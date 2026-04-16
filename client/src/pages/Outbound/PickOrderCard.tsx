@@ -9,6 +9,7 @@ interface PickOrderCardProps {
   onPickComplete: (pickOrderId: string) => void;
   onOutboundReview: (pickOrderId: string, approved: boolean) => void;
   onTooltip: (tooltip: { x: number; y: number; content: React.ReactNode } | null) => void;
+  canWrite?: boolean;
 }
 
 const pickStatusMap: Record<string, string> = {
@@ -19,7 +20,7 @@ const pickStatusMap: Record<string, string> = {
   CANCELLED: '已取消',
 };
 
-export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundReview, onTooltip }: PickOrderCardProps) {
+export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundReview, onTooltip, canWrite = false }: PickOrderCardProps) {
   return (
     <div className="border rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
@@ -43,7 +44,7 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {pickOrder.status === 'PICKING' && !pickOrder.orders?.some((o) => o.status === 'CANCELLED') && (
+          {pickOrder.status === 'PICKING' && !pickOrder.orders?.some((o) => o.status === 'CANCELLED') && canWrite && (
             <>
               <button
                 onClick={() => onPickComplete(pickOrder.id)}
@@ -57,7 +58,7 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
           {pickOrder.status === 'PICKING' && pickOrder.orders?.some((o) => o.status === 'CANCELLED') && (
             <span className="text-sm text-red-500">订单已取消</span>
           )}
-          {pickOrder.status === 'PICKED' && (
+          {pickOrder.status === 'PICKED' && canWrite && (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onOutboundReview(pickOrder.id, true)}

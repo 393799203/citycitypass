@@ -6,6 +6,7 @@ import { PERMISSIONS } from '../../pages/System/types';
 import { useAuthStore } from '../../stores/auth';
 import { useOwnerStore } from '../../stores/owner';
 import { permissionApi, userApi } from '../../api';
+import { usePermission } from '../../hooks/usePermission';
 
 type Tab = 'users' | 'roles';
 
@@ -18,7 +19,8 @@ export const SystemManage: React.FC = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>();
   const [editingUser, setEditingUser] = useState<User | undefined>();
-  const { user, setPermissions, owners: authOwners } = useAuthStore();
+  const { refreshPermissions, owners: authOwners } = useAuthStore();
+  const { canRead, canWrite } = usePermission('system', 'system');
 
   useEffect(() => {
     loadData();
@@ -57,18 +59,7 @@ export const SystemManage: React.FC = () => {
         setShowRoleModal(false);
         setEditingRole(undefined);
         loadData();
-
-        // 如果是ADMIN用户，刷新权限
-        if (user?.isAdmin) {
-          try {
-            const permRes = await permissionApi.getMyPermissions();
-            if (permRes.data.success) {
-              setPermissions(permRes.data.data.permissions);
-            }
-          } catch (permError) {
-            console.error('刷新权限失败:', permError);
-          }
-        }
+        await refreshPermissions();
       } else {
         alert(res.data.message || '保存失败');
       }
@@ -85,6 +76,7 @@ export const SystemManage: React.FC = () => {
 
       if (res.data.success) {
         loadData();
+        await refreshPermissions();
       } else {
         alert(res.data.message || '删除失败');
       }
@@ -107,6 +99,7 @@ export const SystemManage: React.FC = () => {
         setShowUserModal(false);
         setEditingUser(undefined);
         loadData();
+        await refreshPermissions();
       } else {
         alert(res.data.message || '保存失败');
       }
@@ -123,6 +116,7 @@ export const SystemManage: React.FC = () => {
 
       if (res.data.success) {
         loadData();
+        await refreshPermissions();
       } else {
         alert(res.data.message || '删除失败');
       }
@@ -165,20 +159,22 @@ export const SystemManage: React.FC = () => {
       </div>
 
       <div className="mb-4 flex justify-end">
-        <button
-          onClick={() => {
-            if (activeTab === 'roles') {
-              setEditingRole(undefined);
-              setShowRoleModal(true);
-            } else {
-              setEditingUser(undefined);
-              setShowUserModal(true);
-            }
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          {activeTab === 'roles' ? '新建角色' : '新建用户'}
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => {
+              if (activeTab === 'roles') {
+                setEditingRole(undefined);
+                setShowRoleModal(true);
+              } else {
+                setEditingUser(undefined);
+                setShowUserModal(true);
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            {activeTab === 'roles' ? '新建角色' : '新建用户'}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -191,6 +187,7 @@ export const SystemManage: React.FC = () => {
             setShowUserModal(true);
           }}
           onDelete={handleDeleteUser}
+          canWrite={canWrite}
         />
       ) : (
         <RoleList
@@ -200,6 +197,8 @@ export const SystemManage: React.FC = () => {
             setShowRoleModal(true);
           }}
           onDelete={handleDeleteRole}
+          canWrite={canWrite}
+          canRead={canRead}
         />
       )}
 
@@ -211,6 +210,7 @@ export const SystemManage: React.FC = () => {
             setShowRoleModal(false);
             setEditingRole(undefined);
           }}
+          canWrite={canWrite}
         />
       )}
 

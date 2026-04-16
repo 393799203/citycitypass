@@ -243,9 +243,10 @@ interface UserListProps {
   users: User[];
   onEdit: (user: User) => void;
   onDelete: (id: string) => void;
+  canWrite?: boolean;
 }
 
-export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete }) => {
+export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, canWrite = false }) => {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
@@ -293,19 +294,23 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete }) =
                   ))}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <button
-                    onClick={() => onEdit(user)}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
-                  >
-                    编辑
-                  </button>
-                  {!user.isAdmin && (
-                    <button
-                      onClick={() => onDelete(user.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      删除
-                    </button>
+                  {canWrite && (
+                    <>
+                      <button
+                        onClick={() => onEdit(user)}
+                        className="text-blue-600 hover:text-blue-800 mr-3"
+                      >
+                        编辑
+                      </button>
+                      {!user.isAdmin && (
+                        <button
+                          onClick={() => onDelete(user.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          删除
+                        </button>
+                      )}
+                    </>
                   )}
                 </td>
               </tr>

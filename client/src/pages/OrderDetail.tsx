@@ -7,6 +7,7 @@ import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, C
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
+import { usePermission } from '../hooks/usePermission';
 
 const statusFlow = [
   { key: 'PENDING', label: '待拣货', description: '订单已创建，等待仓库拣货' },
@@ -46,6 +47,7 @@ export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const { canWrite } = usePermission('business', 'orders');
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [returnModal, setReturnModal] = useState<{ show: boolean; orderId: string; orderNo: string } | null>(null);
@@ -241,7 +243,7 @@ export default function OrderDetail() {
             </span>
             {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
               <>
-                {(order as any).customerId ? null : (
+                {(order as any).customerId ? null : canWrite && (
                   <button
                     onClick={() => navigate('/orders', { state: { editingOrder: order } })}
                     className="flex items-center gap-2 px-3 py-1.5 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg"
@@ -250,21 +252,23 @@ export default function OrderDetail() {
                     修改
                   </button>
                 )}
-                <button
-                  onClick={async () => {
-                    const ok = await confirm({ message: '确定要取消该订单吗？' });
-                    if (ok) {
-                      handleStatusChange('CANCELLED');
-                    }
-                  }}
-                  className="flex items-center gap-2 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
-                >
-                  <Ban className="w-4 h-4" />
-                  取消
-                </button>
+                {canWrite && (
+                  <button
+                    onClick={async () => {
+                      const ok = await confirm({ message: '确定要取消该订单吗？' });
+                      if (ok) {
+                        handleStatusChange('CANCELLED');
+                      }
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                  >
+                    <Ban className="w-4 h-4" />
+                    取消
+                  </button>
+                )}
               </>
             )}
-            {order.status === 'CANCELLED' && (
+            {order.status === 'CANCELLED' && canWrite && (
               <button
                 onClick={async () => {
                   const ok = await confirm({ message: '确定要删除该订单吗？' });

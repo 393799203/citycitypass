@@ -8,6 +8,7 @@ interface DriverTableProps {
   onUpdateLocation: (driver: Driver) => void;
   onEdit: (driver: Driver) => void;
   onDelete: (id: string) => void;
+  canWrite?: boolean;
 }
 
 const driverStatusMap: Record<string, string> = {
@@ -26,7 +27,7 @@ const licenseTypeColors: Record<string, { bg: string; text: string; border: stri
   '冷藏车': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
 };
 
-export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelete }: DriverTableProps) {
+export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelete, canWrite = false }: DriverTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -94,30 +95,34 @@ export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelet
                       </span>
                     </td>
                     <td className="py-3 text-center">
-                      <button
-                        onClick={() => onUpdateLocation(driver)}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
-                        title="更新位置"
-                      >
-                        <MapPin className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onEdit(driver)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(driver.id)}
-                        className={`p-1.5 rounded ${
-                          driver.status === 'AVAILABLE' 
-                            ? 'text-red-600 hover:bg-red-50' 
-                            : 'text-gray-300 cursor-not-allowed'
-                        }`}
-                        disabled={driver.status !== 'AVAILABLE'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button
+                            onClick={() => onUpdateLocation(driver)}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
+                            title="更新位置"
+                          >
+                            <MapPin className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onEdit(driver)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(driver.id)}
+                            className={`p-1.5 rounded ${
+                              driver.status === 'AVAILABLE' 
+                                ? 'text-red-600 hover:bg-red-50' 
+                                : 'text-gray-300 cursor-not-allowed'
+                            }`}
+                            disabled={driver.status !== 'AVAILABLE'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

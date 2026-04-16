@@ -5,6 +5,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LicensePlateInput from '../components/LicensePlateInput';
+import { usePermission } from '../hooks/usePermission';
 
 const SOURCE_COLORS: Record<string, string> = {
   PURCHASE: 'bg-blue-100 text-blue-700',
@@ -150,6 +151,7 @@ interface InboundProduct {
 
 export default function InboundPage() {
   const { confirm } = useConfirm();
+  const { canWrite } = usePermission('business', 'inbound');
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [orders, setOrders] = useState<InboundOrder[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -886,7 +888,13 @@ export default function InboundPage() {
             resetForm();
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          disabled={!canWrite}
+          title={!canWrite ? '无操作权限' : ''}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            canWrite
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
           <Plus className="w-4 h-4" />
           新建入库单
@@ -1076,7 +1084,7 @@ export default function InboundPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-center" rowSpan={orderRows.length}>
-                          {getNextAction(order) && (
+                          {getNextAction(order) && canWrite && (
                             <button
                               onClick={getNextAction(order)!.action}
                               className={`text-white px-2 py-1 rounded text-xs ${getNextAction(order)!.color}`}
@@ -1084,7 +1092,7 @@ export default function InboundPage() {
                               {getNextAction(order)!.label}
                             </button>
                           )}
-                          {order.status === 'PENDING' && order.source !== 'RETURN' && (
+                          {order.status === 'PENDING' && order.source !== 'RETURN' && canWrite && (
                             <button
                               onClick={() => handleCancelOrder(order.id)}
                               className="text-white px-2 py-1 rounded text-xs bg-red-600 hover:bg-red-700 ml-2"

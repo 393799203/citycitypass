@@ -6,6 +6,9 @@ import { carrierApi } from '../api';
 import { useConfirm } from '../components/ConfirmProvider';
 import PhoneInput from '../components/PhoneInput';
 import LicensePlateInput from '../components/LicensePlateInput';
+import { useOwnerStore } from '../stores/owner';
+import { usePermission } from '../hooks/usePermission';
+import OwnerStamp from '../components/OwnerStamp';
 
 interface Carrier {
   id: string;
@@ -29,6 +32,7 @@ interface Carrier {
   vehicles?: CarrierVehicle[];
   remark?: string;
   createdAt: string;
+  owner?: { id: string; name: string };
 }
 
 interface CarrierContract {
@@ -74,18 +78,22 @@ const levelOptions = [
 ];
 
 export default function CarriersPage() {
+  const { currentOwnerId } = useOwnerStore();
+  const { canWrite } = usePermission('config', 'carriers');
   const { confirm } = useConfirm();
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [showVehicleListModal, setShowVehicleListModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [selectedCarrier, setSelectedCarrier] = useState<Carrier | null>(null);
-  const [filters, setFilters] = useState({ status: '', level: '', search: '' });
-  const [activeTab, setActiveTab] = useState<'overview' | 'contracts' | 'vehicles'>('overview');
+  const [vehicleCarrier, setVehicleCarrier] = useState<Carrier | null>(null);
+  const [carrierFilters, setCarrierFilters] = useState({ status: '', level: '', search: '', ownerId: '' });
+  const [activeTab, setActiveTab] = useState<'overview' | 'contracts'>('overview');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -129,7 +137,11 @@ export default function CarriersPage() {
   const fetchCarriers = async () => {
     setLoading(true);
     try {
-      const res = await carrierApi.list(filters);
+      const params: any = { ...carrierFilters };
+      if (currentOwnerId) {
+        params.ownerId = currentOwnerId;
+      }
+      const res = await carrierApi.list(params);
       if (res.data.success) {
         setCarriers(res.data.data);
       }
@@ -142,7 +154,7 @@ export default function CarriersPage() {
 
   useEffect(() => {
     fetchCarriers();
-  }, [filters]);
+  }, [carrierFilters, currentOwnerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,9 +162,13 @@ export default function CarriersPage() {
       toast.error('请输入承运商名称');
       return;
     }
+    if (!currentOwnerId) {
+      toast.error('请先选择主体');
+      return;
+    }
 
     try {
-      const data = formData;
+      const data = { ...formData, ownerId: currentOwnerId };
 
       if (editingId) {
         await carrierApi.update(editingId, data);
@@ -280,9 +296,18 @@ export default function CarriersPage() {
     }
   };
 
+  const refreshVehicleCarrier = async () => {
+    if (vehicleCarrier) {
+      const res = await carrierApi.get(vehicleCarrier.id);
+      if (res.data.success) {
+        setVehicleCarrier(res.data.data);
+      }
+    }
+  };
+
   const handleVehicleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCarrier) return;
+    if (!vehicleCarrier) return;
 
     try {
       if (editingVehicleId) {
@@ -293,7 +318,7 @@ export default function CarriersPage() {
         });
         toast.success('车辆更新成功');
       } else {
-        await carrierApi.createVehicle(selectedCarrier.id, {
+        await carrierApi.createVehicle(vehicleCarrier.id, {
           ...vehicleForm,
           capacity: vehicleForm.capacity ? parseFloat(vehicleForm.capacity) : undefined,
           volume: vehicleForm.volume ? parseFloat(vehicleForm.volume) : undefined,
@@ -301,9 +326,10 @@ export default function CarriersPage() {
         toast.success('车辆添加成功');
       }
       setShowVehicleModal(false);
+      setShowVehicleListModal(true);
       setVehicleForm({ licensePlate: '', vehicleType: '', brand: '', model: '', capacity: '', volume: '', licenseNo: '', insuranceNo: '' });
       setEditingVehicleId(null);
-      refreshCarrier();
+      refreshVehicleCarrier();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
@@ -321,6 +347,7 @@ export default function CarriersPage() {
       insuranceNo: vehicle.insuranceNo || '',
     });
     setEditingVehicleId(vehicle.id);
+    setShowVehicleListModal(false);
     setShowVehicleModal(true);
   };
 
@@ -375,8 +402,8 @@ export default function CarriersPage() {
         <h1 className="text-2xl font-bold text-gray-800">承运商管理</h1>
         <div className="flex gap-2">
           <select
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            value={carrierFilters.status}
+            onChange={(e) => setCarrierFilters({ ...carrierFilters, status: e.target.value })}
             className="px-3 py-2 border rounded-lg"
           >
             <option value="">全部状态</option>
@@ -385,9 +412,32 @@ export default function CarriersPage() {
             <option value="REJECTED">已拒绝</option>
             <option value="SUSPENDED">已暂停</option>
           </select>
+          <select
+            value={carrierFilters.level}
+            onChange={(e) => setCarrierFilters({ ...carrierFilters, level: e.target.value })}
+            className="px-3 py-2 border rounded-lg"
+          >
+            <option value="">全部等级</option>
+            <option value="A">A - 优质</option>
+            <option value="B">B - 良好</option>
+            <option value="C">C - 合格</option>
+          </select>
+          <input
+            type="text"
+            placeholder="搜索承运商"
+            value={carrierFilters.search}
+            onChange={(e) => setCarrierFilters({ ...carrierFilters, search: e.target.value })}
+            className="px-3 py-2 border rounded-lg text-sm w-48"
+          />
           <button
             onClick={openModal}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              currentOwnerId && canWrite
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <Plus className="w-5 h-5" />
             新增承运商
@@ -404,7 +454,10 @@ export default function CarriersPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {carriers.map((carrier) => (
-            <div key={carrier.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all">
+            <div key={carrier.id} className="border rounded-lg p-4 bg-white hover:shadow-lg transition-all relative">
+              {carrier.owner?.name && (
+                <OwnerStamp name={carrier.owner.name} />
+              )}
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -447,7 +500,13 @@ export default function CarriersPage() {
                 >
                   查看详情
                 </button>
-                {carrier.status === 'PENDING' && (
+                <button
+                  onClick={() => { setVehicleCarrier(carrier); setShowVehicleListModal(true); }}
+                  className="px-3 py-1.5 border border-orange-200 text-orange-600 rounded text-sm hover:bg-orange-50"
+                >
+                  车辆
+                </button>
+                {canWrite && carrier.status === 'PENDING' && (
                   <>
                     <button
                       onClick={() => handleApprove(carrier, 'approve')}
@@ -465,18 +524,22 @@ export default function CarriersPage() {
                     </button>
                   </>
                 )}
-                <button
-                  onClick={() => handleEdit(carrier)}
-                  className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded text-sm hover:bg-gray-100"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(carrier.id)}
-                  className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {canWrite && (
+                  <>
+                    <button
+                      onClick={() => handleEdit(carrier)}
+                      className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded text-sm hover:bg-gray-100"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(carrier.id)}
+                      className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -507,13 +570,7 @@ export default function CarriersPage() {
                 onClick={() => setActiveTab('contracts')}
                 className={`px-6 py-3 text-sm font-medium ${activeTab === 'contracts' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-500'}`}
               >
-                合同管理 ({selectedCarrier.contracts?.length || 0})
-              </button>
-              <button
-                onClick={() => setActiveTab('vehicles')}
-                className={`px-6 py-3 text-sm font-medium ${activeTab === 'vehicles' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-500'}`}
-              >
-                车辆管理 ({selectedCarrier.vehicles?.length || 0})
+                合同管理
               </button>
             </div>
 
@@ -578,12 +635,14 @@ export default function CarriersPage() {
                 <div>
                   <div className="flex justify-between mb-4">
                     <h3 className="font-medium">合同列表</h3>
-                    <button
-                      onClick={() => setShowContractModal(true)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
-                    >
-                      <Plus className="w-4 h-4" /> 添加合同
-                    </button>
+                    {canWrite && (
+                      <button
+                        onClick={() => setShowContractModal(true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
+                      >
+                        <Plus className="w-4 h-4" /> 添加合同
+                      </button>
+                    )}
                   </div>
                   {selectedCarrier.contracts && selectedCarrier.contracts.length > 0 ? (
                     <div className="space-y-3">
@@ -602,41 +661,45 @@ export default function CarriersPage() {
                               }`}>
                                 {contract.status === 'ACTIVE' ? '生效中' : contract.status === 'EXPIRED' ? '已过期' : contract.status}
                               </span>
-                              <button
-                                onClick={() => {
-                                  setContractForm({
-                                    contractNo: contract.contractNo,
-                                    name: contract.name,
-                                    startDate: contract.startDate?.split('T')[0] || '',
-                                    endDate: contract.endDate?.split('T')[0] || '',
-                                    serviceTerms: contract.serviceTerms || '',
-                                    priceTerms: contract.priceTerms || '',
-                                    amount: contract.amount?.toString() || '',
-                                    deposit: contract.deposit?.toString() || '',
-                                  });
-                                  setEditingContractId(contract.id);
-                                  setShowContractModal(true);
-                                }}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                <Pencil className="w-4 h-4 text-gray-500" />
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  const ok = await confirm({ message: '确定要删除该合同吗？' });
-                                  if (!ok) return;
-                                  try {
-                                    await carrierApi.deleteContract(contract.id);
-                                    toast.success('删除成功');
-                                    refreshCarrier();
-                                  } catch (error: any) {
-                                    toast.error(error.response?.data?.message || '删除失败');
-                                  }
-                                }}
-                                className="p-1 hover:bg-red-50 rounded"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-500" />
-                              </button>
+                              {canWrite && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setContractForm({
+                                        contractNo: contract.contractNo,
+                                        name: contract.name,
+                                        startDate: contract.startDate?.split('T')[0] || '',
+                                        endDate: contract.endDate?.split('T')[0] || '',
+                                        serviceTerms: contract.serviceTerms || '',
+                                        priceTerms: contract.priceTerms || '',
+                                        amount: contract.amount?.toString() || '',
+                                        deposit: contract.deposit?.toString() || '',
+                                      });
+                                      setEditingContractId(contract.id);
+                                      setShowContractModal(true);
+                                    }}
+                                    className="p-1 hover:bg-gray-100 rounded"
+                                  >
+                                    <Pencil className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      const ok = await confirm({ message: '确定要删除该合同吗？' });
+                                      if (!ok) return;
+                                      try {
+                                        await carrierApi.deleteContract(contract.id);
+                                        toast.success('删除成功');
+                                        refreshCarrier();
+                                      } catch (error: any) {
+                                        toast.error(error.response?.data?.message || '删除失败');
+                                      }
+                                    }}
+                                    className="p-1 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="mt-2 text-sm text-gray-500 flex gap-4">
@@ -648,79 +711,6 @@ export default function CarriersPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">暂无合同</div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'vehicles' && (
-                <div>
-                  <div className="flex justify-between mb-4">
-                    <h3 className="font-medium">车辆列表</h3>
-                    <button
-                      onClick={() => setShowVehicleModal(true)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
-                    >
-                      <Plus className="w-4 h-4" /> 添加车辆
-                    </button>
-                  </div>
-                  {selectedCarrier.vehicles && selectedCarrier.vehicles.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      {selectedCarrier.vehicles.map((vehicle) => (
-                        <div key={vehicle.id} className="border rounded-lg p-3 relative">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <Car className="w-5 h-5 text-gray-400" />
-                              <div>
-                                <h4 className="font-medium">{vehicle.licensePlate}</h4>
-                                <p className="text-xs text-gray-500">{vehicle.vehicleType}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-700' :
-                                vehicle.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700' :
-                                vehicle.status === 'MAINTENANCE' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
-                                {vehicle.status === 'AVAILABLE' ? '空闲' :
-                                 vehicle.status === 'IN_TRANSIT' ? '配送中' :
-                                 vehicle.status === 'MAINTENANCE' ? '维修' : '停用'}
-                              </span>
-                              <button
-                                onClick={() => handleEditVehicle(vehicle)}
-                                className="p-1 hover:bg-gray-100 rounded text-blue-600"
-                                title="编辑"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteVehicle(vehicle.id)}
-                                className="p-1 hover:bg-gray-100 rounded text-red-600"
-                                title="删除"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500 flex gap-3">
-                            {vehicle.brand && <span>{vehicle.brand}</span>}
-                            {vehicle.capacity && <span>载重: {vehicle.capacity}吨</span>}
-                            {vehicle.volume && <span>容积: {vehicle.volume}方</span>}
-                          </div>
-                          {(vehicle.location || (vehicle.latitude && vehicle.longitude)) && (
-                            <div className="mt-2 text-xs text-green-600 flex items-center gap-2">
-                              <MapPin className="w-3 h-3" />
-                              <span>{vehicle.location || ''}</span>
-                              {vehicle.latitude && vehicle.longitude && (
-                                <span className="text-blue-500">({vehicle.latitude.toFixed(6)}, {vehicle.longitude.toFixed(6)})</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">暂无车辆</div>
                   )}
                 </div>
               )}
@@ -997,12 +987,102 @@ export default function CarriersPage() {
         </div>
       )}
 
+      {showVehicleListModal && vehicleCarrier && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-bold">车辆管理 - {vehicleCarrier.name}</h2>
+              <button onClick={() => setShowVehicleListModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <div className="flex justify-between mb-4">
+                <h3 className="font-medium">车辆列表 ({vehicleCarrier.vehicles?.length || 0})</h3>
+                {canWrite && (
+                  <button
+                    onClick={() => {
+                      setEditingVehicleId(null);
+                      setVehicleForm({ licensePlate: '', vehicleType: '', brand: '', model: '', capacity: '', volume: '', licenseNo: '', insuranceNo: '' });
+                      setShowVehicleListModal(false);
+                      setShowVehicleModal(true);
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
+                  >
+                    <Plus className="w-4 h-4" /> 添加车辆
+                  </button>
+                )}
+              </div>
+              {vehicleCarrier.vehicles && vehicleCarrier.vehicles.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {vehicleCarrier.vehicles.map((vehicle) => (
+                    <div key={vehicle.id} className="border rounded-lg p-3 relative">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <Car className="w-5 h-5 text-gray-400" />
+                          <div>
+                            <h4 className="font-medium">{vehicle.licensePlate}</h4>
+                            <p className="text-xs text-gray-500">{vehicle.vehicleType}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${
+                            vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-700' :
+                            vehicle.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700' :
+                            vehicle.status === 'MAINTENANCE' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {vehicle.status === 'AVAILABLE' ? '空闲' :
+                             vehicle.status === 'IN_TRANSIT' ? '配送中' :
+                             vehicle.status === 'MAINTENANCE' ? '维修' : '停用'}
+                          </span>
+                          {canWrite && (
+                            <>
+                              <button
+                                onClick={() => handleEditVehicle(vehicle)}
+                                className="p-1 hover:bg-gray-100 rounded text-blue-600"
+                                title="编辑"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVehicle(vehicle.id)}
+                                className="p-1 hover:bg-gray-100 rounded text-red-600"
+                                title="删除"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500 flex gap-3">
+                        {vehicle.brand && <span>{vehicle.brand}</span>}
+                        {vehicle.capacity && <span>载重: {vehicle.capacity}吨</span>}
+                        {vehicle.volume && <span>容积: {vehicle.volume}方</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">暂无车辆</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showVehicleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
             <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">{editingVehicleId ? '编辑车辆' : '添加车辆'}</h2>
-              <button onClick={() => setShowVehicleModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <div className="flex items-center gap-2">
+                <button onClick={() => { setShowVehicleModal(false); setShowVehicleListModal(true); }} className="p-2 hover:bg-gray-100 rounded-lg" title="返回列表">
+                  ←
+                </button>
+                <h2 className="text-xl font-bold">{editingVehicleId ? '编辑车辆' : '添加车辆'}</h2>
+              </div>
+              <button onClick={() => { setShowVehicleModal(false); setShowVehicleListModal(true); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1012,7 +1092,7 @@ export default function CarriersPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">承运商</label>
                   <input
                     type="text"
-                    value={selectedCarrier?.name || ''}
+                    value={vehicleCarrier?.name || ''}
                     disabled
                     className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
                   />
@@ -1107,10 +1187,12 @@ export default function CarriersPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                  {editingVehicleId ? '保存' : '添加'}
-                </button>
-                <button type="button" onClick={() => setShowVehicleModal(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">
+                {canWrite && (
+                  <button type="submit" className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                    {editingVehicleId ? '保存' : '添加'}
+                  </button>
+                )}
+                <button type="button" onClick={() => setShowVehicleModal(false)} className={`py-2 border rounded-lg hover:bg-gray-50 ${canWrite ? 'flex-1' : 'w-full'}`}>
                   取消
                 </button>
               </div>

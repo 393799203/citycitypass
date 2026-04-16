@@ -8,6 +8,7 @@ import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
+import { usePermission } from '../hooks/usePermission';
 
 interface Customer {
   id: string;
@@ -87,6 +88,7 @@ const defaultFormData: Customer = {
 export default function CustomersPage() {
   const { confirm } = useConfirm();
   const { currentOwnerId, owners } = useOwnerStore();
+  const { canWrite } = usePermission('config', 'customers');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
@@ -332,10 +334,10 @@ export default function CustomersPage() {
           </span>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
-            disabled={!filterOwner}
-            title={!filterOwner ? '请先选择主体' : ''}
+            disabled={!filterOwner || !canWrite}
+            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              filterOwner
+              filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
@@ -432,12 +434,14 @@ export default function CustomersPage() {
                   >
                     <FileText className="w-4 h-4" /> 合同
                   </button>
-                  <button
-                    onClick={() => handleDelete(customer.id)}
-                    className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleDelete(customer.id)}
+                      className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 {customer.contracts && customer.contracts.length > 0 && (
                   <div className="text-xs text-purple-600 pt-2 border-t">
@@ -848,12 +852,16 @@ export default function CustomersPage() {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => handleEditContract(contract)} className="text-primary-600 hover:bg-primary-50 p-2 rounded">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeleteContract(contract.id)} className="text-red-600 hover:bg-red-50 p-2 rounded">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canWrite && (
+                          <>
+                            <button onClick={() => handleEditContract(contract)} className="text-primary-600 hover:bg-primary-50 p-2 rounded">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteContract(contract.id)} className="text-red-600 hover:bg-red-50 p-2 rounded">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

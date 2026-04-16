@@ -4,6 +4,7 @@ import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search,
 import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { usePermission } from '../hooks/usePermission';
 
 const ZONE_TYPES: Record<string, string> = {
   RECEIVING: '收货区',
@@ -263,6 +264,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
 }
 
 export default function StockTransfers() {
+  const { canWrite } = usePermission('business', 'transfer');
   const { confirm } = useConfirm();
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -713,7 +715,13 @@ export default function StockTransfers() {
               loadWarehouses();
               setShowModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            disabled={!canWrite}
+            title={!canWrite ? '无操作权限' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              canWrite
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <Plus className="w-4 h-4" />
             新建移库单
@@ -872,7 +880,7 @@ export default function StockTransfers() {
                           <div className="text-xs text-gray-500">创建: {new Date(t.createdAt).toLocaleString()}</div>
                         </td>
                         <td className="px-4 py-3 text-sm" rowSpan={rows.length}>
-                          {t.status === 'PENDING' && (
+                          {t.status === 'PENDING' && canWrite && (
                             <>
                               <button
                                 onClick={() => handleExecuteTransfer(t.id)}

@@ -13,6 +13,7 @@ import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
 import { useAuthStore } from '../stores/auth';
+import { usePermission } from '../hooks/usePermission';
 
 
 interface Order {
@@ -114,6 +115,7 @@ export default function OrdersPage() {
   const { confirm } = useConfirm();
   const { currentOwnerId, owners: ownerStoreOwners, setCurrentOwner } = useOwnerStore();
   const { user, owners: authOwners } = useAuthStore();
+  const { canWrite } = usePermission('business', 'orders');
   const owners = authOwners.length > 0 ? authOwners : ownerStoreOwners;
   const getLatestActiveReturn = (order: any) => {
     if (!order.returnOrders?.length) return null;
@@ -964,7 +966,8 @@ export default function OrdersPage() {
           </button>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
-            disabled={!currentOwnerId}
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
@@ -1133,7 +1136,7 @@ export default function OrdersPage() {
                   <td className="px-2 py-4 whitespace-nowrap text-base text-center">
                     {order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW' ? (
                         <>
-                          {(order as any).customerId ? null : (
+                          {(order as any).customerId ? null : canWrite && (
                             <button
                               onClick={() => {
                                 const orderData = order as any;
@@ -1169,20 +1172,22 @@ export default function OrdersPage() {
                               修改
                             </button>
                           )}
-                          <button
-                            onClick={async () => {
-                              const ok = await confirm({ message: '确定要取消该订单吗？' });
-                              if (ok) {
-                                handleStatusChange(order.id, 'CANCELLED');
-                              }
-                            }}
-                            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
-                          >
-                            取消
-                          </button>
+                          {canWrite && (
+                            <button
+                              onClick={async () => {
+                                const ok = await confirm({ message: '确定要取消该订单吗？' });
+                                if (ok) {
+                                  handleStatusChange(order.id, 'CANCELLED');
+                                }
+                              }}
+                              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                            >
+                              取消
+                            </button>
+                          )}
                         </>
                       ) : null}
-                      {order.status === 'CANCELLED' && (
+                      {order.status === 'CANCELLED' && canWrite && (
                         <button
                           onClick={async () => {
                             const ok = await confirm({ message: '确定要删除该订单吗？' });
@@ -1208,15 +1213,17 @@ export default function OrdersPage() {
                           >
                             确认收货
                           </button>
-                          <button
-                            onClick={() => {
-                              setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
-                              setReturnReason('');
-                            }}
-                            className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
-                          >
-                            申请退货
-                          </button>
+                          {canWrite && (
+                            <button
+                              onClick={() => {
+                                setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                                setReturnReason('');
+                              }}
+                              className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
+                            >
+                              申请退货
+                            </button>
+                          )}
                         </>
                       )}
                       {order.status === 'COMPLETED' && (

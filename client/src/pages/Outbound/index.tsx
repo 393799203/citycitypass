@@ -12,6 +12,7 @@ import { PickOrder, TooltipContent } from '../../types/outbound';
 import PendingOrdersTab from './PendingOrdersTab';
 import WavePickingTab from './WavePickingTab';
 import OutboundReviewTab from './OutboundReviewTab';
+import { usePermission } from '../../hooks/usePermission';
 
 const pickStatusMap: Record<string, string> = {
   PENDING: '待拣货',
@@ -23,6 +24,7 @@ const pickStatusMap: Record<string, string> = {
 
 export default function OutboundPage() {
   const { user } = useAuthStore();
+  const { canWrite } = usePermission('business', 'outbound');
   const [activeTab, setActiveTab] = useState<'pending' | 'pick' | 'review'>('pending');
   const [pickOrders, setPickOrders] = useState<PickOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -364,6 +366,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
               onAICreatePickOrders={handleAICreatePickOrders}
               onCreateBatchPickOrders={handleCreateBatchPickOrders}
               onTooltip={setTooltip}
+              canWrite={canWrite}
             />
            ) : activeTab === 'pick' ? (
             <WavePickingTab
@@ -371,6 +374,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
               onPickComplete={handlePickComplete}
               onOutboundReview={handleOutboundReview}
               onTooltip={setTooltip}
+              canWrite={canWrite}
             />
           ) : (
             <OutboundReviewTab
@@ -378,6 +382,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
               onPickComplete={handlePickComplete}
               onOutboundReview={handleOutboundReview}
               onTooltip={setTooltip}
+              canWrite={canWrite}
             />
           )}
         </div>

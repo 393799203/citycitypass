@@ -8,6 +8,7 @@ import { supplierApi, supplierContractApi, supplierProductApi, supplierMaterialA
 import OwnerStamp from '../components/OwnerStamp';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
+import { usePermission } from '../hooks/usePermission';
 
 const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
 
@@ -28,6 +29,7 @@ interface Supplier {
   productTags: string[];
   status: 'ACTIVE' | 'INACTIVE';
   remark: string;
+  contractCount?: number;
 }
 
 interface SupplierContract {
@@ -83,6 +85,7 @@ const defaultContractForm: SupplierContract = {
 
 export default function SuppliersPage() {
   const { currentOwnerId, owners } = useOwnerStore();
+  const { canWrite } = usePermission('config', 'suppliers');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
@@ -94,14 +97,16 @@ export default function SuppliersPage() {
   const [customTagInput, setCustomTagInput] = useState('');
   const [showCustomTagInput, setShowCustomTagInput] = useState(false);
   const { confirm } = useConfirm();
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'contracts'>('overview');
 
   const [showContractModal, setShowContractModal] = useState(false);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [contractForm, setContractForm] = useState<SupplierContract>(defaultContractForm);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [supplierContracts, setSupplierContracts] = useState<SupplierContract[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [productModalSupplierId, setProductModalSupplierId] = useState<string | null>(null);
   const [supplierProducts, setSupplierProducts] = useState<any[]>([]);
   const [supplierMaterials, setSupplierMaterials] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
@@ -263,16 +268,67 @@ export default function SuppliersPage() {
     }
   };
 
+  const handleOpenProductModal = async (supplier: Supplier) => {
+    setProductModalSupplierId(supplier.id);
+    try {
+      const [productRes, bundleRes, supplierProductRes, materialRes] = await Promise.all([
+        productApi.list({ ownerId: supplier.ownerId }),
+        bundleApi.list({ ownerId: supplier.ownerId }),
+        supplierProductApi.getBySupplier(supplier.id),
+        supplierMaterialApi.getBySupplier(supplier.id),
+      ]);
+      setAllProducts(productRes.data.data || []);
+      setAllBundles(bundleRes.data.data || []);
+      setSupplierMaterials(materialRes.data.data || []);
+      const existingProducts = supplierProductRes.data.data || [];
+      const selectedSkus: any[] = [];
+      const selectedBdles: any[] = [];
+      existingProducts.forEach((p: any) => {
+        if (p.itemType === 'PRODUCT' && p.sku) {
+          selectedSkus.push({
+            skuId: p.skuId,
+            productId: p.sku.productId,
+            productName: p.sku.product?.name,
+            spec: p.sku.spec,
+            packaging: p.sku.packaging,
+            price: p.price,
+            supplierPrice: p.price,
+          });
+        } else if (p.itemType === 'BUNDLE' && p.bundle) {
+          selectedBdles.push({
+            bundleId: p.bundleId,
+            bundleName: p.bundle.name,
+            spec: p.bundle.spec,
+            packaging: p.bundle.packaging,
+            price: p.bundle.price,
+            supplierPrice: p.price,
+          });
+        }
+      });
+      setSelectedProducts(selectedSkus);
+      setSelectedBundles(selectedBdles);
+      setShowProductModal(true);
+    } catch (error) {
+      toast.error('加载商品失败');
+    }
+  };
+
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const submitData = {
+        ...contractForm,
+        amount: contractForm.amount ? parseFloat(contractForm.amount) : null,
+        discount: contractForm.discount ? parseFloat(contractForm.discount) : null,
+      };
       if (editingContractId) {
-        await supplierContractApi.update(editingContractId, contractForm);
+        await supplierContractApi.update(editingContractId, submitData);
         toast.success('更新成功');
       } else {
-        await supplierContractApi.create(contractForm);
+        await supplierContractApi.create(submitData);
         toast.success('创建成功');
       }
+      setShowContractModal(false);
       setContractForm(defaultContractForm);
       setEditingContractId(null);
       if (selectedSupplier) {
@@ -325,10 +381,10 @@ export default function SuppliersPage() {
           </span>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
-            disabled={!filterOwner}
-            title={!filterOwner ? '请先选择主体' : ''}
+            disabled={!filterOwner || !canWrite}
+            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              filterOwner
+              filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
@@ -358,8 +414,8 @@ export default function SuppliersPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary-600" />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -369,22 +425,27 @@ export default function SuppliersPage() {
                 <OwnerStamp name={supplier.owner.name} />
               )}
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-gray-400" />
-                    <h3 className="font-bold text-lg">{supplier.name}</h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-orange-600" />
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">{supplier.code}</p>
+                  <div>
+                    <h3 className="font-bold text-lg">{supplier.name}</h3>
+                    <p className="text-xs text-gray-500">{supplier.code}</p>
+                  </div>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded font-medium ${getStatusColor(supplier.status)}`}>
+                <span className={`px-2 py-1 text-xs rounded font-medium ${supplier.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                   {supplier.status === 'ACTIVE' ? '启用' : '停用'}
                 </span>
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Phone className="w-4 h-4" />
-                  {supplier.contact || '-'} · {supplier.phone || '-'}
+                <div className="flex items-center justify-between text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    {supplier.contact || '-'} · {supplier.phone || '-'}
+                  </div>
+                  <span className="text-xs text-gray-500">合同: {supplier.contractCount || 0}</span>
                 </div>
                 <div className="flex items-start gap-2 text-gray-600">
                   <MapPin className="w-4 h-4 mt-0.5" />
@@ -392,86 +453,239 @@ export default function SuppliersPage() {
                 </div>
                 {supplier.productTags && supplier.productTags.length > 0 && (
                   <div className="flex flex-wrap gap-1 pt-2 border-t">
-                    {supplier.productTags.map((tag, idx) => (
+                    {supplier.productTags.slice(0, 3).map((tag, idx) => (
                       <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
                         {tag}
                       </span>
                     ))}
+                    {supplier.productTags.length > 3 && (
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                        +{supplier.productTags.length - 3}
+                      </span>
+                    )}
                   </div>
                 )}
-                <div className="flex gap-2 pt-2 border-t">
-                  <button
-                    onClick={() => handleOpenContractModal(supplier)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-green-200 text-green-600 rounded text-sm hover:bg-green-50"
-                  >
-                    <FileText className="w-4 h-4" /> 合同
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!supplier) return;
-                      try {
-                        const [productRes, bundleRes, supplierProductRes, materialRes] = await Promise.all([
-                          productApi.list({ ownerId: supplier.ownerId }),
-                          bundleApi.list({ ownerId: supplier.ownerId }),
-                          supplierProductApi.getBySupplier(supplier.id),
-                          supplierMaterialApi.getBySupplier(supplier.id),
-                        ]);
-                        setAllProducts(productRes.data.data || []);
-                        setAllBundles(bundleRes.data.data || []);
-                        setSupplierMaterials(materialRes.data.data || []);
-                        const existingProducts = supplierProductRes.data.data || [];
-                        const selectedSkus: any[] = [];
-                        const selectedBdles: any[] = [];
-                        existingProducts.forEach((p: any) => {
-                          if (p.itemType === 'PRODUCT' && p.sku) {
-                            selectedSkus.push({
-                              skuId: p.skuId,
-                              productId: p.sku.productId,
-                              productName: p.sku.product?.name,
-                              spec: p.sku.spec,
-                              packaging: p.sku.packaging,
-                              price: p.price,
-                              supplierPrice: p.price,
-                            });
-                          } else if (p.itemType === 'BUNDLE' && p.bundle) {
-                            selectedBdles.push({
-                              bundleId: p.bundleId,
-                              bundleName: p.bundle.name,
-                              spec: p.bundle.spec,
-                              packaging: p.bundle.packaging,
-                              price: p.bundle.price,
-                              supplierPrice: p.price,
-                            });
-                          }
-                        });
-                        setSelectedProducts(selectedSkus);
-                        setSelectedBundles(selectedBdles);
-                        setSelectedSupplier(supplier);
-                        setShowProductModal(true);
-                      } catch (error) {
-                        toast.error('加载商品失败');
-                      }
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-purple-200 text-purple-600 rounded text-sm hover:bg-purple-50"
-                  >
-                    <Package className="w-4 h-4" /> 商品
-                  </button>
-                  <button
-                    onClick={() => handleEdit(supplier)}
-                    className="px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(supplier.id)}
-                    className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 mt-3 border-t">
+                <button
+                  onClick={() => { setSelectedSupplier(supplier); setActiveTab('overview'); }}
+                  className="flex-1 px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
+                >
+                  查看详情
+                </button>
+                <button
+                  onClick={() => { handleOpenProductModal(supplier); }}
+                  className="px-3 py-1.5 border border-purple-200 text-purple-600 rounded text-sm hover:bg-purple-50"
+                >
+                  供应商品
+                </button>
+                {canWrite && (
+                  <>
+                    <button
+                      onClick={() => handleEdit(supplier)}
+                      className="px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(supplier.id)}
+                      className="px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {selectedSupplier && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <div>
+                <h2 className="text-xl font-bold">{selectedSupplier.name}</h2>
+                <p className="text-sm text-gray-500">{selectedSupplier.code}</p>
+              </div>
+              <button onClick={() => setSelectedSupplier(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex border-b">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`px-6 py-3 text-sm font-medium ${activeTab === 'overview' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-500'}`}
+              >
+                基本信息
+              </button>
+              <button
+                onClick={() => { setActiveTab('contracts'); fetchSupplierContracts(selectedSupplier.id); }}
+                className={`px-6 py-3 text-sm font-medium ${activeTab === 'contracts' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-500'}`}
+              >
+                合同管理
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-6">
+              {activeTab === 'overview' && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-gray-700">联系信息</h3>
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">联系人:</span>
+                        <span>{selectedSupplier.contact || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">电话:</span>
+                        <span>{selectedSupplier.phone || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">地址:</span>
+                        <span>{selectedSupplier.province}{selectedSupplier.city}{selectedSupplier.address || '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-gray-700">状态信息</h3>
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">状态:</span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${selectedSupplier.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {selectedSupplier.status === 'ACTIVE' ? '启用' : '停用'}
+                        </span>
+                      </div>
+                      {selectedSupplier.productTags && selectedSupplier.productTags.length > 0 && (
+                        <div>
+                          <span className="text-gray-500">商品标签:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedSupplier.productTags.map((tag, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">{tag}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'contracts' && (
+                <div>
+                  <div className="flex justify-between mb-4">
+                    <h3 className="font-medium">合同列表</h3>
+                    {canWrite && (
+                      <button
+                        onClick={() => { handleOpenContractModal(selectedSupplier); }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
+                      >
+                        <Plus className="w-4 h-4" /> 添加合同
+                      </button>
+                    )}
+                  </div>
+                  {supplierContracts.length > 0 ? (
+                    <div className="space-y-3">
+                      {supplierContracts.map((contract) => (
+                        <div key={contract.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{contract.name}</h4>
+                              <p className="text-sm text-gray-500">合同号: {contract.contractNo}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                                contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' :
+                                'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {contract.status === 'ACTIVE' ? '生效中' : contract.status === 'EXPIRED' ? '已过期' : contract.status}
+                              </span>
+                              {canWrite && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setContractForm({
+                                        id: contract.id,
+                                        contractNo: contract.contractNo,
+                                        name: contract.name,
+                                        supplierId: contract.supplierId,
+                                        startDate: contract.startDate?.split('T')[0] || '',
+                                        endDate: contract.endDate?.split('T')[0] || '',
+                                        amount: contract.amount || '',
+                                        discount: contract.discount || '',
+                                        serviceTerms: contract.serviceTerms || '',
+                                        specialTerms: contract.specialTerms || '',
+                                        status: contract.status,
+                                        fileUrl: contract.fileUrl,
+                                        fileName: contract.fileName,
+                                        fileSize: contract.fileSize,
+                                      });
+                                      setEditingContractId(contract.id);
+                                      setShowContractModal(true);
+                                    }}
+                                    className="p-1 hover:bg-gray-100 rounded"
+                                  >
+                                    <Pencil className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      const ok = await confirm({ message: '确定要删除该合同吗？' });
+                                      if (!ok) return;
+                                      try {
+                                        await supplierContractApi.delete(contract.id);
+                                        toast.success('删除成功');
+                                        fetchSupplierContracts(selectedSupplier.id);
+                                      } catch (error: any) {
+                                        toast.error(error.response?.data?.message || '删除失败');
+                                      }
+                                    }}
+                                    className="p-1 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-sm text-gray-500 flex gap-4">
+                            <span>有效期: {contract.startDate?.split('T')[0]} 至 {contract.endDate?.split('T')[0]}</span>
+                            {contract.amount && <span>金额: ¥{contract.amount}</span>}
+                            {contract.discount && <span>折扣: {parseFloat(contract.discount) * 100}折</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">暂无合同</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
+              {canWrite && (
+                <>
+                  <button
+                    onClick={() => handleEdit(selectedSupplier)}
+                    className="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => handleDelete(selectedSupplier.id)}
+                    className="px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
+                  >
+                    删除
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -762,53 +976,6 @@ export default function SuppliersPage() {
                   </div>
                 </form>
               </div>
-
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-medium mb-2">合同列表</h3>
-                {supplierContracts.length > 0 ? (
-                  <div className="space-y-2">
-                    {supplierContracts.map(contract => (
-                      <div key={contract.id} className="border rounded-lg p-3 bg-gray-50">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{contract.name}</span>
-                              <span className={`px-2 py-0.5 text-xs rounded ${getContractStatusColor(contract.status)}`}>
-                                {getContractStatusText(contract.status)}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-500 mt-1">编号: {contract.contractNo}</p>
-                            {contract.amount && (
-                              <p className="text-sm text-gray-500">金额: ¥{contract.amount}</p>
-                            )}
-                            {contract.startDate && contract.endDate && (
-                              <p className="text-sm text-gray-500">
-                                有效期: {contract.startDate.split('T')[0]} ~ {contract.endDate.split('T')[0]}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEditContract(contract)}
-                              className="px-3 py-1 text-sm border border-primary-200 text-primary-600 rounded hover:bg-primary-50"
-                            >
-                              编辑
-                            </button>
-                            <button
-                              onClick={() => handleDeleteContract(contract.id)}
-                              className="px-3 py-1 text-sm border border-red-200 text-red-600 rounded hover:bg-red-50"
-                            >
-                              删除
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm">暂无合同</p>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -818,8 +985,8 @@ export default function SuppliersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold">供应商品管理 {selectedSupplier && `- ${selectedSupplier.name}`}</h2>
-              <button onClick={() => { setShowProductModal(false); setSelectedProducts([]); setSelectedBundles([]); }}>
+              <h2 className="text-lg font-bold">供应商品管理 {productModalSupplierId && `- ${suppliers.find(s => s.id === productModalSupplierId)?.name}`}</h2>
+              <button onClick={() => { setShowProductModal(false); setSelectedProducts([]); setSelectedBundles([]); setProductModalSupplierId(null); }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1149,10 +1316,10 @@ export default function SuppliersPage() {
 
               </div>
             </div>
-
+            {canWrite && (
             <div className="flex justify-end gap-3 p-4 border-t">
               <button
-                onClick={() => { setShowProductModal(false); setSelectedProducts([]); setSelectedBundles([]); setSearchKeyword(''); }}
+                onClick={() => { setShowProductModal(false); setSelectedProducts([]); setSelectedBundles([]); setSearchKeyword(''); setProductModalSupplierId(null); }}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
                 取消
@@ -1181,14 +1348,15 @@ export default function SuppliersPage() {
                       unit: item.unit,
                       price: item.price,
                     }));
-                    if (selectedSupplier) {
-                      await supplierProductApi.batch(selectedSupplier.id, productItems);
-                      await supplierMaterialApi.batch(selectedSupplier.id, materialItems);
+                    if (productModalSupplierId) {
+                      await supplierProductApi.batch(productModalSupplierId, productItems);
+                      await supplierMaterialApi.batch(productModalSupplierId, materialItems);
                       toast.success('供应商品已保存');
                       setShowProductModal(false);
                       setSelectedProducts([]);
                       setSelectedBundles([]);
                       setSearchKeyword('');
+                      setProductModalSupplierId(null);
                     }
                   } catch (error: any) {
                     toast.error(error.response?.data?.message || '保存失败');
@@ -1199,6 +1367,7 @@ export default function SuppliersPage() {
                 保存
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

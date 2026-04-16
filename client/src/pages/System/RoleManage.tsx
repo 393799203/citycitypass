@@ -5,9 +5,10 @@ interface RoleModalProps {
   role?: Role;
   onSave: (data: Partial<Role>) => void;
   onClose: () => void;
+  canWrite?: boolean;
 }
 
-export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) => {
+export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, canWrite = false }) => {
   const [formData, setFormData] = useState({
     code: role?.code || '',
     name: role?.name || '',
@@ -55,7 +56,7 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
                 type="text"
                 value={formData.code}
                 onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                disabled={!!role}
+                disabled={!!role || !canWrite}
                 className="w-full px-3 py-2 border rounded-md disabled:bg-gray-100"
                 required
               />
@@ -66,7 +67,8 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
                 type="text"
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md"
+                disabled={!canWrite}
+                className="w-full px-3 py-2 border rounded-md disabled:bg-gray-100"
                 required
               />
             </div>
@@ -77,7 +79,8 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
             <textarea
               value={formData.description || ''}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 border rounded-md"
+              disabled={!canWrite}
+              className="w-full px-3 py-2 border rounded-md disabled:bg-gray-100"
               rows={2}
             />
           </div>
@@ -95,10 +98,11 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
                       <select
                         value={formData.permissions['business']?.[action] || 'NONE'}
                         onChange={e => handlePermissionChange('business', action, e.target.value as PermissionValue)}
-                        className="text-sm border rounded px-2 py-1"
+                        disabled={!canWrite}
+                        className="text-sm border rounded px-2 py-1 disabled:bg-gray-200"
                       >
-                        <option value="WRITE">读写</option>
-                        <option value="READ">只读</option>
+                        <option value="WRITE">可操作</option>
+                        <option value="READ">可查看</option>
                         <option value="NONE">无权限</option>
                       </select>
                     </div>
@@ -117,10 +121,11 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
                         <select
                           value={formData.permissions['config']?.[action] || 'NONE'}
                           onChange={e => handlePermissionChange('config', action, e.target.value as PermissionValue)}
-                          className="text-sm border rounded px-2 py-1"
+                          disabled={!canWrite}
+                          className="text-sm border rounded px-2 py-1 disabled:bg-gray-200"
                         >
-                          <option value="WRITE">读写</option>
-                          <option value="READ">只读</option>
+                          <option value="WRITE">可操作</option>
+                          <option value="READ">可查看</option>
                           <option value="NONE">无权限</option>
                         </select>
                       </div>
@@ -137,10 +142,11 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
                         <select
                           value={formData.permissions['system']?.[action] || 'NONE'}
                           onChange={e => handlePermissionChange('system', action, e.target.value as PermissionValue)}
-                          className="text-sm border rounded px-2 py-1"
+                          disabled={!canWrite}
+                          className="text-sm border rounded px-2 py-1 disabled:bg-gray-200"
                         >
-                          <option value="WRITE">读写</option>
-                          <option value="READ">只读</option>
+                          <option value="WRITE">可操作</option>
+                          <option value="READ">可查看</option>
                           <option value="NONE">无权限</option>
                         </select>
                       </div>
@@ -159,12 +165,14 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose }) =
             >
               取消
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              保存
-            </button>
+            {canWrite && (
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                保存
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -176,9 +184,11 @@ interface RoleListProps {
   roles: Role[];
   onEdit: (role: Role) => void;
   onDelete: (id: string) => void;
+  canRead?: boolean;
+  canWrite?: boolean;
 }
 
-export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete }) => {
+export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete, canRead = false, canWrite = false }) => {
   return (
     <div className="bg-white rounded-lg shadow">
       <table className="min-w-full divide-y divide-gray-200">
@@ -205,24 +215,35 @@ export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete }) =
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {role.code !== 'ADMIN' && (
+                {canWrite ? (
                   <>
-                    <button
-                      onClick={() => onEdit(role)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
-                      编辑
-                    </button>
-                    {!role.isDefault && role.code !== 'ADMIN' && role.code !== 'OWNER' && (
-                      <button
-                        onClick={() => onDelete(role.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        删除
-                      </button>
+                    {role.code !== 'ADMIN' && (
+                      <>
+                        <button
+                          onClick={() => onEdit(role)}
+                          className="text-blue-600 hover:text-blue-800 mr-3"
+                        >
+                          编辑
+                        </button>
+                        {!role.isDefault && role.code !== 'ADMIN' && role.code !== 'OWNER' && (
+                          <button
+                            onClick={() => onDelete(role.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            删除
+                          </button>
+                        )}
+                      </>
                     )}
                   </>
-                )}
+                ) : canRead ? (
+                  <button
+                    onClick={() => onEdit(role)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    查看
+                  </button>
+                ) : null}
               </td>
             </tr>
           ))}

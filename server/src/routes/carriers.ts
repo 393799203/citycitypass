@@ -79,6 +79,7 @@ router.get('/', async (req, res, next) => {
     const carriers = await prisma.carrier.findMany({
       where,
       include: {
+        owner: true,
         contracts: true,
         vehicles: true,
       },

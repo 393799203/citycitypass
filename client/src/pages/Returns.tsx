@@ -14,8 +14,10 @@ import CreateReturnModal from './components/CreateReturnModal';
 import ReturnDetailModal from './components/ReturnDetailModal';
 import QualifyModal from './components/QualifyModal';
 import RefundModal from './components/RefundModal';
+import { usePermission } from '../hooks/usePermission';
 
 export default function Returns() {
+  const { canWrite } = usePermission('business', 'returns');
   const [returns, setReturns] = useState<ReturnOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -231,6 +233,7 @@ export default function Returns() {
           onOpenQualifyModal={openQualifyModal}
           onOpenStockInModal={openStockInModal}
           onOpenRefundModal={handleOpenRefundModal}
+          canWrite={canWrite}
         />
       )}
 

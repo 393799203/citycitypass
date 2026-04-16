@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { authApi } from '../api';
 
 interface OwnerInfo {
   id: string;
@@ -24,6 +25,7 @@ interface AuthState {
   owners: OwnerInfo[];
   setAuth: (token: string, user: User, permissions?: Record<string, Record<string, string>>, owners?: OwnerInfo[]) => void;
   setPermissions: (permissions: Record<string, Record<string, string>>) => void;
+  refreshPermissions: () => Promise<void>;
   logout: () => void;
   clearAuth: () => void;
 }
@@ -42,6 +44,17 @@ export const useAuthStore = create<AuthState>()(
         owners: owners || []
       }),
       setPermissions: (permissions) => set({ permissions }),
+      refreshPermissions: async () => {
+        try {
+          const res = await authApi.me();
+          if (res.data.success) {
+            const { user, permissions, owners } = res.data.data;
+            set({ user, permissions, owners });
+          }
+        } catch (error) {
+          console.error('Failed to refresh permissions:', error);
+        }
+      },
       logout: () => {
         set({ token: null, user: null, permissions: null, owners: [] });
         localStorage.clear();

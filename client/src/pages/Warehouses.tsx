@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { warehouseApi } from '../api';
+import { warehouseApi, ownerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
@@ -10,6 +10,7 @@ import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import { useOwnerStore } from '../stores/owner';
 import OwnerStamp from '../components/OwnerStamp';
+import { usePermission } from '../hooks/usePermission';
 
 const typeMap: Record<string, string> = {
   NORMAL: '普通仓',
@@ -27,6 +28,7 @@ export default function WarehousesPage() {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
   const { currentOwnerId, owners } = useOwnerStore();
+  const { canWrite } = usePermission('config', 'warehouses');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
@@ -153,22 +155,34 @@ export default function WarehousesPage() {
     setShowModal(true);
   };
 
-  const resetForm = () => {
-    const owner = owners.find(o => o.id === filterOwner);
+  const resetForm = async () => {
     setEditingId(null);
+    let ownerData: any = { contact: '', phone: '', province: '', city: '', address: '', latitude: '', longitude: '' };
+
+    if (filterOwner) {
+      try {
+        const res = await ownerApi.get(filterOwner);
+        if (res.data.success) {
+          ownerData = res.data.data;
+        }
+      } catch (error) {
+        console.error('获取主体信息失败:', error);
+      }
+    }
+
     setFormData({
       code: '',
       name: '',
       type: 'NORMAL',
       status: 'ACTIVE',
-      province: owner?.province || '',
-      city: owner?.city || '',
-      address: owner?.address || '',
-      latitude: owner?.latitude?.toString() || '',
-      longitude: owner?.longitude?.toString() || '',
+      province: ownerData.province || '',
+      city: ownerData.city || '',
+      address: ownerData.address || '',
+      latitude: ownerData.latitude?.toString() || '',
+      longitude: ownerData.longitude?.toString() || '',
       ownerId: filterOwner,
-      manager: owner?.contact || '',
-      managerPhone: owner?.phone || '',
+      manager: ownerData.contact || '',
+      managerPhone: ownerData.phone || '',
       businessStartTime: '08:00',
       businessEndTime: '18:00',
     });
@@ -188,10 +202,10 @@ export default function WarehousesPage() {
               resetForm();
               setShowModal(true);
             }}
-            disabled={!filterOwner}
-            title={!filterOwner ? '请先选择主体' : ''}
+            disabled={!filterOwner || !canWrite}
+            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              filterOwner
+              filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
@@ -228,18 +242,22 @@ export default function WarehousesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => openEditModal(warehouse)}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(warehouse.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canWrite && (
+                    <>
+                      <button
+                        onClick={() => openEditModal(warehouse)}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(warehouse.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -375,13 +393,6 @@ export default function WarehousesPage() {
                     <option value="INACTIVE">停用</option>
                     <option value="MAINTENANCE">维护中</option>
                   </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">所属主体</label>
-                <div className="px-3 py-2 bg-gray-100 rounded-lg text-gray-700">
-                  {owners.find(o => o.id === formData.ownerId)?.name || '-'}
                 </div>
               </div>
 

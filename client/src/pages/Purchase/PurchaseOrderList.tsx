@@ -25,6 +25,7 @@ interface PurchaseOrderListProps {
   onDelete: (id: string) => void;
   onEdit: (order: PurchaseOrder) => void;
   onPurchaseInbound: (order: PurchaseOrder) => void;
+  canWrite?: boolean;
 }
 
 export default function PurchaseOrderList({
@@ -39,7 +40,8 @@ export default function PurchaseOrderList({
   onCancel,
   onDelete,
   onEdit,
-  onPurchaseInbound
+  onPurchaseInbound,
+  canWrite = false,
 }: PurchaseOrderListProps) {
   const navigate = useNavigate();
 
@@ -54,14 +56,14 @@ export default function PurchaseOrderList({
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr className="text-center">
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">采购单号</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">供应商</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">商品数</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">总金额</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">下单日期</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">期望到货</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">状态</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">操作</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">采购单号</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">供应商</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">商品数</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">总金额</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">下单日期</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">期望到货</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">状态</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -80,7 +82,7 @@ export default function PurchaseOrderList({
             ) : (
               filteredOrders.map(order => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-mono text-center">
+                  <td className="px-4 py-3 text-base font-mono text-center">
                     <button
                       onClick={() => navigate(`/purchases/${order.id}`)}
                       className="text-blue-600 hover:text-blue-800 hover:underline"
@@ -88,11 +90,11 @@ export default function PurchaseOrderList({
                       {order.orderNo}
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-sm text-center">{order.supplier?.name}</td>
-                  <td className="px-4 py-3 text-sm text-center">{order.items?.length || 0}</td>
-                  <td className="px-4 py-3 text-sm text-center">¥{order.totalAmount || 0}</td>
-                  <td className="px-4 py-3 text-sm text-center">{format(new Date(order.orderDate), 'yyyy-MM-dd')}</td>
-                  <td className="px-4 py-3 text-sm text-center">{order.expectedDate ? format(new Date(order.expectedDate), 'yyyy-MM-dd') : '-'}</td>
+                  <td className="px-4 py-3 text-base text-center">{order.supplier?.name}</td>
+                  <td className="px-4 py-3 text-base text-center">{order.items?.length || 0}</td>
+                  <td className="px-4 py-3 text-base text-center">¥{order.totalAmount || 0}</td>
+                  <td className="px-4 py-3 text-base text-center">{format(new Date(order.orderDate), 'yyyy-MM-dd')}</td>
+                  <td className="px-4 py-3 text-base text-center">{order.expectedDate ? format(new Date(order.expectedDate), 'yyyy-MM-dd') : '-'}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-2 py-1 text-xs rounded-full ${STATUS_MAP[order.status]?.color}`}>
                       {STATUS_MAP[order.status]?.label}
@@ -100,7 +102,7 @@ export default function PurchaseOrderList({
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      {order.status === 'PENDING' && (
+                      {order.status === 'PENDING' && canWrite && (
                         <>
                           <button
                             onClick={() => onEdit(order)}
@@ -122,7 +124,7 @@ export default function PurchaseOrderList({
                           </button>
                         </>
                       )}
-                      {order.status === 'CONFIRMED' && (
+                      {order.status === 'CONFIRMED' && canWrite && (
                         <>
                           {order.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') ? (
                             <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">

@@ -23,11 +23,21 @@ router.get('/', async (req: Request, res: Response) => {
 
     const suppliers = await prisma.supplier.findMany({
       where,
-      include: { owner: true },
+      include: {
+        owner: true,
+        _count: {
+          select: { contracts: true }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json({ success: true, data: suppliers });
+    const suppliersWithContractCount = suppliers.map(s => ({
+      ...s,
+      contractCount: s._count.contracts
+    }));
+
+    res.json({ success: true, data: suppliersWithContractCount });
   } catch (error) {
     console.error('List suppliers error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

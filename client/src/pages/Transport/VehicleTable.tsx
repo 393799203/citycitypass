@@ -8,6 +8,7 @@ interface VehicleTableProps {
   onUpdateLocation: (vehicle: Vehicle) => void;
   onEdit: (vehicle: Vehicle) => void;
   onDelete: (id: string, vehicle: Vehicle) => void;
+  canWrite?: boolean;
 }
 
 const vehicleStatusMap: Record<string, string> = {
@@ -26,7 +27,7 @@ const vehicleTypeColors: Record<string, { bg: string; text: string; border: stri
   '冷藏车': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
 };
 
-export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDelete }: VehicleTableProps) {
+export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDelete, canWrite = false }: VehicleTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -122,32 +123,36 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
                       </span>
                     </td>
                     <td className="py-3 text-center">
-                      <button
-                        onClick={() => onUpdateLocation(vehicle)}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
-                        title="更新位置"
-                      >
-                        <MapPin className="w-4 h-4" />
-                      </button>
-                      {vehicle.sourceType !== 'CARRIER' && (
+                      {canWrite && (
                         <>
                           <button
-                            onClick={() => onEdit(vehicle)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
+                            onClick={() => onUpdateLocation(vehicle)}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
+                            title="更新位置"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <MapPin className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => onDelete(vehicle.id, vehicle)}
-                            className={`p-1.5 rounded ${
-                              vehicle.status === 'AVAILABLE'
-                                ? 'text-red-600 hover:bg-red-50'
-                                : 'text-gray-300 cursor-not-allowed'
-                            }`}
-                            disabled={vehicle.status !== 'AVAILABLE'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {vehicle.sourceType !== 'CARRIER' && (
+                            <>
+                              <button
+                                onClick={() => onEdit(vehicle)}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded mr-2"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => onDelete(vehicle.id, vehicle)}
+                                className={`p-1.5 rounded ${
+                                  vehicle.status === 'AVAILABLE'
+                                    ? 'text-red-600 hover:bg-red-50'
+                                    : 'text-gray-300 cursor-not-allowed'
+                                }`}
+                                disabled={vehicle.status !== 'AVAILABLE'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </>
                       )}
                     </td>
