@@ -158,7 +158,7 @@ export default function BatchTracePage() {
             </div>
             <button
               onClick={() => loadBatchList()}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
             </button>

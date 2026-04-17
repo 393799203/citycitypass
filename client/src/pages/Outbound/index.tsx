@@ -299,7 +299,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
         </div>
         <button
           onClick={fetchData}
-          className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          className="p-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg"
         >
           <RefreshCw className="w-4 h-4" />
         </button>

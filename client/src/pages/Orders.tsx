@@ -1054,7 +1054,7 @@ export default function OrdersPage() {
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">金额</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
                 <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
-                <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">操作</th>
+                <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-28">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

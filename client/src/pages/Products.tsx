@@ -548,7 +548,7 @@ export default function ProductsPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => fetchData()}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
