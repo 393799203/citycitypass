@@ -500,6 +500,7 @@ export default function StockTransfers() {
 
   const loadTransfers = async (warehouseFilter?: string, statusFilter?: string) => {
     setLoading(true);
+    setTransfers([]);
     try {
       const currentWarehouse = warehouseFilter !== undefined ? warehouseFilter : filterWarehouseId;
       const currentStatus = statusFilter !== undefined ? statusFilter : filterStatus;

@@ -81,6 +81,8 @@ export default function BatchTracePage() {
   }, [batchNo]);
 
   const loadBatchList = async () => {
+    setLoading(true);
+    setBatchList([]);
     try {
       const res = await stockApi.batchList();
       if (res.data.success) {
@@ -88,6 +90,8 @@ export default function BatchTracePage() {
       }
     } catch (error) {
       console.error('Failed to load batch list', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -154,7 +158,7 @@ export default function BatchTracePage() {
             </div>
             <button
               onClick={() => loadBatchList()}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
             </button>

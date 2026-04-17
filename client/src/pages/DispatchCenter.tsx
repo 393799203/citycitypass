@@ -56,6 +56,7 @@ export default function DispatchCenterPage() {
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [orderRes, dispatchRes, vehicleRes, driverRes, warehouseRes] = await Promise.all([
         orderApi.list({ status: 'DISPATCHING' }),
