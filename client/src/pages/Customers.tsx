@@ -94,6 +94,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
+  const [contractView, setContractView] = useState<'list' | 'form'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [formData, setFormData] = useState(defaultFormData);
@@ -240,6 +241,7 @@ export default function CustomersPage() {
       if (data.success) {
         toast.success(editingContractId ? '更新成功' : '创建成功');
         setShowContractModal(false);
+        setContractView('list');
         setEditingContractId(null);
         setContractForm({
           contractNo: '',
@@ -259,6 +261,8 @@ export default function CustomersPage() {
           fileSize: 0,
         });
         fetchCustomers();
+      } else {
+        toast.error(data.message || '操作失败');
       }
     } catch (error) {
       toast.error('操作失败');
@@ -274,17 +278,17 @@ export default function CustomersPage() {
       endDate: contract.endDate?.split('T')[0] || '',
       amount: contract.amount?.toString() || '',
       discount: contract.discount?.toString() || '',
-      pricingTerms: contract.pricingTerms ? JSON.stringify(contract.pricingTerms) : '',
+      pricingTerms: contract.pricingTerms || '',
       serviceTerms: contract.serviceTerms || '',
       specialTerms: contract.specialTerms || '',
-      status: contract.status as 'DRAFT',
+      status: contract.status as any,
       autoRenew: contract.autoRenew || false,
       fileUrl: contract.fileUrl || '',
       fileName: contract.fileName || '',
       fileSize: contract.fileSize || 0,
     });
     setEditingContractId(contract.id);
-    setShowContractModal(true);
+    setContractView('form');
   };
 
   const handleDeleteContract = async (id: string) => {
@@ -633,158 +637,138 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {showContractModal && (
+      {showContractModal && selectedCustomer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-bold">合同管理 {selectedCustomer && `- ${selectedCustomer.name}`}</h2>
-              <button onClick={() => { setShowContractModal(false); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', discount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
+              <h2 className="text-lg font-bold">合同管理 - {selectedCustomer.name}</h2>
+              <button onClick={() => { setShowContractModal(false); setContractView('list'); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', discount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleContractSubmit} className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="hidden">
-                  <input
-                    type="text"
-                    value={contractForm.contractNo}
-                    onChange={(e) => setContractForm({ ...contractForm, contractNo: e.target.value })}
-                  />
+
+            {contractView === 'list' ? (
+              <div className="p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium">合同列表</h3>
+                  {canWrite && (
+                    <button
+                      onClick={() => { setContractForm({ ...contractForm, customerId: selectedCustomer.id }); setContractView('form'); }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
+                    >
+                      <Plus className="w-4 h-4" /> 新建合同
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">合同名称 *</label>
-                  <input
-                    type="text"
-                    value={contractForm.name}
-                    onChange={(e) => setContractForm({ ...contractForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">状态</label>
-                  <select
-                    value={contractForm.status}
-                    onChange={(e) => setContractForm({ ...contractForm, status: e.target.value as any })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="DRAFT">草稿</option>
-                    <option value="PENDING">待生效</option>
-                    <option value="ACTIVE">生效中</option>
-                    <option value="EXPIRED">已过期</option>
-                    <option value="TERMINATED">已终止</option>
-                  </select>
+                <div className="space-y-2">
+                  {selectedCustomer.contracts && selectedCustomer.contracts.length > 0 ? (
+                    selectedCustomer.contracts.map(contract => (
+                      <div key={contract.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="font-medium">{contract.name} ({contract.contractNo})</div>
+                          <div className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
+                            <span>{contract.startDate?.split('T')[0]} ~ {contract.endDate?.split('T')[0]}</span>
+                            {contract.amount && <span className="text-blue-600 font-medium">¥{contract.amount}</span>}
+                            {contract.discount && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">{Number(contract.discount) * 100}折</span>}
+                          </div>
+                          {contract.fileName && (
+                            <a href={contract.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline mt-1 inline-block">
+                              📎 {contract.fileName}
+                            </a>
+                          )}
+                          <span className={`inline-block px-2 py-0.5 text-xs rounded mt-1 ${
+                            contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                            contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {contract.status === 'ACTIVE' ? '生效中' : contract.status === 'EXPIRED' ? '已过期' : contract.status}
+                          </span>
+                        </div>
+                        {canWrite && (
+                          <div className="flex gap-2">
+                            <button onClick={() => { setContractForm({ contractNo: contract.contractNo, name: contract.name, customerId: contract.customerId, startDate: contract.startDate?.split('T')[0] || '', endDate: contract.endDate?.split('T')[0] || '', amount: contract.amount?.toString() || '', discount: contract.discount?.toString() || '', pricingTerms: contract.pricingTerms || '', serviceTerms: contract.serviceTerms || '', specialTerms: contract.specialTerms || '', status: contract.status as any, autoRenew: contract.autoRenew || false, fileUrl: contract.fileUrl || '', fileName: contract.fileName || '', fileSize: contract.fileSize || 0 }); setEditingContractId(contract.id); setContractView('form'); }} className="text-primary-600 hover:bg-primary-50 p-2 rounded">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteContract(contract.id)} className="text-red-600 hover:bg-red-50 p-2 rounded">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">暂无合同</div>
+                  )}
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">开始日期 *</label>
-                  <input
-                    type="date"
-                    value={contractForm.startDate}
-                    onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
+            ) : (
+              <form onSubmit={handleContractSubmit} className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="hidden">
+                    <input type="text" value={contractForm.contractNo} onChange={(e) => setContractForm({ ...contractForm, contractNo: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">合同名称 *</label>
+                    <input type="text" value={contractForm.name} onChange={(e) => setContractForm({ ...contractForm, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">状态</label>
+                    <select value={contractForm.status} onChange={(e) => setContractForm({ ...contractForm, status: e.target.value as any })} className="w-full px-3 py-2 border rounded-lg">
+                      <option value="DRAFT">草稿</option>
+                      <option value="PENDING">待生效</option>
+                      <option value="ACTIVE">生效中</option>
+                      <option value="EXPIRED">已过期</option>
+                      <option value="TERMINATED">已终止</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">开始日期 *</label>
+                    <input type="date" value={contractForm.startDate} onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">结束日期 *</label>
+                    <input type="date" value={contractForm.endDate} onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">合同金额（元）</label>
+                    <input type="number" value={contractForm.amount} onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">合同折扣（如 0.85 表示 85 折）</label>
+                    <input type="number" step="0.01" min="0" max="1" value={contractForm.discount} onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="不填则不打折" />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">结束日期 *</label>
-                  <input
-                    type="date"
-                    value={contractForm.endDate}
-                    onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">合同金额（元）</label>
-                  <input
-                    type="number"
-                    value={contractForm.amount}
-                    onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={contractForm.autoRenew} onChange={(e) => setContractForm({ ...contractForm, autoRenew: e.target.checked })} className="w-4 h-4" />
+                    <span className="text-sm">自动续约</span>
+                  </label>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">合同折扣（如 0.85 表示 85 折）</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
-                    value={contractForm.discount}
-                    onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="不填则不打折"
-                  />
+                  <label className="block text-sm font-medium mb-1">服务条款</label>
+                  <textarea value={contractForm.serviceTerms} onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="描述服务范围、质量标准等" />
                 </div>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={contractForm.autoRenew}
-                    onChange={(e) => setContractForm({ ...contractForm, autoRenew: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">自动续约</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">服务条款</label>
-                <textarea
-                  value={contractForm.serviceTerms}
-                  onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  rows={3}
-                  placeholder="描述服务范围、质量标准等"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">特殊条款</label>
-                <textarea
-                  value={contractForm.specialTerms}
-                  onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  rows={3}
-                  placeholder="差异化条款、特殊约定等"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">合同文件</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    id="contract-file"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={async (e) => {
+                <div>
+                  <label className="block text-sm font-medium mb-1">特殊条款</label>
+                  <textarea value={contractForm.specialTerms} onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="差异化条款、特殊约定等" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">合同文件</label>
+                  <div className="flex items-center gap-4">
+                    <input type="file" id="contract-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setUploading(true);
                       try {
                         const formData = new FormData();
                         formData.append('file', file);
-                        const res = await fetch('/api/upload/contract', {
-                          method: 'POST',
-                          body: formData,
-                        });
+                        const res = await fetch('/api/upload/contract', { method: 'POST', body: formData });
                         const data = await res.json();
                         if (data.success) {
-                          setContractForm({
-                            ...contractForm,
-                            fileUrl: data.data.fileUrl,
-                            fileName: data.data.fileName,
-                            fileSize: data.data.fileSize,
-                          });
+                          setContractForm({ ...contractForm, fileUrl: data.data.fileUrl, fileName: data.data.fileName, fileSize: data.data.fileSize });
                           toast.success('上传成功');
                         } else {
                           toast.error(data.message || '上传失败');
@@ -794,82 +778,23 @@ export default function CustomersPage() {
                       } finally {
                         setUploading(false);
                       }
-                    }}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="contract-file"
-                    className="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg text-sm cursor-pointer hover:bg-primary-50"
-                  >
-                    {uploading ? '上传中...' : '选择文件'}
-                  </label>
-                  {contractForm.fileName && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">{contractForm.fileName}</span>
-                      {contractForm.fileSize && (
-                        <span className="text-xs text-gray-400">
-                          ({(contractForm.fileSize / 1024).toFixed(1)} KB)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={() => { setShowContractModal(false); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg">取消</button>
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg">保存</button>
-              </div>
-            </form>
-
-            {selectedCustomer && (
-              <div className="p-4 border-t">
-                <h3 className="font-medium mb-3">该客户的合同列表</h3>
-                <div className="space-y-2">
-                  {customers.find(c => c.id === selectedCustomer.id)?.contracts?.map(contract => (
-                    <div key={contract.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium">{contract.name} ({contract.contractNo})</div>
-                        <div className="text-sm text-gray-500">
-                          {contract.startDate?.split('T')[0]} ~ {contract.endDate?.split('T')[0]}
-                          {contract.amount && ` · ¥${contract.amount}`}
-                        </div>
-                        {contract.fileName && (
-                          <a
-                            href={contract.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary-600 hover:underline mt-1 inline-block"
-                          >
-                            📎 {contract.fileName}
-                          </a>
-                        )}
-                        <span className={`inline-block px-2 py-0.5 text-xs rounded mt-1 ${
-                          contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                          contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {contract.status === 'ACTIVE' ? '生效中' : contract.status === 'EXPIRED' ? '已过期' : contract.status}
-                        </span>
+                    }} className="hidden" />
+                    <label htmlFor="contract-file" className="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg text-sm cursor-pointer hover:bg-primary-50">
+                      {uploading ? '上传中...' : '选择文件'}
+                    </label>
+                    {contractForm.fileName && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">{contractForm.fileName}</span>
+                        {contractForm.fileSize && <span className="text-xs text-gray-400">({(contractForm.fileSize / 1024).toFixed(1)} KB)</span>}
                       </div>
-                      <div className="flex gap-2">
-                        {canWrite && (
-                          <>
-                            <button onClick={() => handleEditContract(contract)} className="text-primary-600 hover:bg-primary-50 p-2 rounded">
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDeleteContract(contract.id)} className="text-red-600 hover:bg-red-50 p-2 rounded">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {(!customers.find(c => c.id === selectedCustomer.id)?.contracts || customers.find(c => c.id === selectedCustomer.id)?.contracts?.length === 0) && (
-                    <div className="text-center text-gray-500 py-4">暂无合同</div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <button type="button" onClick={() => { setContractView('list'); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg">取消</button>
+                  <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg">保存</button>
+                </div>
+              </form>
             )}
           </div>
         </div>

@@ -96,9 +96,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const updateData: any = {
       name: data.name,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
-      amount: data.amount,
+      startDate: data.startDate ? new Date(data.startDate) : null,
+      endDate: data.endDate ? new Date(data.endDate) : null,
+      amount: data.amount ? parseFloat(data.amount) : null,
+      discount: data.discount ? parseFloat(data.discount) : null,
       pricingTerms: data.pricingTerms,
       serviceTerms: data.serviceTerms,
       specialTerms: data.specialTerms,
