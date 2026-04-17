@@ -204,7 +204,7 @@ export default function WarehousesPage() {
             }}
             disabled={!filterOwner || !canWrite}
             title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'

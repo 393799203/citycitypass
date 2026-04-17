@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { orderApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle, Sparkles, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle, Sparkles, RefreshCw, Search } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import AddressInput from '../components/AddressInput';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
@@ -480,10 +480,11 @@ export default function OrdersPage() {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (searchFilters?: typeof filters) => {
     setLoading(true);
+    const currentFilters = searchFilters || filters;
     try {
-      const res = await orderApi.list(filters);
+      const res = await orderApi.list(currentFilters);
       if (res.data.success) {
         setOrders(res.data.data);
       }
@@ -577,8 +578,7 @@ export default function OrdersPage() {
   }, [formData.warehouseId]);
 
   const handleSearch = () => {
-    fetchOrders();
-    setShowFilters(false);
+    fetchOrders(filters);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -934,26 +934,47 @@ export default function OrdersPage() {
 
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">订单中心</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={filters.orderNo}
+              onChange={(e) => {
+                const newFilters = { ...filters, orderNo: e.target.value };
+                setFilters(newFilters);
+                fetchOrders(newFilters);
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && fetchOrders(filters)}
+              placeholder="订单编号"
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm w-36"
+            />
+          </div>
+          <select
+            value={filters.status}
+            onChange={(e) => {
+              const newFilters = { ...filters, status: e.target.value };
+              setFilters(newFilters);
+              fetchOrders(newFilters);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">全部状态</option>
+            {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
           <button
             onClick={() => fetchOrders()}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Filter className="w-5 h-5" />
-            筛选
-          </button>
+          <div className="w-px h-6 bg-gray-300 mx-1" />
           <button
             onClick={handleExport}
             disabled={orders.length === 0}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
           >
-            <Upload className="w-5 h-5" />
+            <Upload className="w-4 h-4" />
             导出
           </button>
           <input
@@ -967,73 +988,22 @@ export default function OrdersPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={!currentOwnerId || !canWrite}
             title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 text-sm shadow-md hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
           >
-            <Sparkles className="w-5 h-5" />
-            AI智慧导入
+            <Sparkles className="w-4 h-4" />
+            AI导入
           </button>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
             disabled={!currentOwnerId || !canWrite}
             title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             新建订单
           </button>
         </div>
       </div>
-
-      {showFilters && (
-        <div className="bg-white p-4 rounded-xl shadow-sm border">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">订单编号</label>
-              <input
-                type="text"
-                value={filters.orderNo}
-                onChange={(e) => setFilters({ ...filters, orderNo: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-                placeholder="请输入订单编号"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                <option value="">全部</option>
-                {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">开始时间</label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-            <div className="flex items-end gap-2">
-              <button
-                onClick={handleSearch}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                查询
-              </button>
-              <button
-                onClick={() => { setFilters({ orderNo: '', status: '', startDate: '', endDate: '' }); fetchOrders(); }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                重置
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         {loading ? (

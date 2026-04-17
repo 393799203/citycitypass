@@ -362,7 +362,7 @@ export default function PurchaseOrders() {
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">
-          采购单 {id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
+          采购单{id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
         </h1>
         {!id && (
           <div className="flex items-center gap-3">
@@ -382,7 +382,7 @@ export default function PurchaseOrders() {
               onClick={() => handleOpenModal()}
               disabled={!currentOwnerId || !canWrite}
               title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                 currentOwnerId && canWrite
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'

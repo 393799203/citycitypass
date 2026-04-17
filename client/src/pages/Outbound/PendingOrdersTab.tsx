@@ -79,7 +79,7 @@ export default function PendingOrdersTab({
           <tbody>
             {availableOrders.map(order => (
               <tr key={order.id} className="border-b hover:bg-gray-50">
-                <td className="py-3">
+                <td className="py-3 text-center">
                   <input
                     type="checkbox"
                     checked={selectedOrders.includes(order.id)}
