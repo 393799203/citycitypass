@@ -192,7 +192,7 @@ export default function DispatchDetailPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       <div className="bg-white rounded-xl shadow-sm border p-6">

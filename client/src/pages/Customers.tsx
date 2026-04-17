@@ -323,7 +323,7 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
       
       <div className="flex justify-between items-center mb-6">

@@ -863,7 +863,7 @@ export default function OrdersPage() {
   const selectedProductSkus = selectedProduct ? products.find(p => p.id === selectedProduct)?.skus || [] : [];
 
   return (
-    <div className="space-y-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       {returnModal?.show && (

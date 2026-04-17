@@ -327,7 +327,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

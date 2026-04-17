@@ -148,7 +148,7 @@ export default function OrderDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       {returnModal?.show && (

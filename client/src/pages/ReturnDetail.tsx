@@ -251,7 +251,7 @@ export default function ReturnDetail() {
   const statusConfig = STATUS_CONFIG[effectiveStatus] || { label: effectiveStatus, color: 'text-gray-600', bgColor: 'bg-gray-50' };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       <div className="grid grid-cols-3 gap-6">

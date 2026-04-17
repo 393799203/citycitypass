@@ -149,7 +149,7 @@ export default function BatchTracePage() {
 
   if (!batchNo) {
     return (
-      <div className="p-6">
+      <div className="p-2 space-y-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-800">批次列表</h1>
           <div className="flex items-center gap-3">
@@ -272,7 +272,7 @@ export default function BatchTracePage() {
   const totalReturned = (traceData.returns || []).reduce((sum: number, r: any) => sum + r.quantity, 0);
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">批次追踪</h1>

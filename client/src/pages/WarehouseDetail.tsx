@@ -322,7 +322,7 @@ export default function WarehouseDetailPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       {tooltip && (

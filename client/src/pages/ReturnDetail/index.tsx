@@ -154,7 +154,7 @@ export default function ReturnDetail() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       <div className="grid grid-cols-3 gap-6">

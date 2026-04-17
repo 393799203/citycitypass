@@ -190,7 +190,7 @@ export default function Returns() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-800">退货管理</h1>

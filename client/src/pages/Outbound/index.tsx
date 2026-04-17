@@ -242,7 +242,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
       
       {aiRecommendOrders && (

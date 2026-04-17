@@ -151,7 +151,7 @@ export default function BatchTracePage() {
 
   if (!batchNo) {
     return (
-      <div className="p-6">
+      <div className="p-2 space-y-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-800">批次列表</h1>
           <button
@@ -246,7 +246,7 @@ export default function BatchTracePage() {
 
   if (!traceData) {
     return (
-      <div className="p-6">
+      <div className="p-2 space-y-6">
         <div className="max-w-xl mx-auto mt-20">
           <div className="bg-white rounded-xl shadow-sm p-8 text-center">
             <p className="text-red-600 mb-4">未找到该批次的数据</p>
@@ -269,7 +269,7 @@ export default function BatchTracePage() {
   const totalReturned = (traceData.returns || []).reduce((sum: number, r: any) => sum + r.quantity, 0);
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">批次追踪</h1>

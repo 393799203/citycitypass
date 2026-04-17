@@ -327,11 +327,10 @@ export default function TransportPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Truck className="w-6 h-6" />
+        <h1 className="text-2xl font-semibold">
           运力看板
         </h1>
       </div>

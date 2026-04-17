@@ -706,12 +706,11 @@ export default function StockTransfers() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Warehouse className="w-7 h-7" />
+        <h1 className="text-2xl font-bold">
             移库管理
           </h1>
         <div className="flex items-center gap-3">

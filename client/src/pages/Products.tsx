@@ -541,7 +541,7 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">商品&套装管理</h1>

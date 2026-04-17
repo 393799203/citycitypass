@@ -357,12 +357,11 @@ export default function PurchaseOrders() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 space-y-6">
       <ToastContainer />
 
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Truck className="w-7 h-7" />
+        <h1 className="text-2xl font-bold">
           采购单 {id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
         </h1>
         {!id && (
