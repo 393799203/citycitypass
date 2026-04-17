@@ -281,6 +281,7 @@ export default function StockTransfers() {
   const [allStocks, setAllStocks] = useState<StockItem[]>([]);
   const [filteredStocks, setFilteredStocks] = useState<StockItem[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [hideSalesZone, setHideSalesZone] = useState(true);
   const [loadingStocks, setLoadingStocks] = useState(false);
 
   const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
@@ -331,23 +332,26 @@ export default function StockTransfers() {
   }, [formWarehouseId]);
 
   useEffect(() => {
+    let stocks = allStocks.filter(s => s.availableQuantity > 0);
+
+    if (hideSalesZone) {
+      stocks = stocks.filter(s => s.zoneType !== 'STORAGE' && s.zoneType !== 'PICKING');
+    }
+
     if (searchKeyword.trim()) {
       const kw = searchKeyword.toLowerCase();
-      setFilteredStocks(
-        allStocks.filter(
-          (s) =>
-            (s.productName?.toLowerCase().includes(kw) ||
-            s.bundleName?.toLowerCase().includes(kw) ||
-            s.spec?.toLowerCase().includes(kw) ||
-            s.packaging?.toLowerCase().includes(kw) ||
-            s.locationCode.toLowerCase().includes(kw)) &&
-            s.availableQuantity > 0
-        )
+      stocks = stocks.filter(
+        (s) =>
+          (s.productName?.toLowerCase().includes(kw) ||
+          s.bundleName?.toLowerCase().includes(kw) ||
+          s.spec?.toLowerCase().includes(kw) ||
+          s.packaging?.toLowerCase().includes(kw) ||
+          s.locationCode.toLowerCase().includes(kw))
       );
-    } else {
-      setFilteredStocks(allStocks.filter(s => s.availableQuantity > 0));
     }
-  }, [searchKeyword, allStocks]);
+
+    setFilteredStocks(stocks);
+  }, [searchKeyword, allStocks, hideSalesZone]);
 
   useEffect(() => {
     loadProductsAndBundles();
@@ -671,6 +675,7 @@ export default function StockTransfers() {
     setToLocationId('');
     setTransferQty(1);
     setSearchKeyword('');
+    setHideSalesZone(true);
   };
 
   const getStockDisplayName = (stock: StockItem) => {
@@ -964,6 +969,15 @@ export default function StockTransfers() {
                       placeholder="输入商品名称或库位码搜索..."
                       className="flex-1 px-3 py-2 border rounded-lg text-sm"
                     />
+                    <label className="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={hideSalesZone}
+                        onChange={(e) => setHideSalesZone(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      隐藏存储区/拣货区
+                    </label>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-2">

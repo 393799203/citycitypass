@@ -295,6 +295,8 @@ export default function InboundOrderModal({
                               {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
                             </span>
                             <span className="font-medium truncate">{item.productName}</span>
+                            {item.spec && <span className="text-xs text-gray-500 ml-1">{item.spec}</span>}
+                            {item.packaging && <span className="text-xs text-gray-500 ml-1">{item.packaging}</span>}
                             {item.unit && <span className="text-xs text-gray-500">({item.unit})</span>}
                             {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
                               <div className="flex flex-col gap-1">

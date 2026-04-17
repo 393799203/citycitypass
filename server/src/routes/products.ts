@@ -136,7 +136,7 @@ router.get('/specs', async (req: Request, res: Response) => {
 });
 
 // SKU 编码生成函数
-// 格式: 品牌码(2位) + 二级分类码(2位) + 规格码(3位) + 包装码(1位) = 8位
+// 格式: 品牌码(2位) + 二级分类码(2位) + 规格码(3位) + 包装码(1位) + 随机码(2位) = 9位
 async function generateSkuCode(productId: string, packaging: string, spec: string): Promise<string> {
   // 获取产品及其关联的品牌和二级分类
   const product = await prisma.product.findUnique({
@@ -163,7 +163,29 @@ async function generateSkuCode(productId: string, packaging: string, spec: strin
   // 包装编码（1位）
   const packagingCode = getPackagingCode(packaging);
 
-  return `${brandCode}${subCategoryCode}${specNumbers}${packagingCode}`;
+  // 生成基础编码
+  const baseCode = `${brandCode}${subCategoryCode}${specNumbers}${packagingCode}`;
+
+  // 检查是否已存在，如果存在则添加随机后缀
+  let skuCode = baseCode;
+  let suffix = 0;
+  while (true) {
+    const existing = await prisma.productSKU.findUnique({
+      where: { skuCode }
+    });
+    if (!existing) break;
+    suffix++;
+    const randomPart = Math.random().toString(36).substring(2, 4).toUpperCase();
+    skuCode = `${baseCode}${randomPart}`;
+    if (suffix > 10) {
+      // 如果尝试超过10次，直接用时间戳随机码
+      const timestamp = Date.now().toString(36).slice(-4).toUpperCase();
+      skuCode = `${baseCode}${timestamp}`;
+      break;
+    }
+  }
+
+  return skuCode;
 }
 
 // 包装编码映射
@@ -440,13 +462,14 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     res.json({ success: true, data: fullProduct });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, message: '参数错误', errors: error.errors });
     }
     console.error('Create product error:', error);
-    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-    res.status(500).json({ success: false, message: '服务器错误' });
+    console.error('Error code:', error?.code);
+    console.error('Error meta:', error?.meta);
+    res.status(500).json({ success: false, message: '服务器错误: ' + (error?.message || 'Unknown') });
   }
 });
 
