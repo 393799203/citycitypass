@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { stockTransferApi, warehouseApi, productApi, bundleApi, stockApi } from '../api';
-import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search, Info } from 'lucide-react';
+import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search, Info, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -706,12 +706,40 @@ export default function StockTransfers() {
     <div className="p-6">
       <ToastContainer />
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
             <Warehouse className="w-7 h-7" />
             移库管理
           </h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <select
+            value={filterWarehouseId}
+            onChange={(e) => { setFilterWarehouseId(e.target.value); loadTransfers(e.target.value, filterStatus); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">全部仓库</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); loadTransfers(filterWarehouseId, e.target.value); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">全部状态</option>
+            <option value="PENDING">待移库</option>
+            <option value="COMPLETED">已完成</option>
+            <option value="CANCELLED">已取消</option>
+          </select>
+          <button
+            onClick={() => { loadWarehouses(); loadTransfers(); }}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
           <button
             onClick={() => {
               setFormWarehouseId('');
@@ -732,31 +760,6 @@ export default function StockTransfers() {
             新建移库单
           </button>
         </div>
-      </div>
-
-      <div className="flex gap-4 mb-4">
-        <select
-          value={filterWarehouseId}
-          onChange={(e) => { setFilterWarehouseId(e.target.value); loadTransfers(e.target.value, filterStatus); }}
-          className="px-3 py-2 border rounded-lg text-sm"
-        >
-          <option value="">全部仓库</option>
-          {warehouses.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); loadTransfers(filterWarehouseId, e.target.value); }}
-          className="px-3 py-2 border rounded-lg text-sm"
-        >
-          <option value="">全部状态</option>
-          <option value="PENDING">待移库</option>
-          <option value="COMPLETED">已完成</option>
-          <option value="CANCELLED">已取消</option>
-        </select>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">

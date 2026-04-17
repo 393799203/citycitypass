@@ -152,7 +152,15 @@ export default function BatchTracePage() {
   if (!batchNo) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">批次列表</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">批次列表</h1>
+          <button
+            onClick={() => loadBatchList()}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
 
         {loading && (
           <div className="flex items-center justify-center h-64">

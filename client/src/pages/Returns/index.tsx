@@ -4,7 +4,7 @@ import { returnApi } from '../../api';
 import { orderApi } from '../../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import ReturnTrackingModal from '../../components/ReturnTrackingModal';
 import InboundOrderModal from '../../components/InboundOrderModal';
 import { useConfirm } from '../../components/ConfirmProvider';
@@ -192,18 +192,15 @@ export default function Returns() {
   return (
     <div className="p-6">
       <ToastContainer />
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-800">退货管理</h1>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-400" />
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select
               value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white"
             >
               <option value="">全部状态</option>
               <option value="RETURN_REQUESTED">待发货</option>
@@ -217,7 +214,13 @@ export default function Returns() {
               <option value="CANCELLED">已取消</option>
             </select>
           </div>
-          <span className="text-sm text-gray-500">共 {total} 条</span>
+          <span className="text-sm text-gray-500">{total} 条</span>
+          <button
+            onClick={() => fetchReturns()}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

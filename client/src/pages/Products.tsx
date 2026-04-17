@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { productApi, bundleApi, warehouseApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
@@ -546,6 +546,12 @@ export default function ProductsPage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">商品&套装管理</h1>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => fetchData()}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
           <span className="text-sm text-gray-500">
             商品: {products.length} | 套装: {bundles.length}
           </span>

@@ -146,21 +146,22 @@ export default function BatchTracePage() {
   if (!batchNo) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">批次列表</h1>
-        
-        {/* 筛选按钮 */}
         <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-gray-500">
-            共 <span className="font-medium text-gray-700">{filteredBatchList.length}</span> 个批次
+          <h1 className="text-2xl font-bold text-gray-800">批次列表</h1>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-500">
+              共 <span className="font-medium text-gray-700">{filteredBatchList.length}</span> 个批次
+            </div>
+            <button
+              onClick={() => loadBatchList()}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-          >
-            <Search className="w-4 h-4" />
-            {isFilterExpanded ? '收起筛选' : '展开筛选'}
-          </button>
         </div>
+
+        {/* 筛选按钮 */}
         
         {/* 筛选组件 - 点击展开 */}
         {isFilterExpanded && (

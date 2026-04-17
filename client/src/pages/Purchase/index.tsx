@@ -4,7 +4,7 @@ import { useOwnerStore } from '../../stores/owner';
 import { purchaseOrderApi, supplierApi, supplierProductApi, supplierMaterialApi } from '../../api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Truck } from 'lucide-react';
+import { Plus, Truck, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useConfirm } from '../../components/ConfirmProvider';
 import InboundOrderModal from '../../components/InboundOrderModal';
@@ -360,34 +360,41 @@ export default function PurchaseOrders() {
     <div className="p-6">
       <ToastContainer />
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Truck className="w-7 h-7" />
           采购单 {id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
         </h1>
         {!id && (
-          <button
-            onClick={() => handleOpenModal()}
-            disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              currentOwnerId && canWrite
-                ? 'bg-green-600 text-white hover:bg-green-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            新建采购单
-          </button>
+          <div className="flex items-center gap-3">
+            <PurchaseOrderFilter
+              listKeyword={listKeyword}
+              filterStatus={filterStatus}
+              onListKeywordChange={setListKeyword}
+              onFilterStatusChange={setFilterStatus}
+            />
+            <button
+              onClick={() => fetchOrders()}
+              className="flex items-center gap-2 px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleOpenModal()}
+              disabled={!currentOwnerId || !canWrite}
+              title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                currentOwnerId && canWrite
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Plus className="w-4 h-4" />
+              新建采购单
+            </button>
+          </div>
         )}
       </div>
-
-      <PurchaseOrderFilter
-        listKeyword={listKeyword}
-        filterStatus={filterStatus}
-        onListKeywordChange={setListKeyword}
-        onFilterStatusChange={setFilterStatus}
-      />
 
       <PurchaseOrderList
         orders={orders}

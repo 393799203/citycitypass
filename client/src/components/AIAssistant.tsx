@@ -3,7 +3,7 @@ import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCa
 import ImageUploader from './ImageUploader';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
-import { orderApi, purchaseOrderApi, productApi, bundleApi, ownerApi, inboundApi, warehouseApi, supplierApi, supplierProductApi } from '../api';
+import { orderApi, purchaseOrderApi, productApi, bundleApi, inboundApi, warehouseApi, supplierApi, supplierProductApi } from '../api';
 import { useOwnerStore } from '../stores/owner';
 
 interface Message {
@@ -245,7 +245,6 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
         const matchedSku = product.skus.find((s: any) => matchSku(s, item));
         if (matchedSku) {
           let price = matchedSku.price || 0;
-          // 如果有供应商，尝试获取供应商报价
           if (supplierId) {
             try {
               const spRes = await supplierProductApi.list({ supplierId });

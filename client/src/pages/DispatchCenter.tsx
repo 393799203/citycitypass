@@ -347,7 +347,6 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
           className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
         >
           <RefreshCw className="w-4 h-4" />
-          刷新
         </button>
       </div>
 

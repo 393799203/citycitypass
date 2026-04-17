@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { warehouseApi, productApi, bundleApi, stockApi, supplierApi } from '../api';
-import { Warehouse, Package, Plus, X, ArrowRight, Trash2, Loader2, Truck, ClipboardCheck, MapPin, Barcode, CheckCircle, Search, Info } from 'lucide-react';
+import { Warehouse, Package, Plus, X, ArrowRight, Trash2, Loader2, Truck, ClipboardCheck, MapPin, Barcode, CheckCircle, Search, Info, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -878,65 +878,70 @@ export default function InboundPage() {
     <div className="p-6">
       <ToastContainer />
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Warehouse className="w-7 h-7" />
           入库管理
         </h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          disabled={!canWrite}
-          title={!canWrite ? '无操作权限' : ''}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-            canWrite
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          <Plus className="w-4 h-4" />
-          新建入库单
-        </button>
-      </div>
-
-      <div className="flex gap-4 mb-4">
-        <select
-          value={filterWarehouseId}
-          onChange={(e) => { setFilterWarehouseId(e.target.value); loadOrders(filterStatus, filterSource, e.target.value); }}
-          className="px-3 py-2 border rounded-lg text-sm"
-        >
-          <option value="">全部仓库</option>
-          {warehouses.map(w => (
-            <option key={w.id} value={w.id}>{w.name}</option>
-          ))}
-        </select>
-        <select
-          value={filterSource}
-          onChange={(e) => { setFilterSource(e.target.value); loadOrders(filterStatus, e.target.value, filterWarehouseId); }}
-          className="px-3 py-2 border rounded-lg text-sm"
-        >
-          <option value="">全部来源</option>
-          <option value="PURCHASE">采购入库</option>
-          <option value="RETURN">退货入库</option>
-          <option value="TRANSFER">调拨入库</option>
-          <option value="OTHER">其他</option>
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); loadOrders(e.target.value, filterSource, filterWarehouseId); }}
-          className="px-3 py-2 border rounded-lg text-sm"
-        >
-          <option value="">全部状态</option>
-          <option value="PENDING">待收货</option>
-          <option value="ARRIVED">已到货</option>
-          <option value="RECEIVING">验收中</option>
-          <option value="RECEIVED">已收货</option>
-          <option value="PUTAWAY">上架中</option>
-          <option value="COMPLETED">已完成</option>
-          <option value="CANCELLED">已取消</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={filterWarehouseId}
+            onChange={(e) => { setFilterWarehouseId(e.target.value); loadOrders(filterStatus, filterSource, e.target.value); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">全部仓库</option>
+            {warehouses.map(w => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+          <select
+            value={filterSource}
+            onChange={(e) => { setFilterSource(e.target.value); loadOrders(filterStatus, e.target.value, filterWarehouseId); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">全部来源</option>
+            <option value="PURCHASE">采购入库</option>
+            <option value="RETURN">退货入库</option>
+            <option value="TRANSFER">调拨入库</option>
+            <option value="OTHER">其他</option>
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); loadOrders(e.target.value, filterSource, filterWarehouseId); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">全部状态</option>
+            <option value="PENDING">待收货</option>
+            <option value="ARRIVED">已到货</option>
+            <option value="RECEIVING">验收中</option>
+            <option value="RECEIVED">已收货</option>
+            <option value="PUTAWAY">上架中</option>
+            <option value="COMPLETED">已完成</option>
+            <option value="CANCELLED">已取消</option>
+          </select>
+          <button
+            onClick={() => { loadWarehouses(); loadOrders(); }}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            disabled={!canWrite}
+            title={!canWrite ? '无操作权限' : ''}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              canWrite
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            新建入库单
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">

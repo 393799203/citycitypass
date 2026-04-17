@@ -4,7 +4,7 @@ import { useOwnerStore } from '../stores/owner';
 import { purchaseOrderApi, supplierApi, warehouseApi, productApi, bundleApi, supplierProductApi, supplierMaterialApi } from '../api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Search, X, Package, Truck, Check, Eye, Trash2, Edit2, Loader2, Printer } from 'lucide-react';
+import { Plus, Search, X, Package, Truck, Check, Eye, Trash2, Edit2, Loader2, Printer, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useConfirm } from '../components/ConfirmProvider';
 import InboundOrderModal from '../components/InboundOrderModal';
@@ -476,19 +476,47 @@ export default function PurchaseOrders() {
           采购单 {id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
         </h1>
         {!id && (
-          <button
-            onClick={() => handleOpenModal()}
-            disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              currentOwnerId && canWrite
-                ? 'bg-green-600 text-white hover:bg-green-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            新建采购单
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={listKeyword}
+                onChange={(e) => setListKeyword(e.target.value)}
+                placeholder="搜索..."
+                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-48"
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            >
+              <option value="">全部状态</option>
+              {Object.entries(STATUS_MAP).map(([value, { label }]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => fetchOrders()}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleOpenModal()}
+              disabled={!currentOwnerId || !canWrite}
+              title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                currentOwnerId && canWrite
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Plus className="w-4 h-4" />
+              新建采购单
+            </button>
+          </div>
         )}
       </div>
       <>
