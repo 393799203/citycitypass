@@ -6,6 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LicensePlateInput from '../components/LicensePlateInput';
 import { usePermission } from '../hooks/usePermission';
+import { useOwnerStore } from '../stores/owner';
 
 const SOURCE_COLORS: Record<string, string> = {
   PURCHASE: 'bg-blue-100 text-blue-700',
@@ -152,6 +153,7 @@ interface InboundProduct {
 export default function InboundPage() {
   const { confirm } = useConfirm();
   const { canWrite } = usePermission('business', 'inbound');
+  const { currentOwnerId } = useOwnerStore();
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [orders, setOrders] = useState<InboundOrder[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -930,10 +932,10 @@ export default function InboundPage() {
               resetForm();
               setShowModal(true);
             }}
-            disabled={!canWrite}
-            title={!canWrite ? '无操作权限' : ''}
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              canWrite
+              currentOwnerId && canWrite
                 ? 'bg-green-600 text-white hover:bg-green-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}

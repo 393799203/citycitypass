@@ -5,6 +5,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { usePermission } from '../hooks/usePermission';
+import { useOwnerStore } from '../stores/owner';
 
 const ZONE_TYPES: Record<string, string> = {
   RECEIVING: '收货区',
@@ -265,6 +266,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
 
 export default function StockTransfers() {
   const { canWrite } = usePermission('business', 'transfer');
+  const { currentOwnerId } = useOwnerStore();
   const { confirm } = useConfirm();
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -749,10 +751,10 @@ export default function StockTransfers() {
               loadWarehouses();
               setShowModal(true);
             }}
-            disabled={!canWrite}
-            title={!canWrite ? '无操作权限' : ''}
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              canWrite
+              currentOwnerId && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}

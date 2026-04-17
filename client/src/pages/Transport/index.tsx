@@ -11,10 +11,12 @@ import DriverTable from './DriverTable';
 import VehicleDriverForm from './VehicleDriverForm';
 import LocationModal from './LocationModal';
 import { usePermission } from '../../hooks/usePermission';
+import { useOwnerStore } from '../../stores/owner';
 
 export default function TransportPage() {
   const { confirm } = useConfirm();
   const { canWrite: canTransportWrite } = usePermission('business', 'transport');
+  const { currentOwnerId } = useOwnerStore();
   const [activeTab, setActiveTab] = useState<'vehicle' | 'driver'>('vehicle');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -368,10 +370,10 @@ export default function TransportPage() {
           <div className="flex justify-end mb-4">
             <button
               onClick={openAddModal}
-              disabled={!canTransportWrite}
-              title={!canTransportWrite ? '无操作权限' : ''}
+              disabled={!currentOwnerId || !canTransportWrite}
+              title={!currentOwnerId ? '请先选择主体' : !canTransportWrite ? '无操作权限' : ''}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                canTransportWrite
+                currentOwnerId && canTransportWrite
                   ? 'bg-primary-600 text-white hover:bg-primary-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}

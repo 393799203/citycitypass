@@ -965,7 +965,9 @@ export default function OrdersPage() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            disabled={!currentOwnerId || !canWrite}
+            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             <Sparkles className="w-5 h-5" />
             AI智慧导入

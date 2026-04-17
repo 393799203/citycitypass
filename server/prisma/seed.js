@@ -137,11 +137,11 @@ const SPECS = [
 ];
 
 const PACKAGINGS = [
-  { code: 'PING', name: '瓶装', sortOrder: 1 },
-  { code: 'GUAN', name: '罐装', sortOrder: 2 },
-  { code: 'XIANG_6_PING', name: '箱装(6瓶)', sortOrder: 3 },
-  { code: 'XIANG_12_PING', name: '箱装(12瓶)', sortOrder: 4 },
-  { code: 'XIANG_12_GUAN', name: '箱装(12罐)', sortOrder: 5 },
+  { code: 'PING', name: '瓶', sortOrder: 1 },
+  { code: 'GUAN', name: '罐', sortOrder: 2 },
+  { code: 'XIANG_6_PING', name: '箱(6瓶)', sortOrder: 3 },
+  { code: 'XIANG_12_PING', name: '箱(12瓶)', sortOrder: 4 },
+  { code: 'XIANG_12_GUAN', name: '箱(12罐)', sortOrder: 5 },
 ];
 
 async function seedRoles() {
