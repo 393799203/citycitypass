@@ -89,22 +89,14 @@ export const aiApi = {
     return response.data;
   },
 
-  async chat(messages: any[], context: string[] = [], structured: boolean = false): Promise<any> {
-    const response = await api.post(`${AI_BASE}/chat`, {
-      messages,
-      context,
-      structured,
-    });
+  async chat(prompt: string): Promise<any> {
+    const response = await api.post(`${AI_BASE}/chat`, { prompt });
     return response.data;
   },
 
   async callAI(prompt: string): Promise<string> {
     try {
-      const response = await api.post(`${AI_BASE}/chat`, {
-        messages: [{ role: 'user', content: prompt }],
-        context: [],
-        structured: false,
-      });
+      const response = await api.post(`${AI_BASE}/chat`, { prompt });
       const data = response.data;
       if (data.success && data.data?.content) {
         return data.data.content;
@@ -118,18 +110,22 @@ export const aiApi = {
 
   async parseAIResponse<T>(prompt: string): Promise<T | null> {
     try {
-      const response = await api.post(`${AI_BASE}/chat`, {
-        messages: [{ role: 'user', content: prompt }],
-        context: [],
-        structured: true,
-      });
+      const response = await api.post(`${AI_BASE}/chat`, { prompt });
       const data = response.data;
       if (data.success && data.data?.content) {
-        const content = data.data.content;
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]) as T;
+        let content = data.data.content.trim();
+
+        const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          content = codeBlockMatch[1].trim();
         }
+
+        const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+        if (jsonMatch) {
+          content = jsonMatch[1].trim();
+        }
+
+        return JSON.parse(content) as T;
       }
       return null;
     } catch (error) {
