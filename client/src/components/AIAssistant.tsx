@@ -165,48 +165,9 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     return null;
   };
 
-  // 查找仓库ID
-  const findWarehouseId = async (warehouseNameOrId: string) => {
-    try {
-      const warehouseRes = await warehouseApi.list({});
-      const warehouses = warehouseRes.data.data || [];
-      
-      // 尝试匹配仓库（带空格处理）
-      const trimmedInput = warehouseNameOrId.trim();
-      const warehouse = warehouses.find((w: any) => 
-        w.name.trim() === trimmedInput || w.id === trimmedInput
-      );
-      
-      if (warehouse) {
-        return warehouse.id;
-      } else if (warehouses.length > 0) {
-        // 如果没有找到，使用第一个仓库
-        return warehouses[0].id;
-      }
-    } catch (error) {
-      console.error('Failed to get warehouse list:', error);
-    }
-    return warehouseNameOrId;
-  };
-
-  // 查找所有者ID
-  const findOwnerId = async (ownerNameOrId: string) => {
-    try {
-      const ownerRes = await ownerApi.list({});
-      const owners = ownerRes.data.data || [];
-      const owner = owners.find((o: any) => o.name === ownerNameOrId) || owners[0];
-      return owner?.id || ownerNameOrId;
-    } catch (error) {
-      console.error('Failed to get owner list:', error);
-      return ownerNameOrId;
-    }
-  };
-
+  // 解析日期，返回ISO格式或undefined
   const parseDate = (dateStr: any): string | undefined => {
     if (!dateStr) return undefined;
-    if (dateStr instanceof Date && !isNaN(dateStr.getTime())) {
-      return dateStr.toISOString();
-    }
     if (typeof dateStr === 'string') {
       const parsed = new Date(dateStr);
       if (!isNaN(parsed.getTime())) {
@@ -216,150 +177,97 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     return undefined;
   };
 
+  // 查找仓库ID
+  const findWarehouseId = async (warehouseNameOrId: string): Promise<string | undefined> => {
+    try {
+      const warehouseRes = await warehouseApi.list({});
+      const warehouses = warehouseRes.data.data || [];
+      const trimmed = warehouseNameOrId.trim();
+      const found = warehouses.find((w: any) =>
+        w.name.trim() === trimmed || w.id === trimmed
+      );
+      return found?.id || warehouses[0]?.id || undefined;
+    } catch (error) {
+      console.error('Failed to get warehouse list:', error);
+      return undefined;
+    }
+  };
+
   // 查找供应商ID
-  const findSupplierId = async (supplierNameOrId: string): Promise<string> => {
+  const findSupplierId = async (supplierNameOrId: string): Promise<string | undefined> => {
     try {
       const supplierRes = await supplierApi.list({});
       const suppliers = supplierRes.data.data || [];
-      const trimmedInput = supplierNameOrId.trim();
-      const supplier = suppliers.find((s: any) => 
-        s.name.trim() === trimmedInput || s.id === trimmedInput
+      const trimmed = supplierNameOrId.trim();
+      const found = suppliers.find((s: any) =>
+        s.name.trim() === trimmed || s.id === trimmed
       );
-      if (supplier) {
-        return supplier.id;
-      } else if (suppliers.length > 0) {
-        return suppliers[0].id;
-      }
+      return found?.id || suppliers[0]?.id || undefined;
     } catch (error) {
       console.error('Failed to get supplier list:', error);
+      return undefined;
     }
-    return supplierNameOrId;
+  };
+
+  // 标准化包装名称
+  const normalizePackaging = (p: string) => {
+    return p.replace(/装/g, '').replace(/罐/g, '瓶');
   };
 
   // 匹配SKU
-  const matchSku = (sku: any, item: any) => {
-    const aiPackaging = item.packaging?.toLowerCase() || '';
+  const matchSku = (sku: any, item: any): boolean => {
+    const aiPackaging = normalizePackaging(item.packaging?.toLowerCase() || '');
     const aiSpec = item.spec?.toLowerCase() || '';
-    const skuPackaging = sku.packaging?.toLowerCase() || '';
+    const skuPackaging = normalizePackaging(sku.packaging?.toLowerCase() || '');
     const skuSpec = sku.spec?.toLowerCase() || '';
 
-    console.log('[matchSku] AI input:', { aiPackaging, aiSpec }, 'SKU:', { skuPackaging, skuSpec, skuId: sku.id });
-
-    // 标准化包装名称，去除"装"字，统一"箱"和"瓶/罐"的写法
-    const normalizePackaging = (p: string) => {
-      return p.replace(/装/g, '').replace(/罐/g, '瓶');
-    };
-    const normAiPackaging = normalizePackaging(aiPackaging);
-    const normSkuPackaging = normalizePackaging(skuPackaging);
-
-    let match = false;
     if (aiPackaging && aiSpec) {
-      match = (normSkuPackaging.includes(normAiPackaging) || normAiPackaging.includes(normSkuPackaging)) &&
-             (skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec));
-      console.log('[matchSku] Match with both:', match);
-    } else if (aiPackaging) {
-      match = normSkuPackaging.includes(normAiPackaging) || normAiPackaging.includes(normSkuPackaging);
-      console.log('[matchSku] Match with packaging only:', match);
-    } else if (aiSpec) {
-      match = skuSpec.includes(aiSpec) || aiSpec.includes(skuSpec);
-      console.log('[matchSku] Match with spec only:', match);
-    } else {
-      console.log('[matchSku] No match');
+      return skuPackaging.includes(aiPackaging) && skuSpec.includes(aiSpec);
     }
-    return match;
+    if (aiPackaging) {
+      return skuPackaging.includes(aiPackaging);
+    }
+    if (aiSpec) {
+      return skuSpec.includes(aiSpec);
+    }
+    return false;
   };
 
-  // 查找商品SKU或套装
-  const findProductOrBundle = async (productName: string, item?: any, ownerId?: string, supplierId?: string) => {
+  // 查找商品SKU或套装，返回匹配结果
+  const findProductOrBundle = async (productName: string, item: any, supplierId?: string) => {
     try {
-      // 尝试查找SKU
-      const productRes = await productApi.list({ 
-        name: productName,
-        ...(ownerId && { ownerId })
-      });
+      const productRes = await productApi.list({ name: productName });
       const products = productRes.data.data || [];
 
       for (const product of products) {
-        if (!product.skus || product.skus.length === 0) continue;
+        if (!product.skus?.length) continue;
 
-        // 尝试匹配SKU
-        let sku = product.skus.find((s: any) => matchSku(s, item));
-        if (sku) {
-          let price = sku.price || 0;
-          // 尝试查找供应商对应的SKU价格
+        const matchedSku = product.skus.find((s: any) => matchSku(s, item));
+        if (matchedSku) {
+          let price = matchedSku.price || 0;
+          // 如果有供应商，尝试获取供应商报价
           if (supplierId) {
             try {
-              const supplierProductRes = await supplierProductApi.list({ supplierId });
-              const supplierProducts = supplierProductRes.data.data || [];
-              const matchedSupplierProduct = supplierProducts.find((sp: any) => sp.skuId === sku.id);
-              if (matchedSupplierProduct) {
-                price = matchedSupplierProduct.price || price;
-              }
-            } catch (error) {
-              console.error('Failed to get supplier product price:', error);
-            }
+              const spRes = await supplierProductApi.list({ supplierId });
+              const spList = spRes.data.data || [];
+              const sp = spList.find((s: any) => s.skuId === matchedSku.id);
+              if (sp?.price) price = sp.price;
+            } catch { /* ignore */ }
           }
-          return { skuId: sku.id, bundleId: null, price };
+          return { skuId: matchedSku.id, bundleId: null, price };
         }
       }
 
-      // 尝试查找套装
+      // 尝试匹配套装
       const bundleRes = await bundleApi.list({ name: productName });
       const bundles = bundleRes.data.data || [];
       if (bundles.length > 0) {
-        const bundle = bundles[0];
-        return { skuId: null, bundleId: bundle.id, price: bundle.price || 0 };
+        return { skuId: null, bundleId: bundles[0].id, price: bundles[0].price || 0 };
       }
     } catch (error) {
       console.error('Failed to search products/bundles:', error);
     }
-
     return { skuId: null, bundleId: null, price: 0 };
-  };
-
-  // 补全订单商品信息
-  const completeOrderItems = async (items: any[], ownerId?: string) => {
-    console.log('[completeOrderItems] Input items:', JSON.stringify(items, null, 2));
-    return await Promise.all(
-      items.map(async (item: any) => {
-        console.log('[completeOrderItems] Processing item:', item);
-        const { skuId, bundleId, price } = await findProductOrBundle(item.productName, item, ownerId);
-        console.log('[completeOrderItems] Found skuId:', skuId, 'bundleId:', bundleId);
-        return {
-          skuId,
-          bundleId,
-          price: item.price || price || 0,
-          quantity: item.quantity || 1
-        };
-      })
-    );
-  };
-
-  // 补全入库商品信息
-  const completeInboundItems = async (items: any[]) => {
-    return await Promise.all(
-      items.map(async (item: any) => {
-        let skuId = item.skuId || null;
-        let bundleId = item.bundleId || null;
-
-        if (!skuId && !bundleId) {
-          const { skuId: foundSkuId, bundleId: foundBundleId } = await findProductOrBundle(item.productName, item);
-          skuId = foundSkuId;
-          bundleId = foundBundleId;
-        }
-
-        return {
-          type: item.type || (bundleId ? 'BUNDLE' : 'PRODUCT'),
-          skuId,
-          bundleId,
-          supplierMaterialId: item.supplierMaterialId || null,
-          quantity: item.quantity || 1,
-          locationId: item.locationId || null,
-          skuBatchId: item.skuBatchId || null,
-          bundleBatchId: item.bundleBatchId || null,
-        };
-      })
-    );
   };
 
   const handleSend = async () => {
@@ -521,105 +429,81 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
       let result: any;
 
       if (confirmData.intent === 'create_order') {
-        const skuItems = await completeOrderItems(confirmData.data.items || [], currentOwnerId);
+        const itemsWithDetails = await Promise.all(
+          (confirmData.data.items || []).map(async (item: any) => {
+            const { skuId, bundleId } = await findProductOrBundle(item.productName, item);
+            return {
+              skuId,
+              bundleId,
+              productName: item.productName,
+              spec: item.spec || '标准',
+              packaging: item.packaging || '散装',
+              quantity: Number(item.quantity) || 1,
+            };
+          })
+        );
         const orderData = {
           receiver: confirmData.data.receiver,
           phone: confirmData.data.phone,
           province: confirmData.data.province,
           city: confirmData.data.city,
           address: confirmData.data.address,
-          items: skuItems.map((sku: any, idx: number) => ({
-            skuId: sku.skuId,
-            bundleId: sku.bundleId,
-            productName: confirmData.data.items[idx].productName,
-            spec: confirmData.data.items[idx].spec || '标准',
-            packaging: confirmData.data.items[idx].packaging || '散装',
-            quantity: Number(sku.quantity) || 1,
-          })),
+          items: itemsWithDetails,
         };
-
         const response = await orderApi.create(orderData);
         result = response.data;
-      } else if (confirmData.intent === 'create_purchase_order') {
-        // 查找供应商ID
-        const supplierId = await findSupplierId(confirmData.data.supplierId || 'default-supplier-id');
+      }
 
-        // 查找仓库ID
-        let warehouseId = confirmData.data.warehouseId || undefined;
-        if (warehouseId) {
-          warehouseId = await findWarehouseId(warehouseId);
-        }
+      if (confirmData.intent === 'create_purchase_order') {
+        const supplierId = await findSupplierId(confirmData.data.supplierId || '');
+        const warehouseId = await findWarehouseId(confirmData.data.warehouseId || '');
 
-        // 补全商品信息
         const itemsWithDetails = await Promise.all(
-          confirmData.data.items?.map(async (item: any) => {
-            let skuId = item.skuId || null;
-            let bundleId = item.bundleId || null;
-            let price = item.price || 0;
-
-            if (!skuId && !bundleId) {
-              const { skuId: foundSkuId, bundleId: foundBundleId, price: foundPrice } = await findProductOrBundle(item.productName, item, undefined, supplierId);
-              skuId = foundSkuId;
-              bundleId = foundBundleId;
-              price = foundPrice;
-            } else if (skuId) {
-              // 尝试查找供应商对应的SKU价格
-              try {
-                const supplierProductRes = await supplierProductApi.list({ 
-                  supplierId,
-                  skuId
-                });
-                const supplierProducts = supplierProductRes.data.data || [];
-                if (supplierProducts.length > 0) {
-                  price = supplierProducts[0].price || price;
-                }
-              } catch (error) {
-                console.error('Failed to get supplier product price:', error);
-              }
-            }
-
+          (confirmData.data.items || []).map(async (item: any) => {
+            const { skuId, bundleId, price } = await findProductOrBundle(item.productName, item, supplierId);
             return {
               itemType: item.itemType || (bundleId ? 'BUNDLE' : 'PRODUCT'),
               skuId,
               bundleId,
-              supplierMaterialId: item.supplierMaterialId || undefined,
-              quantity: item.quantity || 1,
-              price,
-              productionDate: item.productionDate || undefined,
-              expireDate: item.expireDate || undefined,
+              quantity: Number(item.quantity) || 1,
+              price: item.price || price || 0,
             };
-          }) || []
+          })
         );
 
         const purchaseData = {
           supplierId,
           warehouseId,
-          orderDate: confirmData.data.orderDate || new Date().toISOString(),
-          expectedDate: confirmData.data.expectedDate || undefined,
+          orderDate: parseDate(confirmData.data.orderDate) || new Date().toISOString(),
+          expectedDate: parseDate(confirmData.data.expectedDate),
           remark: confirmData.data.remark || '',
           items: itemsWithDetails,
         };
-
-        console.log('[AI] Creating purchase order with data:', purchaseData);
         const response = await purchaseOrderApi.create(purchaseData);
         result = response.data;
-      } else if (confirmData.intent === 'create_inbound') {
-        // 查找仓库ID
-        const warehouseId = await findWarehouseId(confirmData.data.warehouseId);
+      }
 
-        // 补全商品信息
-        const itemsWithDetails = await completeInboundItems(confirmData.data.items || []);
+      if (confirmData.intent === 'create_inbound') {
+        const warehouseId = await findWarehouseId(confirmData.data.warehouseId || '');
+
+        const itemsWithDetails = await Promise.all(
+          (confirmData.data.items || []).map(async (item: any) => {
+            const { skuId, bundleId } = await findProductOrBundle(item.productName, item);
+            return {
+              type: item.type || (bundleId ? 'BUNDLE' : 'PRODUCT'),
+              skuId,
+              bundleId,
+              quantity: Number(item.quantity) || 1,
+            };
+          })
+        );
 
         const inboundData = {
           warehouseId,
           source: confirmData.data.source || 'PURCHASE',
           remark: confirmData.data.remark || '',
-          purchaseOrderId: confirmData.data.purchaseOrderId || null,
-          returnOrderId: confirmData.data.returnOrderId || null,
           items: itemsWithDetails,
         };
-
-        console.log('[AI] Creating inbound order with data:', inboundData);
         const response = await inboundApi.create(inboundData);
         result = response.data;
       }
