@@ -453,16 +453,36 @@ export default function Layout() {
           </div>
         </header>
         <main className="p-4 lg:p-6 pt-0">
-          <Suspense fallback={
+          {!user?.isAdmin && owners.length === 0 && !currentOwnerId ? (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-              <span className="mt-2 text-sm text-gray-500">加载中...</span>
+              <div className="text-center">
+                <Building2 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <h2 className="text-xl font-medium text-gray-700 mb-2">暂无主体</h2>
+                <p className="text-gray-500 mb-6">您还没有关联任何主体，请先创建一个主体</p>
+                <button
+                  onClick={() => {
+                    setEditingOwner(null);
+                    setShowOwnerModal(true);
+                  }}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 mx-auto"
+                >
+                  <Plus className="w-5 h-5" />
+                  创建主体
+                </button>
+              </div>
             </div>
-          }>
-            <div key={contentKey}>
-              <Outlet />
-            </div>
-          </Suspense>
+          ) : (
+            <Suspense fallback={
+              <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                <span className="mt-2 text-sm text-gray-500">加载中...</span>
+              </div>
+            }>
+              <div key={contentKey}>
+                <Outlet />
+              </div>
+            </Suspense>
+          )}
         </main>
       </div>
 

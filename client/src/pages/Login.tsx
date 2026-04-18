@@ -24,10 +24,10 @@ export default function Login() {
       setPassword(savedPassword || '');
       setRememberMe(!!savedPassword);
     }
-    
-    const username = searchParams.get('username');
-    if (username) {
-      setUsername(username);
+
+    const urlUsername = searchParams.get('username');
+    if (urlUsername) {
+      setUsername(urlUsername);
     }
   }, [searchParams]);
 
