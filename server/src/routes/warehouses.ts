@@ -23,6 +23,10 @@ const warehouseSchema = z.object({
 
 router.get('/', async (req: Request, res: Response) => {
   try {
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
+
     const { status, ownerId } = req.query;
     const where: any = {};
     if (status) where.status = status;

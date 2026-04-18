@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import PhoneInput from './PhoneInput';
 import AddressInput from './AddressInput';
 import { useAuthStore } from '../stores/auth';
+import { useOwnerStore } from '../stores/owner';
 
 interface OwnerFormData {
   name: string;
@@ -44,6 +45,7 @@ const defaultProductTags = ['生鲜', '食品', '医药', '服装', '电器', '�
 
 export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: OwnerModalProps) {
   const { user } = useAuthStore();
+  const { setCurrentOwner } = useOwnerStore();
   const [formData, setFormData] = useState<OwnerFormData>({
     name: '',
     contact: '',
@@ -123,8 +125,11 @@ export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: O
         await ownerApi.update(editingOwner.id, payload);
         toast.success('主体已更新');
       } else {
-        await ownerApi.create(payload);
+        const res = await ownerApi.create(payload);
         toast.success('主体已创建');
+        if (res.data?.data) {
+          setCurrentOwner(res.data.data.id, res.data.data.name);
+        }
       }
       onSuccess();
       onClose();

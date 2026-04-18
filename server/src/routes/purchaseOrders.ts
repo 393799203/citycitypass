@@ -49,14 +49,18 @@ const deliverySchema = z.object({
 // 获取采购单列表
 router.get('/', async (req, res, next) => {
   try {
-    const { ownerId } = req.query;
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
+
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const status = req.query.status as string;
     const supplierId = req.query.supplierId as string;
+    const ownerId = req.query.ownerId as string;
 
     const where: any = {};
-    if (ownerId) where.ownerId = ownerId as string;
+    if (ownerId) where.ownerId = ownerId;
     if (status) where.status = status;
     if (supplierId) where.supplierId = supplierId;
 

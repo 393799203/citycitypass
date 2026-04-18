@@ -6,11 +6,15 @@ const prisma = new PrismaClient();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
+
     const { keyword, status, ownerId } = req.query;
     const where: Prisma.SupplierWhereInput = {};
 
     if (ownerId) {
-      where.ownerId = String(ownerId);
+      where.ownerId = ownerId as string;
     }
 
     if (keyword) {

@@ -59,6 +59,10 @@ router.post('/add-batch', async (req: Request, res: Response) => {
 
 router.post('/search', async (req: Request, res: Response) => {
   try {
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [] });
+    }
+
     const { query, topK, filters, mode } = req.body;
     const ownerId = req.headers['x-owner-id'] as string;
 
@@ -86,6 +90,10 @@ router.post('/search', async (req: Request, res: Response) => {
 
 router.post('/hybrid-search', async (req: Request, res: Response) => {
   try {
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [] });
+    }
+
     const { query, topK, filters, vectorWeight, keywordWeight } = req.body;
     const ownerId = req.headers['x-owner-id'] as string;
 

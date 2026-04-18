@@ -54,8 +54,11 @@ const orderSchema = z.object({
 
 router.get('/', async (req: Request, res: Response) => {
   try {
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
+
     const { orderNo, ownerId, status, startDate, endDate } = req.query;
-    
     const where: any = {};
     if (orderNo) where.orderNo = { contains: String(orderNo) };
     if (ownerId) where.ownerId = String(ownerId);

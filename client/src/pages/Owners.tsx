@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ownerApi } from '../api';
+import { useOwnerStore } from '../stores/owner';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
@@ -29,6 +30,7 @@ interface Owner {
 
 export default function OwnersPage() {
   const { confirm } = useConfirm();
+  const { setCurrentOwner } = useOwnerStore();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -91,8 +93,11 @@ export default function OwnersPage() {
         await ownerApi.update(editingId, data);
         toast.success('主体更新成功');
       } else {
-        await ownerApi.create(data);
+        const res = await ownerApi.create(data);
         toast.success('主体创建成功');
+        if (res.data?.data) {
+          setCurrentOwner(res.data.data.id, res.data.data.name);
+        }
       }
       setShowModal(false);
       resetForm();

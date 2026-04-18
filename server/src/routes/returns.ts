@@ -6,8 +6,11 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { status, startDate, endDate, page = 1, pageSize = 20, ownerId } = req.query;
+    if ((req as any).ownerAccessDenied) {
+      return success(res, [], 0);
+    }
 
+    const { status, startDate, endDate, page = 1, pageSize = 20, ownerId } = req.query;
     const where: any = {};
     if (ownerId) where.ownerId = ownerId;
     if (status) where.status = status;

@@ -62,6 +62,10 @@ const vehicleSchema = z.object({
 // 获取承运商列表
 router.get('/', async (req, res, next) => {
   try {
+    if ((req as any).ownerAccessDenied) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
+
     const { status, level, type, search, ownerId } = req.query;
     const where: any = {};
     if (status) where.status = status;
