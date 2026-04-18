@@ -40,8 +40,8 @@ function PageLoader() {
 }
 
 function ProtectedRoute() {
-  const { token } = useAuthStore();
-  if (!token) {
+  const { token, user } = useAuthStore();
+  if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
   return <Outlet />;

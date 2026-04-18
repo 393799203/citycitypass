@@ -453,7 +453,7 @@ export default function Layout() {
           </div>
         </header>
         <main className="p-4 lg:p-6 pt-0">
-          {!user?.isAdmin && owners.length === 0 && !currentOwnerId ? (
+          {!user?.isAdmin && !!user && owners.length === 0 && !currentOwnerId ? (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
               <div className="text-center">
                 <Building2 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
