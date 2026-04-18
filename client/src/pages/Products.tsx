@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { productApi, bundleApi, warehouseApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { productApi, bundleApi, warehouseApi, stockApi } from '../api';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -159,8 +159,8 @@ export default function ProductsPage() {
     const fetchProductsByOwner = async () => {
       try {
         const [productRes, bundleRes] = await Promise.all([
-          productApi.list(filterOwner ? { ownerId: filterOwner } : {}),
-          bundleApi.list(filterOwner ? { ownerId: filterOwner } : {}),
+          productApi.list({}),
+          bundleApi.list({}),
         ]);
         if (productRes.data.success) {
           setProducts(productRes.data.data);
@@ -227,13 +227,11 @@ export default function ProductsPage() {
   useEffect(() => {
     const fetchBrandOptions = async () => {
       if (formData.brandId) {
-        const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
         try {
-          const res = await fetch(`/api/products/brands/${formData.brandId}/options`, { headers });
-          const data = await res.json();
-          if (data.success) {
-            setBrandPackagings(data.data.packagings || []);
-            setBrandSpecs(data.data.specs || []);
+          const res = await productApi.getBrandOptions(formData.brandId);
+          if (res.data.success) {
+            setBrandPackagings(res.data.data.packagings || []);
+            setBrandSpecs(res.data.data.specs || []);
           }
         } catch (error) {
           console.error('Fetch brand options error:', error);
@@ -247,13 +245,10 @@ export default function ProductsPage() {
   }, [formData.brandId]);
 
   const fetchBrands = async (categoryId?: string) => {
-    const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
-      const url = categoryId ? `/api/products/brands?categoryId=${categoryId}` : '/api/products/brands';
-      const res = await fetch(url, { headers });
-      const data = await res.json();
-      if (data.success) {
-        setBrands(data.data);
+      const res = await productApi.getBrands(categoryId ? { categoryId } : {});
+      if (res.data.success) {
+        setBrands(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -262,14 +257,13 @@ export default function ProductsPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
       const [productsRes, bundlesRes, categoriesRes, brandsRes, subCategoriesRes, warehousesRes] = await Promise.all([
-        productApi.list(filterOwner ? { ownerId: filterOwner } : {}),
-        bundleApi.list(filterOwner ? { ownerId: filterOwner } : {}),
-        fetch('/api/products/categories', { headers }).then(r => r.json()),
-        fetch('/api/products/brands', { headers }).then(r => r.json()),
-        fetch('/api/products/sub-categories', { headers }).then(r => r.json()),
+        productApi.list({}),
+        bundleApi.list({}),
+        productApi.getCategories(),
+        productApi.getBrands({}),
+        productApi.getSubCategories(),
         warehouseApi.list(),
       ]);
 
@@ -284,9 +278,9 @@ export default function ProductsPage() {
         setSkus(allSkus);
       }
       if (bundlesRes.data.success) setBundles(bundlesRes.data.data);
-      if (categoriesRes.success) setCategories(categoriesRes.data);
-      if (brandsRes.success) setBrands(brandsRes.data);
-      if (subCategoriesRes.success) setSubCategories(subCategoriesRes.data);
+      if (categoriesRes.data.success) setCategories(categoriesRes.data.data);
+      if (brandsRes.data.success) setBrands(brandsRes.data.data);
+      if (subCategoriesRes.data.success) setSubCategories(subCategoriesRes.data.data);
       if (warehousesRes.data.success) setWarehouses(warehousesRes.data.data);
     } catch (error) {
       console.error(error);
@@ -351,12 +345,10 @@ export default function ProductsPage() {
     });
     setEditingId(product.id);
     setShowModal(true);
-    const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
     try {
-      const res = await fetch(`/api/products/brands?categoryId=${product.categoryId}`, { headers });
-      const data = await res.json();
-      if (data.success) {
-        setFilteredBrands(data.data);
+      const res = await productApi.getBrands({ categoryId: product.categoryId });
+      if (res.data.success) {
+        setFilteredBrands(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -494,12 +486,9 @@ export default function ProductsPage() {
     setProductStocks([]);
     setStockLoading(true);
     try {
-      const res = await fetch(`/api/stock/bundle/${bundle.id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setBundleStocks(data.data);
+      const res = await stockApi.getBundleStock(bundle.id);
+      if (res.data.success) {
+        setBundleStocks(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -525,13 +514,9 @@ export default function ProductsPage() {
     setBundleStocks([]);
     setStockLoading(true);
     try {
-      const res = await fetch(`/api/stock/sku/${product.id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      console.log('fetchProductStocks response:', data);
-      if (data.success) {
-        setProductStocks(data.data);
+      const res = await stockApi.getSkuStock(product.id);
+      if (res.data.success) {
+        setProductStocks(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -542,7 +527,7 @@ export default function ProductsPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">商品&套装管理</h1>
         <div className="flex items-center gap-4">

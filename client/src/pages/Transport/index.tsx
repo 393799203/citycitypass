@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Plus, Car, User } from 'lucide-react';
 import { vehicleApi, driverApi, geocodeApi, carrierApi } from '../../api';
@@ -332,7 +332,7 @@ export default function TransportPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">
           运力看板

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api';
 import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, ArrowLeft, Bot } from 'lucide-react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -64,7 +64,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex">
-      <ToastContainer />
+      
       
       {/* 左侧视频/动画区域 */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900">

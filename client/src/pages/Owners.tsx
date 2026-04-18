@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ownerApi } from '../api';
 import { useOwnerStore } from '../stores/owner';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
 import PhoneInput from '../components/PhoneInput';
@@ -184,7 +184,7 @@ export default function OwnersPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">主体管理</h1>

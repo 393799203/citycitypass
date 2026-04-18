@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Users, FileText, MapPin, Phone, Clock } from 'lucide-react';
 import AddressInput from '../components/AddressInput';
@@ -9,6 +9,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
 import { usePermission } from '../hooks/usePermission';
+import { customerApi, contractApi, uploadApi } from '../api';
 
 interface Customer {
   id: string;
@@ -122,18 +123,15 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-      const params = new URLSearchParams();
-      if (filters.channel) params.append('channel', filters.channel);
-      if (filters.level) params.append('level', filters.level);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.search) params.append('search', filters.search);
-      if (filterOwner) params.append('ownerId', filterOwner);
+      const params: any = {};
+      if (filters.channel) params.channel = filters.channel;
+      if (filters.level) params.level = filters.level;
+      if (filters.status) params.status = filters.status;
+      if (filters.search) params.search = filters.search;
 
-      const res = await fetch(`/api/customers?${params}`, { headers });
-      const data = await res.json();
-      if (data.success) {
-        setCustomers(data.data);
+      const res = await customerApi.list(params);
+      if (res.data.success) {
+        setCustomers(res.data.data);
       }
     } catch (error) {
       console.error(error);
@@ -158,22 +156,16 @@ export default function CustomersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = editingId ? `/api/customers/${editingId}` : '/api/customers';
-      const method = editingId ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(editingId ? '更新成功' : '创建成功');
-        setShowModal(false);
-        resetForm();
-        fetchCustomers();
+      if (editingId) {
+        await customerApi.update(editingId, formData);
+        toast.success('更新成功');
       } else {
-        toast.error(data.message);
+        await customerApi.create(formData);
+        toast.success('创建成功');
       }
+      setShowModal(false);
+      resetForm();
+      fetchCustomers();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
     }
@@ -213,15 +205,9 @@ export default function CustomersPage() {
     const ok = await confirm({ message: '确定要删除该客户吗？' });
     if (!ok) return;
     try {
-      const res = await fetch(`/api/customers/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('删除成功');
-        fetchCustomers();
-      }
+      await customerApi.delete(id);
+      toast.success('删除成功');
+      fetchCustomers();
     } catch (error) {
       toast.error('删除失败');
     }
@@ -230,40 +216,34 @@ export default function CustomersPage() {
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = editingContractId ? `/api/contracts/${editingContractId}` : '/api/contracts';
-      const method = editingContractId ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contractForm),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(editingContractId ? '更新成功' : '创建成功');
-        setShowContractModal(false);
-        setContractView('list');
-        setEditingContractId(null);
-        setContractForm({
-          contractNo: '',
-          name: '',
-          customerId: '',
-          startDate: '',
-          endDate: '',
-          amount: '',
-          discount: '',
-          pricingTerms: '',
-          serviceTerms: '',
-          specialTerms: '',
-          status: 'DRAFT' as const,
-          autoRenew: false,
-          fileUrl: '',
-          fileName: '',
-          fileSize: 0,
-        });
-        fetchCustomers();
+      if (editingContractId) {
+        await contractApi.update(editingContractId, contractForm);
+        toast.success('更新成功');
       } else {
-        toast.error(data.message || '操作失败');
+        await contractApi.create(contractForm);
+        toast.success('创建成功');
       }
+      setShowContractModal(false);
+      setContractView('list');
+      setEditingContractId(null);
+      setContractForm({
+        contractNo: '',
+        name: '',
+        customerId: '',
+        startDate: '',
+        endDate: '',
+        amount: '',
+        discount: '',
+        pricingTerms: '',
+        serviceTerms: '',
+        specialTerms: '',
+        status: 'DRAFT' as const,
+        autoRenew: false,
+        fileUrl: '',
+        fileName: '',
+        fileSize: 0,
+      });
+      fetchCustomers();
     } catch (error) {
       toast.error('操作失败');
     }
@@ -295,15 +275,9 @@ export default function CustomersPage() {
     const ok = await confirm({ message: '确定要删除该合同吗？' });
     if (!ok) return;
     try {
-      const res = await fetch(`/api/contracts/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('删除成功');
-        fetchCustomers();
-      }
+      await contractApi.delete(id);
+      toast.success('删除成功');
+      fetchCustomers();
     } catch (error) {
       toast.error('删除失败');
     }
@@ -328,7 +302,7 @@ export default function CustomersPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">客户管理</h1>
@@ -765,13 +739,12 @@ export default function CustomersPage() {
                       try {
                         const formData = new FormData();
                         formData.append('file', file);
-                        const res = await fetch('/api/upload/contract', { method: 'POST', body: formData });
-                        const data = await res.json();
-                        if (data.success) {
-                          setContractForm({ ...contractForm, fileUrl: data.data.fileUrl, fileName: data.data.fileName, fileSize: data.data.fileSize });
+                        const res = await uploadApi.contract(formData);
+                        if (res.data.success) {
+                          setContractForm({ ...contractForm, fileUrl: res.data.data.fileUrl, fileName: res.data.data.fileName, fileSize: res.data.data.fileSize });
                           toast.success('上传成功');
                         } else {
-                          toast.error(data.message || '上传失败');
+                          toast.error(res.data.message || '上传失败');
                         }
                       } catch (error) {
                         toast.error('上传失败');

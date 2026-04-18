@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText, Package } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
@@ -121,7 +121,6 @@ export default function SuppliersPage() {
     setLoading(true);
     try {
       const params: any = {};
-      if (filterOwner) params.ownerId = filterOwner;
       const res = await supplierApi.list(params);
       if (res.data.success) {
         setSuppliers(res.data.data);
@@ -372,7 +371,7 @@ export default function SuppliersPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">供应商管理</h1>

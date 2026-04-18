@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Plus, Pencil, Trash2, X, Loader2, CheckCircle, XCircle, Car, Phone, MapPin, FileText, Edit } from 'lucide-react';
 import { carrierApi } from '../api';
 import { useConfirm } from '../components/ConfirmProvider';
+import OwnerStamp from '../components/OwnerStamp';
+import { usePermission } from '../hooks/usePermission';
+import { useAuthStore } from '../stores/auth';
 import PhoneInput from '../components/PhoneInput';
 import LicensePlateInput from '../components/LicensePlateInput';
 import { useOwnerStore } from '../stores/owner';
-import { usePermission } from '../hooks/usePermission';
 import { formatPhone } from '../utils/format';
-import OwnerStamp from '../components/OwnerStamp';
 
 interface Carrier {
   id: string;
@@ -138,10 +139,8 @@ export default function CarriersPage() {
   const fetchCarriers = async () => {
     setLoading(true);
     try {
-      const params: any = { ...carrierFilters };
-      if (currentOwnerId) {
-        params.ownerId = currentOwnerId;
-      }
+      const { ownerId, ...filters } = carrierFilters;
+      const params: any = { ...filters };
       const res = await carrierApi.list(params);
       if (res.data.success) {
         setCarriers(res.data.data);
@@ -397,8 +396,6 @@ export default function CarriersPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
-
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">承运商管理</h1>
         <div className="flex gap-2">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
 import { useOwnerStore } from '../stores/owner';
 import { stockApi, productApi, warehouseApi, bundleApi } from '../api';
@@ -328,7 +328,7 @@ export default function InventoryPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg shadow p-4">

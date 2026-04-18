@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, MapPin, Package, User } from 'lucide-react';
 import { dispatchApi } from '../api';
@@ -193,7 +193,7 @@ export default function DispatchDetailPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex items-center justify-between mb-6">

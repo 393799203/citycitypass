@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { stockTransferApi, warehouseApi, productApi, bundleApi, stockApi } from '../api';
 import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search, Info, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { usePermission } from '../hooks/usePermission';
 import { useOwnerStore } from '../stores/owner';
@@ -707,7 +707,7 @@ export default function StockTransfers() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">

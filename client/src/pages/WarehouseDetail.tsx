@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { warehouseApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X, Phone, Clock, Edit3, Info } from 'lucide-react';
 import { formatPhone, formatAddress } from '../utils/format';
@@ -323,7 +323,7 @@ export default function WarehouseDetailPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       {tooltip && (
         <div

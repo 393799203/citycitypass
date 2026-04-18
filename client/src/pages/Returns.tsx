@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { returnApi } from '../api';
 import { orderApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Search, RefreshCw } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
@@ -193,7 +193,7 @@ export default function Returns() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">退货管理</h1>
         <button

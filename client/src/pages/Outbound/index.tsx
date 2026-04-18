@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { orderApi, pickOrderApi } from '../../api';
 import { aiApi } from '../../api/ai';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Loader2, Package, CheckCircle, ClipboardList, RefreshCw, Sparkles } from 'lucide-react';
 import { formatPhone, formatAddress } from '../../utils/format';
@@ -243,7 +243,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       
       {aiRecommendOrders && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useOwnerStore } from '../stores/owner';
 import { purchaseOrderApi, supplierApi, warehouseApi, productApi, bundleApi, supplierProductApi, supplierMaterialApi } from '../api';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Search, X, Package, Truck, Check, Eye, Trash2, Edit2, Loader2, Printer, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
@@ -143,7 +143,6 @@ export default function PurchaseOrders() {
       const res = await purchaseOrderApi.list({
         page,
         pageSize: 20,
-        ownerId: currentOwnerId || undefined,
         status: filterStatus || undefined,
       });
       if (res.data.success) {
@@ -468,8 +467,6 @@ export default function PurchaseOrders() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
-
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
           采购单 {id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}

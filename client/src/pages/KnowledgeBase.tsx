@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth';
 import { aiApi } from '../api/ai';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, Search, RefreshCw, Save, X } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 
@@ -556,7 +556,7 @@ export default function KnowledgeBase() {
         </div>
       )}
 
-      <ToastContainer />
+      
     </div>
   );
 }

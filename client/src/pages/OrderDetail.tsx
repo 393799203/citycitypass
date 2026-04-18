@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { orderApi, pickOrderApi, returnApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ArrowLeft, Truck, Package, CheckCircle, Loader2, MapPin, User, Phone, Calendar, Building2, ClipboardList, Pencil, Trash2, Ban, RotateCcw, XCircle } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
@@ -149,7 +149,7 @@ export default function OrderDetail() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       {returnModal?.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

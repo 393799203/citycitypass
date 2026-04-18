@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { returnApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ArrowLeft, Package, Truck, CheckCircle, Warehouse, DollarSign, Phone, FileText, Clock, Pencil, Info } from 'lucide-react';
 import ReturnTrackingModal from '../components/ReturnTrackingModal';
@@ -252,7 +252,7 @@ export default function ReturnDetail() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">

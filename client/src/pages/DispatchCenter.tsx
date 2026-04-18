@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Package, X, Plus, RefreshCw, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { orderApi, vehicleApi, driverApi, dispatchApi, warehouseApi } from '../api';
@@ -280,7 +280,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       
       {aiRecommendOrders && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

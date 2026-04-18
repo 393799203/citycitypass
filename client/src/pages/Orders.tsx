@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { orderApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { orderApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi, contractApi } from '../api';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Filter, ShoppingCart, Package, Truck, CheckCircle, Upload, Download, Ban, PackageCheck, RotateCcw, MapPin, Phone, XCircle, Sparkles, RefreshCw, Search } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
@@ -191,7 +191,7 @@ export default function OrdersPage() {
         }
       });
 
-      customerApi.getContracts(selectedCustomerId).then(res => {
+      contractApi.list({ customerId: selectedCustomerId, status: 'ACTIVE' }).then(res => {
         if (res.data.success && res.data.data.length > 0) {
           const activeContract = res.data.data.find((c: any) => c.status === 'ACTIVE');
           if (activeContract?.discount) {
@@ -495,17 +495,9 @@ export default function OrdersPage() {
     }
   };
 
-  const fetchOwners = async () => {
-    // 不需要调用，Layout 已从 /me 接口获取 owners
-  };
-
   const fetchProducts = async () => {
     try {
       const params: any = {};
-      // 非ADMIN用户按当前主体过滤
-      if (!user?.isAdmin && currentOwnerId) {
-        params.ownerId = currentOwnerId;
-      }
       const res = await productApi.list(params);
       if (res.data.success) {
         setProducts(res.data.data);
@@ -522,10 +514,6 @@ export default function OrdersPage() {
   const fetchWarehouses = async () => {
     try {
       const params: any = { status: 'ACTIVE' };
-      // 非ADMIN用户按当前主体过滤
-      if (!user?.isAdmin && currentOwnerId) {
-        params.ownerId = currentOwnerId;
-      }
       const res = await warehouseApi.list(params);
       if (res.data.success) {
         setWarehouses(res.data.data);
@@ -537,7 +525,6 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    fetchOwners();
     fetchProducts();
     fetchWarehouses();
   }, []);
@@ -545,18 +532,14 @@ export default function OrdersPage() {
   useEffect(() => {
     if (formData.warehouseId) {
       Promise.all([
-        fetch(`/api/products?warehouseId=${formData.warehouseId}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }).then(res => res.json()),
-        fetch(`/api/stock?warehouseId=${formData.warehouseId}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }).then(res => res.json())
+        productApi.list({ warehouseId: formData.warehouseId }),
+        stockApi.list({ warehouseId: formData.warehouseId })
       ]).then(([productsData, stockData]) => {
-        if (productsData.success) {
-          setProducts(productsData.data);
+        if (productsData.data.success) {
+          setProducts(productsData.data.data);
         }
-        if (stockData.success) {
-          const stocks = stockData.data;
+        if (stockData.data.success) {
+          const stocks = stockData.data.data;
           const productStocks = stocks.productStocks || [];
           const bundleStocks = stocks.bundleStocks || [];
           setProducts((prev: any) => prev.map((p: any) => ({
@@ -864,7 +847,7 @@ export default function OrdersPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       {returnModal?.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

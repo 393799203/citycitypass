@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { warehouseApi, ownerApi } from '../api';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
 import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Clock, Zap } from 'lucide-react';
@@ -58,7 +58,7 @@ export default function WarehousesPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const warehouseRes = await warehouseApi.list(filterOwner ? { ownerId: filterOwner } : {});
+      const warehouseRes = await warehouseApi.list({});
       if (warehouseRes.data.success) {
         setWarehouses(warehouseRes.data.data);
       }
@@ -190,7 +190,7 @@ export default function WarehousesPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">仓库管理</h1>
         <div className="flex items-center gap-4">

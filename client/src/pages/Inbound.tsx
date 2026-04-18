@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { warehouseApi, productApi, bundleApi, stockApi, supplierApi } from '../api';
 import { Warehouse, Package, Plus, X, ArrowRight, Trash2, Loader2, Truck, ClipboardCheck, MapPin, Barcode, CheckCircle, Search, Info, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LicensePlateInput from '../components/LicensePlateInput';
 import { usePermission } from '../hooks/usePermission';
@@ -219,7 +219,7 @@ export default function InboundPage() {
   useEffect(() => {
     if (formWarehouseId) {
       const warehouse = warehouses.find((w: any) => w.id === formWarehouseId);
-      loadProducts(warehouse?.ownerId);
+      loadProducts();
       loadZones(formWarehouseId);
     }
   }, [formWarehouseId, warehouses]);
@@ -280,12 +280,11 @@ export default function InboundPage() {
     }
   };
 
-  const loadProducts = async (ownerId?: string) => {
+  const loadProducts = async () => {
     try {
-      const params = ownerId ? { ownerId } : {};
       const [productRes, bundleRes] = await Promise.all([
-        productApi.list(params),
-        bundleApi.list(params),
+        productApi.list({}),
+        bundleApi.list({}),
       ]);
 
       const productItems = (productRes.data.data || []).flatMap((p: any) =>
@@ -878,7 +877,7 @@ export default function InboundPage() {
 
   return (
     <div className="p-2 space-y-6">
-      <ToastContainer />
+      
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">

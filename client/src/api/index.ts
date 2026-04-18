@@ -12,12 +12,20 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
-    if (token) {
+    let token = useAuthStore.getState().token;
+    if (!token || token === 'null') {
+      const authData = localStorage.getItem('auth-storage');
+      token = authData ? JSON.parse(authData).state?.token : null;
+    }
+    if (token && token !== 'null') {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    const ownerId = useOwnerStore.getState().currentOwnerId;
-    if (ownerId) {
+    let ownerId = useOwnerStore.getState().currentOwnerId;
+    if (!ownerId || ownerId === 'null') {
+      const ownerData = localStorage.getItem('owner-storage');
+      ownerId = ownerData ? JSON.parse(ownerData).state?.currentOwnerId : null;
+    }
+    if (ownerId && ownerId !== 'null') {
       config.headers['x-owner-id'] = ownerId;
     }
     return config;
@@ -77,7 +85,24 @@ export const ownerApi = {
 export const customerApi = {
   list: (params?: any) => api.get('/customers', { params }),
   get: (id: string) => api.get(`/customers/${id}`),
-  getContracts: (customerId: string) => api.get(`/customers/${customerId}/contracts`),
+  create: (data: any) => api.post('/customers', data),
+  update: (id: string, data: any) => api.put(`/customers/${id}`, data),
+  delete: (id: string) => api.delete(`/customers/${id}`),
+};
+
+export const contractApi = {
+  list: (params?: any) => api.get('/contracts', { params }),
+  get: (id: string) => api.get(`/contracts/${id}`),
+  create: (data: any) => api.post('/contracts', data),
+  update: (id: string, data: any) => api.put(`/contracts/${id}`, data),
+  delete: (id: string) => api.delete(`/contracts/${id}`),
+};
+
+export const uploadApi = {
+  contract: (formData: FormData) => {
+    const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+    return api.post('/upload/contract', formData, config);
+  },
 };
 
 export const productApi = {
@@ -88,6 +113,8 @@ export const productApi = {
   delete: (id: string) => api.delete(`/products/${id}`),
   getCategories: () => api.get('/products/categories'),
   getBrands: (params?: any) => api.get('/products/brands', { params }),
+  getBrandOptions: (brandId: string) => api.get(`/products/brands/${brandId}/options`),
+  getSubCategories: () => api.get('/products/sub-categories'),
   createCategory: (data: any) => api.post('/products/categories', data),
   createBrand: (data: any) => api.post('/products/brands', data),
   listSkus: (params?: any) => api.get('/products/skus', { params }),
@@ -150,8 +177,10 @@ export const stockApi = {
   updateInboundOrder: (id: string, data: any) => api.put(`/stock/inbound-order/${id}`, data),
   executeInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/execute`),
   cancelInboundOrder: (id: string) => api.put(`/stock/inbound-order/${id}/cancel`),
-  batchList: (params?: { skuId?: string; bundleId?: string; warehouseId?: string }) => api.get('/stock/batch/list', { params }),
+  batchList: (params?: any) => api.get('/stock/batch/list', { params }),
   batchTrace: (batchNo: string) => api.get(`/stock/batch/${batchNo}/trace`),
+  getBundleStock: (bundleId: string) => api.get(`/stock/bundle/${bundleId}`),
+  getSkuStock: (skuId: string) => api.get(`/stock/sku/${skuId}`),
 };
 
 export const inboundApi = {
