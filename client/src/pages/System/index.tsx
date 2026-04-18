@@ -33,7 +33,7 @@ export const SystemManage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, [activeTab, authOwners.length]);
 
   const loadData = async () => {
     setLoading(true);
