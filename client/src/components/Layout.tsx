@@ -160,7 +160,9 @@ export default function Layout() {
     ['/system'].includes(item.path)
   );
 
-  const canGoBack = !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
+  const showOwnerGuard = !user?.isAdmin && !!user && owners.length === 0 && !currentOwnerId;
+
+  const canGoBack = !showOwnerGuard && !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
       '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
       '/carriers', '/dispatch', '/returns', '/purchases', '/system', '/knowledge-base'].includes(location.pathname);
 
@@ -453,7 +455,7 @@ export default function Layout() {
           </div>
         </header>
         <main className="p-4 lg:p-6 pt-0">
-          {!user?.isAdmin && !!user && owners.length === 0 && !currentOwnerId ? (
+          {showOwnerGuard ? (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
               <div className="text-center">
                 <Building2 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
