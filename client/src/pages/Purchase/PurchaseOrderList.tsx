@@ -118,7 +118,7 @@ export default function PurchaseOrderList({
                           </button>
                           <button
                             onClick={() => onDelete(order.id)}
-                            className="px-2 py-1 text-xs text-red-600 hover:underline"
+                            className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                           >
                             删除
                           </button>
