@@ -15,7 +15,7 @@ export const aiConfigs: AIConfig[] = [
   {
     name: 'SiliconFlow',
     apiKey: 'sk-zgplwjaynnfbgmjwvdvtkmpabzhbwwhamxdfusaebuwnlwff',
-    model: 'deepseek-ai/DeepSeek-V3.2',
+    model: 'Qwen/Qwen2.5-VL-72B-Instruct',
     apiUrl: 'https://api.siliconflow.cn/v1/chat/completions'
   }
 ];
