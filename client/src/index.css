@@ -27,3 +27,7 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.fixed {
+  margin-top: 0 !important;
+}
