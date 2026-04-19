@@ -60,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ token: null, user: null, permissions: null, owners: [] });
         localStorage.removeItem('auth-storage');
+        localStorage.removeItem('ai-chat-messages');
       },
       clearAuth: () => set({ token: null, user: null, permissions: null, owners: [] }),
     }),
