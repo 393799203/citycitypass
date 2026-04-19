@@ -14,6 +14,7 @@ interface Message {
   imageUrl?: string;
   structuredData?: AIStructuredData | null;
   error?: AIErrorInfo;
+  confirmed?: boolean;
 }
 
 interface AIErrorInfo {
@@ -61,7 +62,8 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
           return ownerMessages.map((m: any) => ({
             ...m,
             timestamp: new Date(m.timestamp),
-            structuredData: m.structuredData || null
+            structuredData: m.structuredData || null,
+            confirmed: m.confirmed || false
           }));
         }
       }
@@ -81,7 +83,8 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
           setMessages(ownerMessages.map((m: any) => ({
             ...m,
             timestamp: new Date(m.timestamp),
-            structuredData: m.structuredData || null
+            structuredData: m.structuredData || null,
+            confirmed: m.confirmed || false
           })));
         } else {
           setMessages(initialMessages);
@@ -100,6 +103,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showConfirmCard, setShowConfirmCard] = useState(false);
   const [confirmData, setConfirmData] = useState<AIStructuredData | null>(null);
+  const [pendingMsgId, setPendingMsgId] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<'keyword' | 'vector' | 'hybrid'>('hybrid');
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
@@ -390,7 +394,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 ## 重要规则
 1. 如果是仓储相关问题，必须只返回JSON，不要任何其他文字
 2. 数量必须是数字，不是字符串
-3. 地址要拆分：address="详细地址（不含省市）"，province="省份"，city="城市"
+3. 地址要拆分：address="详细地址（不含省市）"，province="省份"，city="城市"，省份和城市要补完整名称
 4. **日期必须使用YYYY-MM-DD格式，如2026-04-17，不要使用"4月30日"、"April 30"等其他格式**
 5. 如果信息不完整，相关字段填null或留空
 6. productName是最重要的字段，必须从用户输入中提取
@@ -423,16 +427,19 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
         const content = chatResponse.data.content;
         const structuredData = parseAIResponse(content);
 
+        const msgId = (Date.now() + 1).toString();
         const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: msgId,
           content: content,
           type: 'ai',
           timestamp: new Date(),
-          structuredData: structuredData
+          structuredData: structuredData,
+          confirmed: structuredData ? false : undefined
         };
         setMessages(prev => [...prev, aiMessage]);
 
         if (structuredData && ['create_order', 'create_purchase_order', 'create_inbound'].includes(structuredData.intent)) {
+          setPendingMsgId(msgId);
           setConfirmData(structuredData);
           setShowConfirmCard(true);
         }
@@ -565,6 +572,13 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
         timestamp: new Date()
       };
       setMessages(prev => [...prev, successMessage]);
+
+      if (result?.success !== false && pendingMsgId) {
+        setMessages(prev => prev.map(m =>
+          m.id === pendingMsgId ? { ...m, confirmed: true } : m
+        ));
+        setPendingMsgId(null);
+      }
     } catch (error: any) {
       let errorMsg = '请重试';
       if (error.response?.data?.message) {

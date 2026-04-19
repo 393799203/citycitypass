@@ -22,6 +22,7 @@ interface Message {
   imageUrl?: string;
   error?: AIErrorInfo;
   structuredData?: AIStructuredData | null;
+  confirmed?: boolean;
 }
 
 interface MessageFlowProps {
@@ -78,9 +79,9 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
 
             {message.structuredData && !message.error && (
               <div
-                className="mb-2 p-3 bg-white rounded border border-purple-200 cursor-pointer hover:bg-purple-50 transition-colors text-sm"
+                className={`mb-2 p-3 bg-white rounded border border-purple-200 ${message.confirmed ? '' : 'cursor-pointer hover:bg-purple-50 transition-colors'} text-sm`}
                 onClick={() => {
-                  // 只在创建订单、入库单、采购单场景下打开确认框
+                  if (message.confirmed) return;
                   if (!['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData?.intent || '')) {
                     return;
                   }
@@ -94,6 +95,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     <div className="flex items-center gap-2 text-purple-700 font-medium">
                       <ShoppingCart className="w-4 h-4" />
                       <span>创建销售订单</span>
+                      {message.confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
                     </div>
                     <div className="text-gray-600 text-xs space-y-0.5">
                       {message.structuredData.data?.receiver && (
@@ -113,7 +115,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                         ))}</div>
                       )}
                     </div>
-                    <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
+                    {!message.confirmed && <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>}
                   </div>
                 )}
                 {message.structuredData.intent === 'create_purchase_order' && (
@@ -121,6 +123,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     <div className="flex items-center gap-2 text-purple-700 font-medium">
                       <ClipboardList className="w-4 h-4" />
                       <span>创建采购订单</span>
+                      {message.confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
                     </div>
                     <div className="text-gray-600 text-xs">
                       {message.structuredData.data?.supplierId && (
@@ -134,7 +137,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                         ))}</div>
                       )}
                     </div>
-                    <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
+                    {!message.confirmed && <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>}
                   </div>
                 )}
                 {message.structuredData.intent === 'create_inbound' && (
@@ -142,6 +145,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     <div className="flex items-center gap-2 text-purple-700 font-medium">
                       <Package className="w-4 h-4" />
                       <span>创建入库单</span>
+                      {message.confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
                     </div>
                     <div className="text-gray-600 text-xs">
                       {message.structuredData.data?.warehouseId && (
@@ -158,7 +162,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                         ))}</div>
                       )}
                     </div>
-                    <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>
+                    {!message.confirmed && <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>}
                   </div>
                 )}
                 {(message.structuredData.intent === 'query' || !['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData.intent)) && (
