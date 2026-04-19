@@ -31,7 +31,7 @@ export interface AICallResult {
   error?: AIError;
 }
 
-export async function callAI(prompt: string): Promise<AICallResult> {
+export async function callAI(prompt: string, history?: Array<{role: string; content: string}>): Promise<AICallResult> {
   logContent = '';
 
   appendLog('========== AI 调用开始 ==========');
@@ -41,9 +41,20 @@ export async function callAI(prompt: string): Promise<AICallResult> {
 
   try {
     const url = aiConfig.apiUrl;
+    const messages: Array<{role: string; content: string}> = [];
+    
+    if (history && history.length > 0) {
+      appendLog('【历史消息】共 ' + history.length + ' 条:');
+      for (const h of history) {
+        messages.push({ role: h.role, content: h.content });
+        appendLog(`  [${h.role}]: ${h.content.substring(0, 100)}${h.content.length > 100 ? '...' : ''}`);
+      }
+    }
+    messages.push({ role: 'user', content: prompt });
+    
     const body = JSON.stringify({
       model: aiConfig.model,
-      messages: [{ role: 'user', content: prompt }],
+      messages,
       temperature: 0.3,
     });
 

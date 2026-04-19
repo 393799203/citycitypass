@@ -14,13 +14,13 @@ router.get('/health', (req, res) => {
 
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, history } = req.body;
 
     if (!prompt || typeof prompt !== 'string') {
       return res.status(400).json({ success: false, message: 'Invalid prompt format' });
     }
 
-    const result = await callAI(prompt);
+    const result = await callAI(prompt, history);
 
     if (!result.success) {
       return res.status(200).json({

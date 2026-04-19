@@ -407,9 +407,17 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
 5. productName是最重要的字段，必须从用户输入中提取
 6. 【查询类问题-价格】当用户询问进货价/采购价格时：必须从知识库中找到"采购价格"或"进货"相关的数据`;
 
+      const history = messages
+        .filter(m => m.type !== 'system')
+        .slice(-2)
+        .map(m => ({
+          role: m.type === 'user' ? 'user' : 'assistant',
+          content: m.content
+        }));
+
       const fullPrompt = `${systemPrompt}\n\n【用户问题】\n${input}`;
 
-      const chatResponse = await aiApi.chat(fullPrompt);
+      const chatResponse = await aiApi.chat(fullPrompt, history);
 
       if (chatResponse.success && chatResponse.data?.content) {
         const content = chatResponse.data.content;
