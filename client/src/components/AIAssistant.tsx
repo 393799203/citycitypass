@@ -49,14 +49,16 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       timestamp: new Date()
     }
   ];
+  const ownerId = currentOwnerId || 'global';
 
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const saved = localStorage.getItem('ai-chat-messages');
-      if (saved && saved !== '[]') {
+      if (saved && saved !== '{}') {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((m: any) => ({
+        const ownerMessages = parsed[ownerId];
+        if (ownerMessages && Array.isArray(ownerMessages) && ownerMessages.length > 0) {
+          return ownerMessages.map((m: any) => ({
             ...m,
             timestamp: new Date(m.timestamp),
             structuredData: m.structuredData || null
@@ -68,6 +70,31 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     }
     return initialMessages;
   });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ai-chat-messages');
+      if (saved && saved !== '{}') {
+        const parsed = JSON.parse(saved);
+        const ownerMessages = parsed[ownerId];
+        if (ownerMessages && Array.isArray(ownerMessages) && ownerMessages.length > 0) {
+          setMessages(ownerMessages.map((m: any) => ({
+            ...m,
+            timestamp: new Date(m.timestamp),
+            structuredData: m.structuredData || null
+          })));
+        } else {
+          setMessages(initialMessages);
+        }
+      } else {
+        setMessages(initialMessages);
+      }
+    } catch (e) {
+      console.error('[AI] Reload error:', e);
+      setMessages(initialMessages);
+    }
+  }, [currentOwnerId]);
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
@@ -104,17 +131,33 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   }, [isOpen]);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      const trimmed = messages.slice(-100);
-      localStorage.setItem('ai-chat-messages', JSON.stringify(trimmed));
-    } else {
-      localStorage.removeItem('ai-chat-messages');
+    try {
+      const saved = localStorage.getItem('ai-chat-messages');
+      const allMessages = saved ? JSON.parse(saved) : {};
+      if (messages.length > 0) {
+        const trimmed = messages.slice(-100);
+        allMessages[ownerId] = trimmed;
+      } else {
+        delete allMessages[ownerId];
+      }
+      localStorage.setItem('ai-chat-messages', JSON.stringify(allMessages));
+    } catch (e) {
+      console.error('[AI] Save error:', e);
     }
-  }, [messages]);
+  }, [messages, ownerId]);
 
   const clearMessages = () => {
-    setMessages([]);
-    localStorage.removeItem('ai-chat-messages');
+    setMessages(initialMessages);
+    try {
+      const saved = localStorage.getItem('ai-chat-messages');
+      if (saved) {
+        const allMessages = JSON.parse(saved);
+        delete allMessages[ownerId];
+        localStorage.setItem('ai-chat-messages', JSON.stringify(allMessages));
+      }
+    } catch (e) {
+      console.error('[AI] Clear error:', e);
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -745,6 +788,15 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
               <h3 className="font-semibold">AI智能助手</h3>
             </div>
             <div className="flex items-center gap-1">
+              {messages.length > 1 && (
+                <button
+                  onClick={clearMessages}
+                  className="text-white hover:bg-white/20 p-1 rounded transition-colors"
+                  title="清除聊天记录"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
                 className="text-white hover:bg-white/20 p-1 rounded transition-colors"
@@ -756,18 +808,10 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
                   <Minus className="w-4 h-4" />
                 )}
               </button>
-              {messages.length > 0 && (
-                <button
-                  onClick={clearMessages}
-                  className="text-white hover:bg-white/20 p-1 rounded transition-colors"
-                  title="清除聊天记录"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
               <button
                 onClick={() => { setIsOpen(false); onUnload?.(); }}
                 className="text-white hover:bg-white/20 p-1 rounded transition-colors"
+                title="关闭"
               >
                 <X className="w-4 h-4" />
               </button>
