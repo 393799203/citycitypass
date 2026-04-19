@@ -322,9 +322,7 @@ export default function WarehouseDetailPage() {
   }
 
   return (
-    <div className="p-2 space-y-6">
-      
-
+    <div>
       {tooltip && (
         <div
           className="fixed bg-gray-900 text-white text-xs rounded-xl p-3 min-w-[220px] shadow-xl z-[9999] pointer-events-none"
