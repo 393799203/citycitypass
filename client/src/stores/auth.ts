@@ -5,7 +5,9 @@ import { authApi } from '../api';
 interface OwnerInfo {
   id: string;
   name: string;
-  role: string;
+  roleId: string;
+  roleCode?: string;
+  roleName?: string;
 }
 
 interface User {

@@ -147,15 +147,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN                    // 系统管理员 - 跨所有主体，拥有最高权限
-  OWNER                    // 主体拥有者 - 该主体的最高权限
-  MANAGER                  // 管理员 - 某主体内的全部权限
-  WAREHOUSE_MANAGER        // 仓储管理
-  TRANSPORT_MANAGER        // 运力管理
-  AFTER_SALES_MANAGER      // 售后管理
-  GUEST                    // 访客
-}
 
 enum PermissionType {
   READ     // 只读
@@ -196,9 +187,10 @@ model UserOwner {
   id        String   @id @default(uuid())
   userId    String
   ownerId   String
-  role      UserRole // 用户对该主体的角色
+  roleId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   owner     Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id])
   createdAt DateTime @default(now())
 
   @@unique([userId, ownerId])
@@ -220,6 +212,8 @@ model Role {
   isDefault   Boolean  @default(false)  // 是否为默认角色
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  userOwners  UserOwner[]
 }
 
 model Owner {

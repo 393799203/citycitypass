@@ -7,28 +7,6 @@ export interface MenuItem {
   module: MenuModule;
   permission: string;
   label: string;
-}
-
-export const MENU_PERMISSIONS: Record<string, MenuModule> = {
-  // 业务模块
-  '/orders': 'business',
-  '/outbound': 'business',
-  '/dispatch': 'business',
-  '/returns': 'business',
-  '/inventory': 'business',
-  '/batch-trace': 'business',
-  '/purchases': 'business',
-  '/inbound': 'business',
-  '/stock-transfers': 'business',
-  '/transport': 'business',
-  // 配置模块
-  '/warehouses': 'config',
-  '/products': 'config',
-  '/customers': 'config',
-  '/suppliers': 'config',
-  '/carriers': 'config',
-  // 系统模块
-  '/system': 'system',
 };
 
 export const MENU_ITEMS: MenuItem[] = [

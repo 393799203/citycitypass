@@ -107,6 +107,7 @@ const statusOptions = [
   { value: 'DELIVERED', label: '已送达' },
   { value: 'COMPLETED', label: '已完成' },
   { value: 'RETURNING', label: '退货中' },
+  { value: 'RETURNED', label: '已退款' },
   { value: 'CANCELLED', label: '已取消' },
 ];
 

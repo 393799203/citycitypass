@@ -146,7 +146,7 @@ router.get('/me', async (req: Request, res: Response) => {
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
       });
-      owners = allOwners.map(o => ({ ...o, role: 'ADMIN' }));
+      owners = allOwners.map(o => ({ ...o, roleId: null }));
       userRoleCode = 'ADMIN';
     } else {
       // 其他用户只能看到自己所属的主体（通过UserOwner关联）
@@ -155,24 +155,29 @@ router.get('/me', async (req: Request, res: Response) => {
         include: {
           owner: {
             select: { id: true, name: true },
+          },
+          role: {
+            select: { id: true, code: true, name: true },
           }
         }
       });
       owners = userOwners.map(uo => ({
         id: uo.owner.id,
         name: uo.owner.name,
-        role: uo.role,
+        roleId: uo.role?.id,
+        roleCode: uo.role?.code,
+        roleName: uo.role?.name,
       }));
       // 如果指定了currentOwnerId，使用该主体的角色
       if (currentOwnerId) {
         const currentOwner = owners.find(o => o.id === currentOwnerId);
         if (currentOwner) {
-          userRoleCode = currentOwner.role;
+          userRoleCode = currentOwner.roleCode;
         } else if (owners.length > 0) {
-          userRoleCode = owners[0].role;
+          userRoleCode = owners[0].roleCode;
         }
       } else if (owners.length > 0) {
-        userRoleCode = owners[0].role;
+        userRoleCode = owners[0].roleCode;
       }
     }
 

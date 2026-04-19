@@ -77,7 +77,9 @@ export interface User {
   owners?: Array<{
     ownerId: string;
     ownerName: string;
-    role: string;
+    roleId: string;
+    roleCode: string;
+    roleName: string;
   }>;
   createdAt: string;
   updatedAt: string;

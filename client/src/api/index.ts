@@ -69,7 +69,7 @@ export const userApi = {
   update: (id: string, data: any) => api.put(`/permissions/users/${id}`, data),
   delete: (id: string) => api.delete(`/permissions/users/${id}`),
   removeOwner: (userId: string, ownerId: string) => api.delete(`/permissions/users/${userId}/owner/${ownerId}`),
-  addOwner: (userId: string, data: { ownerId: string; role: string }) => api.post(`/permissions/users/${userId}/owner`, data),
+  addOwner: (userId: string, data: { ownerId: string; roleId: string }) => api.post(`/permissions/users/${userId}/owner`, data),
   register: (data: any) => api.post('/auth/register', data),
 };
 

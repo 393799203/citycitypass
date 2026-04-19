@@ -44,9 +44,15 @@ export const SystemManage: React.FC = () => {
           setRoles(rolesRes.data.data);
         }
       } else if (activeTab === 'users') {
-        const usersRes = await userApi.list();
+        const [usersRes, rolesRes] = await Promise.all([
+          userApi.list(),
+          permissionApi.getRoles()
+        ]);
         if (usersRes.data.success) {
           setUsers(usersRes.data.data);
+        }
+        if (rolesRes.data.success) {
+          setRoles(rolesRes.data.data);
         }
       } else if (activeTab === 'members' && currentOwnerId) {
         const [usersRes, rolesRes] = await Promise.all([
@@ -81,9 +87,9 @@ export const SystemManage: React.FC = () => {
     }
   };
 
-  const handleAddMember = async (userId: string, role: string) => {
+  const handleAddMember = async (userId: string, roleId: string) => {
     try {
-      const res = await userApi.addOwner(userId, { ownerId: currentOwnerId!, role });
+      const res = await userApi.addOwner(userId, { ownerId: currentOwnerId!, roleId });
       if (res.data.success) {
         setShowAddMemberModal(false);
         loadData();
@@ -303,8 +309,8 @@ export const SystemManage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {[...ownerMembers].sort((a, b) => {
-                    const aRole = a.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role;
-                    const bRole = b.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role;
+                    const aRole = a.owners?.find((o: any) => o.ownerId === currentOwnerId)?.roleCode;
+                    const bRole = b.owners?.find((o: any) => o.ownerId === currentOwnerId)?.roleCode;
                     if (aRole === 'OWNER' && bRole !== 'OWNER') return -1;
                     if (aRole !== 'OWNER' && bRole === 'OWNER') return 1;
                     return 0;
@@ -315,11 +321,11 @@ export const SystemManage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{formatPhone(member.phone)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded text-xs ${
-                          member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role === 'OWNER'
+                          member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.roleCode === 'OWNER'
                             ? 'bg-purple-100 text-purple-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>
-                          {roles.find(r => r.code === member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role)?.name || member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.role || '-'}
+                          {member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.roleName || member.owners?.find((o: any) => o.ownerId === currentOwnerId)?.roleCode || '-'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">
@@ -374,10 +380,11 @@ export const SystemManage: React.FC = () => {
           }}
           onDelete={handleDeleteRole}
           canWrite={canWrite}
+          isAdmin={currentUser?.isAdmin}
         />
       )}
 
-      {showRoleModal && editingRole && (
+      {showRoleModal && (
         <RoleModal
           role={editingRole}
           onSave={handleSaveRole}
@@ -386,6 +393,7 @@ export const SystemManage: React.FC = () => {
             setEditingRole(undefined);
           }}
           canWrite={canWrite}
+          isAdmin={currentUser?.isAdmin}
         />
       )}
 
@@ -393,6 +401,7 @@ export const SystemManage: React.FC = () => {
         <UserModal
           user={editingUser}
           owners={authOwners}
+          roles={roles}
           onSave={handleSaveUser}
           onClose={() => {
             setShowUserModal(false);
@@ -408,6 +417,7 @@ export const SystemManage: React.FC = () => {
       {showAddMemberModal && (
         <AddMemberModal
           users={availableUsers}
+          roles={roles}
           onAdd={handleAddMember}
           onClose={() => setShowAddMemberModal(false)}
           onOpen={() => { fetchAvailableUsers(); }}
@@ -419,12 +429,13 @@ export const SystemManage: React.FC = () => {
 
 interface AddMemberModalProps {
   users: any[];
+  roles: Role[];
   onAdd: (userId: string, role: string) => void;
   onClose: () => void;
   onOpen: () => void;
 }
 
-const AddMemberModal: React.FC<AddMemberModalProps> = ({ users, onAdd, onClose, onOpen }) => {
+const AddMemberModal: React.FC<AddMemberModalProps> = ({ users, roles, onAdd, onClose, onOpen }) => {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<string>('MANAGER');
 
@@ -471,11 +482,10 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ users, onAdd, onClose, 
                 onChange={e => setSelectedRole(e.target.value)}
                 className="w-full px-3 py-2 border rounded-md"
               >
-                <option value="MANAGER">管理员</option>
-                <option value="WAREHOUSE_MANAGER">仓库管理员</option>
-                <option value="TRANSPORT_MANAGER">运输管理员</option>
-                <option value="AFTER_SALES_MANAGER">售后管理员</option>
-                <option value="GUEST">访客</option>
+                <option value="">请选择角色</option>
+                {roles.filter(r => r.code !== 'ADMIN').map(role => (
+                  <option key={role.id} value={role.id}>{role.name}</option>
+                ))}
               </select>
             </div>
           </div>

@@ -37,16 +37,7 @@ import {
   Truck,
 } from 'lucide-react';
 
-import { MENU_ITEMS } from '../constants/menuPermissions';
-
-const roleMap: Record<string, string> = {
-  ADMIN: '系统管理员',
-  MANAGER: '管理员',
-  WAREHOUSE_MANAGER: '仓储管理',
-  TRANSPORT_MANAGER: '运力管理',
-  AFTER_SALES_MANAGER: '售后管理',
-  GUEST: '访客',
-};
+import { MENU_ITEMS } from '../constants/menus';
 
 const MenuIconMap: Record<string, any> = {
   '/orders': ShoppingCart,
@@ -368,7 +359,7 @@ export default function Layout() {
                             {o.name}
                           </button>
                           <div className="flex items-center gap-0.5">
-                            {o.role === 'OWNER' && (
+                            {o.roleCode === 'OWNER' && (
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
@@ -434,8 +425,8 @@ export default function Layout() {
             <div className="h-6 w-px bg-gray-200" />
             <span className="text-sm text-gray-600">
               {user?.isAdmin ? '系统管理员' : (() => {
-                const currentOwnerRole = authOwners.find(o => o.id === currentOwnerId)?.role;
-                return ROLE_NAMES[currentOwnerRole || ''] || currentOwnerRole || '';
+                const currentOwnerRole = authOwners.find(o => o.id === currentOwnerId);
+                return currentOwnerRole?.roleName || currentOwnerRole?.roleCode || '';
               })()}：{user?.name}
             </span>
             <NavLink

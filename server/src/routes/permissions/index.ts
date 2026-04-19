@@ -126,7 +126,7 @@ router.delete('/roles/:id', async (req: Request, res: Response) => {
 
     // 检查是否有用户关联该角色
     const usersWithRole = await prisma.userOwner.count({
-      where: { role: role.code }
+      where: { roleId: role.id }
     });
     if (usersWithRole > 0) {
       return res.status(400).json({ success: false, message: '该角色下有用户关联，无法删除' });
@@ -181,6 +181,13 @@ router.get('/users', async (req: Request, res: Response) => {
                 id: true,
                 name: true,
               }
+            },
+            role: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              }
             }
           }
         },
@@ -201,7 +208,9 @@ router.get('/users', async (req: Request, res: Response) => {
       owners: user.userOwners.map(uo => ({
         ownerId: uo.owner.id,
         ownerName: uo.owner.name,
-        role: uo.role,
+        roleId: uo.role?.id,
+        roleCode: uo.role?.code,
+        roleName: uo.role?.name,
       })),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -295,8 +304,8 @@ router.post('/users',
       // 加密密码
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // ownerRoles: [{ownerId, role}] 或者简单的 ownerIds 字符串（默认 MANAGER 角色）
-      let userOwnerData: { ownerId: string; role: string }[] = [];
+      // ownerRoles: [{ownerId, roleId}]
+      let userOwnerData: { ownerId: string; roleId: string }[] = [];
       if (ownerRoles && Array.isArray(ownerRoles)) {
         userOwnerData = ownerRoles;
       } else if (req.body.ownerIds) {
@@ -305,7 +314,7 @@ router.post('/users',
           : req.body.ownerIds;
         userOwnerData = ownerIdArray.map((ownerId: string) => ({
           ownerId,
-          role: 'MANAGER' // 默认角色
+          roleId: req.body.defaultRoleId || undefined
         }));
       }
 
@@ -346,8 +355,8 @@ router.put('/users/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, isAdmin, phone, email, ownerRoles } = req.body;
 
-    // ownerRoles: [{ownerId, role}] 或者简单的 ownerIds 字符串（默认 MANAGER 角色）
-    let userOwnerData: { ownerId: string; role: string }[] = [];
+    // ownerRoles: [{ownerId, roleId}]
+    let userOwnerData: { ownerId: string; roleId: string }[] = [];
     if (ownerRoles && Array.isArray(ownerRoles)) {
       userOwnerData = ownerRoles;
     } else if (req.body.ownerIds) {
@@ -356,7 +365,7 @@ router.put('/users/:id', async (req: Request, res: Response) => {
         : req.body.ownerIds;
       userOwnerData = ownerIdArray.map((ownerId: string) => ({
         ownerId,
-        role: 'MANAGER'
+        roleId: req.body.defaultRoleId || undefined
       }));
     }
 
@@ -388,10 +397,10 @@ router.put('/users/:id', async (req: Request, res: Response) => {
     // 创建新的主体关联
     if (userOwnerData.length > 0) {
       await prisma.userOwner.createMany({
-        data: userOwnerData.map((uo: { ownerId: string; role: string }) => ({
+        data: userOwnerData.map((uo: { ownerId: string; roleId: string }) => ({
           userId: id,
           ownerId: uo.ownerId,
-          role: uo.role,
+          roleId: uo.roleId,
         })),
       });
     }

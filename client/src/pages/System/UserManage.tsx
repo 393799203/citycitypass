@@ -10,12 +10,15 @@ const ALL_ROLES = ['OWNER', 'MANAGER', 'WAREHOUSE_MANAGER', 'TRANSPORT_MANAGER',
 interface OwnerRole {
   ownerId: string;
   ownerName: string;
-  role: string;
+  roleId: string;
+  roleCode?: string;
+  roleName?: string;
 }
 
 interface UserModalProps {
   user?: User;
   owners: Owner[];
+  roles?: Role[];
   onSave: (data: any) => void;
   onClose: () => void;
   isMemberMode?: boolean;
@@ -27,6 +30,7 @@ interface UserModalProps {
 export const UserModal: React.FC<UserModalProps> = ({
   user,
   owners,
+  roles,
   onSave,
   onClose,
   isMemberMode = false,
@@ -39,17 +43,20 @@ export const UserModal: React.FC<UserModalProps> = ({
   const getInitialOwnerRoles = (): OwnerRole[] => {
     if (isMemberMode && currentOwnerId && currentOwnerName) {
       const existingRole = user?.owners?.find(o => o.ownerId === currentOwnerId);
+      const defaultRoleId = roles && roles.length > 0 ? roles.find(r => r.code === 'MANAGER')?.id || roles[0].id : '';
       return [{
         ownerId: currentOwnerId,
         ownerName: currentOwnerName,
-        role: existingRole?.role || 'MANAGER'
+        roleId: existingRole?.roleId || defaultRoleId
       }];
     }
     if (user?.owners && user.owners.length > 0) {
       return user.owners.map(o => ({
         ownerId: o.ownerId,
         ownerName: o.ownerName,
-        role: o.role,
+        roleId: o.roleId,
+        roleCode: o.roleCode,
+        roleName: o.roleName,
       }));
     }
     return [];
@@ -77,9 +84,9 @@ export const UserModal: React.FC<UserModalProps> = ({
     onSave(dataToSave);
   };
 
-  const updateOwnerRole = (ownerId: string, role: string) => {
+  const updateOwnerRole = (ownerId: string, roleId: string) => {
     setOwnerRoles(prev =>
-      prev.map(or => or.ownerId === ownerId ? { ...or, role } : or)
+      prev.map(or => or.ownerId === ownerId ? { ...or, roleId } : or)
     );
   };
 
@@ -89,7 +96,8 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   const addOwnerRole = (ownerId: string, ownerName: string) => {
     if (!ownerRoles.find(or => or.ownerId === ownerId)) {
-      setOwnerRoles(prev => [...prev, { ownerId, ownerName, role: 'MANAGER' }]);
+      const defaultRoleId = roles && roles.length > 0 ? roles.find(r => r.code === 'MANAGER')?.id || roles[0].id : '';
+      setOwnerRoles(prev => [...prev, { ownerId, ownerName, roleId: defaultRoleId }]);
     }
   };
 
@@ -172,12 +180,14 @@ export const UserModal: React.FC<UserModalProps> = ({
                         <div key={or.ownerId} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded">
                           <span className="text-sm text-gray-700 flex-1">{or.ownerName}</span>
                           <select
-                            value={or.role}
+                            value={or.roleId}
                             onChange={e => updateOwnerRole(or.ownerId, e.target.value)}
                             className="px-2 py-1 text-sm border rounded"
                           >
-                            {ALL_ROLES.map(r => (
-                              <option key={r} value={r}>{ROLE_NAMES[r] || r}</option>
+                            {(roles && roles.length > 0 ? roles.filter(r => r.code !== 'ADMIN') : ALL_ROLES.filter(r => r !== 'ADMIN')).map(r => (
+                              <option key={typeof r === 'string' ? r : r.id} value={typeof r === 'string' ? r : r.id}>
+                                {typeof r === 'string' ? (ROLE_NAMES[r] || r) : r.name}
+                              </option>
                             ))}
                           </select>
                           {!isMemberMode && (
@@ -310,8 +320,8 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                   ) : (ownerCount > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {user.owners!.map(o => (
-                        <span key={o.ownerId} className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ROLE_COLORS[o.role]?.bg || 'bg-gray-100'} ${ROLE_COLORS[o.role]?.text || 'text-gray-800'}`}>
-                          {o.ownerName}: {ROLE_NAMES[o.role] || o.role}
+                        <span key={o.ownerId} className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${ROLE_COLORS[o.roleCode]?.bg || 'bg-gray-100'} ${ROLE_COLORS[o.roleCode]?.text || 'text-gray-800'}`}>
+                          {o.ownerName}: {o.roleName || o.roleCode}
                         </span>
                       ))}
                     </div>
