@@ -80,9 +80,12 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    let userOwnerData: { ownerId: string; role: string }[] = [];
+    let userOwnerData: { ownerId: string; roleId: string }[] = [];
     if (ownerRoles && Array.isArray(ownerRoles)) {
-      userOwnerData = ownerRoles;
+      userOwnerData = ownerRoles.map((r: any) => ({
+        ownerId: r.ownerId,
+        roleId: r.roleId,
+      }));
     }
 
     const user = await prisma.user.create({
@@ -94,10 +97,13 @@ router.post('/register', async (req: Request, res: Response) => {
         phone,
         email,
         userOwners: userOwnerData.length > 0 ? {
-          create: userOwnerData,
+          create: userOwnerData.map(data => ({
+            ownerId: data.ownerId,
+            roleId: data.roleId,
+          })) as any,
         } : undefined,
       },
-    });
+    } as any);
 
     res.json({ success: true, data: { id: user.id, username: user.username, name: user.name, isAdmin: user.isAdmin } });
   } catch (error) {
