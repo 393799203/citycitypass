@@ -385,10 +385,6 @@ export default function OrdersPage() {
           }
         }
 
-        if (item.packaging || item.spec) {
-          return null;
-        }
-
         const bundleRes = await bundleApi.list({ name: item.productName });
         const bundles = bundleRes.data.data || [];
         console.log(`搜索套装: ${item.productName}, 找到 ${bundles.length} 个`);
