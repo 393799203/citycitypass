@@ -37,6 +37,7 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
           <span className={`px-2 py-0.5 text-xs rounded-full ${
             pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
             pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
+            pickOrder.status === 'CANCELLED' ? 'bg-gray-500 text-white' :
             'bg-green-600 text-white'
           }`}>
             {pickStatusMap[pickOrder.status]}

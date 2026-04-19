@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
-import { ROLE_PERMISSIONS } from '../constants/permissions';
 
 const router = Router();
 

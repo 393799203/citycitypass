@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient, UserRole } from '@prisma/client';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
-import { DEFAULT_ROLES } from '../../constants/permissions';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -141,26 +140,6 @@ router.delete('/roles/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('删除角色失败:', error);
     res.status(500).json({ success: false, message: '删除角色失败' });
-  }
-});
-
-// 初始化默认角色
-router.post('/roles/init', async (req: Request, res: Response) => {
-  try {
-    const existingRoles = await prisma.role.findMany();
-    if (existingRoles.length > 0) {
-      return res.status(400).json({ success: false, message: '角色已存在，无需初始化' });
-    }
-
-    // 创建默认角色
-    const createdRoles = await prisma.role.createMany({
-      data: DEFAULT_ROLES
-    });
-
-    res.json({ success: true, data: createdRoles, message: '默认角色初始化成功' });
-  } catch (error) {
-    console.error('初始化默认角色失败:', error);
-    res.status(500).json({ success: false, message: '初始化默认角色失败' });
   }
 });
 

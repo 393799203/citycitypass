@@ -70,7 +70,7 @@ app.use('/api/sku-batches', authMiddleware, ownerMiddleware, skuBatchRoutes);
 app.use('/api/bundle-batches', authMiddleware, ownerMiddleware, bundleBatchRoutes);
 app.use('/api/purchase-orders', authMiddleware, ownerMiddleware, purchaseOrderRoutes);
 app.use('/api/ai', authMiddleware, ownerMiddleware, aiRoutes);
-app.use('/api/permissions', authMiddleware, permissionRoutes);
+app.use('/api/permissions', authMiddleware, ownerMiddleware, permissionRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

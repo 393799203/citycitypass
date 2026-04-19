@@ -58,7 +58,7 @@ export default function PurchaseOrderList({
             <tr className="text-center">
               <th className="px-4 py-3 text-base font-medium text-gray-500">采购单号</th>
               <th className="px-4 py-3 text-base font-medium text-gray-500">供应商</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">商品数</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">SKU数</th>
               <th className="px-4 py-3 text-base font-medium text-gray-500">总金额</th>
               <th className="px-4 py-3 text-base font-medium text-gray-500">下单日期</th>
               <th className="px-4 py-3 text-base font-medium text-gray-500">期望到货</th>

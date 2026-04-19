@@ -46,20 +46,3 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     return res.status(401).json({ success: false, message: 'Token无效或已过期' });
   }
 }
-
-export function ownerDataMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: '未登录或登录已过期' });
-  }
-
-  // ADMIN可以看到所有数据，不需要添加ownerId过滤
-  if (req.user.isAdmin) {
-    return next();
-  }
-
-  // 其他角色只能看到自己主体的数据
-  // 在后续的查询中会自动带上ownerId过滤
-  // 这里只是标记，需要在具体的查询中添加
-
-  next();
-}
