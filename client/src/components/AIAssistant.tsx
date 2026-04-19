@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCart, Package, ClipboardList, AlertCircle, Minus, GripVertical, Square, Trash2 } from 'lucide-react';
-import ImageUploader from './ImageUploader';
+import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCart, Package, ClipboardList, AlertCircle, GripVertical, Trash2 } from 'lucide-react';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
 import { orderApi, purchaseOrderApi, productApi, bundleApi, inboundApi, warehouseApi, supplierApi, supplierProductApi } from '../api';
@@ -11,7 +10,7 @@ interface Message {
   content: string;
   type: 'user' | 'ai' | 'system';
   timestamp: Date;
-  imageUrl?: string;
+  imageUrls?: string[];
   structuredData?: AIStructuredData | null;
   error?: AIErrorInfo;
   confirmed?: boolean;
@@ -37,7 +36,6 @@ interface AIAssistantProps {
 
 export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const [isMinimized, setIsMinimized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
   const currentOwnerId = useOwnerStore((state) => state.currentOwnerId);
@@ -100,11 +98,12 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showImageUpload, setShowImageUpload] = useState(false);
   const [showConfirmCard, setShowConfirmCard] = useState(false);
   const [confirmData, setConfirmData] = useState<AIStructuredData | null>(null);
   const [pendingMsgId, setPendingMsgId] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<'keyword' | 'vector' | 'hybrid'>('hybrid');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
 
@@ -112,13 +111,13 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
     if (isOpen && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [messages, isOpen, showConfirmCard]);
+  }, [messages, isOpen, showConfirmCard, selectedImages]);
 
   useEffect(() => {
     if (isOpen) {
       setWindowPosition({
-        x: Math.max(0, window.innerWidth - 400),
-        y: Math.max(0, window.innerHeight - 650)
+        x: Math.max(0, window.innerWidth - 408),
+        y: Math.max(0, window.innerHeight - 674)
       });
     }
   }, [isOpen]);
@@ -319,15 +318,18 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
+    const imagesToSend = [...selectedImages];
     const userMessage: Message = {
       id: Date.now().toString(),
       content: input,
       type: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
+      imageUrls: imagesToSend.length > 0 ? imagesToSend : undefined
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setSelectedImages([]);
     setLoading(true);
 
     try {
@@ -421,7 +423,7 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
 
       const fullPrompt = `${systemPrompt}\n\n【用户问题】\n${input}`;
 
-      const chatResponse = await aiApi.chat(fullPrompt, history);
+      const chatResponse = await aiApi.chat(fullPrompt, history, imagesToSend);
 
       if (chatResponse.success && chatResponse.data?.content) {
         const content = chatResponse.data.content;
@@ -789,7 +791,7 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
       {/* AI助手窗口 - 可拖动 */}
       {isOpen && (
         <div
-          className="fixed z-50 bg-white rounded-xl shadow-2xl w-80 md:w-96 max-h-[600px] flex flex-col border border-gray-200 overflow-hidden"
+          className="fixed z-50 bg-white rounded-xl shadow-2xl w-80 md:w-96 min-h-[650px] max-h-[650px] flex flex-col border border-gray-200"
           style={{
             left: `${windowPosition.x}px`,
             top: `${windowPosition.y}px`,
@@ -801,7 +803,7 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
         >
           {/* 头部 - 可拖动 */}
           <div
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 flex justify-between items-center cursor-move"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-3 rounded-t-xl flex justify-between items-center cursor-move"
             onMouseDown={handleMouseDown}
           >
             <div className="flex items-center gap-2">
@@ -820,17 +822,6 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
                 </button>
               )}
               <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="text-white hover:bg-white/20 p-1 rounded transition-colors"
-                title={isMinimized ? "展开" : "最小化"}
-              >
-                {isMinimized ? (
-                  <Square className="w-4 h-4" />
-                ) : (
-                  <Minus className="w-4 h-4" />
-                )}
-              </button>
-              <button
                 onClick={() => { setIsOpen(false); onUnload?.(); }}
                 className="text-white hover:bg-white/20 p-1 rounded transition-colors"
                 title="关闭"
@@ -840,71 +831,119 @@ ${context.length > 0 ? context.join('\n\n') : '暂无相关知识库内容'}
             </div>
           </div>
 
-          {/* 最小化时只显示头部 */}
-          {isMinimized ? (
-            <div className="p-4 bg-gray-50 text-center text-sm text-gray-500 no-drag">
-              AI助手已最小化 · 点击上方按钮展开
-            </div>
-          ) : (
-            <>
-              {/* 消息区域 */}
-              <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[400px] min-h-[400px]">
-                <MessageFlow messages={messages} />
-                {showConfirmCard && <ConfirmCard />}
-              </div>
+          {/* 消息区域 */}
+          <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            <MessageFlow messages={messages} />
+            {showConfirmCard && <ConfirmCard />}
+          </div>
 
-              {/* 输入区域 */}
-              <div className="border-t border-gray-200 p-3 no-drag">
-                {/* 搜索模式选择器 */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-gray-500">搜索模式：</span>
-                  <select
-                    value={searchMode}
-                    onChange={(e) => setSearchMode(e.target.value as 'keyword' | 'vector' | 'hybrid')}
-                    className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+          {/* 输入区域 */}
+          <div className="border-t border-gray-200 p-3 no-drag">
+            {/* 搜索模式按钮和图片上传 */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs text-gray-500">搜索：</span>
+              {['keyword', 'vector', 'hybrid'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSearchMode(mode as 'keyword' | 'vector' | 'hybrid')}
+                  className={`text-xs px-2 py-1 rounded ${
+                    searchMode === mode
+                      ? 'bg-purple-100 text-purple-700 font-medium'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {mode === 'keyword' ? '关键词' : mode === 'vector' ? '向量' : '混合'}
+                </button>
+              ))}
+              <div className="flex-1" />
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                className="text-gray-500 hover:text-purple-600 p-1 rounded"
+                title="上传图片"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </button>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  const files = e.target.files;
+                  console.log('[AI] Files selected:', files?.length);
+                  if (files && files.length > 0) {
+                    const images: string[] = [];
+                    const totalFiles = files.length;
+                    let loaded = 0;
+                    Array.from(files).forEach((file) => {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          images.push(event.target.result as string);
+                          loaded++;
+                          console.log('[AI] Loaded:', loaded, '/', totalFiles);
+                          if (loaded === totalFiles) {
+                            console.log('[AI] Setting images:', images.length);
+                            setSelectedImages(prev => [...prev, ...images]);
+                          }
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    });
+                  }
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+            </div>
+            {selectedImages.length > 0 && (
+              <div className="mb-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">已选 {selectedImages.length} 张图片</span>
+                  <button
+                    onClick={() => setSelectedImages([])}
+                    className="text-xs text-red-500 hover:text-red-700"
                   >
-                    <option value="keyword">关键词搜索</option>
-                    <option value="vector">向量搜索</option>
-                    <option value="hybrid">混合搜索</option>
-                  </select>
+                    清除全部
+                  </button>
                 </div>
-                {showImageUpload ? (
-                  <ImageUploader
-                    onUpload={(url) => { setShowImageUpload(false); }}
-                    onCancel={() => setShowImageUpload(false)}
-                  />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowImageUpload(true)}
-                      className="text-gray-500 hover:text-purple-600 p-2 rounded"
-                    >
-                      <ImageIcon className="w-5 h-5" />
-                    </button>
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                      placeholder="说出您的需求..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <button
-                      onClick={handleSend}
-                      disabled={loading || !input.trim()}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Send className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {selectedImages.map((img, idx) => (
+                    <div key={idx} className="relative flex-shrink-0">
+                      <img src={img} alt="" className="w-12 h-12 object-cover rounded" />
+                      <button
+                        onClick={() => setSelectedImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </>
-          )}
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="说出您的需求..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <button
+                onClick={handleSend}
+                disabled={loading || !input.trim()}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-2 rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

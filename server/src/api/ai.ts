@@ -31,18 +31,21 @@ export interface AICallResult {
   error?: AIError;
 }
 
-export async function callAI(prompt: string, history?: Array<{role: string; content: string}>): Promise<AICallResult> {
+export async function callAI(prompt: string, history?: Array<{role: string; content: string}>, images?: string[]): Promise<AICallResult> {
   logContent = '';
 
   appendLog('========== AI 调用开始 ==========');
   appendLog('AI 输入:');
   appendLog(prompt);
+  if (images && images.length > 0) {
+    appendLog(`【图片】共 ${images.length} 张`);
+  }
   appendLog('----------------------------------');
 
   try {
     const url = aiConfig.apiUrl;
-    const messages: Array<{role: string; content: string}> = [];
-    
+    const messages: Array<any> = [];
+
     if (history && history.length > 0) {
       appendLog('【历史消息】共 ' + history.length + ' 条:');
       for (const h of history) {
@@ -50,8 +53,20 @@ export async function callAI(prompt: string, history?: Array<{role: string; cont
         appendLog(`  [${h.role}]: ${h.content.substring(0, 100)}${h.content.length > 100 ? '...' : ''}`);
       }
     }
-    messages.push({ role: 'user', content: prompt });
-    
+
+    if (images && images.length > 0) {
+      const imageContents = images.map(img => ({
+        type: 'image_url',
+        image_url: { url: img }
+      }));
+      messages.push({
+        role: 'user',
+        content: [{ type: 'text', text: prompt }, ...imageContents]
+      });
+    } else {
+      messages.push({ role: 'user', content: prompt });
+    }
+
     const body = JSON.stringify({
       model: aiConfig.model,
       messages,

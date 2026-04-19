@@ -19,7 +19,7 @@ interface Message {
   content: string;
   type: 'user' | 'ai' | 'system';
   timestamp: Date;
-  imageUrl?: string;
+  imageUrls?: string[];
   error?: AIErrorInfo;
   structuredData?: AIStructuredData | null;
   confirmed?: boolean;
@@ -46,13 +46,16 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                 : 'bg-gray-100 text-gray-800'
             }`}
           >
-            {message.imageUrl && (
-              <div className="mb-2">
-                <img
-                  src={message.imageUrl}
-                  alt="Message"
-                  className="max-h-40 object-contain rounded"
-                />
+            {message.imageUrls && message.imageUrls.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {message.imageUrls.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt="Message"
+                    className="max-h-40 object-contain rounded"
+                  />
+                ))}
               </div>
             )}
 

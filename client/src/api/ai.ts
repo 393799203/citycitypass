@@ -89,8 +89,8 @@ export const aiApi = {
     return response.data;
   },
 
-  async chat(prompt: string, history?: Array<{role: string; content: string}>): Promise<any> {
-    const response = await api.post(`${AI_BASE}/chat`, { prompt, history });
+  async chat(prompt: string, history?: Array<{role: string; content: string}>, images?: string[]): Promise<any> {
+    const response = await api.post(`${AI_BASE}/chat`, { prompt, history, images });
     return response.data;
   },
 
