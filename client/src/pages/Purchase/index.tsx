@@ -453,7 +453,6 @@ export default function PurchaseOrders() {
             setViewingOrder(null);
           }}
           onSuccess={() => {
-            toast.success('入库单创建成功');
             setShowInboundModal(false);
             setViewingOrder(null);
             navigate('/inbound');
