@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { getCurrentConfig } from '../config/ai';
+import { getAIConfig } from '../config/ai';
 
 const EMBEDDING_DIMENSION = 1536;
 const DEFAULT_TOP_K = 5;
@@ -742,7 +742,7 @@ class RAGService {
 
     try {
       // 使用SiliconFlow的嵌入向量API
-      const aiConfig = getCurrentConfig();
+      const aiConfig = getAIConfig();
       console.log(`[RAG] Using AI config for embedding: ${aiConfig.name}`);
       
       // SiliconFlow的embedding API端点

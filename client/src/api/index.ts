@@ -4,7 +4,7 @@ import { useOwnerStore } from '../stores/owner';
 
 const api = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -180,7 +180,7 @@ export const stockApi = {
   batchList: (params?: any) => api.get('/stock/batch/list', { params }),
   batchTrace: (batchNo: string) => api.get(`/stock/batch/${batchNo}/trace`),
   getBundleStock: (bundleId: string) => api.get(`/stock/bundle/${bundleId}`),
-  getSkuStock: (skuId: string) => api.get(`/stock/sku/${skuId}`),
+  getSkuStock: (skuId: string) => api.get(`/stock/sku/by-skuId/${skuId}`),
 };
 
 export const inboundApi = {

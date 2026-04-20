@@ -398,14 +398,12 @@ router.get('/bundle', async (req: Request, res: Response) => {
 
     const processedStocks = stocks.map(stock => {
       const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
-      if (!isSalesZone) {
-        return {
-          ...stock,
-          availableQuantity: 0,
-          lockedQuantity: 0,
-        };
-      }
-      return stock;
+      return {
+        ...stock,
+        availableQuantity: isSalesZone ? stock.availableQuantity : 0,
+        lockedQuantity: isSalesZone ? stock.lockedQuantity : 0,
+        locationCode: formatLocationCode(stock.location),
+      };
     });
 
     res.json({ success: true, data: processedStocks });
@@ -463,14 +461,12 @@ router.get('/bundle/:id', async (req: Request, res: Response) => {
 
     const processedStocks = stocks.map(stock => {
       const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
-      if (!isSalesZone) {
-        return {
-          ...stock,
-          availableQuantity: 0,
-          lockedQuantity: 0,
-        };
-      }
-      return stock;
+      return {
+        ...stock,
+        availableQuantity: isSalesZone ? stock.availableQuantity : 0,
+        lockedQuantity: isSalesZone ? stock.lockedQuantity : 0,
+        locationCode: formatLocationCode(stock.location),
+      };
     });
 
     res.json({ success: true, data: processedStocks });
@@ -480,13 +476,13 @@ router.get('/bundle/:id', async (req: Request, res: Response) => {
   }
 });
 
-// GET /sku/:id
-router.get('/sku/:id', async (req: Request, res: Response) => {
+// GET /sku/by-skuId/:skuId - 按SKU ID查询
+router.get('/sku/by-skuId/:skuId', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { skuId } = req.params;
     const { warehouseId, ownerId } = req.query;
     const where: any = {
-      sku: { productId: id },
+      skuId: skuId,
     };
     if (warehouseId) where.warehouseId = warehouseId as string;
     if (ownerId) {
@@ -520,19 +516,17 @@ router.get('/sku/:id', async (req: Request, res: Response) => {
 
     const processedStocks = stocks.map(stock => {
       const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
-      if (!isSalesZone) {
-        return {
-          ...stock,
-          availableQuantity: 0,
-          lockedQuantity: 0,
-        };
-      }
-      return stock;
+      return {
+        ...stock,
+        availableQuantity: isSalesZone ? stock.availableQuantity : 0,
+        lockedQuantity: isSalesZone ? stock.lockedQuantity : 0,
+        locationCode: formatLocationCode(stock.location),
+      };
     });
 
     res.json({ success: true, data: processedStocks });
   } catch (error) {
-    console.error('Get sku stock error:', error);
+    console.error('Get sku stock by skuId error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -562,7 +556,6 @@ router.get('/batch/list', async (req: Request, res: Response) => {
 
     if (warehouseId || ownerId) {
       if (ownerId) {
-        // 对于主体查询，考虑批次所属的商品/套装是否属于该主体
         skuWhere.OR = [
           { stocks: { some: warehouseFilter } },
           { sku: { ownerId: ownerId as string } }
@@ -572,7 +565,6 @@ router.get('/batch/list', async (req: Request, res: Response) => {
           { bundle: { ownerId: ownerId as string } }
         ];
       } else {
-        // 对于仓库查询，只考虑库存记录
         skuWhere.stocks = { some: warehouseFilter };
         bundleWhere.stocks = { some: warehouseFilter };
       }
