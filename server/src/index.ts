@@ -98,16 +98,4 @@ app.use(errorHandler);
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-  
-  // 启动时自动测试向量搜索
-  try {
-    console.log('\n[TEST] Running vector search test on startup...');
-    const results = await ragService.search('茅台不同规格的进货价', {
-      topK: 5,
-      mode: SearchMode.VECTOR
-    });
-    console.log('[TEST] Vector search results:', results.map(r => ({ id: r.id, score: r.score, content: r.content.substring(0, 50) })));
-  } catch (error) {
-    console.error('[TEST] Vector search test failed:', error);
-  }
 });

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCart, Package, ClipboardList, AlertCircle, GripVertical, Trash2 } from 'lucide-react';
+import { jsonrepair } from 'jsonrepair';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
 import { orderApi, purchaseOrderApi, productApi, bundleApi, inboundApi, warehouseApi, supplierApi, supplierProductApi, stockApi } from '../api';
@@ -228,13 +229,9 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       try {
         return JSON.parse(jsonStr);
       } catch (e1) {
-        const opens = (jsonStr.match(/\{/g) || []).length;
-        const closes = (jsonStr.match(/\}/g) || []).length;
-        if (closes < opens) {
-          jsonStr += '}'.repeat(opens - closes);
-        }
         try {
-          return JSON.parse(jsonStr);
+          const fixedJson = jsonrepair(jsonStr);
+          return JSON.parse(fixedJson);
         } catch (e2) {
           console.error('Failed to parse AI response:', e2);
         }
@@ -401,7 +398,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 - 库存/查询 → 用工具查询，返回JSON
 
 【JSON格式 - 必须严格遵守】
-- 所有JSON必须完整闭合：每个{必须有对应的}，每个[必须有对应的]
+- 所有JSON必须完整合法：括号要闭合，每个{必须有对应的}，每个[必须有对应的]
 - 禁止省略任何括号、引号
 - 数量必须是数字，不能是字符串
 
@@ -411,7 +408,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
 入库单: {"intent": "create_inbound", "data": {"warehouseId":"仓库","source":"来源","remark":"备注","items":[{"productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
 
-库存多选项: {"intent": "query", "type": "inventory", "data": {"productName":"商品名","spec":"规格","options":[{"skuId":"xxx","packaging":"包装","availableQuantity":数量}]}}
+库存多选项: {"intent": "query", "type": "match_sku", "data": {"productName":"商品名","spec":"规格","options":[{"skuId":"xxx","packaging":"包装","availableQuantity":数量}]}}
 
 【知识库】
 ${context.length > 0 ? context.join('\n') : '暂无'}
@@ -435,7 +432,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 3. 用 query_batch_trace 查询批次库存，返回: {"intent": "query", "type": "batch_inventory", "data": {...}}
 4. 如果匹配单个SKU，返回: {"intent": "query", "type": "sku_inventory", "data": {...}}
 5. 如果匹配单个套装，返回: {"intent": "query", "type": "bundle_inventory", "data": {...}}
-6. 如果匹配多个SKU，返回: {"intent": "query", "type": "inventory", "data": {"productName": "商品名", "spec": "规格", "options": [...]}}
+6. 如果匹配多个SKU，返回: {"intent": "query", "type": "match_sku", "data": {"productName": "商品名", "spec": "规格", "options": [...]}}
 7. **禁止返回纯文本，必须返回JSON！**
 8. **重要：查询库存时不要要求用户输入ownerId，工具会自动从请求头获取！**
 
@@ -533,6 +530,10 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
       const lockedQuantity = stocks.reduce((sum: number, s: any) => sum + (s.lockedQuantity || 0), 0);
 
       const details = stocks.map((s: any) => ({
+        skuId: s.skuId,
+        productName: s.sku?.product?.name || option.productName || '',
+        spec: s.sku?.spec || option.spec || '',
+        packaging: s.sku?.packaging || option.packaging || '',
         warehouseName: s.warehouse?.name || '-',
         locationCode: s.locationCode || s.location?.code || '-',
         batchNo: s.skuBatch?.batchNo || '-',
@@ -550,9 +551,9 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
           intent: 'query',
           type: 'sku_inventory',
           data: {
-            productName: option.productName || '',
-            spec: option.spec || '',
-            packaging: option.packaging,
+            productName: option.productName || details[0]?.productName || '',
+            spec: option.spec || details[0]?.spec || '',
+            packaging: option.packaging || details[0]?.packaging || '',
             skuId: option.skuId,
             summary: { totalQuantity, availableQuantity, lockedQuantity },
             details,
@@ -563,7 +564,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
         const newMsgs = [...prev];
         for (let i = newMsgs.length - 1; i >= 0; i--) {
           const msg = newMsgs[i];
-          if (msg.structuredData?.intent === 'query' && msg.structuredData?.type === 'inventory' && msg.structuredData?.data?.options) {
+          if (msg.structuredData?.intent === 'query' && msg.structuredData?.type === 'match_sku' && msg.structuredData?.data?.options) {
             newMsgs[i] = { ...msg, confirmed: true, selectedOption: option };
             break;
           }

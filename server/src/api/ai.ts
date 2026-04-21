@@ -93,7 +93,7 @@ export async function callAI(
     const requestBody: any = {
       model: aiConfig.model,
       messages: requestMessages,
-      temperature: 0.3,
+      temperature: 0.1,
       max_tokens: 4000,
     };
 

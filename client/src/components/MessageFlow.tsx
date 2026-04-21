@@ -86,7 +86,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                 onClick={() => {
                   if (message.confirmed) return;
                   const isQueryWithOptions = message.structuredData?.intent === 'query' && 
-                    message.structuredData?.type === 'inventory' && 
+                    message.structuredData?.type === 'match_sku' && 
                     message.structuredData?.data?.options;
                   if (!['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData?.intent || '') && !isQueryWithOptions) {
                     return;
@@ -204,7 +204,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-green-700 font-medium">
                       <Package className="w-4 h-4" />
-                      <span>套装库存查询结果</span>
+                      <span>套装库存查询结果 - {message.structuredData.data.bundleName || message.structuredData.data.productName || ''} {message.structuredData.data.spec || ''}</span>
                     </div>
                     {message.structuredData.data?.summary && (
                       <div className="flex gap-4 text-xs bg-green-50 p-2 rounded">
@@ -230,7 +230,7 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     )}
                   </div>
                 )}
-                {message.structuredData.intent === 'query' && message.structuredData.type === 'inventory' && message.structuredData.data?.options && (
+                {message.structuredData.intent === 'query' && message.structuredData.type === 'match_sku' && message.structuredData.data?.options && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
                     <div className="flex items-center gap-2 text-blue-700 text-xs">
                       <Package className="w-3 h-3" />
@@ -282,7 +282,6 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                       <div className="text-xs space-y-1 max-h-60 overflow-y-auto">
                         {message.structuredData.data.details.map((item: any, idx: number) => (
                           <div key={idx} className="border-l-2 border-blue-300 pl-2 py-1">
-                            <div className="font-medium text-gray-700">{item.productName || message.structuredData.data.productName} {item.spec || message.structuredData.data.spec} {item.packaging || message.structuredData.data.packaging}</div>
                             <div className="text-gray-500">
                               仓库：{item.warehouseName} | 库位：{item.locationCode} | 批次：{item.batchNo || '-'}
                             </div>

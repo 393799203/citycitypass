@@ -313,7 +313,7 @@ async function queryBundleInventoryInternal(bundleId: string, ownerId?: string) 
   };
 }
 
-async function queryInventory(args: { productName: string; spec?: string; packaging?: string; ownerId?: string }) {
+async function matchSkuOrBundle(args: { productName: string; spec?: string; packaging?: string; ownerId?: string }) {
   const { productName, spec, packaging, ownerId } = args;
 
   const searchResult = await searchSku({ productName, spec, packaging, ownerId });
@@ -321,19 +321,14 @@ async function queryInventory(args: { productName: string; spec?: string; packag
   if (!searchResult.success || searchResult.data.items.length === 0) {
     const bundleResult = await searchBundle({ bundleName: productName, ownerId });
     if (bundleResult.success && bundleResult.data.items.length > 0) {
-      const bundle = bundleResult.data.items[0];
-      const bundleInventoryResult = await queryBundleInventoryInternal(bundle.bundleId, ownerId);
       return {
         success: true,
-        type: 'bundle_inventory',
-        data: {
-          productName: bundle.bundleName,
-          bundleId: bundle.bundleId,
-          ...bundleInventoryResult.data,
-        },
+        type: 'bundle',
+        bundleId: bundleResult.data.items[0].bundleId,
+        bundleName: bundleResult.data.items[0].bundleName,
       };
     }
-    return { success: false, message: `未找到商品或套装"${productName}"的相关库存` };
+    return { success: false, message: `未找到商品或套装"${productName}"` };
   }
 
   const items = searchResult.data.items;
@@ -349,25 +344,65 @@ async function queryInventory(args: { productName: string; spec?: string; packag
 
     return {
       success: true,
-      type: 'inventory',
-      multiple: true,
+      type: 'sku_multiple',
       message: `找到多个匹配的SKU，请选择：`,
       options,
     };
   }
 
-  const sku = items[0];
-  const inventoryResult = await querySkuInventoryInternal(sku.skuId, ownerId);
+  return {
+    success: true,
+    type: 'sku_single',
+    skuId: items[0].skuId,
+    productName: items[0].productName,
+    spec: items[0].spec,
+    packaging: items[0].packaging,
+  };
+}
+
+async function queryInventory(args: { productName: string; spec?: string; packaging?: string; ownerId?: string }) {
+  const { productName, spec, packaging, ownerId } = args;
+
+  const matchResult = await matchSkuOrBundle({ productName, spec, packaging, ownerId });
+
+  if (!matchResult.success) {
+    return { success: false, message: matchResult.message };
+  }
+
+  if (matchResult.type === 'bundle') {
+    const bundleInventoryResult = await queryBundleInventoryInternal(matchResult.bundleId, ownerId);
+    return {
+      success: true,
+      type: 'bundle_inventory',
+      data: {
+        productName: matchResult.bundleName,
+        bundleId: matchResult.bundleId,
+        ...bundleInventoryResult.data,
+      },
+    };
+  }
+
+  if (matchResult.type === 'sku_multiple') {
+    return {
+      success: true,
+      type: 'match_sku',
+      multiple: true,
+      message: matchResult.message,
+      options: matchResult.options,
+    };
+  }
+
+  const inventoryResult = await querySkuInventoryInternal(matchResult.skuId, ownerId);
 
   return {
     success: true,
     type: 'sku_inventory',
     multiple: false,
     data: {
-      productName: sku.productName,
-      spec: sku.spec,
-      packaging: sku.packaging,
-      skuId: sku.skuId,
+      productName: matchResult.productName,
+      spec: matchResult.spec,
+      packaging: matchResult.packaging,
+      skuId: matchResult.skuId,
       ...inventoryResult.data,
     },
   };
