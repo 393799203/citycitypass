@@ -211,7 +211,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (formData.ownerId) {
-      stockApi.getOwnerStockSummary(formData.ownerId).then(res => {
+      stockApi.getOwnerStockSummary().then(res => {
         if (res.data.success) {
           setOwnerStockSummary(res.data.data || { products: [], bundles: [] });
         } else {

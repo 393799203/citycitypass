@@ -192,7 +192,7 @@ router.get('/available', async (req: Request, res: Response) => {
 // GET /owner-stock-summary
 router.get('/owner-stock-summary', async (req: Request, res: Response) => {
   try {
-    const { ownerId } = req.query;
+    const ownerId = (req as any).ownerId || req.query.ownerId;
     if (!ownerId) {
       return res.status(400).json({ success: false, message: '缺少主体ID' });
     }
@@ -223,7 +223,7 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
         sku: {
           include: {
             product: {
-              include: { brand: true, category: true },
+              include: { brand: true, subCategory: { include: { category: true } } },
             },
           },
         },
@@ -281,7 +281,7 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
           price: stock.sku.price ? Number(stock.sku.price) : 0,
           totalAvailable: 0,
           brand: stock.sku.product?.brand ? { id: stock.sku.product.brand.id, name: stock.sku.product.brand.name } : undefined,
-          category: stock.sku.product?.category ? { id: stock.sku.product.category.id, name: stock.sku.product.category.name } : undefined,
+          category: stock.sku.product?.subCategory?.category ? { id: stock.sku.product.subCategory.category.id, name: stock.sku.product.subCategory.category.name } : undefined,
           warehouseSummary: [],
         });
       }

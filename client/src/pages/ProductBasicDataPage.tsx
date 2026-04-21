@@ -592,6 +592,9 @@ export default function ProductBasicDataPage() {
                         <span className="text-xs text-gray-400 ml-2">{spec.code}</span>
                       </div>
                       <div className="flex items-center gap-1">
+                        <button onClick={() => openSpecModal(spec)} className="p-1 text-gray-500 hover:bg-gray-200 rounded">
+                          <Pencil className="w-3 h-3" />
+                        </button>
                         <button onClick={() => unlinkSpec(spec.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
                           <Unlink className="w-3 h-3" />
                         </button>
@@ -663,6 +666,9 @@ export default function ProductBasicDataPage() {
                         <span className="text-xs text-gray-400 ml-2">{pkg.code}</span>
                       </div>
                       <div className="flex items-center gap-1">
+                        <button onClick={() => openPackagingModal(pkg)} className="p-1 text-gray-500 hover:bg-gray-200 rounded">
+                          <Pencil className="w-3 h-3" />
+                        </button>
                         <button onClick={() => unlinkPackaging(pkg.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
                           <Unlink className="w-3 h-3" />
                         </button>
