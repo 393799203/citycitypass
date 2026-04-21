@@ -25,6 +25,7 @@ const Carriers = lazy(() => import('./pages/Carriers'));
 const Owners = lazy(() => import('./pages/Owners'));
 const Customers = lazy(() => import('./pages/Customers'));
 const Suppliers = lazy(() => import('./pages/Suppliers'));
+const ProductBasicDataPage = lazy(() => import('./pages/ProductBasicDataPage'));
 const PurchaseOrders = lazy(() => import('./pages/Purchase/index'));
 const PurchaseDetail = lazy(() => import('./pages/PurchaseDetail/index'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
@@ -61,6 +62,7 @@ function App() {
                 <Route path="orders" element={<Orders />} />
                 <Route path="orders/:id" element={<OrderDetail />} />
                 <Route path="products" element={<Products />} />
+                <Route path="product-basic-data" element={<ProductBasicDataPage />} />
                 <Route path="customers" element={<Customers />} />
                 <Route path="suppliers" element={<Suppliers />} />
                 <Route path="purchases" element={<PurchaseOrders />} />

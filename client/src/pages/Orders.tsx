@@ -1297,7 +1297,10 @@ export default function OrdersPage() {
                         skus.some((sku: any) => sku.totalAvailable > 0)
                       );
                       if (filteredProducts.length === 0) {
-                        return <div className="text-center text-gray-400 py-10">该主体暂无商品</div>;
+                        return <div className="text-center py-12 text-gray-500">
+                        <Package className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                        <p>该主体暂无商品</p>
+                      </div>;
                       }
                       return (
                         <div className="space-y-3">
@@ -1434,7 +1437,10 @@ export default function OrdersPage() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-center text-gray-400 py-10">该主体暂无套装</div>
+                        <div className="text-center py-12 text-gray-500">
+                          <Package className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                          <p>该主体暂无套装</p>
+                        </div>
                       );
                     })()
                   ) : formData.warehouseId ? (

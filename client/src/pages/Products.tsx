@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { productApi, bundleApi, warehouseApi, stockApi } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus, RefreshCw, Database } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
@@ -13,8 +14,8 @@ interface Product {
   name: string;
   brandId: string;
   brand: { id: string; name: string; code?: string };
-  categoryId: string;
-  category: { id: string; name: string };
+  subCategoryId: string;
+  subCategory: { id: string; name: string; category: { id: string; name: string } };
   ownerId?: string;
   owner?: { id: string; name: string };
   status: string;
@@ -68,7 +69,7 @@ interface Brand {
   id: string;
   code: string;
   name: string;
-  categoryId: string;
+  subCategoryId: string;
 }
 
 interface SKUWithProduct {
@@ -120,6 +121,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -134,12 +136,14 @@ export default function ProductsPage() {
   const [formData, setFormData] = useState({
     name: '',
     brandId: '',
-    categoryId: '',
     subCategoryId: '',
     ownerId: '',
     status: 'ACTIVE',
     skus: [{ packaging: '', spec: '', price: '' }],
   });
+
+  const [formCategoryId, setFormCategoryId] = useState('');
+  const isInitializingRef = useRef(true);
 
   const [bundleFormData, setBundleFormData] = useState({
     name: '',
@@ -182,78 +186,54 @@ export default function ProductsPage() {
     fetchProductsByOwner();
   }, [filterOwner]);
 
+  // 一级分类变化时过滤二级分类
   useEffect(() => {
-    if (formData.categoryId) {
-      const filtered = brands.filter(b => b.categoryId === formData.categoryId);
-      setFilteredBrands(filtered);
-      if (!filtered.find(b => b.id === formData.brandId)) {
-        setFormData(f => ({ ...f, brandId: '' }));
-      }
-    } else {
-      setFilteredBrands([]);
-      setFormData(f => ({ ...f, brandId: '' }));
+    if (isInitializingRef.current) {
+      isInitializingRef.current = false;
+      return;
     }
-  }, [formData.categoryId, brands]);
-
-  // 品类变化时过滤二级分类
-  useEffect(() => {
-    if (formData.categoryId) {
-      const filtered = subCategories.filter(sc => sc.categoryId === formData.categoryId);
+    if (formCategoryId) {
+      const filtered = subCategories.filter(sc => sc.categoryId === formCategoryId);
       setFilteredSubCategories(filtered);
-      if (!filtered.find(sc => sc.id === formData.subCategoryId)) {
-        setFormData(f => ({ ...f, subCategoryId: '' }));
-      }
     } else {
       setFilteredSubCategories([]);
-      setFormData(f => ({ ...f, subCategoryId: '' }));
-    }
-  }, [formData.categoryId, subCategories]);
-
-  // 品类变化时过滤品牌列表（二级分类不影响品牌列表）
-  useEffect(() => {
-    if (formData.categoryId) {
-      const filtered = brands.filter(b => b.categoryId === formData.categoryId);
-      setFilteredBrands(filtered);
-      if (!filtered.find(b => b.id === formData.brandId)) {
-        setFormData(f => ({ ...f, brandId: '' }));
-      }
-    } else {
+      setFormData(f => ({ ...f, subCategoryId: '', brandId: '' }));
       setFilteredBrands([]);
-      setFormData(f => ({ ...f, brandId: '' }));
     }
-  }, [formData.categoryId, brands]);
+  }, [formCategoryId, subCategories]);
 
-  // 品牌变化时加载对应的包装和规格选项
+  // 二级分类变化时过滤品牌（只在新建时需要过滤，编辑时 filteredBrands 已设置好）
   useEffect(() => {
-    const fetchBrandOptions = async () => {
-      if (formData.brandId) {
+    if (!editingId && formData.subCategoryId) {
+      const filtered = brands.filter(b => b.subCategoryId === formData.subCategoryId);
+      setFilteredBrands(filtered);
+    } else if (!editingId && !formData.subCategoryId) {
+      setFilteredBrands([]);
+    }
+  }, [formData.subCategoryId, brands, editingId]);
+
+  // 二级分类变化时获取规格和包装选项
+  useEffect(() => {
+    const fetchSubCategoryOptions = async () => {
+      if (formData.subCategoryId) {
         try {
-          const res = await productApi.getBrandOptions(formData.brandId);
+          const res = await productApi.getSubCategoryOptions(formData.subCategoryId);
           if (res.data.success) {
-            setBrandPackagings(res.data.data.packagings || []);
             setBrandSpecs(res.data.data.specs || []);
+            setBrandPackagings(res.data.data.packagings || []);
           }
         } catch (error) {
-          console.error('Fetch brand options error:', error);
+          console.error('Fetch sub-category options error:', error);
         }
       } else {
         setBrandPackagings([]);
         setBrandSpecs([]);
       }
     };
-    fetchBrandOptions();
-  }, [formData.brandId]);
+    fetchSubCategoryOptions();
+  }, [formData.subCategoryId]);
 
-  const fetchBrands = async (categoryId?: string) => {
-    try {
-      const res = await productApi.getBrands(categoryId ? { categoryId } : {});
-      if (res.data.success) {
-        setBrands(res.data.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  
 
   const fetchData = async () => {
     setLoading(true);
@@ -334,25 +314,46 @@ export default function ProductsPage() {
   };
 
   const handleEdit = async (product: Product) => {
-    setFormData({
-      name: product.name,
-      brandId: product.brandId,
-      categoryId: product.categoryId,
-      subCategoryId: (product as any).subCategoryId || '',
-      ownerId: (product as any).ownerId || '',
-      status: product.status,
-      skus: product.skus.length > 0 ? product.skus : [{ packaging: '', spec: '', price: '' }],
-    });
-    setEditingId(product.id);
-    setShowModal(true);
+    const categoryId = product.subCategory?.category?.id || '';
+    const subCategoryId = product.subCategoryId || '';
+
+    // 先加载数据
+    let filteredSubCats: any[] = [];
+    let filteredBrandsList: any[] = [];
     try {
-      const res = await productApi.getBrands({ categoryId: product.categoryId });
-      if (res.data.success) {
-        setFilteredBrands(res.data.data);
+      if (categoryId) {
+        const subCatsRes = await productApi.getSubCategories();
+        if (subCatsRes.data.success) {
+          filteredSubCats = subCatsRes.data.data.filter((sc: any) => sc.categoryId === categoryId);
+        }
+      }
+      if (subCategoryId) {
+        const brandsRes = await productApi.getBrands({ subCategoryId });
+        if (brandsRes.data.success) {
+          filteredBrandsList = brandsRes.data.data;
+        }
       }
     } catch (error) {
       console.error(error);
     }
+
+    // 设置 formData（会触发 useEffect，但编辑模式下不应清空）
+    setFormData({
+      name: product.name,
+      brandId: product.brandId,
+      subCategoryId: subCategoryId,
+      ownerId: product.ownerId || '',
+      status: product.status,
+      skus: product.skus.length > 0 ? product.skus : [{ packaging: '', spec: '', price: '' }],
+    });
+
+    // 设置 formCategoryId（会触发 useEffect，但编辑模式下不应清空）
+    setFormCategoryId(categoryId);
+    setFilteredSubCategories(filteredSubCats);
+    setFilteredBrands(filteredBrandsList);
+
+    setEditingId(product.id);
+    setShowModal(true);
   };
 
   const handleBundleEdit = (bundle: Bundle) => {
@@ -394,9 +395,10 @@ export default function ProductsPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', brandId: '', categoryId: '', subCategoryId: '', ownerId: filterOwner, status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
+    setFormData({ name: '', brandId: '', subCategoryId: '', ownerId: filterOwner, status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
     setFilteredBrands([]);
     setFilteredSubCategories([]);
+    setFormCategoryId('');
     setEditingId(null);
   };
 
@@ -557,6 +559,17 @@ export default function ProductsPage() {
             <Plus className="w-5 h-5" />
             {activeTab === 'product' ? '创建商品' : '创建套装'}
           </button>
+          <button
+            onClick={() => navigate('/product-basic-data')}
+            disabled={!filterOwner}
+            title={!filterOwner ? '请先选择主体' : ''}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-primary-600 hover:bg-primary-50 ${
+              filterOwner ? 'text-primary-600' : 'text-gray-400 border-gray-300 cursor-not-allowed'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            基础数据
+          </button>
         </div>
       </div>
 
@@ -586,7 +599,10 @@ export default function ProductsPage() {
       ) : activeTab === 'product' ? (
         <>
           {products.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">暂无商品，请创建</div>
+            <div className="text-center py-12 text-gray-500">
+              <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>暂无商品，请创建</p>
+            </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map(product => (
@@ -606,12 +622,12 @@ export default function ProductsPage() {
                           {product.brand.name}
                         </span>
                       )}
-                      {product.category?.name && (
+                      {product.subCategory?.category?.name && (
                         <span
                           className="px-2 py-0.5 text-xs rounded-full border"
-                          style={getCategoryStyle(product.category.name)}
+                          style={getCategoryStyle(product.subCategory.category.name)}
                         >
-                          {product.category.name}
+                          {product.subCategory.category.name}
                         </span>
                       )}
                     </div>
@@ -666,7 +682,10 @@ export default function ProductsPage() {
         </>
       ) : (
         bundles.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">暂无套装，请创建</div>
+          <div className="text-center py-12 text-gray-500">
+            <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p>暂无套装，请创建</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {bundles.map(bundle => (
@@ -759,8 +778,11 @@ export default function ProductsPage() {
                     <div>
                       <label className="block text-sm font-medium mb-1">分类</label>
                       <select
-                        value={formData.categoryId}
-                        onChange={e => setFormData({ ...formData, categoryId: e.target.value, brandId: '', subCategoryId: '' })}
+                        value={formCategoryId}
+                        onChange={e => {
+                          setFormCategoryId(e.target.value);
+                          setFormData({ ...formData, brandId: '', subCategoryId: '' });
+                        }}
                         className="w-full px-3 py-2 border rounded-lg"
                         required
                       >
@@ -776,7 +798,7 @@ export default function ProductsPage() {
                         value={formData.subCategoryId}
                         onChange={e => setFormData({ ...formData, subCategoryId: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
-                        disabled={!formData.categoryId}
+                        disabled={!formCategoryId}
                       >
                         <option value="">选择二级分类</option>
                         {filteredSubCategories.map(sc => (
@@ -791,9 +813,9 @@ export default function ProductsPage() {
                         onChange={e => setFormData({ ...formData, brandId: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
                         required
-                        disabled={!formData.categoryId}
+                        disabled={!formCategoryId}
                       >
-                        <option value="">{formData.categoryId ? '选择品牌' : '请先选择分类'}</option>
+                        <option value="">{formCategoryId ? '选择品牌' : '请先选择分类'}</option>
                         {filteredBrands.map(b => (
                           <option key={b.id} value={b.id}>{b.name}</option>
                         ))}
@@ -926,7 +948,10 @@ export default function ProductsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="border rounded-lg p-3 max-h-80 overflow-y-auto bg-white">
                       {skus.length === 0 ? (
-                        <div className="text-center text-gray-500 py-4">暂无商品</div>
+                        <div className="text-center py-12 text-gray-500">
+                          <Package className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                          <p>暂无商品</p>
+                        </div>
                       ) : (
                         skus.map(sku => {
                           const isAdded = bundleFormData.items.find(i => i.skuId === sku.id);

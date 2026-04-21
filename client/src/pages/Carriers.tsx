@@ -448,7 +448,10 @@ export default function CarriersPage() {
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       ) : carriers.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-white rounded-xl">暂无数据</div>
+        <div className="text-center py-12 text-gray-500">
+          <Truck className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p>暂无承运商数据</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {carriers.map((carrier) => (

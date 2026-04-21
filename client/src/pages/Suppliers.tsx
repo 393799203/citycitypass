@@ -417,6 +417,11 @@ export default function SuppliersPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
+      ) : filteredSuppliers.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p>暂无供应商数据</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSuppliers.map((supplier) => (

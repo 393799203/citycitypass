@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api';
 import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, ArrowLeft, Bot } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -406,6 +406,7 @@ export default function Register() {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }

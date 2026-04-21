@@ -105,16 +105,18 @@ router.post('/', async (req: Request, res: Response) => {
       },
     });
 
-    // 将新创建的主体与当前用户关联，创建者为 OWNER
     if (req.user && req.user.id) {
-      console.log('Creating UserOwner link:', { userId: req.user.id, ownerId: owner.id, role: 'OWNER' });
-      await prisma.userOwner.create({
-        data: {
-          userId: req.user.id,
-          ownerId: owner.id,
-          role: 'OWNER',
-        },
-      });
+      const ownerRole = await prisma.role.findUnique({ where: { code: 'OWNER' } });
+      if (ownerRole) {
+        console.log('Creating UserOwner link:', { userId: req.user.id, ownerId: owner.id, roleId: ownerRole.id });
+        await prisma.userOwner.create({
+          data: {
+            userId: req.user.id,
+            ownerId: owner.id,
+            roleId: ownerRole.id,
+          },
+        });
+      }
     } else {
       console.log('WARNING: req.user is not set, skipping UserOwner creation');
     }

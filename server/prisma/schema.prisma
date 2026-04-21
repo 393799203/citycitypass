@@ -251,8 +251,6 @@ model ProductCategory {
   name      String
   sortOrder Int      @default(0)
   subCategories ProductSubCategory[]
-  brands    ProductBrand[]
-  products  Product[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -264,6 +262,9 @@ model ProductSubCategory {
   categoryId String
   category   ProductCategory @relation(fields: [categoryId], references: [id])
   products   Product[]
+  brands     ProductBrand[]
+  specs      SubCategorySpec[]
+  packagings SubCategoryPackaging[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -272,24 +273,12 @@ model ProductBrand {
   id          String   @id @default(uuid())
   code        String   @unique
   name        String
-  categoryId  String
-  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  subCategoryId String
+  subCategory ProductSubCategory @relation(fields: [subCategoryId], references: [id])
   description String?
   products    Product[]
-  packagings  BrandPackaging[]
-  specs       BrandSpec[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-
-model PackagingOption {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  name      String
-  sortOrder Int      @default(0)
-  brandPackagings BrandPackaging[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model SpecOption {
@@ -297,31 +286,41 @@ model SpecOption {
   code      String   @unique
   name      String
   sortOrder Int      @default(0)
-  brandSpecs BrandSpec[]
+  subCategorySpecs SubCategorySpec[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model BrandPackaging {
-  id          String   @id @default(uuid())
-  brandId     String
-  packagingId String
-  brand       ProductBrand @relation(fields: [brandId], references: [id])
-  packaging   PackagingOption @relation(fields: [packagingId], references: [id])
-  createdAt   DateTime @default(now())
-
-  @@unique([brandId, packagingId])
+model PackagingOption {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  subCategoryPackagings SubCategoryPackaging[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model BrandSpec {
-  id          String   @id @default(uuid())
-  brandId     String
-  specId      String
-  brand       ProductBrand @relation(fields: [brandId], references: [id])
-  spec        SpecOption @relation(fields: [specId], references: [id])
-  createdAt   DateTime @default(now())
+model SubCategorySpec {
+  id              String   @id @default(uuid())
+  subCategoryId   String
+  specId          String
+  subCategory     ProductSubCategory @relation(fields: [subCategoryId], references: [id])
+  spec            SpecOption @relation(fields: [specId], references: [id])
+  createdAt       DateTime @default(now())
 
-  @@unique([brandId, specId])
+  @@unique([subCategoryId, specId])
+}
+
+model SubCategoryPackaging {
+  id              String   @id @default(uuid())
+  subCategoryId   String
+  packagingId     String
+  subCategory     ProductSubCategory @relation(fields: [subCategoryId], references: [id])
+  packaging       PackagingOption @relation(fields: [packagingId], references: [id])
+  createdAt       DateTime @default(now())
+
+  @@unique([subCategoryId, packagingId])
 }
 
 model Supplier {
@@ -512,14 +511,15 @@ model Product {
   name           String
   brandId        String
   brand          ProductBrand @relation(fields: [brandId], references: [id])
-  categoryId     String
-  category       ProductCategory @relation(fields: [categoryId], references: [id])
-  subCategoryId  String?
-  subCategory    ProductSubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId  String
+  subCategory    ProductSubCategory @relation(fields: [subCategoryId], references: [id])
   status         String   @default("ACTIVE")
   skus           ProductSKU[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([subCategoryId])
 }
 
 model ProductSKU {

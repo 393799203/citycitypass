@@ -359,6 +359,11 @@ export default function CustomersPage() {
         <div className="text-center py-12">
           <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary-600" />
         </div>
+      ) : customers.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p>暂无客户数据</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {customers.map((customer) => (

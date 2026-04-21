@@ -4,7 +4,7 @@ import { warehouseApi, ownerApi } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AddressInput from '../components/AddressInput';
-import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Clock, Zap } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Building2, MapPin, X, Package, Phone, Clock, Zap, Warehouse } from 'lucide-react';
 import PhoneInput from '../components/PhoneInput';
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -221,8 +221,9 @@ export default function WarehousesPage() {
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       ) : warehouses.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
-          暂无仓库，请创建
+        <div className="text-center py-12 text-gray-500">
+          <Warehouse className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p>暂无仓库，请创建</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

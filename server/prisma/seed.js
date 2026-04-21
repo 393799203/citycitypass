@@ -83,71 +83,72 @@ const ROLES = [
   },
 ];
 
+// 一级分类
 const CATEGORIES = [
-  { code: 'BAIJIU', name: '白酒', sortOrder: 1 },
-  { code: 'BEER', name: '啤酒', sortOrder: 2 },
-  { code: 'WINE', name: '葡萄酒', sortOrder: 3 },
-  { code: 'SPIRITS', name: '洋酒', sortOrder: 4 },
-  { code: 'BEVERAGE', name: '饮料', sortOrder: 5 },
+  { code: 'WINE', name: '酒类', sortOrder: 1 },
+  { code: 'BEVERAGE', name: '饮料', sortOrder: 2 },
+  { code: 'FOOD', name: '食品', sortOrder: 3 },
+  { code: 'DAILY', name: '生活用品', sortOrder: 4 },
 ];
 
+// 二级分类
 const SUBCATEGORIES = [
-  { code: 'BAIJIU_JIANG', name: '酱香型', categoryCode: 'BAIJIU' },
-  { code: 'BAIJIU_NONG', name: '浓香型', categoryCode: 'BAIJIU' },
-  { code: 'BAIJIU_QING', name: '清香型', categoryCode: 'BAIJIU' },
-  { code: 'BEER_LAGER', name: '拉格', categoryCode: 'BEER' },
-  { code: 'BEER_ALE', name: '艾尔', categoryCode: 'BEER' },
-  { code: 'BEER_PILS', name: '皮尔森', categoryCode: 'BEER' },
-  { code: 'WINE_HONG', name: '红酒', categoryCode: 'WINE' },
-  { code: 'WINE_BAI', name: '白葡萄酒', categoryCode: 'WINE' },
-  { code: 'WINE_QIP', name: '起泡酒', categoryCode: 'WINE' },
-  { code: 'SPIRITS_WHISKY', name: '威士忌', categoryCode: 'SPIRITS' },
-  { code: 'SPIRITS_BRANnY', name: '白兰地', categoryCode: 'SPIRITS' },
-  { code: 'SPIRITS_VODKA', name: '伏特加', categoryCode: 'SPIRITS' },
-  { code: 'SPIRITS_RUM', name: '朗姆酒', categoryCode: 'SPIRITS' },
-  { code: 'SPIRITS_GIN', name: '金酒', categoryCode: 'SPIRITS' },
-  { code: 'BEVERAGE_YINLIAO', name: '饮料类', categoryCode: 'BEVERAGE' },
+  { code: 'BAIJIU', name: '白酒', categoryCode: 'WINE' },
+  { code: 'YELLOW_WINE', name: '黄酒', categoryCode: 'WINE' },
+  { code: 'WINE_RED', name: '葡萄酒', categoryCode: 'WINE' },
+  { code: 'BEER', name: '啤酒', categoryCode: 'WINE' },
+  { code: 'SOFT_DRINK', name: '软饮料', categoryCode: 'BEVERAGE' },
+  { code: 'JUICE', name: '果汁', categoryCode: 'BEVERAGE' },
+  { code: 'SNACKS', name: '零食', categoryCode: 'FOOD' },
+  { code: 'HOUSEHOLD', name: '家居用品', categoryCode: 'DAILY' },
 ];
 
+// 品牌 - 现在属于二级分类
 const BRANDS = [
-  { code: 'MOUTAI', name: '茅台', categoryCode: 'BAIJIU', description: '贵州茅台酒' },
-  { code: 'WULIANGYE', name: '五粮液', categoryCode: 'BAIJIU', description: '五粮液集团' },
-  { code: 'LUZHOU', name: '泸州老窖', categoryCode: 'BAIJIU', description: '泸州老窖股份有限公司' },
-  { code: 'YANGHE', name: '洋河', categoryCode: 'BAIJIU', description: '洋河酒厂' },
-  { code: 'FENJIU', name: '汾酒', categoryCode: 'BAIJIU', description: '汾酒集团' },
-  { code: 'BAIWEI', name: '百威', categoryCode: 'BEER', description: '百威啤酒' },
-  { code: 'YANJING', name: '燕京', categoryCode: 'BEER', description: '燕京啤酒' },
-  { code: 'TSINGTAO', name: '青岛', categoryCode: 'BEER', description: '青岛啤酒' },
-  { code: 'CHANGCHENG', name: '长城', categoryCode: 'WINE', description: '中粮长城葡萄酒' },
-  { code: 'ZHANGYU', name: '张裕', categoryCode: 'WINE', description: '张裕葡萄酒' },
-  { code: 'MACALLAN', name: '麦卡伦', categoryCode: 'SPIRITS', description: '苏格兰威士忌' },
-  { code: 'REMY', name: '人头马', categoryCode: 'SPIRITS', description: '法国白兰地' },
+  { code: 'MAOTAI', name: '茅台', subCategoryCode: 'BAIJIU', description: '酱香型白酒代表' },
+  { code: 'WULIANGYE', name: '五粮液', subCategoryCode: 'BAIJIU', description: '浓香型白酒代表' },
+  { code: 'YANGHE', name: '洋河', subCategoryCode: 'BAIJIU', description: '绵柔型白酒' },
+  { code: 'LUZHOULAOJAO', name: '泸州老窖', subCategoryCode: 'BAIJIU', description: '浓香型白酒' },
+  { code: 'GUOTAI', name: '国台', subCategoryCode: 'BAIJIU', description: '酱香型白酒' },
+  { code: 'CHANGYU', name: '张裕', subCategoryCode: 'WINE_RED', description: '葡萄酒' },
+  { code: 'PENGWEI', name: '长城', subCategoryCode: 'WINE_RED', description: '葡萄酒' },
+  { code: 'TSINGTAO', name: '青岛啤酒', subCategoryCode: 'BEER', description: '啤酒' },
+  { code: 'YILI', name: '伊利', subCategoryCode: 'SOFT_DRINK', description: '乳制品饮料' },
 ];
 
+// 规格 - 现在属于二级分类
 const SPECS = [
-  { code: '100ML', name: '100ml', sortOrder: 1 },
-  { code: '250ML', name: '250ml', sortOrder: 2 },
-  { code: '330ML', name: '330ml', sortOrder: 3 },
-  { code: '375ML', name: '375ml', sortOrder: 4 },
-  { code: '500ML', name: '500ml', sortOrder: 5 },
-  { code: '700ML', name: '700ml', sortOrder: 6 },
-  { code: '750ML', name: '750ml', sortOrder: 7 },
-  { code: '1L', name: '1L', sortOrder: 8 },
-  { code: '1.5L', name: '1.5L', sortOrder: 9 },
+  // 白酒规格
+  { code: 'SPEC_BAIJIU_500ML', name: '500ml', subCategoryCode: 'BAIJIU' },
+  { code: 'SPEC_BAIJIU_1L', name: '1L', subCategoryCode: 'BAIJIU' },
+  { code: 'SPEC_BAIJIU_2_5L', name: '2.5L', subCategoryCode: 'BAIJIU' },
+  { code: 'SPEC_BAIJIU_5L', name: '5L', subCategoryCode: 'BAIJIU' },
+  // 啤酒规格
+  { code: 'SPEC_BEER_330ML', name: '330ml', subCategoryCode: 'BEER' },
+  { code: 'SPEC_BEER_500ML', name: '500ml', subCategoryCode: 'BEER' },
+  { code: 'SPEC_BEER_1L', name: '1L', subCategoryCode: 'BEER' },
+  // 饮料规格
+  { code: 'SPEC_BEVERAGE_250ML', name: '250ml', subCategoryCode: 'SOFT_DRINK' },
+  { code: 'SPEC_BEVERAGE_1L', name: '1L', subCategoryCode: 'SOFT_DRINK' },
 ];
 
+// 包装 - 现在属于二级分类
 const PACKAGINGS = [
-  { code: 'PING', name: '瓶', sortOrder: 1 },
-  { code: 'GUAN', name: '罐', sortOrder: 2 },
-  { code: 'XIANG_6_PING', name: '箱(6瓶)', sortOrder: 3 },
-  { code: 'XIANG_12_PING', name: '箱(12瓶)', sortOrder: 4 },
-  { code: 'XIANG_12_GUAN', name: '箱(12罐)', sortOrder: 5 },
+  // 白酒包装
+  { code: 'PKG_BAIJIU_BOTTLE', name: '瓶', subCategoryCode: 'BAIJIU' },
+  { code: 'PKG_BAIJIU_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BAIJIU' },
+  { code: 'PKG_BAIJIU_BOX_12', name: '箱(12瓶)', subCategoryCode: 'BAIJIU' },
+  // 啤酒包装
+  { code: 'PKG_BEER_BOTTLE', name: '瓶', subCategoryCode: 'BEER' },
+  { code: 'PKG_BEER_CAN', name: '罐', subCategoryCode: 'BEER' },
+  { code: 'PKG_BEER_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BEER' },
+  { code: 'PKG_BEER_BOX_24', name: '箱(24瓶)', subCategoryCode: 'BEER' },
+  // 饮料包装
+  { code: 'PKG_BEVERAGE_BOX', name: '箱', subCategoryCode: 'SOFT_DRINK' },
 ];
 
 async function seedRoles() {
-  console.log('Seeding roles...');
-  let created = 0;
-  let existing = 0;
+  console.log('\nSeeding roles...');
 
   for (const role of ROLES) {
     try {
@@ -157,45 +158,18 @@ async function seedRoles() {
 
       if (found) {
         console.log(`  ${role.code}: already exists`);
-        existing++;
       } else {
         await prisma.role.create({ data: role });
         console.log(`  ${role.code}: created`);
-        created++;
       }
     } catch (err) {
       console.error(`  ${role.code}: error - ${err.message}`);
     }
   }
-
-  console.log(`Roles: ${created} created, ${existing} existing`);
-}
-
-async function createAdminUser() {
-  console.log('\nCreating admin user...');
-
-  const existingAdmin = await prisma.user.findUnique({
-    where: { username: 'admin' }
-  });
-
-  if (existingAdmin) {
-    console.log('  admin: already exists');
-  } else {
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    await prisma.user.create({
-      data: {
-        username: 'admin',
-        password: hashedPassword,
-        name: '系统管理员',
-        isAdmin: true,
-      }
-    });
-    console.log('  admin: created (password: admin123)');
-  }
 }
 
 async function seedCategories() {
-  console.log('\nSeeding product categories...');
+  console.log('\nSeeding product categories (一级分类)...');
 
   for (const cat of CATEGORIES) {
     try {
@@ -216,7 +190,7 @@ async function seedCategories() {
 }
 
 async function seedSubCategories() {
-  console.log('\nSeeding product subcategories...');
+  console.log('\nSeeding product subcategories (二级分类)...');
 
   for (const sub of SUBCATEGORIES) {
     try {
@@ -240,6 +214,8 @@ async function seedSubCategories() {
             }
           });
           console.log(`  ${sub.code}: created`);
+        } else {
+          console.log(`  ${sub.code}: category ${sub.categoryCode} not found`);
         }
       }
     } catch (err) {
@@ -249,7 +225,7 @@ async function seedSubCategories() {
 }
 
 async function seedBrands() {
-  console.log('\nSeeding product brands...');
+  console.log('\nSeeding product brands (品牌)...');
 
   for (const brand of BRANDS) {
     try {
@@ -260,20 +236,22 @@ async function seedBrands() {
       if (found) {
         console.log(`  ${brand.code}: already exists`);
       } else {
-        const category = await prisma.productCategory.findUnique({
-          where: { code: brand.categoryCode }
+        const subCategory = await prisma.productSubCategory.findUnique({
+          where: { code: brand.subCategoryCode }
         });
 
-        if (category) {
+        if (subCategory) {
           await prisma.productBrand.create({
             data: {
               code: brand.code,
               name: brand.name,
-              categoryId: category.id,
+              subCategoryId: subCategory.id,
               description: brand.description,
             }
           });
           console.log(`  ${brand.code}: created`);
+        } else {
+          console.log(`  ${brand.code}: subCategory ${brand.subCategoryCode} not found`);
         }
       }
     } catch (err) {
@@ -283,7 +261,7 @@ async function seedBrands() {
 }
 
 async function seedSpecs() {
-  console.log('\nSeeding spec options...');
+  console.log('\nSeeding spec options (规格)...');
 
   for (const spec of SPECS) {
     try {
@@ -294,7 +272,12 @@ async function seedSpecs() {
       if (found) {
         console.log(`  ${spec.code}: already exists`);
       } else {
-        await prisma.specOption.create({ data: spec });
+        await prisma.specOption.create({
+          data: {
+            code: spec.code,
+            name: spec.name,
+          }
+        });
         console.log(`  ${spec.code}: created`);
       }
     } catch (err) {
@@ -304,7 +287,7 @@ async function seedSpecs() {
 }
 
 async function seedPackagings() {
-  console.log('\nSeeding packaging options...');
+  console.log('\nSeeding packaging options (包装)...');
 
   for (const pkg of PACKAGINGS) {
     try {
@@ -315,7 +298,12 @@ async function seedPackagings() {
       if (found) {
         console.log(`  ${pkg.code}: already exists`);
       } else {
-        await prisma.packagingOption.create({ data: pkg });
+        await prisma.packagingOption.create({
+          data: {
+            code: pkg.code,
+            name: pkg.name,
+          }
+        });
         console.log(`  ${pkg.code}: created`);
       }
     } catch (err) {
@@ -324,129 +312,128 @@ async function seedPackagings() {
   }
 }
 
-async function seedBrandPackagings() {
-  console.log('\nSeeding brand-packaging relations...');
+async function seedSubCategorySpecs() {
+  console.log('\nSeeding subcategory specs (二级分类-规格关联)...');
 
-  const brandPackagings = [
-    { brandCode: 'MOUTAI', packagingCode: 'PING' },
-    { brandCode: 'MOUTAI', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'WULIANGYE', packagingCode: 'PING' },
-    { brandCode: 'WULIANGYE', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'LUZHOU', packagingCode: 'PING' },
-    { brandCode: 'LUZHOU', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'YANGHE', packagingCode: 'PING' },
-    { brandCode: 'YANGHE', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'FENJIU', packagingCode: 'PING' },
-    { brandCode: 'FENJIU', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'BAIWEI', packagingCode: 'GUAN' },
-    { brandCode: 'BAIWEI', packagingCode: 'PING' },
-    { brandCode: 'BAIWEI', packagingCode: 'XIANG_12_GUAN' },
-    { brandCode: 'YANJING', packagingCode: 'GUAN' },
-    { brandCode: 'YANJING', packagingCode: 'PING' },
-    { brandCode: 'YANJING', packagingCode: 'XIANG_12_GUAN' },
-    { brandCode: 'TSINGTAO', packagingCode: 'GUAN' },
-    { brandCode: 'TSINGTAO', packagingCode: 'PING' },
-    { brandCode: 'TSINGTAO', packagingCode: 'XIANG_12_GUAN' },
-    { brandCode: 'TSINGTAO', packagingCode: 'XIANG_12_PING' },
-    { brandCode: 'CHANGCHENG', packagingCode: 'PING' },
-    { brandCode: 'CHANGCHENG', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'ZHANGYU', packagingCode: 'PING' },
-    { brandCode: 'ZHANGYU', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'MACALLAN', packagingCode: 'PING' },
-    { brandCode: 'MACALLAN', packagingCode: 'XIANG_6_PING' },
-    { brandCode: 'REMY', packagingCode: 'PING' },
-    { brandCode: 'REMY', packagingCode: 'XIANG_6_PING' },
-  ];
-
-  for (const bp of brandPackagings) {
+  for (const spec of SPECS) {
     try {
-      const brand = await prisma.productBrand.findUnique({ where: { code: bp.brandCode } });
-      const packaging = await prisma.packagingOption.findUnique({ where: { code: bp.packagingCode } });
+      const subCategory = await prisma.productSubCategory.findUnique({
+        where: { code: spec.subCategoryCode }
+      });
+      const specOption = await prisma.specOption.findUnique({
+        where: { code: spec.code }
+      });
 
-      if (brand && packaging) {
-        const existing = await prisma.brandPackaging.findUnique({
-          where: { brandId_packagingId: { brandId: brand.id, packagingId: packaging.id } }
+      if (subCategory && specOption) {
+        await prisma.subCategorySpec.upsert({
+          where: {
+            subCategoryId_specId: {
+              subCategoryId: subCategory.id,
+              specId: specOption.id,
+            }
+          },
+          update: {},
+          create: {
+            subCategoryId: subCategory.id,
+            specId: specOption.id,
+          }
         });
-
-        if (existing) {
-          console.log(`  ${bp.brandCode}-${bp.packagingCode}: already exists`);
-        } else {
-          await prisma.brandPackaging.create({
-            data: { brandId: brand.id, packagingId: packaging.id }
-          });
-          console.log(`  ${bp.brandCode}-${bp.packagingCode}: created`);
-        }
+        console.log(`  ${spec.code} -> ${spec.subCategoryCode}: created`);
       }
     } catch (err) {
-      console.error(`  ${bp.brandCode}-${bp.packagingCode}: error - ${err.message}`);
+      console.error(`  ${spec.code}: error - ${err.message}`);
     }
   }
 }
 
-async function seedBrandSpecs() {
-  console.log('\nSeeding brand-spec relations...');
+async function seedSubCategoryPackagings() {
+  console.log('\nSeeding subcategory packagings (二级分类-包装关联)...');
 
-  const brandSpecs = [
-    { brandCode: 'MOUTAI', specCode: '500ML' },
-    { brandCode: 'MOUTAI', specCode: '1L' },
-    { brandCode: 'WULIANGYE', specCode: '500ML' },
-    { brandCode: 'WULIANGYE', specCode: '1L' },
-    { brandCode: 'LUZHOU', specCode: '500ML' },
-    { brandCode: 'LUZHOU', specCode: '1.5L' },
-    { brandCode: 'YANGHE', specCode: '500ML' },
-    { brandCode: 'FENJIU', specCode: '500ML' },
-    { brandCode: 'BAIWEI', specCode: '330ML' },
-    { brandCode: 'BAIWEI', specCode: '500ML' },
-    { brandCode: 'YANJING', specCode: '330ML' },
-    { brandCode: 'YANJING', specCode: '500ML' },
-    { brandCode: 'TSINGTAO', specCode: '330ML' },
-    { brandCode: 'TSINGTAO', specCode: '500ML' },
-    { brandCode: 'CHANGCHENG', specCode: '750ML' },
-    { brandCode: 'CHANGCHENG', specCode: '1.5L' },
-    { brandCode: 'ZHANGYU', specCode: '750ML' },
-    { brandCode: 'ZHANGYU', specCode: '1.5L' },
-    { brandCode: 'MACALLAN', specCode: '700ML' },
-    { brandCode: 'REMY', specCode: '700ML' },
-  ];
-
-  for (const bs of brandSpecs) {
+  for (const pkg of PACKAGINGS) {
     try {
-      const brand = await prisma.productBrand.findUnique({ where: { code: bs.brandCode } });
-      const spec = await prisma.specOption.findUnique({ where: { code: bs.specCode } });
+      const subCategory = await prisma.productSubCategory.findUnique({
+        where: { code: pkg.subCategoryCode }
+      });
+      const packagingOption = await prisma.packagingOption.findUnique({
+        where: { code: pkg.code }
+      });
 
-      if (brand && spec) {
-        const existing = await prisma.brandSpec.findUnique({
-          where: { brandId_specId: { brandId: brand.id, specId: spec.id } }
+      if (subCategory && packagingOption) {
+        await prisma.subCategoryPackaging.upsert({
+          where: {
+            subCategoryId_packagingId: {
+              subCategoryId: subCategory.id,
+              packagingId: packagingOption.id,
+            }
+          },
+          update: {},
+          create: {
+            subCategoryId: subCategory.id,
+            packagingId: packagingOption.id,
+          }
         });
-
-        if (existing) {
-          console.log(`  ${bs.brandCode}-${bs.specCode}: already exists`);
-        } else {
-          await prisma.brandSpec.create({
-            data: { brandId: brand.id, specId: spec.id }
-          });
-          console.log(`  ${bs.brandCode}-${bs.specCode}: created`);
-        }
+        console.log(`  ${pkg.code} -> ${pkg.subCategoryCode}: created`);
       }
     } catch (err) {
-      console.error(`  ${bs.brandCode}-${bs.specCode}: error - ${err.message}`);
+      console.error(`  ${pkg.code}: error - ${err.message}`);
     }
+  }
+}
+
+async function seedAdminUser() {
+  console.log('\nSeeding admin user...');
+
+  try {
+    const adminRole = await prisma.role.findUnique({ where: { code: 'ADMIN' } });
+
+    if (!adminRole) {
+      console.log('  ADMIN role not found, skipping admin user creation');
+      return;
+    }
+
+    const existingAdmin = await prisma.user.findUnique({ where: { username: 'admin' } });
+    if (existingAdmin) {
+      console.log('  admin user: already exists');
+    } else {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+
+      await prisma.user.create({
+        data: {
+          username: 'admin',
+          password: hashedPassword,
+          name: '系统管理员',
+          isAdmin: true,
+          phone: '13800138000',
+          email: 'admin@example.com',
+        }
+      });
+      console.log('  admin user: created');
+    }
+  } catch (err) {
+    console.error('  seedAdminUser error:', err.message);
   }
 }
 
 async function main() {
-  console.log('=== 项目初始化 ===\n');
-  await seedRoles();
-  await createAdminUser();
-  await seedCategories();
-  await seedSubCategories();
-  await seedBrands();
-  await seedSpecs();
-  await seedPackagings();
-  await seedBrandPackagings();
-  await seedBrandSpecs();
-  await prisma.$disconnect();
-  console.log('\n=== 初始化完成 ===');
+  console.log('Starting seed...');
+
+  try {
+    await seedRoles();
+    await seedAdminUser();
+    await seedCategories();
+    await seedSubCategories();
+    await seedBrands();
+    await seedSpecs();
+    await seedPackagings();
+    await seedSubCategorySpecs();
+    await seedSubCategoryPackagings();
+
+    console.log('\nSeed completed!');
+  } catch (err) {
+    console.error('Seed failed:', err);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 main();
