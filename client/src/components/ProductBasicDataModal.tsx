@@ -158,7 +158,7 @@ export default function ProductBasicDataModal({ open, onClose, onSuccess }: Prod
         }
       }
 
-      toast.success('基础数据创建成功');
+      toast.success('基础类目创建成功');
       onSuccess();
       onClose();
     } catch (error) {

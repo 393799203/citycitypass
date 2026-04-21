@@ -568,7 +568,7 @@ export default function ProductsPage() {
             }`}
           >
             <Database className="w-4 h-4" />
-            基础数据
+            基础类目
           </button>
         </div>
       </div>
