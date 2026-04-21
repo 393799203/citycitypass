@@ -45,7 +45,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const initialMessages: Message[] = [
     {
       id: '1',
-      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮老丁购买飞天茅台1箱6瓶装的，杭州市XXX，132XXX"\n🛒 采购订单 - "向贵州茅台酒业采购3箱6瓶装的飞天茅台，期望到货4月30日"\n📦 入库操作 - "将10瓶茅台入库到XXXX仓库"\n🔍 查询库存 - "查询飞天茅台500ml的库存"\n📊 我的库存 - "查询下我的库存汇总"\n🔎 批次查询 - "查询批次号20260417的库存"\n\n直接说出您的需求，我会帮您生成单据或查询数据！',
+      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮老丁购买飞天茅台，杭州市余杭区复地上城，13222223333"\n🛒 采购订单 - "向贵州茅台酒业采购3箱6瓶装的飞天茅台，期望到货4月30日"\n📦 入库操作 - "将10瓶茅台入库到XXXX仓库"\n🔍 查询库存 - "查询飞天茅台500ml的库存"\n📊 我的库存 - "查询下我的库存汇总"\n🔎 批次查询 - "查询批次号20260417的库存"\n\n直接说出您的需求，我会帮您生成单据或查询数据！',
       type: 'system',
       timestamp: new Date()
     }
@@ -223,6 +223,8 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
         const lastBrace = trimmed.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
           jsonStr = trimmed.substring(firstBrace, lastBrace + 1);
+        } else {
+          return null;
         }
       }
 
@@ -231,15 +233,20 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       } catch (e1) {
         try {
           const fixedJson = jsonrepair(jsonStr);
-          return JSON.parse(fixedJson);
+          const parsed = JSON.parse(fixedJson);
+          if (typeof parsed === 'object' && parsed !== null) {
+            return parsed;
+          }
+          return null;
         } catch (e2) {
           console.error('Failed to parse AI response:', e2);
+          return null;
         }
       }
     } catch (e) {
       console.error('Failed to parse AI response:', e);
+      return null;
     }
-    return null;
   };
 
   // 解析日期，返回ISO格式或undefined
@@ -410,6 +417,8 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
 库存多选项: {"intent": "query", "type": "match_sku", "data": {"productName":"商品名","spec":"规格","options":[{"skuId":"xxx","packaging":"包装","availableQuantity":数量}]}}
 
+基于知识库回答: {"intent": "query", "type": "others", "data": {"answer": "回答内容"}}
+
 【知识库】
 ${context.length > 0 ? context.join('\n') : '暂无'}
 
@@ -454,7 +463,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
         console.log('[AI] content length:', content.length);
         console.log('[AI] content bytes:', [...content].slice(0, 50).map(c => c.charCodeAt(0)));
         const structuredData = parseAIResponse(content);
-        console.log('[AI] structuredData:', structuredData);
+        console.log('[AI] parseAIResponse result:', structuredData, 'content:', content.substring(0, 100));
 
         const msgId = (Date.now() + 1).toString();
         const aiMessage: Message = {

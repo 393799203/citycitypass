@@ -329,6 +329,17 @@ export default function MessageFlow({ messages }: MessageFlowProps) {
                     )}
                   </div>
                 )}
+                {message.structuredData.intent === 'query' && message.structuredData.type === 'others' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-blue-700 font-medium">
+                      <FileText className="w-4 h-4" />
+                      <span>知识库回答</span>
+                    </div>
+                    <div className="text-gray-700 text-sm whitespace-pre-wrap bg-blue-50 p-3 rounded">
+                      {message.structuredData.data?.answer || message.structuredData.data?.content || JSON.stringify(message.structuredData.data)}
+                    </div>
+                  </div>
+                )}
                 {!['create_order', 'create_purchase_order', 'create_inbound', 'query'].includes(message.structuredData.intent) && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-purple-700 font-medium">
