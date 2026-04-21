@@ -467,6 +467,15 @@ async function queryBatchTrace(args: { batchNo: string }) {
         orderBy: { createdAt: 'asc' },
       });
 
+  const stockOutIds = stockOuts.map(s => s.orderId);
+  const orders = stockOutIds.length > 0
+    ? await prisma.order.findMany({
+        where: { id: { in: stockOutIds } },
+        include: { customer: true }
+      })
+    : [];
+  const orderMap = new Map(orders.map(o => [o.id, o]));
+
   const currentStocks = isProduct
       ? await prisma.stock.findMany({
           where: { skuBatchId: skuBatch!.id, totalQuantity: { gt: 0 } },
@@ -483,6 +492,8 @@ async function queryBatchTrace(args: { batchNo: string }) {
       batchNo,
       type: isProduct ? 'PRODUCT' : 'BUNDLE',
       productName: isProduct ? skuBatch!.sku?.product?.name : bundleBatch!.bundle?.name,
+      spec: isProduct ? skuBatch!.sku?.spec : undefined,
+      packaging: isProduct ? skuBatch!.sku?.packaging : undefined,
       supplierName: isProduct ? skuBatch!.supplier?.name : bundleBatch!.supplier?.name,
       totalInbound: stockIns.reduce((sum, s) => sum + s.quantity, 0),
       totalOutbound: stockOuts.reduce((sum, s) => sum + s.quantity, 0),
@@ -492,6 +503,16 @@ async function queryBatchTrace(args: { batchNo: string }) {
         quantity: s.totalQuantity,
         warehouseName: s.warehouse?.name,
       })),
+      stockOuts: stockOuts.map(s => {
+        const order = orderMap.get(s.orderId);
+        return {
+          orderId: s.orderId,
+          orderNo: order?.orderNo,
+          customerName: order?.customer?.name,
+          quantity: s.quantity,
+          createdAt: s.createdAt,
+        };
+      }),
     },
   };
 }

@@ -136,6 +136,18 @@ function BatchInventoryCard({ message }: { message: Message }) {
           ))}
         </div>
       )}
+      {structuredData.data?.stockOuts?.length > 0 && (
+        <div className="text-xs space-y-1">
+          <div className="font-medium text-gray-600">关联出库订单：</div>
+          {structuredData.data.stockOuts.map((item: any, idx: number) => (
+            <div key={idx} className="border-l-2 border-red-300 pl-2 py-1">
+              <div className="text-gray-500">
+                订单号：{item.orderNo} | 客户：{item.customerName} | 数量：{item.quantity} | 时间：{item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
