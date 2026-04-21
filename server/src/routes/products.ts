@@ -191,8 +191,11 @@ router.delete('/specs/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     await prisma.specOption.delete({ where: { id } });
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete spec error:', error);
+    if (error.code === 'P2003' || error.code === 'P2014') {
+      return res.status(400).json({ success: false, message: '该规格已被使用，无法删除' });
+    }
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -219,8 +222,11 @@ router.delete('/packagings/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     await prisma.packagingOption.delete({ where: { id } });
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete packaging error:', error);
+    if (error.code === 'P2003' || error.code === 'P2014') {
+      return res.status(400).json({ success: false, message: '该包装已被使用，无法删除' });
+    }
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
