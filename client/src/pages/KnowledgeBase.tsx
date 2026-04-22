@@ -10,7 +10,8 @@ const typeMap: Record<string, string> = {
   'format': '格式',
   'product': '商品',
   'rule': '规则',
-  'process': '流程'
+  'process': '流程',
+  'others': '其他'
 };
 
 const categoryMap: Record<string, string> = {
@@ -19,7 +20,8 @@ const categoryMap: Record<string, string> = {
   'dispatch': '调度',
   'return': '退货',
   'batch': '批次',
-  'product': '商品'
+  'product': '商品',
+  'others': '其他'
 };
 
 // 获取中文类型
@@ -373,10 +375,10 @@ export default function KnowledgeBase() {
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="format">格式</option>
                   <option value="product">商品</option>
                   <option value="rule">规则</option>
                   <option value="process">流程</option>
+                  <option value="others">其他</option>
                 </select>
               </div>
               <div>
@@ -402,6 +404,7 @@ export default function KnowledgeBase() {
                   <option value="return">退货</option>
                   <option value="batch">批次</option>
                   <option value="product">商品</option>
+                  <option value="others">其他</option>
                 </select>
               </div>
               <div>
@@ -493,6 +496,7 @@ export default function KnowledgeBase() {
                   <option value="product">商品</option>
                   <option value="rule">规则</option>
                   <option value="process">流程</option>
+                  <option value="others">其他</option>
                 </select>
               </div>
               <div>
@@ -518,6 +522,7 @@ export default function KnowledgeBase() {
                   <option value="return">退货</option>
                   <option value="batch">批次</option>
                   <option value="product">商品</option>
+                  <option value="others">其他</option>
                 </select>
               </div>
               <div>
