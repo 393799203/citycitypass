@@ -531,6 +531,61 @@ router.get('/sku/by-skuId/:skuId', async (req: Request, res: Response) => {
   }
 });
 
+// GET /stock/sku/by-productId/:productId - 获取商品下所有SKU的库存
+router.get('/sku/by-productId/:productId', async (req: Request, res: Response) => {
+  try {
+    const { productId } = req.params;
+    const { warehouseId } = req.query;
+
+    const skus = await prisma.productSKU.findMany({
+      where: { productId },
+      select: { id: true }
+    });
+    const skuIds = skus.map((s: any) => s.id);
+
+    const where: any = {
+      skuId: { in: skuIds },
+    };
+    if (warehouseId) where.warehouseId = warehouseId as string;
+
+    const stocks = await prisma.stock.findMany({
+      where,
+      include: {
+        sku: {
+          include: { product: true }
+        },
+        warehouse: true,
+        skuBatch: true,
+        location: {
+          include: {
+            shelf: {
+              include: {
+                zone: true
+              }
+            }
+          }
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const processedStocks = stocks.map(stock => {
+      const isSalesZone = ['STORAGE', 'PICKING'].includes(stock.location?.shelf?.zone?.type || '');
+      return {
+        ...stock,
+        availableQuantity: isSalesZone ? stock.availableQuantity : 0,
+        lockedQuantity: isSalesZone ? stock.lockedQuantity : 0,
+        locationCode: formatLocationCode(stock.location),
+      };
+    });
+
+    res.json({ success: true, data: processedStocks });
+  } catch (error) {
+    console.error('Get sku stock by productId error:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 // GET /batch/list
 router.get('/batch/list', async (req: Request, res: Response) => {
   try {

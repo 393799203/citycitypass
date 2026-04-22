@@ -263,8 +263,8 @@ model ProductSubCategory {
   category   ProductCategory @relation(fields: [categoryId], references: [id])
   products   Product[]
   brands     ProductBrand[]
-  specs      SubCategorySpec[]
-  packagings SubCategoryPackaging[]
+  specs      SpecOption[]
+  packagings PackagingOption[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -282,45 +282,25 @@ model ProductBrand {
 }
 
 model SpecOption {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  name      String
-  sortOrder Int      @default(0)
-  subCategorySpecs SubCategorySpec[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  code       String   @unique
+  name       String
+  sortOrder  Int      @default(0)
+  subCategoryId String
+  subCategory ProductSubCategory @relation(fields: [subCategoryId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model PackagingOption {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  name      String
-  sortOrder Int      @default(0)
-  subCategoryPackagings SubCategoryPackaging[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model SubCategorySpec {
-  id              String   @id @default(uuid())
-  subCategoryId   String
-  specId          String
-  subCategory     ProductSubCategory @relation(fields: [subCategoryId], references: [id])
-  spec            SpecOption @relation(fields: [specId], references: [id])
-  createdAt       DateTime @default(now())
-
-  @@unique([subCategoryId, specId])
-}
-
-model SubCategoryPackaging {
-  id              String   @id @default(uuid())
-  subCategoryId   String
-  packagingId     String
-  subCategory     ProductSubCategory @relation(fields: [subCategoryId], references: [id])
-  packaging       PackagingOption @relation(fields: [packagingId], references: [id])
-  createdAt       DateTime @default(now())
-
-  @@unique([subCategoryId, packagingId])
+  id         String   @id @default(uuid())
+  code       String   @unique
+  name       String
+  sortOrder  Int      @default(0)
+  subCategoryId String
+  subCategory ProductSubCategory @relation(fields: [subCategoryId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Supplier {

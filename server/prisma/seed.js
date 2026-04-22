@@ -103,7 +103,7 @@ const SUBCATEGORIES = [
   { code: 'HOUSEHOLD', name: '家居用品', categoryCode: 'DAILY' },
 ];
 
-// 品牌 - 现在属于二级分类
+// 品牌 - 属于二级分类
 const BRANDS = [
   { code: 'MAOTAI', name: '茅台', subCategoryCode: 'BAIJIU', description: '酱香型白酒代表' },
   { code: 'WULIANGYE', name: '五粮液', subCategoryCode: 'BAIJIU', description: '浓香型白酒代表' },
@@ -116,35 +116,29 @@ const BRANDS = [
   { code: 'YILI', name: '伊利', subCategoryCode: 'SOFT_DRINK', description: '乳制品饮料' },
 ];
 
-// 规格 - 现在属于二级分类
+// 规格 - 直接属于二级分类
 const SPECS = [
-  // 白酒规格
-  { code: 'SPEC_BAIJIU_500ML', name: '500ml', subCategoryCode: 'BAIJIU' },
-  { code: 'SPEC_BAIJIU_1L', name: '1L', subCategoryCode: 'BAIJIU' },
-  { code: 'SPEC_BAIJIU_2_5L', name: '2.5L', subCategoryCode: 'BAIJIU' },
-  { code: 'SPEC_BAIJIU_5L', name: '5L', subCategoryCode: 'BAIJIU' },
-  // 啤酒规格
-  { code: 'SPEC_BEER_330ML', name: '330ml', subCategoryCode: 'BEER' },
-  { code: 'SPEC_BEER_500ML', name: '500ml', subCategoryCode: 'BEER' },
-  { code: 'SPEC_BEER_1L', name: '1L', subCategoryCode: 'BEER' },
-  // 饮料规格
-  { code: 'SPEC_BEVERAGE_250ML', name: '250ml', subCategoryCode: 'SOFT_DRINK' },
-  { code: 'SPEC_BEVERAGE_1L', name: '1L', subCategoryCode: 'SOFT_DRINK' },
+  { code: 'SPEC_BAIJIU_500ML', name: '500ml', subCategoryCode: 'BAIJIU', sortOrder: 1 },
+  { code: 'SPEC_BAIJIU_1L', name: '1L', subCategoryCode: 'BAIJIU', sortOrder: 2 },
+  { code: 'SPEC_BAIJIU_2_5L', name: '2.5L', subCategoryCode: 'BAIJIU', sortOrder: 3 },
+  { code: 'SPEC_BAIJIU_5L', name: '5L', subCategoryCode: 'BAIJIU', sortOrder: 4 },
+  { code: 'SPEC_BEER_330ML', name: '330ml', subCategoryCode: 'BEER', sortOrder: 1 },
+  { code: 'SPEC_BEER_500ML', name: '500ml', subCategoryCode: 'BEER', sortOrder: 2 },
+  { code: 'SPEC_BEER_1L', name: '1L', subCategoryCode: 'BEER', sortOrder: 3 },
+  { code: 'SPEC_BEVERAGE_250ML', name: '250ml', subCategoryCode: 'SOFT_DRINK', sortOrder: 1 },
+  { code: 'SPEC_BEVERAGE_1L', name: '1L', subCategoryCode: 'SOFT_DRINK', sortOrder: 2 },
 ];
 
-// 包装 - 现在属于二级分类
+// 包装 - 直接属于二级分类
 const PACKAGINGS = [
-  // 白酒包装
-  { code: 'PKG_BAIJIU_BOTTLE', name: '瓶', subCategoryCode: 'BAIJIU' },
-  { code: 'PKG_BAIJIU_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BAIJIU' },
-  { code: 'PKG_BAIJIU_BOX_12', name: '箱(12瓶)', subCategoryCode: 'BAIJIU' },
-  // 啤酒包装
-  { code: 'PKG_BEER_BOTTLE', name: '瓶', subCategoryCode: 'BEER' },
-  { code: 'PKG_BEER_CAN', name: '罐', subCategoryCode: 'BEER' },
-  { code: 'PKG_BEER_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BEER' },
-  { code: 'PKG_BEER_BOX_24', name: '箱(24瓶)', subCategoryCode: 'BEER' },
-  // 饮料包装
-  { code: 'PKG_BEVERAGE_BOX', name: '箱', subCategoryCode: 'SOFT_DRINK' },
+  { code: 'PKG_BAIJIU_BOTTLE', name: '瓶', subCategoryCode: 'BAIJIU', sortOrder: 1 },
+  { code: 'PKG_BAIJIU_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BAIJIU', sortOrder: 2 },
+  { code: 'PKG_BAIJIU_BOX_12', name: '箱(12瓶)', subCategoryCode: 'BAIJIU', sortOrder: 3 },
+  { code: 'PKG_BEER_BOTTLE', name: '瓶', subCategoryCode: 'BEER', sortOrder: 1 },
+  { code: 'PKG_BEER_CAN', name: '罐', subCategoryCode: 'BEER', sortOrder: 2 },
+  { code: 'PKG_BEER_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BEER', sortOrder: 3 },
+  { code: 'PKG_BEER_BOX_24', name: '箱(24瓶)', subCategoryCode: 'BEER', sortOrder: 4 },
+  { code: 'PKG_BEVERAGE_BOX', name: '箱', subCategoryCode: 'SOFT_DRINK', sortOrder: 1 },
 ];
 
 async function seedRoles() {
@@ -272,13 +266,23 @@ async function seedSpecs() {
       if (found) {
         console.log(`  ${spec.code}: already exists`);
       } else {
-        await prisma.specOption.create({
-          data: {
-            code: spec.code,
-            name: spec.name,
-          }
+        const subCategory = await prisma.productSubCategory.findUnique({
+          where: { code: spec.subCategoryCode }
         });
-        console.log(`  ${spec.code}: created`);
+
+        if (subCategory) {
+          await prisma.specOption.create({
+            data: {
+              code: spec.code,
+              name: spec.name,
+              sortOrder: spec.sortOrder || 0,
+              subCategoryId: subCategory.id,
+            }
+          });
+          console.log(`  ${spec.code}: created`);
+        } else {
+          console.log(`  ${spec.code}: subCategory ${spec.subCategoryCode} not found`);
+        }
       }
     } catch (err) {
       console.error(`  ${spec.code}: error - ${err.message}`);
@@ -298,81 +302,23 @@ async function seedPackagings() {
       if (found) {
         console.log(`  ${pkg.code}: already exists`);
       } else {
-        await prisma.packagingOption.create({
-          data: {
-            code: pkg.code,
-            name: pkg.name,
-          }
+        const subCategory = await prisma.productSubCategory.findUnique({
+          where: { code: pkg.subCategoryCode }
         });
-        console.log(`  ${pkg.code}: created`);
-      }
-    } catch (err) {
-      console.error(`  ${pkg.code}: error - ${err.message}`);
-    }
-  }
-}
 
-async function seedSubCategorySpecs() {
-  console.log('\nSeeding subcategory specs (二级分类-规格关联)...');
-
-  for (const spec of SPECS) {
-    try {
-      const subCategory = await prisma.productSubCategory.findUnique({
-        where: { code: spec.subCategoryCode }
-      });
-      const specOption = await prisma.specOption.findUnique({
-        where: { code: spec.code }
-      });
-
-      if (subCategory && specOption) {
-        await prisma.subCategorySpec.upsert({
-          where: {
-            subCategoryId_specId: {
+        if (subCategory) {
+          await prisma.packagingOption.create({
+            data: {
+              code: pkg.code,
+              name: pkg.name,
+              sortOrder: pkg.sortOrder || 0,
               subCategoryId: subCategory.id,
-              specId: specOption.id,
             }
-          },
-          update: {},
-          create: {
-            subCategoryId: subCategory.id,
-            specId: specOption.id,
-          }
-        });
-        console.log(`  ${spec.code} -> ${spec.subCategoryCode}: created`);
-      }
-    } catch (err) {
-      console.error(`  ${spec.code}: error - ${err.message}`);
-    }
-  }
-}
-
-async function seedSubCategoryPackagings() {
-  console.log('\nSeeding subcategory packagings (二级分类-包装关联)...');
-
-  for (const pkg of PACKAGINGS) {
-    try {
-      const subCategory = await prisma.productSubCategory.findUnique({
-        where: { code: pkg.subCategoryCode }
-      });
-      const packagingOption = await prisma.packagingOption.findUnique({
-        where: { code: pkg.code }
-      });
-
-      if (subCategory && packagingOption) {
-        await prisma.subCategoryPackaging.upsert({
-          where: {
-            subCategoryId_packagingId: {
-              subCategoryId: subCategory.id,
-              packagingId: packagingOption.id,
-            }
-          },
-          update: {},
-          create: {
-            subCategoryId: subCategory.id,
-            packagingId: packagingOption.id,
-          }
-        });
-        console.log(`  ${pkg.code} -> ${pkg.subCategoryCode}: created`);
+          });
+          console.log(`  ${pkg.code}: created`);
+        } else {
+          console.log(`  ${pkg.code}: subCategory ${pkg.subCategoryCode} not found`);
+        }
       }
     } catch (err) {
       console.error(`  ${pkg.code}: error - ${err.message}`);
@@ -425,8 +371,6 @@ async function main() {
     await seedBrands();
     await seedSpecs();
     await seedPackagings();
-    await seedSubCategorySpecs();
-    await seedSubCategoryPackagings();
 
     console.log('\nSeed completed!');
   } catch (err) {

@@ -58,23 +58,21 @@ router.get('/sub-categories/:subCategoryId/options', async (req: Request, res: R
   try {
     const { subCategoryId } = req.params;
 
-    const specs = await prisma.subCategorySpec.findMany({
+    const specs = await prisma.specOption.findMany({
       where: { subCategoryId },
-      include: { spec: true },
-      orderBy: { spec: { sortOrder: 'asc' } }
+      orderBy: { sortOrder: 'asc' }
     });
 
-    const packagings = await prisma.subCategoryPackaging.findMany({
+    const packagings = await prisma.packagingOption.findMany({
       where: { subCategoryId },
-      include: { packaging: true },
-      orderBy: { packaging: { sortOrder: 'asc' } }
+      orderBy: { sortOrder: 'asc' }
     });
 
     res.json({
       success: true,
       data: {
-        specs: specs.map(s => s.spec),
-        packagings: packagings.map(p => p.packaging)
+        specs,
+        packagings
       }
     });
   } catch (error) {
@@ -112,7 +110,10 @@ router.delete('/sub-categories/:id', async (req: Request, res: Response) => {
 // 包装选项 API
 router.get('/packagings', async (req: Request, res: Response) => {
   try {
+    const { subCategoryId } = req.query;
+    const where = subCategoryId ? { subCategoryId: subCategoryId as string } : {};
     const packagings = await prisma.packagingOption.findMany({
+      where,
       orderBy: { sortOrder: 'asc' }
     });
     res.json({ success: true, data: packagings });
@@ -125,7 +126,10 @@ router.get('/packagings', async (req: Request, res: Response) => {
 // 规格选项 API
 router.get('/specs', async (req: Request, res: Response) => {
   try {
+    const { subCategoryId } = req.query;
+    const where = subCategoryId ? { subCategoryId: subCategoryId as string } : {};
     const specs = await prisma.specOption.findMany({
+      where,
       orderBy: { sortOrder: 'asc' }
     });
     res.json({ success: true, data: specs });
@@ -138,12 +142,12 @@ router.get('/specs', async (req: Request, res: Response) => {
 // 创建规格
 router.post('/specs', async (req: Request, res: Response) => {
   try {
-    const { code, name, sortOrder } = req.body;
-    if (!code || !name) {
+    const { code, name, sortOrder, subCategoryId } = req.body;
+    if (!code || !name || !subCategoryId) {
       return res.status(400).json({ success: false, message: '缺少必填字段' });
     }
     const spec = await prisma.specOption.create({
-      data: { code, name, sortOrder: sortOrder || 0 },
+      data: { code, name, sortOrder: sortOrder || 0, subCategoryId },
     });
     res.json({ success: true, data: spec });
   } catch (error) {
@@ -155,12 +159,12 @@ router.post('/specs', async (req: Request, res: Response) => {
 // 创建包装
 router.post('/packagings', async (req: Request, res: Response) => {
   try {
-    const { code, name, sortOrder } = req.body;
-    if (!code || !name) {
+    const { code, name, sortOrder, subCategoryId } = req.body;
+    if (!code || !name || !subCategoryId) {
       return res.status(400).json({ success: false, message: '缺少必填字段' });
     }
     const packaging = await prisma.packagingOption.create({
-      data: { code, name, sortOrder: sortOrder || 0 },
+      data: { code, name, sortOrder: sortOrder || 0, subCategoryId },
     });
     res.json({ success: true, data: packaging });
   } catch (error) {
@@ -227,80 +231,6 @@ router.delete('/packagings/:id', async (req: Request, res: Response) => {
     if (error.code === 'P2003' || error.code === 'P2014') {
       return res.status(400).json({ success: false, message: '该包装已被使用，无法删除' });
     }
-    res.status(500).json({ success: false, message: '服务器错误' });
-  }
-});
-
-// 创建二级分类-规格关联
-router.post('/sub-category-specs', async (req: Request, res: Response) => {
-  try {
-    const { subCategoryId, specId } = req.body;
-    if (!subCategoryId || !specId) {
-      return res.status(400).json({ success: false, message: '缺少必填字段' });
-    }
-    const existing = await prisma.subCategorySpec.findFirst({
-      where: { subCategoryId, specId },
-    });
-    if (existing) {
-      return res.json({ success: true, data: existing });
-    }
-    const link = await prisma.subCategorySpec.create({
-      data: { subCategoryId, specId },
-    });
-    res.json({ success: true, data: link });
-  } catch (error) {
-    console.error('Create sub-category-spec error:', error);
-    res.status(500).json({ success: false, message: '服务器错误' });
-  }
-});
-
-// 创建二级分类-包装关联
-router.post('/sub-category-packagings', async (req: Request, res: Response) => {
-  try {
-    const { subCategoryId, packagingId } = req.body;
-    if (!subCategoryId || !packagingId) {
-      return res.status(400).json({ success: false, message: '缺少必填字段' });
-    }
-    const existing = await prisma.subCategoryPackaging.findFirst({
-      where: { subCategoryId, packagingId },
-    });
-    if (existing) {
-      return res.json({ success: true, data: existing });
-    }
-    const link = await prisma.subCategoryPackaging.create({
-      data: { subCategoryId, packagingId },
-    });
-    res.json({ success: true, data: link });
-  } catch (error) {
-    console.error('Create sub-category-packaging error:', error);
-    res.status(500).json({ success: false, message: '服务器错误' });
-  }
-});
-
-// 删除二级分类-规格关联
-router.delete('/sub-category-specs/:subCategoryId/:specId', async (req: Request, res: Response) => {
-  try {
-    const { subCategoryId, specId } = req.params;
-    await prisma.subCategorySpec.deleteMany({
-      where: { subCategoryId, specId },
-    });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Delete sub-category-spec error:', error);
-    res.status(500).json({ success: false, message: '服务器错误' });
-  }
-});
-
-// 删除二级分类-包装关联
-router.delete('/sub-category-packagings/:subCategoryId/:packagingId', async (req: Request, res: Response) => {
-  try {
-    const { subCategoryId, packagingId } = req.params;
-    await prisma.subCategoryPackaging.deleteMany({
-      where: { subCategoryId, packagingId },
-    });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Delete sub-category-packaging error:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
