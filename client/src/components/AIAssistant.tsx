@@ -45,7 +45,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const initialMessages: Message[] = [
     {
       id: '1',
-      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮老丁购买飞天茅台，杭州市余杭区复地上城，13222223333"\n🛒 采购订单 - "向贵州茅台酒业采购3箱6瓶装的飞天茅台，期望到货4月30日"\n📦 入库操作 - "将10瓶茅台入库到XXXX仓库"\n🔍 查询库存 - "查询飞天茅台500ml的库存"\n📊 我的库存 - "查询下我的库存汇总"\n🔎 批次查询 - "查询批次号20260417的库存"\n\n直接说出您的需求，我会帮您生成单据或查询数据！',
+      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮老丁购买飞天茅台一瓶，杭州市余杭区复地上城，13222223333"\n🛒 采购订单 - "向贵州茅台酒业采购3箱6瓶装的飞天茅台，期望到货4月30日"\n📦 入库操作 - "将10瓶茅台入库到XXXX仓库"\n🔍 查询库存 - "查询飞天茅台500ml的库存"\n📊 我的库存 - "查询下我的库存汇总"\n🔎 批次查询 - "查询批次号20260417的库存"\n\n直接说出您的需求，我会帮您生成单据或查询数据！',
       type: 'system',
       timestamp: new Date()
     }
@@ -424,7 +424,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 
 【要求】
 1. 日期用YYYY-MM-DD格式
-2. spec/packaging必须从知识库选取`;
+2. spec/packaging可以从知识库选取`;
 
       const hasImages = imagesToSend.length > 0;
       const enableTools = !hasImages;
