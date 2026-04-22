@@ -91,7 +91,7 @@ router.post('/chat', async (req: Request, res: Response) => {
               const toolName = parsed.tool;
               const toolParams = { ...parsed.params };
 
-              if (['match_sku', 'match_supplier', 'match_warehouse', 'query_inventory', 'select_inventory', 'query_owner_stock_summary'].includes(toolName) && effectiveOwnerId) {
+              if (['match_sku', 'match_supplier', 'match_warehouse', 'query_inventory', 'query_owner_stock_summary'].includes(toolName) && effectiveOwnerId) {
                 toolParams.ownerId = effectiveOwnerId;
               }
 
@@ -122,7 +122,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         const { name, arguments: argsStr } = fn;
         const args = JSON.parse(argsStr);
 
-        if (['match_sku', 'match_supplier', 'match_warehouse', 'query_inventory', 'select_inventory', 'query_owner_stock_summary'].includes(name) && effectiveOwnerId) {
+        if (['match_sku', 'match_supplier', 'match_warehouse', 'query_inventory', 'query_owner_stock_summary'].includes(name) && effectiveOwnerId) {
           args.ownerId = effectiveOwnerId;
         }
 

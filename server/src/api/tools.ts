@@ -104,35 +104,6 @@ export const inventoryTools: Tool[] = [
   {
     type: 'function',
     function: {
-      name: 'select_inventory',
-      description: '当 query_inventory 返回多个选项时，用此工具查询用户选择的SKU的详细库存信息。',
-      parameters: {
-        type: 'object',
-        properties: {
-          skuId: {
-            type: 'string',
-            description: '用户选择的SKU ID（必填，从 query_inventory 返回的选项中选择）',
-          },
-          productName: {
-            type: 'string',
-            description: '商品名称（必填，用于显示）',
-          },
-          spec: {
-            type: 'string',
-            description: '规格（可选）',
-          },
-          packaging: {
-            type: 'string',
-            description: '包装（可选）',
-          },
-        },
-        required: ['skuId', 'productName'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
       name: 'query_batch_trace',
       description: '追溯批次的完整流转记录，包括入库、出库、移库、退货等信息。',
       parameters: {
@@ -173,8 +144,6 @@ export async function executeTool(toolName: string, args: any): Promise<any> {
         return await matchWarehouse(args);
       case 'query_inventory':
         return await queryInventory(args);
-      case 'select_inventory':
-        return await selectInventory(args);
       case 'query_batch_trace':
         return await queryBatchTrace(args);
       case 'query_owner_stock_summary':
@@ -572,24 +541,6 @@ async function queryInventory(args: { productName: string; spec?: string; packag
       spec: matchResult.spec,
       packaging: matchResult.packaging,
       skuId: matchResult.skuId,
-      ...inventoryResult.data,
-    },
-  };
-}
-
-async function selectInventory(args: { skuId: string; productName: string; spec?: string; packaging?: string }) {
-  const { skuId, productName, spec, packaging } = args;
-
-  const inventoryResult = await querySkuInventoryInternal(skuId);
-
-  return {
-    success: true,
-    type: 'sku_inventory',
-    data: {
-      productName,
-      spec,
-      packaging,
-      skuId,
       ...inventoryResult.data,
     },
   };
