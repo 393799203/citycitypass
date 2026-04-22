@@ -194,7 +194,11 @@ async function searchSku(args: { productName: string; spec?: string; packaging?:
 
     if (packaging) {
       const stockPackaging = (s.sku.packaging || '').toLowerCase().trim();
-      const searchPackaging = packaging.toLowerCase().trim();
+      let searchPackaging = packaging.toLowerCase().trim();
+      
+      // 标准化：去掉"装"字，"箱装" → "箱"，"瓶装" → "瓶"
+      searchPackaging = searchPackaging.replace(/装$/, '');
+      
       const isMatch = stockPackaging === searchPackaging ||
         stockPackaging.startsWith(searchPackaging + '(') ||
         searchPackaging.startsWith(stockPackaging + '(');
