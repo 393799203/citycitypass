@@ -516,7 +516,7 @@ export default function ProductsPage() {
     setBundleStocks([]);
     setStockLoading(true);
     try {
-      const res = await stockApi.getSkuStock(product.id);
+      const res = await stockApi.getProductStock(product.id);
       if (res.data.success) {
         setProductStocks(res.data.data);
       }
@@ -1096,6 +1096,7 @@ export default function ProductsPage() {
                         <thead className="bg-gray-50">
                           <tr className="text-center">
                             <th className="px-3 py-2">仓库</th>
+                            <th className="px-3 py-2">规格</th>
                             <th className="px-3 py-2">库位</th>
                             <th className="px-3 py-2">批号</th>
                             <th className="px-3 py-2">总库存</th>

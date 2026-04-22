@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { productApi } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, ChevronRight, ChevronDown, Package, Tag, Layers, Unlink } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, ChevronRight, ChevronDown, Package, Tag, Layers } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 
 interface Category {
@@ -18,8 +18,6 @@ interface SubCategory {
   name: string;
   categoryId: string;
   brands?: Brand[];
-  specs?: Spec[];
-  packagings?: Packaging[];
 }
 
 interface Brand {
@@ -34,6 +32,7 @@ interface Spec {
   code: string;
   name: string;
   sortOrder: number;
+  subCategoryId: string;
 }
 
 interface Packaging {
@@ -41,17 +40,19 @@ interface Packaging {
   code: string;
   name: string;
   sortOrder: number;
+  subCategoryId: string;
 }
 
 export default function ProductBasicDataPage() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [specs, setSpecs] = useState<Spec[]>([]);
-  const [packagings, setPackagings] = useState<Packaging[]>([]);
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubCategories, setExpandedSubCategories] = useState<Set<string>>(new Set());
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+
+  const [subCategorySpecs, setSubCategorySpecs] = useState<Spec[]>([]);
+  const [subCategoryPackagings, setSubCategoryPackagings] = useState<Packaging[]>([]);
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
@@ -71,37 +72,53 @@ export default function ProductBasicDataPage() {
   const [specForm, setSpecForm] = useState({ code: '', name: '', sortOrder: 0 });
   const [packagingForm, setPackagingForm] = useState({ code: '', name: '', sortOrder: 0 });
 
-  const [subCategorySpecs, setSubCategorySpecs] = useState<Spec[]>([]);
-  const [subCategoryPackagings, setSubCategoryPackagings] = useState<Packaging[]>([]);
   const { confirm } = useConfirm();
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
   }, []);
 
   useEffect(() => {
     if (selectedSubCategory) {
-      fetchSubCategoryDetails(selectedSubCategory);
+      fetchSpecsAndPackagings(selectedSubCategory);
+    } else {
+      setSubCategorySpecs([]);
+      setSubCategoryPackagings([]);
     }
   }, [selectedSubCategory]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     try {
-      const [catRes, specRes, pkgRes] = await Promise.all([
-        productApi.getCategories(),
-        productApi.getSpecs(),
-        productApi.getPackagings(),
-      ]);
+      const catRes = await productApi.getCategories();
       if (catRes.data.success) {
-        setCategories(catRes.data.data.map((cat: any) => ({ ...cat, subCategories: [] })));
+        setCategories(prevCategories => {
+          return catRes.data.data.map((cat: any) => {
+            const prevCat = prevCategories.find(c => c.id === cat.id);
+            return {
+              ...cat,
+              subCategories: prevCat?.subCategories || cat.subCategories || [],
+            };
+          });
+        });
       }
-      if (specRes.data.success) setSpecs(specRes.data.data);
-      if (pkgRes.data.success) setPackagings(pkgRes.data.data);
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
+    }
+  };
+
+  const fetchSpecsAndPackagings = async (subCategoryId: string) => {
+    try {
+      const [specRes, pkgRes] = await Promise.all([
+        productApi.getSpecs(subCategoryId),
+        productApi.getPackagings(subCategoryId),
+      ]);
+      if (specRes.data.success) setSubCategorySpecs(specRes.data.data);
+      if (pkgRes.data.success) setSubCategoryPackagings(pkgRes.data.data);
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -128,30 +145,30 @@ export default function ProductBasicDataPage() {
     });
   };
 
-  const fetchSubCategoryDetails = async (subCategoryId: string) => {
-    try {
-      const res = await productApi.getSubCategoryOptions(subCategoryId);
-      if (res.data.success) {
-        setSubCategorySpecs(res.data.data.specs || []);
-        setSubCategoryPackagings(res.data.data.packagings || []);
-      }
-    } catch (error) {
-      console.error(error);
+  const toggleCategory = (id: string) => {
+    if (expandedCategories.has(id)) {
+      setExpandedCategories(new Set());
+    } else {
+      setExpandedCategories(new Set([id]));
     }
   };
 
-  const toggleCategory = (id: string) => {
-    const newSet = new Set(expandedCategories);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setExpandedCategories(newSet);
+  const toggleSubCategory = (id: string) => {
+    if (expandedSubCategories.has(id)) {
+      setExpandedSubCategories(new Set());
+    } else {
+      setExpandedSubCategories(new Set([id]));
+    }
   };
 
-  const toggleSubCategory = (id: string) => {
-    const newSet = new Set(expandedSubCategories);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setExpandedSubCategories(newSet);
+  const refreshCurrentData = () => {
+    if (selectedSubCategory) {
+      const subCategory = categories.flatMap(c => c.subCategories || []).find(sc => sc.id === selectedSubCategory);
+      if (subCategory) {
+        fetchSpecsAndPackagings(selectedSubCategory);
+        fetchBrandsForSubCategory(selectedSubCategory);
+      }
+    }
   };
 
   const openCategoryModal = (cat?: Category) => {
@@ -193,7 +210,7 @@ export default function ProductBasicDataPage() {
       setSpecForm({ code: spec.code, name: spec.name, sortOrder: spec.sortOrder });
     } else {
       setEditingSpec(null);
-      setSpecForm({ code: '', name: '', sortOrder: specs.length });
+      setSpecForm({ code: '', name: '', sortOrder: subCategorySpecs.length });
     }
     setShowSpecModal(true);
   };
@@ -204,7 +221,7 @@ export default function ProductBasicDataPage() {
       setPackagingForm({ code: pkg.code, name: pkg.name, sortOrder: pkg.sortOrder });
     } else {
       setEditingPackaging(null);
-      setPackagingForm({ code: '', name: '', sortOrder: packagings.length });
+      setPackagingForm({ code: '', name: '', sortOrder: subCategoryPackagings.length });
     }
     setShowPackagingModal(true);
   };
@@ -235,7 +252,10 @@ export default function ProductBasicDataPage() {
         toast.success('创建成功');
       }
       setShowSubCategoryModal(false);
-      fetchData();
+      if (expandedCategories.size > 0) {
+        const expandedCatId = Array.from(expandedCategories)[0];
+        await fetchSubCategoriesForCategory(expandedCatId);
+      }
     } catch (error) {
       toast.error('保存失败');
     }
@@ -251,39 +271,49 @@ export default function ProductBasicDataPage() {
         toast.success('创建成功');
       }
       setShowBrandModal(false);
-      fetchData();
+      if (selectedSubCategory) {
+        await fetchBrandsForSubCategory(selectedSubCategory);
+      }
     } catch (error) {
       toast.error('保存失败');
     }
   };
 
   const saveSpec = async () => {
+    if (!selectedSubCategory) {
+      toast.error('请先选择二级分类');
+      return;
+    }
     try {
       if (editingSpec) {
         await productApi.updateSpec(editingSpec.id, specForm);
         toast.success('更新成功');
       } else {
-        await productApi.createSpec(specForm);
+        await productApi.createSpec({ ...specForm, subCategoryId: selectedSubCategory });
         toast.success('创建成功');
       }
       setShowSpecModal(false);
-      fetchData();
+      await fetchSpecsAndPackagings(selectedSubCategory);
     } catch (error) {
       toast.error('保存失败');
     }
   };
 
   const savePackaging = async () => {
+    if (!selectedSubCategory) {
+      toast.error('请先选择二级分类');
+      return;
+    }
     try {
       if (editingPackaging) {
         await productApi.updatePackaging(editingPackaging.id, packagingForm);
         toast.success('更新成功');
       } else {
-        await productApi.createPackaging(packagingForm);
+        await productApi.createPackaging({ ...packagingForm, subCategoryId: selectedSubCategory });
         toast.success('创建成功');
       }
       setShowPackagingModal(false);
-      fetchData();
+      await fetchSpecsAndPackagings(selectedSubCategory);
     } catch (error) {
       toast.error('保存失败');
     }
@@ -300,7 +330,8 @@ export default function ProductBasicDataPage() {
     try {
       await productApi.deleteCategory(id);
       toast.success('删除成功');
-      fetchData();
+      setSelectedSubCategory(null);
+      fetchData(true);
     } catch (error) {
       toast.error('删除失败');
     }
@@ -317,7 +348,12 @@ export default function ProductBasicDataPage() {
     try {
       await productApi.deleteSubCategory(id);
       toast.success('删除成功');
-      fetchData();
+      setSelectedSubCategory(null);
+      if (expandedCategories.size > 0) {
+        const expandedCatId = Array.from(expandedCategories)[0];
+        setExpandedCategories(new Set([expandedCatId]));
+        fetchSubCategoriesForCategory(expandedCatId);
+      }
     } catch (error) {
       toast.error('删除失败');
     }
@@ -334,72 +370,51 @@ export default function ProductBasicDataPage() {
     try {
       await productApi.deleteBrand(id);
       toast.success('删除成功');
-      fetchData();
+      if (selectedSubCategory) {
+        await fetchBrandsForSubCategory(selectedSubCategory);
+      }
     } catch (error) {
       toast.error('删除失败');
     }
   };
 
-  const linkSpecToSubCategory = async (specId: string) => {
-    if (!selectedSubCategory) return;
-    try {
-      await productApi.createSubCategorySpec({ subCategoryId: selectedSubCategory, specId });
-      toast.success('关联成功');
-      fetchSubCategoryDetails(selectedSubCategory);
-    } catch (error) {
-      toast.error('关联失败');
-    }
-  };
-
-  const linkPackagingToSubCategory = async (packagingId: string) => {
-    if (!selectedSubCategory) return;
-    try {
-      await productApi.createSubCategoryPackaging({ subCategoryId: selectedSubCategory, packagingId });
-      toast.success('关联成功');
-      fetchSubCategoryDetails(selectedSubCategory);
-    } catch (error) {
-      toast.error('关联失败');
-    }
-  };
-
-  const unlinkSpec = async (specId: string) => {
-    if (!selectedSubCategory) return;
+  const deleteSpec = async (id: string) => {
     const confirmed = await confirm({
-      title: '取消关联',
-      message: '确定要取消该规格与当前二级分类的关联？',
-      confirmText: '取消关联',
+      title: '删除规格',
+      message: '确定删除该规格？',
+      confirmText: '删除',
       danger: true,
     });
     if (!confirmed) return;
     try {
-      await productApi.deleteSubCategorySpec(selectedSubCategory, specId);
-      toast.success('取消关联成功');
-      fetchSubCategoryDetails(selectedSubCategory);
+      await productApi.deleteSpec(id);
+      toast.success('删除成功');
+      if (selectedSubCategory) {
+        await fetchSpecsAndPackagings(selectedSubCategory);
+      }
     } catch (error) {
-      toast.error('取消关联失败');
+      toast.error('删除失败');
     }
   };
 
-  const unlinkPackaging = async (packagingId: string) => {
-    if (!selectedSubCategory) return;
+  const deletePackaging = async (id: string) => {
     const confirmed = await confirm({
-      title: '取消关联',
-      message: '确定要取消该包装与当前二级分类的关联？',
-      confirmText: '取消关联',
+      title: '删除包装',
+      message: '确定删除该包装？',
+      confirmText: '删除',
       danger: true,
     });
     if (!confirmed) return;
     try {
-      await productApi.deleteSubCategoryPackaging(selectedSubCategory, packagingId);
-      toast.success('取消关联成功');
-      fetchSubCategoryDetails(selectedSubCategory);
+      await productApi.deletePackaging(id);
+      toast.success('删除成功');
+      if (selectedSubCategory) {
+        await fetchSpecsAndPackagings(selectedSubCategory);
+      }
     } catch (error) {
-      toast.error('取消关联失败');
+      toast.error('删除失败');
     }
   };
-
-  const availableSpecsToLink = specs.filter(s => !subCategorySpecs.find(ss => ss.id === s.id));
-  const availablePackagingsToLink = packagings.filter(p => !subCategoryPackagings.find(pp => pp.id === p.id));
 
   if (loading) {
     return (
@@ -439,7 +454,8 @@ export default function ProductBasicDataPage() {
                   }
                 }}
               >
-                <button onClick={() => {
+                <button onClick={(e) => {
+                  e.stopPropagation();
                   toggleCategory(cat.id);
                   if (!expandedCategories.has(cat.id) && (!cat.subCategories || cat.subCategories.length === 0)) {
                     fetchSubCategoriesForCategory(cat.id);
@@ -455,20 +471,20 @@ export default function ProductBasicDataPage() {
                 <span className="flex-1 font-medium">{cat.name}</span>
                 <span className="text-xs text-gray-400">{cat.code}</span>
                 <div className="hidden group-hover:flex items-center gap-1">
-                  <button onClick={() => openSubCategoryModal(undefined, cat.id)} className="p-1 text-primary-600 hover:bg-primary-50 rounded">
+                  <button onClick={(e) => { e.stopPropagation(); openSubCategoryModal(undefined, cat.id); }} className="p-1 text-primary-600 hover:bg-primary-50 rounded">
                     <Plus className="w-3 h-3" />
                   </button>
-                  <button onClick={() => openCategoryModal(cat)} className="p-1 text-gray-500 hover:bg-gray-200 rounded">
+                  <button onClick={(e) => { e.stopPropagation(); openCategoryModal(cat); }} className="p-1 text-gray-500 hover:bg-gray-200 rounded">
                     <Pencil className="w-3 h-3" />
                   </button>
-                  <button onClick={() => deleteCategory(cat.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                  <button onClick={(e) => { e.stopPropagation(); deleteCategory(cat.id); }} className="p-1 text-red-500 hover:bg-red-50 rounded">
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
 
               {expandedCategories.has(cat.id) && (
-                <div className="ml-6 space-y-1">
+                <div className="ml-6 space-y-1 overflow-hidden transition-all duration-300 ease-in-out">
                   {cat.subCategories?.map(sc => (
                     <div key={sc.id}>
                       <div
@@ -484,13 +500,13 @@ export default function ProductBasicDataPage() {
                           }
                         }}
                       >
-                        <button onClick={(e) => { 
-                            e.stopPropagation(); 
-                            toggleSubCategory(sc.id);
-                            if (!sc.brands) {
-                              fetchBrandsForSubCategory(sc.id);
-                            }
-                          }} className="p-0.5">
+                        <button onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubCategory(sc.id);
+                          if (!sc.brands) {
+                            fetchBrandsForSubCategory(sc.id);
+                          }
+                        }} className="p-0.5">
                           {expandedSubCategories.has(sc.id) ? (
                             <ChevronDown className="w-4 h-4 text-gray-400" />
                           ) : (
@@ -514,7 +530,7 @@ export default function ProductBasicDataPage() {
                       </div>
 
                       {expandedSubCategories.has(sc.id) && (
-                        <div className="ml-6 space-y-1">
+                        <div className="ml-6 space-y-1 overflow-hidden transition-all duration-300 ease-in-out">
                           {sc.brands?.map(brand => (
                             <div
                               key={brand.id}
@@ -581,7 +597,7 @@ export default function ProductBasicDataPage() {
                     onClick={() => openSpecModal()}
                     className="text-sm text-primary-600 flex items-center gap-1"
                   >
-                    <Plus className="w-4 h-4" /> 新建规格
+                    <Plus className="w-4 h-4" /> 新建
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -595,57 +611,16 @@ export default function ProductBasicDataPage() {
                         <button onClick={() => openSpecModal(spec)} className="p-1 text-gray-500 hover:bg-gray-200 rounded">
                           <Pencil className="w-3 h-3" />
                         </button>
-                        <button onClick={() => unlinkSpec(spec.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                          <Unlink className="w-3 h-3" />
+                        <button onClick={() => deleteSpec(spec.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
                   ))}
                   {subCategorySpecs.length === 0 && (
-                    <div className="text-sm text-gray-400 text-center py-4">暂无关联规格</div>
+                    <div className="text-sm text-gray-400 text-center py-4">暂无规格</div>
                   )}
                 </div>
-                {availableSpecsToLink.length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-gray-500 mb-2">添加关联</p>
-                    <div className="flex flex-wrap gap-1">
-                      {availableSpecsToLink.map(spec => (
-                        <div
-                          key={spec.id}
-                          className="px-2 py-1 text-xs bg-gray-100 rounded flex items-center gap-1"
-                        >
-                          <button onClick={() => linkSpecToSubCategory(spec.id)} className="hover:text-primary-600">
-                            <span>{spec.name}</span>
-                          </button>
-                          <button onClick={() => openSpecModal(spec)} className="p-0.5 text-gray-400 hover:text-gray-600">
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              const confirmed = await confirm({
-                                title: '删除规格',
-                                message: `确定删除规格"${spec.name}"？`,
-                                confirmText: '删除',
-                                danger: true,
-                              });
-                              if (!confirmed) return;
-                              try {
-                                await productApi.deleteSpec(spec.id);
-                                toast.success('删除成功');
-                                fetchData();
-                              } catch (error) {
-                                toast.error('删除失败');
-                              }
-                            }}
-                            className="p-0.5 text-gray-400 hover:text-red-500"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="bg-white rounded-lg border p-4">
@@ -655,7 +630,7 @@ export default function ProductBasicDataPage() {
                     onClick={() => openPackagingModal()}
                     className="text-sm text-primary-600 flex items-center gap-1"
                   >
-                    <Plus className="w-4 h-4" /> 新建包装
+                    <Plus className="w-4 h-4" /> 新建
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -669,57 +644,16 @@ export default function ProductBasicDataPage() {
                         <button onClick={() => openPackagingModal(pkg)} className="p-1 text-gray-500 hover:bg-gray-200 rounded">
                           <Pencil className="w-3 h-3" />
                         </button>
-                        <button onClick={() => unlinkPackaging(pkg.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                          <Unlink className="w-3 h-3" />
+                        <button onClick={() => deletePackaging(pkg.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
                   ))}
                   {subCategoryPackagings.length === 0 && (
-                    <div className="text-sm text-gray-400 text-center py-4">暂无关联包装</div>
+                    <div className="text-sm text-gray-400 text-center py-4">暂无包装</div>
                   )}
                 </div>
-                {availablePackagingsToLink.length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-gray-500 mb-2">添加关联</p>
-                    <div className="flex flex-wrap gap-1">
-                      {availablePackagingsToLink.map(pkg => (
-                        <div
-                          key={pkg.id}
-                          className="px-2 py-1 text-xs bg-gray-100 rounded flex items-center gap-1"
-                        >
-                          <button onClick={() => linkPackagingToSubCategory(pkg.id)} className="hover:text-primary-600">
-                            <span>{pkg.name}</span>
-                          </button>
-                          <button onClick={() => openPackagingModal(pkg)} className="p-0.5 text-gray-400 hover:text-gray-600">
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              const confirmed = await confirm({
-                                title: '删除包装',
-                                message: `确定删除包装"${pkg.name}"？`,
-                                confirmText: '删除',
-                                danger: true,
-                              });
-                              if (!confirmed) return;
-                              try {
-                                await productApi.deletePackaging(pkg.id);
-                                toast.success('删除成功');
-                                fetchData();
-                              } catch (error) {
-                                toast.error('删除失败');
-                              }
-                            }}
-                            className="p-0.5 text-gray-400 hover:text-red-500"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </>
@@ -745,7 +679,6 @@ export default function ProductBasicDataPage() {
                   value={categoryForm.code}
                   onChange={e => setCategoryForm({ ...categoryForm, code: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: BAIJIU"
                 />
               </div>
               <div>
@@ -754,7 +687,6 @@ export default function ProductBasicDataPage() {
                   value={categoryForm.name}
                   onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: 白酒"
                 />
               </div>
             </div>
@@ -780,7 +712,6 @@ export default function ProductBasicDataPage() {
                   value={subCategoryForm.code}
                   onChange={e => setSubCategoryForm({ ...subCategoryForm, code: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: BAIJIU_500ML"
                 />
               </div>
               <div>
@@ -789,7 +720,6 @@ export default function ProductBasicDataPage() {
                   value={subCategoryForm.name}
                   onChange={e => setSubCategoryForm({ ...subCategoryForm, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: 500ml装白酒"
                 />
               </div>
               <div>
@@ -828,7 +758,6 @@ export default function ProductBasicDataPage() {
                   value={brandForm.code}
                   onChange={e => setBrandForm({ ...brandForm, code: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: MOUTAI"
                 />
               </div>
               <div>
@@ -837,7 +766,6 @@ export default function ProductBasicDataPage() {
                   value={brandForm.name}
                   onChange={e => setBrandForm({ ...brandForm, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: 茅台"
                 />
               </div>
               <div>
@@ -848,8 +776,8 @@ export default function ProductBasicDataPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="">选择二级分类</option>
-                  {categories.flatMap(c => (c.subCategories || []).map(sc => ({ ...sc, categoryName: c.name }))).map(sc => (
-                    <option key={sc.id} value={sc.id}>{sc.categoryName} / {sc.name}</option>
+                  {categories.flatMap(c => c.subCategories || []).map(sc => (
+                    <option key={sc.id} value={sc.id}>{sc.name}</option>
                   ))}
                 </select>
               </div>
@@ -872,12 +800,19 @@ export default function ProductBasicDataPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm mb-1">编码</label>
-                <input
-                  value={specForm.code}
-                  onChange={e => setSpecForm({ ...specForm, code: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: SPEC_500ML"
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    value="SPEC_"
+                    disabled
+                    className="w-20 px-3 py-2 border rounded-lg bg-gray-100 text-gray-500"
+                  />
+                  <input
+                    value={specForm.code.replace(/^SPEC_/, '')}
+                    onChange={e => setSpecForm({ ...specForm, code: `SPEC_${e.target.value}` })}
+                    className="flex-1 px-3 py-2 border rounded-lg"
+                    placeholder="如: BAIJIU_500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm mb-1">名称</label>
@@ -885,7 +820,6 @@ export default function ProductBasicDataPage() {
                   value={specForm.name}
                   onChange={e => setSpecForm({ ...specForm, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: 500ml"
                 />
               </div>
               <div>
@@ -916,12 +850,19 @@ export default function ProductBasicDataPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm mb-1">编码</label>
-                <input
-                  value={packagingForm.code}
-                  onChange={e => setPackagingForm({ ...packagingForm, code: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: PKG_BOTTLE"
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    value="PKG_"
+                    disabled
+                    className="w-20 px-3 py-2 border rounded-lg bg-gray-100 text-gray-500"
+                  />
+                  <input
+                    value={packagingForm.code.replace(/^PKG_/, '')}
+                    onChange={e => setPackagingForm({ ...packagingForm, code: `PKG_${e.target.value}` })}
+                    className="flex-1 px-3 py-2 border rounded-lg"
+                    placeholder="如: BAIJIU_BOTTLE"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm mb-1">名称</label>
@@ -929,7 +870,6 @@ export default function ProductBasicDataPage() {
                   value={packagingForm.name}
                   onChange={e => setPackagingForm({ ...packagingForm, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如: 瓶"
                 />
               </div>
               <div>

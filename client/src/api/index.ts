@@ -124,11 +124,11 @@ export const productApi = {
   createBrand: (data: any) => api.post('/products/brands', data),
   updateBrand: (id: string, data: any) => api.put(`/products/brands/${id}`, data),
   deleteBrand: (id: string) => api.delete(`/products/brands/${id}`),
-  getSpecs: () => api.get('/products/specs'),
+  getSpecs: (subCategoryId?: string) => api.get('/products/specs', { params: { subCategoryId } }),
   createSpec: (data: any) => api.post('/products/specs', data),
   updateSpec: (id: string, data: any) => api.put(`/products/specs/${id}`, data),
   deleteSpec: (id: string) => api.delete(`/products/specs/${id}`),
-  getPackagings: () => api.get('/products/packagings'),
+  getPackagings: (subCategoryId?: string) => api.get('/products/packagings', { params: { subCategoryId } }),
   createPackaging: (data: any) => api.post('/products/packagings', data),
   updatePackaging: (id: string, data: any) => api.put(`/products/packagings/${id}`, data),
   deletePackaging: (id: string) => api.delete(`/products/packagings/${id}`),
@@ -200,6 +200,7 @@ export const stockApi = {
   batchTrace: (batchNo: string) => api.get(`/stock/batch/${batchNo}/trace`),
   getBundleStock: (bundleId: string) => api.get(`/stock/bundle/${bundleId}`),
   getSkuStock: (skuId: string) => api.get(`/stock/sku/by-skuId/${skuId}`),
+  getProductStock: (productId: string) => api.get(`/stock/sku/by-productId/${productId}`),
 };
 
 export const inboundApi = {
