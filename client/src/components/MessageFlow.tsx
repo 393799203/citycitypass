@@ -10,7 +10,7 @@ interface AIErrorInfo {
 
 interface AIStructuredData {
   intent: string;
-  type: string;
+  type?: string;
   data: any;
 }
 
@@ -30,28 +30,47 @@ interface MessageFlowProps {
   messages: Message[];
 }
 
+function ItemsDisplay({ items }: { items: any[] }) {
+  if (!items?.length) return null;
+  return (
+    <div>
+      商品：{items.map((item, idx) => (
+        <span key={idx} className="inline-block mr-2">
+          {item.productName}{item.spec ? ` ${item.spec}` : ''}{item.packaging ? ` ${item.packaging}` : ''} × {item.quantity}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CardHeader({ icon: Icon, title, confirmed, color = 'purple' }: { icon: any; title: string; confirmed?: boolean; color?: string }) {
+  const colorClasses: Record<string, string> = {
+    purple: 'text-purple-700',
+    blue: 'text-blue-700',
+    green: 'text-green-700',
+    amber: 'text-amber-700',
+  };
+  return (
+    <div className={`flex items-center gap-2 ${colorClasses[color]} font-medium`}>
+      <Icon className="w-4 h-4" />
+      <span>{title}</span>
+      {confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
+    </div>
+  );
+}
+
 function OrderCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const data = message.structuredData?.data;
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2 text-purple-700 font-medium">
-        <ShoppingCart className="w-4 h-4" />
-        <span>创建销售订单</span>
-        {message.confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
-      </div>
+      <CardHeader icon={ShoppingCart} title="创建销售订单" confirmed={message.confirmed} />
       <div className="text-gray-600 text-xs space-y-0.5">
-        {structuredData.data?.receiver && <div>客户：{structuredData.data.receiver}</div>}
-        {structuredData.data?.phone && <div>电话：{structuredData.data.phone}</div>}
-        {(structuredData.data?.province || structuredData.data?.city || structuredData.data?.address) && (
-          <div>地址：{[structuredData.data.province, structuredData.data.city, structuredData.data.address].filter(Boolean).join('')}</div>
+        {data?.receiver && <div>客户：{data.receiver}</div>}
+        {data?.phone && <div>电话：{data.phone}</div>}
+        {(data?.province || data?.city || data?.address) && (
+          <div>地址：{[data.province, data.city, data.address].filter(Boolean).join('')}</div>
         )}
-        {structuredData.data?.items?.length > 0 && (
-          <div>商品：{structuredData.data.items.map((item: any, idx: number) => (
-            <span key={idx} className="inline-block mr-2">
-              {item.productName}{item.spec ? ` ${item.spec}` : ''}{item.packaging ? ` ${item.packaging}` : ''} × {item.quantity}
-            </span>
-          ))}</div>
-        )}
+        <ItemsDisplay items={data?.items} />
       </div>
       {!message.confirmed && <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>}
     </div>
@@ -59,23 +78,16 @@ function OrderCard({ message }: { message: Message }) {
 }
 
 function PurchaseOrderCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const data = message.structuredData?.data;
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2 text-purple-700 font-medium">
-        <ClipboardList className="w-4 h-4" />
-        <span>创建采购订单</span>
-        {message.confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
-      </div>
-      <div className="text-gray-600 text-xs">
-        {structuredData.data?.supplierId && <div>供应商ID：{structuredData.data.supplierId}</div>}
-        {structuredData.data?.items?.length > 0 && (
-          <div>商品：{structuredData.data.items.map((item: any, idx: number) => (
-            <span key={idx} className="inline-block mr-2">
-              {item.productName}{item.spec ? ` ${item.spec}` : ''}{item.packaging ? ` ${item.packaging}` : ''} × {item.quantity}
-            </span>
-          ))}</div>
-        )}
+      <CardHeader icon={ClipboardList} title="创建采购订单" confirmed={message.confirmed} />
+      <div className="text-gray-600 text-xs space-y-0.5">
+        {data?.supplierName && <div>供应商：{data.supplierName}</div>}
+        {data?.warehouseName && <div>仓库：{data.warehouseName}</div>}
+        {data?.orderDate && <div>订单日期：{data.orderDate}</div>}
+        {data?.expectedDate && <div>预期到货：{data.expectedDate}</div>}
+        <ItemsDisplay items={data?.items} />
       </div>
       {!message.confirmed && <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>}
     </div>
@@ -83,24 +95,14 @@ function PurchaseOrderCard({ message }: { message: Message }) {
 }
 
 function InboundCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const data = message.structuredData?.data;
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2 text-purple-700 font-medium">
-        <Package className="w-4 h-4" />
-        <span>创建入库单</span>
-        {message.confirmed && <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已创建</span>}
-      </div>
-      <div className="text-gray-600 text-xs">
-        {structuredData.data?.warehouseId && <div>仓库：{structuredData.data.warehouseId}</div>}
-        {structuredData.data?.source && <div>来源：{structuredData.data.source}</div>}
-        {structuredData.data?.items?.length > 0 && (
-          <div>商品：{structuredData.data.items.map((item: any, idx: number) => (
-            <span key={idx} className="inline-block mr-2">
-              {item.productName}{item.spec ? ` ${item.spec}` : ''}{item.packaging ? ` ${item.packaging}` : ''} × {item.quantity}
-            </span>
-          ))}</div>
-        )}
+      <CardHeader icon={Package} title="创建入库单" confirmed={message.confirmed} />
+      <div className="text-gray-600 text-xs space-y-0.5">
+        {data?.warehouseName && <div>仓库：{data.warehouseName}</div>}
+        {data?.source && <div>来源：{data.source}</div>}
+        <ItemsDisplay items={data?.items} />
       </div>
       {!message.confirmed && <div className="text-xs text-purple-500 mt-1">点击查看详情 →</div>}
     </div>
@@ -187,16 +189,34 @@ function BundleInventoryCard({ message }: { message: Message }) {
 
 function SkuSelectCard({ message }: { message: Message }) {
   const { structuredData } = message;
+  const data = structuredData.data;
+  const type = structuredData.type;
+  const productName = data.productName || data.options?.[0]?.productName || '';
+  const spec = data.spec || data.options?.[0]?.spec || '';
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
       <div className="flex items-center gap-2 text-blue-700 text-xs">
         <Package className="w-3 h-3" />
-        <span className="font-medium">{structuredData.data.productName} {structuredData.data.spec} - 找到 {structuredData.data.options.length} 种包装</span>
+        <span className="font-medium">{productName} {spec} - 找到 {data.options.length} 种SKU</span>
       </div>
+      {type === 'create' && data.quantity && (
+        <div className="text-xs text-gray-600">
+          购买数量：<span className="font-bold text-blue-600">{data.quantity}</span>
+        </div>
+      )}
+      {type === 'create' && (data.receiver || data.phone) && (
+        <div className="text-xs text-gray-600 space-y-0.5">
+          {data.receiver && <div>收货人：{data.receiver}</div>}
+          {data.phone && <div>电话：{data.phone}</div>}
+          {(data.province || data.city || data.address) && (
+            <div>地址：{[data.province, data.city, data.address].filter(Boolean).join('')}</div>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-1">
-        {structuredData.data.options.map((item: any, idx: number) => {
+        {data.options.map((item: any, idx: number) => {
           const isSelected = message.selectedOption?.skuId === item.skuId;
-          const isDisabled = message.confirmed;
+          const isDisabled = message.confirmed || message.selectedOption;
           return (
             <div
               key={idx}
@@ -205,7 +225,16 @@ function SkuSelectCard({ message }: { message: Message }) {
                 if (isDisabled) return;
                 e.stopPropagation();
                 if (typeof window !== 'undefined' && (window as any).selectInventoryOption) {
-                  (window as any).selectInventoryOption(item);
+                  (window as any).selectInventoryOption({ 
+                    ...item, 
+                    type,
+                    quantity: data.quantity, 
+                    receiver: data.receiver, 
+                    phone: data.phone, 
+                    province: data.province, 
+                    city: data.city, 
+                    address: data.address 
+                  });
                 }
               }}
             >
@@ -214,7 +243,11 @@ function SkuSelectCard({ message }: { message: Message }) {
                   {item.packaging}
                   {isSelected && ' ✓'}
                 </span>
-                <span className={`font-bold ${isSelected ? 'text-green-600' : 'text-blue-600'}`}>{item.availableQuantity}</span>
+                {item.availableQuantity !== undefined && (
+                  <span className={`font-bold ${isSelected ? 'text-green-600' : 'text-blue-600'}`}>
+                    {item.availableQuantity}
+                  </span>
+                )}
               </div>
             </div>
           );
@@ -397,14 +430,16 @@ function renderStructuredContent(message: Message) {
     return <InboundCard message={message} />;
   }
 
+  if (structuredData?.intent === 'match_sku') {
+    return <SkuSelectCard message={message} />;
+  }
+
   if (structuredData?.intent === 'query') {
     switch (structuredData.type) {
       case 'batch_inventory':
         return <BatchInventoryCard message={message} />;
       case 'bundle_inventory':
         return <BundleInventoryCard message={message} />;
-      case 'match_sku':
-        return <SkuSelectCard message={message} />;
       case 'sku_inventory':
         return <SkuInventoryCard message={message} />;
       case 'owner_stock_summary':
@@ -422,11 +457,13 @@ function renderStructuredContent(message: Message) {
 function handleStructuredClick(message: Message) {
   if (message.confirmed) return;
 
-  const isQueryWithOptions = message.structuredData?.intent === 'query' &&
-    message.structuredData?.type === 'match_sku' &&
-    message.structuredData?.data?.options;
+  const isMatchSku = message.structuredData?.intent === 'match_sku';
 
-  if (!['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData?.intent || '') && !isQueryWithOptions) {
+  if (isMatchSku) {
+    return;
+  }
+
+  if (!['create_order', 'create_purchase_order', 'create_inbound'].includes(message.structuredData?.intent || '')) {
     return;
   }
 

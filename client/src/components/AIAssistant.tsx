@@ -3,7 +3,7 @@ import { Send, X, Image as ImageIcon, Bot, Sparkles, Check, FileText, ShoppingCa
 import { jsonrepair } from 'jsonrepair';
 import MessageFlow from './MessageFlow';
 import { aiApi } from '../api/ai';
-import { orderApi, purchaseOrderApi, productApi, bundleApi, inboundApi, warehouseApi, supplierApi, supplierProductApi, stockApi } from '../api';
+import { orderApi, purchaseOrderApi, inboundApi, stockApi } from '../api';
 import { useOwnerStore } from '../stores/owner';
 
 interface Message {
@@ -140,7 +140,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 
     (window as any).selectInventoryOption = (option: any) => {
       console.log('[AI] selectInventoryOption called with:', option);
-      handleInventorySelect(option);
+      handleSKUSelect(option);
     };
 
     return () => {
@@ -223,12 +223,16 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       }
 
       try {
-        return JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr);
+        if (typeof parsed === 'object' && parsed !== null && parsed.intent) {
+          return parsed;
+        }
+        return null;
       } catch (e1) {
         try {
           const fixedJson = jsonrepair(jsonStr);
           const parsed = JSON.parse(fixedJson);
-          if (typeof parsed === 'object' && parsed !== null) {
+          if (typeof parsed === 'object' && parsed !== null && parsed.intent) {
             return parsed;
           }
           return null;
@@ -253,98 +257,6 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       }
     }
     return undefined;
-  };
-
-  // 查找仓库ID
-  const findWarehouseId = async (warehouseNameOrId: string): Promise<string | undefined> => {
-    try {
-      const warehouseRes = await warehouseApi.list({});
-      const warehouses = warehouseRes.data.data || [];
-      const trimmed = warehouseNameOrId.trim();
-      const found = warehouses.find((w: any) =>
-        w.name.trim() === trimmed || w.id === trimmed
-      );
-      return found?.id || warehouses[0]?.id || undefined;
-    } catch (error) {
-      console.error('Failed to get warehouse list:', error);
-      return undefined;
-    }
-  };
-
-  // 查找供应商ID
-  const findSupplierId = async (supplierNameOrId: string): Promise<string | undefined> => {
-    try {
-      const supplierRes = await supplierApi.list({});
-      const suppliers = supplierRes.data.data || [];
-      const trimmed = supplierNameOrId.trim();
-      const found = suppliers.find((s: any) =>
-        s.name.trim() === trimmed || s.id === trimmed
-      );
-      return found?.id || suppliers[0]?.id || undefined;
-    } catch (error) {
-      console.error('Failed to get supplier list:', error);
-      return undefined;
-    }
-  };
-
-  // 标准化包装名称
-  const normalizePackaging = (p: string) => {
-    return p.replace(/装/g, '').replace(/罐/g, '瓶');
-  };
-
-  // 匹配SKU
-  const matchSku = (sku: any, item: any): boolean => {
-    const aiPackaging = normalizePackaging(item.packaging?.toLowerCase() || '');
-    const aiSpec = item.spec?.toLowerCase() || '';
-    const skuPackaging = normalizePackaging(sku.packaging?.toLowerCase() || '');
-    const skuSpec = sku.spec?.toLowerCase() || '';
-
-    if (aiPackaging && aiSpec) {
-      return skuPackaging.includes(aiPackaging) && skuSpec.includes(aiSpec);
-    }
-    if (aiPackaging) {
-      return skuPackaging.includes(aiPackaging);
-    }
-    if (aiSpec) {
-      return skuSpec.includes(aiSpec);
-    }
-    return false;
-  };
-
-  // 查找商品SKU或套装，返回匹配结果
-  const findProductOrBundle = async (productName: string, item: any, supplierId?: string) => {
-    try {
-      const productRes = await productApi.list({ name: productName });
-      const products = productRes.data.data || [];
-
-      for (const product of products) {
-        if (!product.skus?.length) continue;
-
-        const matchedSku = product.skus.find((s: any) => matchSku(s, item));
-        if (matchedSku) {
-          let price = matchedSku.price || 0;
-          if (supplierId) {
-            try {
-              const spRes = await supplierProductApi.list({ supplierId });
-              const spList = spRes.data.data || [];
-              const sp = spList.find((s: any) => s.skuId === matchedSku.id);
-              if (sp?.price) price = sp.price;
-            } catch { /* ignore */ }
-          }
-          return { skuId: matchedSku.id, bundleId: null, price };
-        }
-      }
-
-      // 尝试匹配套装
-      const bundleRes = await bundleApi.list({ name: productName });
-      const bundles = bundleRes.data.data || [];
-      if (bundles.length > 0) {
-        return { skuId: null, bundleId: bundles[0].id, price: bundles[0].price || 0 };
-      }
-    } catch (error) {
-      console.error('Failed to search products/bundles:', error);
-    }
-    return { skuId: null, bundleId: null, price: 0 };
   };
 
   const handleSend = async () => {
@@ -388,28 +300,31 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       const systemPrompt = `你是WMS仓储助手。
 
 【重要规则】
-- 只有仓储业务问题（订单/采购/入库/库存查询）才返回JSON
+- 仓储业务问题（订单/采购/入库/库存查询）必须返回JSON
+- 基于知识库回答的问题也必须返回JSON格式
 - 打招呼/问候/闲聊/天气等非业务问题 → 返回普通文本，不要JSON！
-- 如果不确定是否是业务问题，默认返回普通文本
 
 【业务意图判断】
 - 订购/下单/购买 → create_order（销售订单）
 - 采购/进货 → create_purchase_order（采购订单）
 - 入库 → create_inbound（入库单）
 - 库存/查询 → 用工具查询，返回JSON
+- 知识库问答 → 返回JSON格式 {"intent": "query", "type": "others", "data": {"answer": "回答内容"}}
 
 【JSON格式 - 必须严格遵守】
 - 所有JSON必须完整合法：括号要闭合，每个{必须有对应的}，每个[必须有对应的]
 - 禁止省略任何括号、引号
 - 数量必须是数字，不能是字符串
 
-销售订单: {"intent": "create_order", "data": {"ownerId":"ID","receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","items":[{"productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
+销售订单: {"intent": "create_order", "data": {"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","items":[{"skuId":"匹配到的SKU ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
 
-采购订单: {"intent": "create_purchase_order", "data": {"supplierId":"供应商","warehouseId":"仓库","orderDate":"2026-04-20","expectedDate":"2026-04-30","remark":"备注","items":[{"productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
+采购订单: {"intent": "create_purchase_order", "data": {"supplierId":"匹配到的供应商ID","supplierName":"匹配到的供应商名称","orderDate":"当天日期","expectedDate":"期望送达日期","remark":"备注","items":[{"skuId":"匹配到的SKU ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
 
-入库单: {"intent": "create_inbound", "data": {"warehouseId":"仓库","source":"来源","remark":"备注","items":[{"productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
+入库单: {"intent": "create_inbound", "data": {"warehouseId":"匹配到的仓库ID","warehouseName":"匹配到的仓库名称","source":"OTHER","remark":"备注","items":[{"skuId":"匹配到的SKU ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
 
-库存多选项: {"intent": "query", "type": "match_sku", "data": {"productName":"商品名","spec":"规格","options":[{"skuId":"xxx","packaging":"包装","availableQuantity":数量}]}}
+库存多选项(创建订单): {"intent": "match_sku", "type": "create", "data": {"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","quantity":用户要购买的数量,"options":[{"skuId":"xxx","productName":"商品","spec":"规格","packaging":"包装","availableQuantity":库存数量}]}}
+
+库存多选项(查询库存): {"intent": "match_sku", "type": "query", "data": {"productName":"商品名","spec":"规格","options":[{"skuId":"xxx","productName":"商品","spec":"规格","packaging":"包装","availableQuantity":库存数量}]}}
 
 基于知识库回答: {"intent": "query", "type": "others", "data": {"answer": "回答内容"}}
 
@@ -418,16 +333,39 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 
 【要求】
 1. 日期用YYYY-MM-DD格式
-2. spec/packaging可以从知识库选取`;
+2. spec/packaging可以从知识库选取
+3. **创建订单/采购单/入库单前必须先调用匹配工具获取ID！**`;
 
       const hasImages = imagesToSend.length > 0;
       const enableTools = !hasImages;
       const toolInstructions = enableTools ? `
 
 【工具使用】
+商品匹配: match_sku(productName必填, spec可选, packaging可选) → 返回skuId
+**注意：packaging参数不要自己编造，如果用户说了"瓶"、"箱"等可以传入，否则留空让工具返回所有匹配项**
+供应商匹配: match_supplier(supplierName必填) → 返回supplierId
+仓库匹配: match_warehouse(warehouseName必填) → 返回warehouseId
 库存查询: query_inventory(productName必填, spec可选, packaging可选)
 主体汇总: query_owner_stock_summary() **不需要参数，工具自动从请求头获取ownerId**
 批次追溯: query_batch_trace(batchNo)
+
+【创建订单流程 - 必须按顺序执行】
+1. 用户提出订购需求（如"帮老丁购买飞天茅台，杭州市余杭区复地上城，13222223333"）
+2. **先调用 match_sku 匹配商品，获取 skuId**
+3. 如果 match_sku 返回多个选项，**完整复制工具返回的options数组（包含skuId、productName、spec、packaging、availableQuantity）**，返回: {"intent": "match_sku", "type": "create", "data": {"receiver":"收货人","phone":"电话","province":"省","city":"市","address":"地址","quantity":购买数量,"options":[...]}}
+4. 如果 match_sku 返回单个，用获取的 skuId 构建订单JSON返回
+
+【创建采购单流程 - 必须按顺序执行】
+1. 用户提出采购需求（如"向贵州茅台集团采购3箱飞天茅台"）
+2. **先调用 match_supplier 匹配供应商，获取 supplierId 和 supplierName**
+3. **再调用 match_sku 匹配商品，获取 skuId**
+4. 用获取的 ID 构建采购单JSON返回，**orderDate使用今天日期(2026-04-22)**
+
+【创建入库单流程 - 必须按顺序执行】
+1. 用户提出入库需求（如"将10瓶茅台入库到XXX仓库"）
+2. **先调用 match_warehouse 匹配仓库，获取 warehouseId 和 warehouseName，我的仓库就通过ownerId获取默认第一个仓库**
+3. **再调用 match_sku 匹配商品，获取 skuId**
+4. 用获取的 ID 构建入库单JSON返回
 
 【库存查询规则】
 1. 用 query_inventory 查询商品或套装库存
@@ -435,9 +373,8 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 3. 用 query_batch_trace 查询批次库存，返回: {"intent": "query", "type": "batch_inventory", "data": {...}}
 4. 如果匹配单个SKU，返回: {"intent": "query", "type": "sku_inventory", "data": {...}}
 5. 如果匹配单个套装，返回: {"intent": "query", "type": "bundle_inventory", "data": {...}}
-6. 如果匹配多个SKU，返回: {"intent": "query", "type": "match_sku", "data": {"productName": "商品名", "spec": "规格", "options": [...]}}
-7. **禁止返回纯文本，必须返回JSON！**
-8. **重要：查询库存时不要要求用户输入ownerId，工具会自动从请求头获取！**
+6. **禁止返回纯文本，必须返回JSON！**
+7. **重要：所有工具调用不需要AI提供ownerId，工具会自动从请求头获取！**
 
 ` : '';
 
@@ -475,7 +412,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
           setConfirmData(structuredData);
           setShowConfirmCard(true);
           console.log('[AI] Showing confirm card for:', structuredData.intent);
-        } else if (structuredData?.intent === 'query' && structuredData?.data?.options) {
+        } else if (structuredData?.intent === 'match_sku' && structuredData?.data?.options) {
           console.log('[AI] Setting inventory options:', structuredData.data.options);
           setInventoryQuery({
             productName: structuredData.data.productName,
@@ -520,69 +457,187 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
     }
   };
 
-  const handleInventorySelect = async (option: any) => {
-    try {
+  const handleSKUSelect = async (option: any) => {
+    setMessages(prev => {
+      const newMsgs = [...prev];
+      for (let i = newMsgs.length - 1; i >= 0; i--) {
+        const msg = newMsgs[i];
+        if (msg.structuredData?.intent === 'match_sku' && msg.structuredData?.data?.options) {
+          newMsgs[i] = { ...msg, confirmed: true, selectedOption: option };
+          break;
+        }
+      }
+      return newMsgs;
+    });
+
+    setInventoryOptions([]);
+    setInventoryQuery(null);
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: `我选择 ${option.packaging} 包装的${option.productName || '商品'}`,
+      type: 'user',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    if (option.type === 'query') {
       setLoading(true);
+      try {
+        const stockResponse = await stockApi.getSkuStock(option.skuId);
+        const stockData = stockResponse.data?.data || stockResponse.data || [];
+        const stocks = Array.isArray(stockData) ? stockData : [stockData];
 
-      const stockResponse = await stockApi.getSkuStock(option.skuId);
-      const stockData = stockResponse.data?.data || stockResponse.data || [];
-      const stocks = Array.isArray(stockData) ? stockData : [stockData];
+        const totalQuantity = stocks.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0);
+        const availableQuantity = stocks.reduce((sum: number, s: any) => sum + (s.availableQuantity || 0), 0);
+        const lockedQuantity = stocks.reduce((sum: number, s: any) => sum + (s.lockedQuantity || 0), 0);
 
-      const totalQuantity = stocks.reduce((sum: number, s: any) => sum + (s.totalQuantity || 0), 0);
-      const availableQuantity = stocks.reduce((sum: number, s: any) => sum + (s.availableQuantity || 0), 0);
-      const lockedQuantity = stocks.reduce((sum: number, s: any) => sum + (s.lockedQuantity || 0), 0);
+        const details = stocks.map((s: any) => ({
+          skuId: s.skuId,
+          productName: s.sku?.product?.name || option.productName || '',
+          spec: s.sku?.spec || option.spec || '',
+          packaging: s.sku?.packaging || option.packaging || '',
+          warehouseName: s.warehouse?.name || '-',
+          locationCode: s.locationCode || s.location?.code || '-',
+          batchNo: s.skuBatch?.batchNo || '-',
+          totalQuantity: s.totalQuantity || 0,
+          availableQuantity: s.availableQuantity || 0,
+          lockedQuantity: s.lockedQuantity || 0,
+        }));
 
-      const details = stocks.map((s: any) => ({
-        skuId: s.skuId,
-        productName: s.sku?.product?.name || option.productName || '',
-        spec: s.sku?.spec || option.spec || '',
-        packaging: s.sku?.packaging || option.packaging || '',
-        warehouseName: s.warehouse?.name || '-',
-        locationCode: s.locationCode || s.location?.code || '-',
-        batchNo: s.skuBatch?.batchNo || '-',
-        totalQuantity: s.totalQuantity || 0,
-        availableQuantity: s.availableQuantity || 0,
-        lockedQuantity: s.lockedQuantity || 0,
-      }));
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: '',
-        type: 'ai',
-        timestamp: new Date(),
-        structuredData: {
-          intent: 'query',
-          type: 'sku_inventory',
-          data: {
-            productName: option.productName || details[0]?.productName || '',
-            spec: option.spec || details[0]?.spec || '',
-            packaging: option.packaging || details[0]?.packaging || '',
-            skuId: option.skuId,
-            summary: { totalQuantity, availableQuantity, lockedQuantity },
-            details,
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: '',
+          type: 'ai',
+          timestamp: new Date(),
+          structuredData: {
+            intent: 'query',
+            type: 'sku_inventory',
+            data: {
+              productName: option.productName || details[0]?.productName || '',
+              spec: option.spec || details[0]?.spec || '',
+              packaging: option.packaging || details[0]?.packaging || '',
+              skuId: option.skuId,
+              summary: { totalQuantity, availableQuantity, lockedQuantity },
+              details,
+            }
           }
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } catch (error: any) {
+        console.error('Stock query error:', error);
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: `查询库存失败：${error?.message || '未知错误'}`,
+          type: 'ai',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (option.type === 'create' && option.receiver && option.phone && option.address) {
+      const orderData = {
+        intent: 'create_order',
+        type: 'create',
+        data: {
+          receiver: option.receiver,
+          phone: option.phone,
+          province: option.province,
+          city: option.city,
+          address: option.address,
+          items: [{
+            skuId: option.skuId,
+            productName: option.productName,
+            spec: option.spec,
+            packaging: option.packaging,
+            quantity: option.quantity || 1,
+          }]
         }
       };
-      setMessages(prev => {
-        const newMsgs = [...prev];
-        for (let i = newMsgs.length - 1; i >= 0; i--) {
-          const msg = newMsgs[i];
-          if (msg.structuredData?.intent === 'query' && msg.structuredData?.type === 'match_sku' && msg.structuredData?.data?.options) {
-            newMsgs[i] = { ...msg, confirmed: true, selectedOption: option };
-            break;
-          }
-        }
-        newMsgs.push(aiMessage);
-        return newMsgs;
-      });
 
-      setInventoryOptions([]);
-      setInventoryQuery(null);
+      const msgId = (Date.now() + 1).toString();
+      setPendingMsgId(msgId);
+      setConfirmData(orderData as any);
+      setShowConfirmCard(true);
+
+      const aiMessage: Message = {
+        id: msgId,
+        content: JSON.stringify(orderData),
+        type: 'ai',
+        timestamp: new Date(),
+        structuredData: orderData as any,
+        confirmed: false
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      let context: string[] = [];
+      try {
+        const ragResponse = await aiApi.queryDocuments(`${option.productName} ${option.spec}`);
+        if (ragResponse.success && ragResponse.data && ragResponse.data.length > 0) {
+          context = ragResponse.data.map((doc: any) => doc.content);
+        }
+      } catch { /* ignore */ }
+
+      const systemPrompt = `你是业务助手，帮助用户创建订单。用户刚才选择了商品SKU，请根据选择的SKU信息创建订单。
+
+【选择的SKU信息】
+skuId: ${option.skuId}
+productName: ${option.productName}
+spec: ${option.spec || '标准'}
+packaging: ${option.packaging || '散装'}
+quantity: ${option.quantity || 1}
+
+【JSON格式 - 必须严格遵守】
+销售订单: {"intent": "create_order", "data": {"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","items":[{"skuId":"${option.skuId}","productName":"${option.productName}","spec":"${option.spec || ''}","packaging":"${option.packaging || ''}","quantity":${option.quantity || 1}}]}}
+
+【要求】
+1. 从之前的对话中提取收货人、电话、地址等信息
+2. 如果之前对话中没有这些信息，请询问用户
+3. 返回JSON格式`;
+
+      const history = messages.filter(m => m.type !== 'system').slice(-4)
+        .map(m => ({
+          role: m.type === 'user' ? 'user' : 'assistant',
+          content: m.content
+        }));
+
+      const chatResponse = await aiApi.chat(systemPrompt, history, [], false);
+
+      if (chatResponse.success && chatResponse.data?.content) {
+        const content = chatResponse.data.content;
+        const structuredData = parseAIResponse(content);
+
+        const msgId = (Date.now() + 1).toString();
+        const aiMessage: Message = {
+          id: msgId,
+          content: content,
+          type: 'ai',
+          timestamp: new Date(),
+          structuredData: structuredData,
+          confirmed: structuredData ? false : undefined
+        };
+        setMessages(prev => [...prev, aiMessage]);
+
+        if (structuredData && ['create_order', 'create_purchase_order', 'create_inbound'].includes(structuredData.intent)) {
+          setPendingMsgId(msgId);
+          setConfirmData(structuredData);
+          setShowConfirmCard(true);
+        }
+      }
     } catch (error: any) {
-      console.error('Inventory query error:', error);
+      console.error('Continue order error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `查询库存失败：${error?.message || '未知错误'}`,
+        content: `处理失败：${error?.message || '未知错误'}`,
         type: 'ai',
         timestamp: new Date()
       };
@@ -599,80 +654,60 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
       let result: any;
 
       if (confirmData.intent === 'create_order') {
-        const itemsWithDetails = await Promise.all(
-          (confirmData.data.items || []).map(async (item: any) => {
-            const { skuId, bundleId } = await findProductOrBundle(item.productName, item);
-            return {
-              skuId,
-              bundleId,
-              productName: item.productName,
-              spec: item.spec || '标准',
-              packaging: item.packaging || '散装',
-              quantity: Number(item.quantity) || 1,
-            };
-          })
-        );
+        const items = (confirmData.data.items || []).map((item: any) => ({
+          skuId: item.skuId,
+          bundleId: item.bundleId,
+          productName: item.productName,
+          spec: item.spec || '标准',
+          packaging: item.packaging || '散装',
+          quantity: Number(item.quantity) || 1,
+        }));
         const orderData = {
           receiver: confirmData.data.receiver,
           phone: confirmData.data.phone,
           province: confirmData.data.province,
           city: confirmData.data.city,
           address: confirmData.data.address,
-          items: itemsWithDetails,
+          items,
         };
         const response = await orderApi.create(orderData);
         result = response.data;
       }
 
       if (confirmData.intent === 'create_purchase_order') {
-        const supplierId = await findSupplierId(confirmData.data.supplierId || '');
-        const warehouseId = await findWarehouseId(confirmData.data.warehouseId || '');
-
-        const itemsWithDetails = await Promise.all(
-          (confirmData.data.items || []).map(async (item: any) => {
-            const { skuId, bundleId, price } = await findProductOrBundle(item.productName, item, supplierId);
-            return {
-              itemType: item.itemType || (bundleId ? 'BUNDLE' : 'PRODUCT'),
-              skuId,
-              bundleId,
-              quantity: Number(item.quantity) || 1,
-              price: item.price || price || 0,
-            };
-          })
-        );
+        const items = (confirmData.data.items || []).map((item: any) => ({
+          itemType: item.itemType || (item.bundleId ? 'BUNDLE' : 'PRODUCT'),
+          skuId: item.skuId,
+          bundleId: item.bundleId,
+          quantity: Number(item.quantity) || 1,
+          price: item.price || 0,
+        }));
 
         const purchaseData = {
-          supplierId,
-          warehouseId,
+          supplierId: confirmData.data.supplierId,
+          warehouseId: confirmData.data.warehouseId,
           orderDate: parseDate(confirmData.data.orderDate) || new Date().toISOString(),
           expectedDate: parseDate(confirmData.data.expectedDate),
           remark: confirmData.data.remark || '',
-          items: itemsWithDetails,
+          items,
         };
         const response = await purchaseOrderApi.create(purchaseData);
         result = response.data;
       }
 
       if (confirmData.intent === 'create_inbound') {
-        const warehouseId = await findWarehouseId(confirmData.data.warehouseId || '');
-
-        const itemsWithDetails = await Promise.all(
-          (confirmData.data.items || []).map(async (item: any) => {
-            const { skuId, bundleId } = await findProductOrBundle(item.productName, item);
-            return {
-              type: item.type || (bundleId ? 'BUNDLE' : 'PRODUCT'),
-              skuId,
-              bundleId,
-              quantity: Number(item.quantity) || 1,
-            };
-          })
-        );
+        const items = (confirmData.data.items || []).map((item: any) => ({
+          type: item.type || (item.bundleId ? 'BUNDLE' : 'PRODUCT'),
+          skuId: item.skuId,
+          bundleId: item.bundleId,
+          quantity: Number(item.quantity) || 1,
+        }));
 
         const inboundData = {
-          warehouseId,
+          warehouseId: confirmData.data.warehouseId,
           source: confirmData.data.source || 'PURCHASE',
           remark: confirmData.data.remark || '',
-          items: itemsWithDetails,
+          items,
         };
         const response = await inboundApi.create(inboundData);
         result = response.data;
@@ -726,6 +761,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
       case 'create_order': return '创建销售订单';
       case 'create_purchase_order': return '创建采购订单';
       case 'create_inbound': return '创建入库单';
+      case 'match_sku': return 'SKU选择';
       case 'query': return '查询请求';
       default: return 'AI 回复';
     }
@@ -754,7 +790,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
                 <ul className="mt-0.5 space-y-0.5">
                   {data.items?.map((item: any, idx: number) => (
                     <li key={idx} className="bg-white px-2 py-0.5 rounded text-xs">
-                      {item.productName} - {item.spec} × {item.quantity} {item.unit || '件'}
+                      {item.productName}{item.spec ? ` - ${item.spec}` : ''}{item.packaging ? ` - ${item.packaging}` : ''} × {item.quantity} {item.unit || '件'}
                     </li>
                   )) || <li className="text-gray-400">暂无商品</li>}
                 </ul>
@@ -772,7 +808,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
                 <ul className="mt-0.5 space-y-0.5">
                   {data.items?.map((item: any, idx: number) => (
                     <li key={idx} className="bg-white px-2 py-0.5 rounded text-xs">
-                      {item.productName} × {item.quantity}
+                      {item.productName}{item.spec ? ` - ${item.spec}` : ''}{item.packaging ? ` - ${item.packaging}` : ''} × {item.quantity}
                     </li>
                   )) || <li className="text-gray-400">暂无商品</li>}
                 </ul>
@@ -788,7 +824,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
                 <ul className="mt-0.5 space-y-0.5">
                   {data.items?.map((item: any, idx: number) => (
                     <li key={idx} className="bg-white px-2 py-0.5 rounded text-xs">
-                      {item.productName} × {item.quantity}
+                      {item.productName}{item.spec ? ` - ${item.spec}` : ''}{item.packaging ? ` - ${item.packaging}` : ''} × {item.quantity}
                     </li>
                   )) || <li className="text-gray-400">暂无商品</li>}
                 </ul>
