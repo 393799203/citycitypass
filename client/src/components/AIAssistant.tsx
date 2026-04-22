@@ -39,7 +39,10 @@ interface AIAssistantProps {
 export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
-  const [windowPosition, setWindowPosition] = useState({ x: 0, y: 0 });
+  const [windowPosition, setWindowPosition] = useState({
+    x: typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 408) : 0,
+    y: typeof window !== 'undefined' ? Math.max(0, window.innerHeight - 674) : 0
+  });
   const currentOwnerId = useOwnerStore((state) => state.currentOwnerId);
 
   const initialMessages: Message[] = [
@@ -116,15 +119,6 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [messages, isOpen, showConfirmCard, selectedImages]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setWindowPosition({
-        x: Math.max(0, window.innerWidth - 408),
-        y: Math.max(0, window.innerHeight - 674)
-      });
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     (window as any).openAIPanel = (data: AIStructuredData) => {
