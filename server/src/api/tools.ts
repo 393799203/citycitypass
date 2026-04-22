@@ -20,6 +20,65 @@ export const inventoryTools: Tool[] = [
   {
     type: 'function',
     function: {
+      name: 'match_sku',
+      description: '根据商品名称、规格、包装匹配SKU。返回skuId、productName、spec、packaging。如果匹配到多个，返回options数组让用户选择。',
+      parameters: {
+        type: 'object',
+        properties: {
+          productName: {
+            type: 'string',
+            description: '商品名称（必填）',
+          },
+          spec: {
+            type: 'string',
+            description: '规格，如"500ml"（可选）',
+          },
+          packaging: {
+            type: 'string',
+            description: '包装，如"箱(6瓶)"（可选）',
+          },
+        },
+        required: ['productName'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'match_supplier',
+      description: '根据供应商名称匹配供应商。返回supplierId和supplierName。',
+      parameters: {
+        type: 'object',
+        properties: {
+          supplierName: {
+            type: 'string',
+            description: '供应商名称（必填）',
+          },
+        },
+        required: ['supplierName'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'match_warehouse',
+      description: '根据仓库名称匹配仓库。返回warehouseId和warehouseName。',
+      parameters: {
+        type: 'object',
+        properties: {
+          warehouseName: {
+            type: 'string',
+            description: '仓库名称（必填）',
+          },
+        },
+        required: ['warehouseName'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'query_inventory',
       description: '查询商品或套装的库存。只需要输入商品名称（必填）、规格（可选，如500ml）、包装（可选，如箱(6瓶)），系统会自动查找对应的SKU或套装，然后返回库存信息。',
       parameters: {
@@ -106,6 +165,12 @@ export async function executeTool(toolName: string, args: any): Promise<any> {
 
   try {
     switch (toolName) {
+      case 'match_sku':
+        return await matchSkuOrBundle(args);
+      case 'match_supplier':
+        return await matchSupplier(args);
+      case 'match_warehouse':
+        return await matchWarehouse(args);
       case 'query_inventory':
         return await queryInventory(args);
       case 'select_inventory':
@@ -142,9 +207,6 @@ async function searchSku(args: { productName: string; spec?: string; packaging?:
   if (spec) {
     where.sku = { ...where.sku, spec: { contains: spec } };
   }
-  if (packaging) {
-    where.sku = { ...where.sku, packaging: { contains: packaging } };
-  }
 
   const stocks = await prisma.stock.findMany({
     where,
@@ -160,6 +222,17 @@ async function searchSku(args: { productName: string; spec?: string; packaging?:
   for (const s of stocks) {
     const isSalesZone = ['STORAGE', 'PICKING'].includes(s.location?.shelf?.zone?.type || '');
     if (!isSalesZone) continue;
+
+    if (packaging) {
+      const stockPackaging = (s.sku.packaging || '').toLowerCase().trim();
+      const searchPackaging = packaging.toLowerCase().trim();
+      const isMatch = stockPackaging === searchPackaging ||
+        stockPackaging.startsWith(searchPackaging + '(') ||
+        searchPackaging.startsWith(stockPackaging + '(');
+      if (!isMatch) {
+        continue;
+      }
+    }
 
     if (!skuMap.has(s.skuId)) {
       skuMap.set(s.skuId, {
@@ -357,6 +430,102 @@ async function matchSkuOrBundle(args: { productName: string; spec?: string; pack
     productName: items[0].productName,
     spec: items[0].spec,
     packaging: items[0].packaging,
+  };
+}
+
+async function matchSupplier(args: { supplierName: string; ownerId?: string }) {
+  const { supplierName, ownerId } = args;
+
+  const where: any = {
+    name: { contains: supplierName }
+  };
+
+  if (ownerId) {
+    where.ownerId = ownerId;
+  }
+
+  const suppliers = await prisma.supplier.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+    take: 10,
+  });
+
+  if (suppliers.length === 0) {
+    return { success: false, message: `未找到供应商"${supplierName}"` };
+  }
+
+  if (suppliers.length > 1) {
+    const options = suppliers.map(s => ({
+      supplierId: s.id,
+      supplierName: s.name,
+      code: s.code,
+    }));
+
+    return {
+      success: true,
+      type: 'supplier_multiple',
+      message: `找到多个匹配的供应商，请选择：`,
+      options,
+    };
+  }
+
+  return {
+    success: true,
+    type: 'supplier_single',
+    supplierId: suppliers[0].id,
+    supplierName: suppliers[0].name,
+  };
+}
+
+async function matchWarehouse(args: { warehouseName: string; ownerId?: string }) {
+  const { warehouseName, ownerId } = args;
+
+  const where: any = {
+    name: { contains: warehouseName }
+  };
+
+  if (ownerId) {
+    where.ownerId = ownerId;
+  }
+
+  const warehouses = await prisma.warehouse.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+    take: 10,
+  });
+
+  if (warehouses.length === 0) {
+    return { success: false, message: `未找到仓库"${warehouseName}"` };
+  }
+
+  if (warehouses.length > 1) {
+    const options = warehouses.map(w => ({
+      warehouseId: w.id,
+      warehouseName: w.name,
+      code: w.code,
+    }));
+
+    return {
+      success: true,
+      type: 'warehouse_multiple',
+      message: `找到多个匹配的仓库，请选择：`,
+      options,
+    };
+  }
+
+  return {
+    success: true,
+    type: 'warehouse_single',
+    warehouseId: warehouses[0].id,
+    warehouseName: warehouses[0].name,
   };
 }
 

@@ -24,8 +24,8 @@ async function cleanupEmptyBundleStockLocations(tx: any, locationId: string) {
 }
 
 const orderItemSchema = z.object({
-  skuId: z.string().nullable(),
-  bundleId: z.string().nullable(),
+  skuId: z.string().optional().nullable(),
+  bundleId: z.string().optional().nullable(),
   productName: z.string(),
   packaging: z.string(),
   spec: z.string(),

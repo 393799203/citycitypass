@@ -139,7 +139,33 @@ router.post('/', async (req, res, next) => {
     const count = await prisma.purchaseOrder.count();
     const orderNo = `PO${Date.now().toString().slice(-10)}${(count + 1).toString().padStart(4, '0')}`;
 
-    const totalAmount = data.items.reduce((sum, item) => {
+    const supplierProducts = await prisma.supplierProduct.findMany({
+      where: {
+        supplierId: data.supplierId,
+        status: 'ACTIVE',
+      },
+    });
+
+    const itemsWithPrice = data.items.map(item => {
+      let price = item.price;
+      
+      if (!price) {
+        const sp = supplierProducts.find(sp => 
+          (item.itemType === 'PRODUCT' && sp.skuId === item.skuId) ||
+          (item.itemType === 'BUNDLE' && sp.bundleId === item.bundleId)
+        );
+        if (sp?.price) {
+          price = Number(sp.price);
+        }
+      }
+      
+      return {
+        ...item,
+        price: price || 0,
+      };
+    });
+
+    const totalAmount = itemsWithPrice.reduce((sum, item) => {
       return sum + (item.price || 0) * item.quantity;
     }, 0);
 
@@ -155,7 +181,7 @@ router.post('/', async (req, res, next) => {
         remark: data.remark,
         status: PurchaseOrderStatus.PENDING,
         items: {
-          create: data.items.map(item => ({
+          create: itemsWithPrice.map(item => ({
             itemType: item.itemType as ItemType,
             skuId: item.skuId || null,
             bundleId: item.bundleId || null,
@@ -209,9 +235,35 @@ router.put('/:id', async (req, res, next) => {
     if (data.remark !== undefined) updateData.remark = data.remark;
 
     if (data.items) {
+      const supplierProducts = await prisma.supplierProduct.findMany({
+        where: {
+          supplierId: data.supplierId || order.supplierId,
+          status: 'ACTIVE',
+        },
+      });
+
+      const itemsWithPrice = data.items.map(item => {
+        let price = item.price;
+        
+        if (!price) {
+          const sp = supplierProducts.find(sp => 
+            (item.itemType === 'PRODUCT' && sp.skuId === item.skuId) ||
+            (item.itemType === 'BUNDLE' && sp.bundleId === item.bundleId)
+          );
+          if (sp?.price) {
+            price = Number(sp.price);
+          }
+        }
+        
+        return {
+          ...item,
+          price: price || 0,
+        };
+      });
+
       updateData.items = {
         deleteMany: {},
-        create: data.items.map(item => ({
+        create: itemsWithPrice.map(item => ({
           itemType: item.itemType as ItemType,
           skuId: item.skuId || undefined,
           bundleId: item.bundleId || undefined,
@@ -225,7 +277,7 @@ router.put('/:id', async (req, res, next) => {
         })),
       };
 
-      const totalAmount = data.items.reduce((sum, item) => {
+      const totalAmount = itemsWithPrice.reduce((sum, item) => {
         return sum + (item.price || 0) * item.quantity;
       }, 0);
       updateData.totalAmount = totalAmount;
