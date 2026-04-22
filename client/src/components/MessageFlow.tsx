@@ -204,6 +204,16 @@ function SkuSelectCard({ message }: { message: Message }) {
           购买数量：<span className="font-bold text-blue-600">{data.quantity}</span>
         </div>
       )}
+      {type === 'purchase' && data.quantity && (
+        <div className="text-xs text-gray-600">
+          采购数量：<span className="font-bold text-blue-600">{data.quantity}</span>
+        </div>
+      )}
+      {type === 'inbound' && data.quantity && (
+        <div className="text-xs text-gray-600">
+          入库数量：<span className="font-bold text-blue-600">{data.quantity}</span>
+        </div>
+      )}
       {type === 'create' && (data.receiver || data.phone) && (
         <div className="text-xs text-gray-600 space-y-0.5">
           {data.receiver && <div>收货人：{data.receiver}</div>}
@@ -211,6 +221,16 @@ function SkuSelectCard({ message }: { message: Message }) {
           {(data.province || data.city || data.address) && (
             <div>地址：{[data.province, data.city, data.address].filter(Boolean).join('')}</div>
           )}
+        </div>
+      )}
+      {type === 'purchase' && data.supplierName && (
+        <div className="text-xs text-gray-600">
+          供应商：{data.supplierName}
+        </div>
+      )}
+      {type === 'inbound' && data.warehouseName && (
+        <div className="text-xs text-gray-600">
+          仓库：{data.warehouseName}
         </div>
       )}
       <div className="grid grid-cols-2 gap-1">
@@ -233,7 +253,11 @@ function SkuSelectCard({ message }: { message: Message }) {
                     phone: data.phone, 
                     province: data.province, 
                     city: data.city, 
-                    address: data.address 
+                    address: data.address,
+                    warehouseId: data.warehouseId,
+                    warehouseName: data.warehouseName,
+                    supplierId: data.supplierId,
+                    supplierName: data.supplierName,
                   });
                 }
               }}

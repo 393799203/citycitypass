@@ -297,86 +297,46 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
         console.log(`[AI] ${searchMode} search results:`, ragResponse.data.map((doc: any) => ({ id: doc.id, score: doc.score, content: doc.content.substring(0, 50) })));
       }
 
-      const systemPrompt = `你是WMS仓储助手。
+      const systemPrompt = `你是WMS仓储助手。业务问题必须返回JSON，闲聊返回普通文本。
 
-【重要规则】
-- 仓储业务问题（订单/采购/入库/库存查询）必须返回JSON
-- 基于知识库回答的问题也必须返回JSON格式
-- 打招呼/问候/闲聊/天气等非业务问题 → 返回普通文本，不要JSON！
-
-【业务意图判断】
-- 订购/下单/购买 → create_order（销售订单）
-- 采购/进货 → create_purchase_order（采购订单）
-- 入库 → create_inbound（入库单）
-- 库存/查询 → 用工具查询，返回JSON
-- 知识库问答 → 返回JSON格式 {"intent": "query", "type": "others", "data": {"answer": "回答内容"}}
-
-【JSON格式 - 必须严格遵守】
-- 所有JSON必须完整合法：括号要闭合，每个{必须有对应的}，每个[必须有对应的]
-- 禁止省略任何括号、引号
-- 数量必须是数字，不能是字符串
-
-销售订单: {"intent": "create_order", "data": {"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","items":[{"skuId":"匹配到的SKU ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
-
-采购订单: {"intent": "create_purchase_order", "data": {"supplierId":"匹配到的供应商ID","supplierName":"匹配到的供应商名称","orderDate":"当天日期","expectedDate":"期望送达日期","remark":"备注","items":[{"skuId":"匹配到的SKU ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
-
-入库单: {"intent": "create_inbound", "data": {"warehouseId":"匹配到的仓库ID","warehouseName":"匹配到的仓库名称","source":"OTHER","remark":"备注","items":[{"skuId":"匹配到的SKU ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
-
-库存多选项(创建订单): {"intent": "match_sku", "type": "create", "data": {"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","quantity":用户要购买的数量,"options":[{"skuId":"xxx","productName":"商品","spec":"规格","packaging":"包装","availableQuantity":库存数量}]}}
-
-库存多选项(查询库存): {"intent": "match_sku", "type": "query", "data": {"productName":"商品名","spec":"规格","options":[{"skuId":"xxx","productName":"商品","spec":"规格","packaging":"包装","availableQuantity":库存数量}]}}
-
-基于知识库回答: {"intent": "query", "type": "others", "data": {"answer": "回答内容"}}
+【意图与JSON格式】
+- 销售订单: {"intent":"create_order","data":{"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","items":[{"skuId":"ID","productName":"商品","spec":"规格","packaging":"包装","quantity":数量}]}}
+- 采购订单: {"intent":"create_purchase_order","data":{"supplierId":"ID","supplierName":"名称","orderDate":"YYYY-MM-DD","expectedDate":"日期","items":[...]}}
+- 入库单: {"intent":"create_inbound","data":{"warehouseId":"ID","warehouseName":"名称","source":"OTHER","items":[...]}}
+- SKU多选(销售): {"intent":"match_sku","type":"create","data":{"receiver":"姓名","phone":"电话","province":"省","city":"市","address":"地址","quantity":数量,"options":[{"skuId":"ID","productName":"商品","spec":"规格","packaging":"包装","availableQuantity":数量}]}}
+- SKU多选(采购): {"intent":"match_sku","type":"purchase","data":{"supplierId":"ID","supplierName":"名称","quantity":数量,"options":[{"skuId":"ID","productName":"商品","spec":"规格","packaging":"包装"}]}}
+- SKU多选(入库): {"intent":"match_sku","type":"inbound","data":{"warehouseId":"ID","warehouseName":"名称","quantity":数量,"options":[{"skuId":"ID","productName":"商品","spec":"规格","packaging":"包装"}]}}
+- SKU多选(查询): {"intent":"match_sku","type":"query","data":{"options":[{"skuId":"ID","productName":"商品","spec":"规格","packaging":"包装","availableQuantity":数量}]}}
+- 库存查询结果: {"intent":"query","type":"sku_inventory/bundle_inventory/owner_stock_summary/batch_inventory","data":{...}}
+- 知识库回答: {"intent":"query","type":"others","data":{"answer":"回答内容"}}
 
 【知识库】
 ${context.length > 0 ? context.join('\n') : '暂无'}
 
 【要求】
-1. 日期用YYYY-MM-DD格式
-2. spec/packaging可以从知识库选取
-3. **创建订单/采购单/入库单前必须先调用匹配工具获取ID！**`;
+1. 创建订单/采购单/入库单前必须先调用匹配工具获取ID
+2. 日期格式YYYY-MM-DD，今天2026-04-22
+3. packaging不要编造，用户说了才传入`;
 
       const hasImages = imagesToSend.length > 0;
       const enableTools = !hasImages;
       const toolInstructions = enableTools ? `
 
-【工具使用】
-商品匹配: match_sku(productName必填, spec可选, packaging可选) → 返回skuId
-**注意：packaging参数不要自己编造，如果用户说了"瓶"、"箱"等可以传入，否则留空让工具返回所有匹配项**
-供应商匹配: match_supplier(supplierName必填) → 返回supplierId
-仓库匹配: match_warehouse(warehouseName必填) → 返回warehouseId
-库存查询: query_inventory(productName必填, spec可选, packaging可选)
-主体汇总: query_owner_stock_summary() **不需要参数，工具自动从请求头获取ownerId**
-批次追溯: query_batch_trace(batchNo)
+【工具】
+- match_sku(productName, spec?, packaging?) → 匹配商品SKU
+- match_supplier(supplierName) → 匹配供应商
+- match_warehouse(warehouseName) → 匹配仓库
+- query_inventory(productName, spec?, packaging?) → 查库存
+- query_owner_stock_summary() → 主体库存汇总
+- query_batch_trace(batchNo) → 批次追溯
 
-【创建订单流程 - 必须按顺序执行】
-1. 用户提出订购需求（如"帮老丁购买飞天茅台，杭州市余杭区复地上城，13222223333"）
-2. **先调用 match_sku 匹配商品，获取 skuId**
-3. 如果 match_sku 返回多个选项，**完整复制工具返回的options数组（包含skuId、productName、spec、packaging、availableQuantity）**，返回: {"intent": "match_sku", "type": "create", "data": {"receiver":"收货人","phone":"电话","province":"省","city":"市","address":"地址","quantity":购买数量,"options":[...]}}
-4. 如果 match_sku 返回单个，用获取的 skuId 构建订单JSON返回
+【流程】
+1. 销售订单: match_sku → 返回JSON
+2. 采购订单: match_supplier → match_sku → 返回JSON  
+3. 入库单: match_warehouse → match_sku → 返回JSON
+4. 库存查询: 调用工具后，返回 {"intent":"query","type":"工具返回的type","data":工具返回的数据}
 
-【创建采购单流程 - 必须按顺序执行】
-1. 用户提出采购需求（如"向贵州茅台集团采购3箱飞天茅台"）
-2. **先调用 match_supplier 匹配供应商，获取 supplierId 和 supplierName**
-3. **再调用 match_sku 匹配商品，获取 skuId**
-4. 用获取的 ID 构建采购单JSON返回，**orderDate使用今天日期(2026-04-22)**
-
-【创建入库单流程 - 必须按顺序执行】
-1. 用户提出入库需求（如"将10瓶茅台入库到XXX仓库"）
-2. **先调用 match_warehouse 匹配仓库，获取 warehouseId 和 warehouseName，我的仓库就通过ownerId获取默认第一个仓库**
-3. **再调用 match_sku 匹配商品，获取 skuId**
-4. 用获取的 ID 构建入库单JSON返回
-
-【库存查询规则】
-1. 用 query_inventory 查询商品或套装库存
-2. 用 query_owner_stock_summary 查询主体库存汇总（工具会自动从请求头获取ownerId，不需要AI提供）
-3. 用 query_batch_trace 查询批次库存，返回: {"intent": "query", "type": "batch_inventory", "data": {...}}
-4. 如果匹配单个SKU，返回: {"intent": "query", "type": "sku_inventory", "data": {...}}
-5. 如果匹配单个套装，返回: {"intent": "query", "type": "bundle_inventory", "data": {...}}
-6. **禁止返回纯文本，必须返回JSON！**
-7. **重要：所有工具调用不需要AI提供ownerId，工具会自动从请求头获取！**
-
-` : '';
+注意: ownerId由系统自动获取，无需AI提供` : '';
 
       const fullPrompt = `${systemPrompt}${toolInstructions}\n\n【用户问题】\n${input}`;
 
@@ -549,6 +509,76 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
           province: option.province,
           city: option.city,
           address: option.address,
+          items: [{
+            skuId: option.skuId,
+            productName: option.productName,
+            spec: option.spec,
+            packaging: option.packaging,
+            quantity: option.quantity || 1,
+          }]
+        }
+      };
+
+      const msgId = (Date.now() + 1).toString();
+      setPendingMsgId(msgId);
+      setConfirmData(orderData as any);
+      setShowConfirmCard(true);
+
+      const aiMessage: Message = {
+        id: msgId,
+        content: JSON.stringify(orderData),
+        type: 'ai',
+        timestamp: new Date(),
+        structuredData: orderData as any,
+        confirmed: false
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      return;
+    }
+
+    if (option.type === 'purchase' && option.supplierId) {
+      const orderData = {
+        intent: 'create_purchase_order',
+        type: 'purchase',
+        data: {
+          supplierId: option.supplierId,
+          supplierName: option.supplierName,
+          orderDate: new Date().toISOString().split('T')[0],
+          items: [{
+            skuId: option.skuId,
+            productName: option.productName,
+            spec: option.spec,
+            packaging: option.packaging,
+            quantity: option.quantity || 1,
+          }]
+        }
+      };
+
+      const msgId = (Date.now() + 1).toString();
+      setPendingMsgId(msgId);
+      setConfirmData(orderData as any);
+      setShowConfirmCard(true);
+
+      const aiMessage: Message = {
+        id: msgId,
+        content: JSON.stringify(orderData),
+        type: 'ai',
+        timestamp: new Date(),
+        structuredData: orderData as any,
+        confirmed: false
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      return;
+    }
+
+    if (option.type === 'inbound' && option.warehouseId) {
+      const orderData = {
+        intent: 'create_inbound',
+        type: 'inbound',
+        data: {
+          warehouseId: option.warehouseId,
+          warehouseName: option.warehouseName,
+          source: 'OTHER',
           items: [{
             skuId: option.skuId,
             productName: option.productName,
