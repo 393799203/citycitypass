@@ -492,7 +492,7 @@ export default function InboundPage() {
           toast.error(`请选择商品"${item.productName}"的供应商`);
           return;
         }
-        if ((item.type === 'PRODUCT' || item.type === 'BUNDLE') && !item.expiryDate) {
+        if (item.type === 'PRODUCT' && !item.expiryDate) {
           toast.error(`请填写商品"${item.productName}"的有效期`);
           return;
         }

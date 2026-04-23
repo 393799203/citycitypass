@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background rounded square -->
+  <rect x="24" y="24" width="464" height="464" rx="100" fill="url(#bgGradient)"/>
+  
+  <!-- Cloud elements - left side -->
+  <g opacity="0.9">
+    <circle cx="120" cy="160" r="35" fill="#fff"/>
+    <circle cx="160" cy="140" r="45" fill="#fff"/>
+    <circle cx="200" cy="160" r="35" fill="#fff"/>
+    <rect x="120" y="160" width="80" height="35" fill="#fff"/>
+  </g>
+  
+  <!-- Cloud elements - right side (symmetric) -->
+  <g opacity="0.9">
+    <circle cx="392" cy="160" r="35" fill="#fff"/>
+    <circle cx="352" cy="140" r="45" fill="#fff"/>
+    <circle cx="312" cy="160" r="35" fill="#fff"/>
+    <rect x="312" y="160" width="80" height="35" fill="#fff"/>
+  </g>
+  
+  <!-- Brain shape - centered and moved down -->
+  <g transform="translate(256, 310)">
+    <!-- Main brain outline - symmetric -->
+    <path d="
+      M -120,-70
+      C -150,-80 -170,-60 -180,-35
+      C -190,-10 -180,20 -160,45
+      C -140,70 -110,85 -80,95
+      C -50,105 -20,100 0,90
+      C 20,100 50,105 80,95
+      C 110,85 140,70 160,45
+      C 180,20 190,-10 180,-35
+      C 170,-60 150,-80 120,-70
+      C 90,-60 70,-45 60,-30
+      C 50,-45 30,-55 0,-60
+      C -30,-55 -50,-45 -60,-30
+      C -70,-45 -90,-60 -120,-70
+      Z
+    " fill="url(#brainGradient)" filter="url(#glow)"/>
+    
+    <!-- Center division line -->
+    <path d="M 0,-70 C 0,-35 0,0 0,35 C 0,60 0,75 0,90" 
+          stroke="#92400E" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.6"/>
+    
+    <!-- Brain folds - left side -->
+    <path d="M -100,-30 Q -70,-40 -40,-25" stroke="#92400E" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M -110,0 Q -80,10 -50,0" stroke="#92400E" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M -100,30 Q -70,40 -40,30" stroke="#92400E" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+    
+    <!-- Brain folds - right side (symmetric) -->
+    <path d="M 100,-30 Q 70,-40 40,-25" stroke="#92400E" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 110,0 Q 80,10 50,0" stroke="#92400E" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 100,30 Q 70,40 40,30" stroke="#92400E" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  
+  <!-- AI Circuit nodes - symmetric -->
+  <g fill="#fff" filter="url(#glow)">
+    <!-- Top center - AI core -->
+    <circle cx="256" cy="125" r="12" opacity="0.95"/>
+    <circle cx="256" cy="125" r="6" fill="#4F46E5"/>
+    
+    <!-- Left circuit -->
+    <circle cx="95" cy="220" r="6" opacity="0.8"/>
+    <circle cx="70" cy="260" r="5" opacity="0.7"/>
+    <line x1="95" y1="220" x2="70" y2="260" stroke="#fff" stroke-width="2" opacity="0.6"/>
+    
+    <!-- Right circuit (symmetric) -->
+    <circle cx="417" cy="220" r="6" opacity="0.8"/>
+    <circle cx="442" cy="260" r="5" opacity="0.7"/>
+    <line x1="417" y1="220" x2="442" y2="260" stroke="#fff" stroke-width="2" opacity="0.6"/>
+    
+    <!-- Connection to brain -->
+    <line x1="256" y1="137" x2="256" y2="180" stroke="#fff" stroke-width="2" opacity="0.5"/>
+  </g>
+  
+  <!-- Lightning/spark - AI energy (symmetric) -->
+  <g transform="translate(122, 130)" opacity="0.9">
+    <path d="M 0,-15 L 8,0 L 3,0 L 10,15 L 0,3 L 5,3 Z" fill="#FCD34D"/>
+  </g>
+  <g transform="translate(390, 130)" opacity="0.9">
+    <path d="M 0,-15 L 8,0 L 3,0 L 10,15 L 0,3 L 5,3 Z" fill="#FCD34D"/>
+  </g>
+</svg>

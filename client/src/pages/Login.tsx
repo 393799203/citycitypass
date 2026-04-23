@@ -105,7 +105,7 @@ export default function Login() {
             <Bot className="w-24 h-24" />
           </div>
           <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            智链AI
+            智链云AI
           </h1>
           <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
             进销存AI智能体

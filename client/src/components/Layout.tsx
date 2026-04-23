@@ -35,6 +35,8 @@ import {
   Pencil,
   Trash2,
   Truck,
+  PlayCircle,
+  X,
 } from 'lucide-react';
 
 import { MENU_ITEMS } from '../constants/menus';
@@ -72,6 +74,7 @@ export default function Layout() {
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any>(null);
   const [contentKey, setContentKey] = useState(0);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const { user, permissions, logout, token, setAuth, owners: authOwners } = useAuthStore();
   const { currentOwnerId, currentOwnerName, setCurrentOwner, logout: logoutOwner } = useOwnerStore();
   const { confirm } = useConfirm();
@@ -177,7 +180,7 @@ export default function Layout() {
         <div className="h-14 flex items-center justify-between px-3 border-b bg-primary-600">
           <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
             <LogoIcon className="w-7 h-7 text-white flex-shrink-0" />
-            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链AI</span>}
+            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链云AI</span>}
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -316,6 +319,15 @@ export default function Layout() {
               <Menu className="w-5 h-5" />
             </button>
           </div>
+          
+          <button
+            onClick={() => setShowVideoModal(true)}
+            className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
+          >
+            <PlayCircle className="w-4 h-4" />
+            <span>观看演示</span>
+          </button>
+          
           <div className="flex items-center gap-4">
             <div className="relative">
               <button
@@ -504,6 +516,34 @@ export default function Layout() {
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
+      )}
+
+      {showVideoModal && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowVideoModal(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowVideoModal(false)}
+              className="absolute top-3 right-3 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <video
+              src="/showcase.mp4"
+              controls
+              autoPlay
+              className="w-full h-auto"
+              style={{ maxHeight: '80vh' }}
+            >
+              您的浏览器不支持视频播放
+            </video>
+          </div>
+        </div>
       )}
     </div>
   );
