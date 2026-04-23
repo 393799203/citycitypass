@@ -22,7 +22,7 @@ async function cleanupEmptyBundleStockLocations(tx: any, locationId: string) {
 }
 
 const ZONE_TYPE_NAMES: Record<string, string> = {
-  RECEIVING: '收货区',
+  INBOUND: '入库区',
   STORAGE: '存储区',
   PICKING: '拣货区',
   RETURNING: '退货区',
@@ -30,7 +30,7 @@ const ZONE_TYPE_NAMES: Record<string, string> = {
 };
 
 function validateTransferRule(fromZoneType: string, toZoneType: string): { valid: boolean; message?: string } {
-  const salesZones = ['RECEIVING', 'STORAGE', 'PICKING'];
+  const salesZones = ['INBOUND', 'STORAGE', 'PICKING'];
 
   if (salesZones.includes(fromZoneType) && salesZones.includes(toZoneType)) {
     return { valid: true };

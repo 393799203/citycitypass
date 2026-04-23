@@ -33,7 +33,7 @@ interface WarehouseVisualizationProps {
 }
 
 const zoneColors: Record<string, number> = {
-  RECEIVING: 0x3b82f6,
+  INBOUND: 0x3b82f6,
   STORAGE: 0x6b7280,
   PICKING: 0xeab308,
   SHIPPING: 0x22c55e,
@@ -349,7 +349,7 @@ export default memo(function WarehouseVisualization({ zones, selectedShelfId, sh
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur rounded-lg p-3 shadow text-xs">
         <div className="font-medium mb-2">图例</div>
         {Object.entries({
-          RECEIVING: { label: '收货区', color: 'bg-blue-500' },
+          INBOUND: { label: '入库区', color: 'bg-blue-500' },
           STORAGE: { label: '存储区', color: 'bg-gray-500' },
           PICKING: { label: '拣货区', color: 'bg-yellow-500' },
           SHIPPING: { label: '发货区', color: 'bg-green-500' },

@@ -30,6 +30,7 @@ services:
       PORT: 3001
       JWT_SECRET: ${JWT_SECRET:-Yx9kP2mQ3nL5wB7vF8rT1hJ4sD6eR0gH}
       AMAP_KEY: ${AMAP_KEY:-b4a9ed33784ddcfb7265d1e1b988cc75}
+      DEPLOY_MODE: ${DEPLOY_MODE:-normal}
     ports:
       - "3001:3001"
     depends_on:

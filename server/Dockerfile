@@ -15,9 +15,12 @@ RUN npx prisma generate
 
 COPY src ./src
 COPY tsconfig.json ./
+COPY entrypoint.sh ./
+
+RUN chmod +x entrypoint.sh
 
 RUN npm run build
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma db seed && npm start"]
+CMD ["./entrypoint.sh"]

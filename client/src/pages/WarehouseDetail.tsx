@@ -362,7 +362,7 @@ export default function WarehouseDetailPage() {
                   className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 ${selectedZoneId === zone.id ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 hover:bg-gray-200'}`}
                 >
                   <span className={`w-2 h-2 rounded-full ${
-                    zone.type === 'RECEIVING' ? 'bg-blue-500' :
+                    zone.type === 'INBOUND' ? 'bg-blue-500' :
                     zone.type === 'STORAGE' ? 'bg-gray-500' :
                     zone.type === 'PICKING' ? 'bg-yellow-500' :
                     zone.type === 'SHIPPING' ? 'bg-green-500' :
@@ -426,7 +426,7 @@ export default function WarehouseDetailPage() {
                           {!selectedZoneId && (
                             <td className="px-3 py-2 text-sm">
                               <span className={`px-1.5 py-0.5 text-xs rounded-full ${
-                                zone.type === 'RECEIVING' ? 'bg-blue-100 text-blue-700' :
+                                zone.type === 'INBOUND' ? 'bg-blue-100 text-blue-700' :
                                 zone.type === 'STORAGE' ? 'bg-gray-100 text-gray-700' :
                                 zone.type === 'PICKING' ? 'bg-yellow-100 text-yellow-700' :
                                 zone.type === 'SHIPPING' ? 'bg-green-100 text-green-700' :
@@ -603,7 +603,7 @@ export default function WarehouseDetailPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`w-3 h-3 rounded-full ${
-                        zone.type === 'RECEIVING' ? 'bg-blue-500' :
+                        zone.type === 'INBOUND' ? 'bg-blue-500' :
                         zone.type === 'STORAGE' ? 'bg-gray-500' :
                         zone.type === 'PICKING' ? 'bg-yellow-500' :
                         zone.type === 'SHIPPING' ? 'bg-green-500' :
@@ -676,7 +676,7 @@ export default function WarehouseDetailPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                   disabled={!!editingZone}
                 >
-                  <option value="RECEIVING">收货区</option>
+                  <option value="INBOUND">入库区</option>
                   <option value="STORAGE">存储区</option>
                   <option value="PICKING">拣货区</option>
                   <option value="SHIPPING">发货区</option>

@@ -424,7 +424,7 @@ export default function InventoryPage() {
             >
               <option value="">全部货区</option>
               {zones.map(z => {
-                const typeMap: Record<string, string> = { PICKING: '拣货区', STORAGE: '存储区', RETURNING: '退货区', RECEIVING: '收货区', DAMAGED: '损坏区' };
+                const typeMap: Record<string, string> = { PICKING: '拣货区', STORAGE: '存储区', RETURNING: '退货区', INBOUND: '入库区', DAMAGED: '损坏区' };
                 return <option key={z.id} value={z.id}>{z.code}-{typeMap[z.type] || z.type}</option>;
               })}
             </select>

@@ -8,7 +8,7 @@ import { usePermission } from '../hooks/usePermission';
 import { useOwnerStore } from '../stores/owner';
 
 const ZONE_TYPES: Record<string, string> = {
-  RECEIVING: '收货区',
+  INBOUND: '入库区',
   STORAGE: '存储区',
   PICKING: '拣货区',
   RETURNING: '退货区',
