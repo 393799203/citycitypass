@@ -5,6 +5,7 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LicensePlateInput from '../components/LicensePlateInput';
+import BatchSelect from '../components/BatchSelect';
 import { usePermission } from '../hooks/usePermission';
 import { useOwnerStore } from '../stores/owner';
 
@@ -1613,7 +1614,7 @@ export default function InboundPage() {
 
       {showArrivalModal && selectedArrivalOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">到货登记 - {selectedArrivalOrder.inboundNo}</h2>
               <button onClick={() => setShowArrivalModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -1643,16 +1644,15 @@ export default function InboundPage() {
               <table className="min-w-full border divide-y">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs">商品</th>
-                    <th className="px-3 py-2 text-left text-xs">规格/包装</th>
-                    <th className="px-3 py-2 text-center text-xs">计划数</th>
-                    <th className="px-3 py-2 text-center text-xs">到货数</th>
-                    <th className="px-3 py-2 text-center text-xs"><span className="text-red-500">*</span>供应商</th>
-                    <th className="px-3 py-2 text-center text-xs"><span className="text-red-500">*</span>批次号</th>
+                    <th className="px-3 py-2 text-left text-xs w-40">商品</th>
+                    <th className="px-3 py-2 text-left text-xs w-32">规格/包装</th>
+                    <th className="px-3 py-2 text-center text-xs w-24">计划/到货</th>
+                    <th className="px-3 py-2 text-center text-xs w-36"><span className="text-red-500">*</span>供应商</th>
+                    <th className="px-3 py-2 text-center text-xs w-24"><span className="text-red-500">*</span>批次号</th>
                     {arrivalItems.some(i => i.type === 'PRODUCT' || i.type === 'BUNDLE') && (
                       <>
                         {arrivalItems.some(i => i.type === 'PRODUCT') && (
-                          <th className="px-3 py-2 text-center text-xs"><span className="text-red-500">*</span>有效期</th>
+                          <th className="px-3 py-2 text-center text-xs w-28"><span className="text-red-500">*</span>有效期</th>
                         )}
                       </>
                     )}
@@ -1662,29 +1662,36 @@ export default function InboundPage() {
                   {arrivalItems.map((item, idx) => (
                     <tr key={item.id}>
                       <td className="px-3 py-2 text-sm">
-                        <span className={`px-1.5 py-0.5 text-xs rounded mr-1 ${
-                          item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' : item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
-                        }`}>
-                          {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
-                        </span>
-                        {item.productName}
+                        <div className="flex items-center gap-1">
+                          <span className={`px-1.5 py-0.5 text-xs rounded shrink-0 ${
+                            item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' : item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                          }`}>
+                            {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
+                          </span>
+                          <span className="truncate">{item.productName}</span>
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-500">
-                        {item.type === 'MATERIAL' || item.type === 'OTHER' ? (item.unit || '-') : (item.spec || '-')}{item.type !== 'MATERIAL' && item.type !== 'OTHER' && item.packaging ? ` / ${item.packaging}` : ''}
+                        <span className="truncate block">
+                          {item.type === 'MATERIAL' || item.type === 'OTHER' ? (item.unit || '-') : (item.spec || '-')}{item.type !== 'MATERIAL' && item.type !== 'OTHER' && item.packaging ? ` / ${item.packaging}` : ''}
+                        </span>
                       </td>
-                      <td className="px-3 py-2 text-sm text-center">{item.expectedQuantity}</td>
                       <td className="px-3 py-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.arrivalQuantity}
-                          onChange={(e) => {
-                            const newItems = [...arrivalItems];
-                            newItems[idx].arrivalQuantity = parseInt(e.target.value) || 0;
-                            setArrivalItems(newItems);
-                          }}
-                          className="w-16 border rounded px-2 py-1 text-center"
-                        />
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-gray-500 text-sm">{item.expectedQuantity}</span>
+                          <span className="text-gray-300">/</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.arrivalQuantity}
+                            onChange={(e) => {
+                              const newItems = [...arrivalItems];
+                              newItems[idx].arrivalQuantity = parseInt(e.target.value) || 0;
+                              setArrivalItems(newItems);
+                            }}
+                            className="w-12 border rounded px-1 py-0.5 text-center text-sm"
+                          />
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-center">
                         <select
@@ -1694,64 +1701,48 @@ export default function InboundPage() {
                             newItems[idx].supplierId = e.target.value;
                             setArrivalItems(newItems);
                           }}
-                          className={`border rounded px-2 py-1 text-sm ${item.arrivalQuantity > 0 && !item.supplierId ? 'border-red-300 bg-red-50' : ''}`}
+                          className={`border rounded px-1 py-1 text-sm w-full ${item.arrivalQuantity > 0 && !item.supplierId ? 'border-red-300 bg-red-50' : ''}`}
                         >
-                          <option value="">选择供应商</option>
+                          <option value="">选择</option>
                           {suppliers.map(s => (
                             <option key={s.id} value={s.id}>{s.name}</option>
                           ))}
                         </select>
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <div className="flex flex-col gap-1">
-                          <select
-                            value={item.batchNo || ''}
-                            onChange={(e) => {
-                              const newItems = [...arrivalItems];
-                              newItems[idx].batchNo = e.target.value;
-                              if (e.target.value && item.availableBatches?.length) {
-                                const selected = item.availableBatches.find(b => b.batchNo === e.target.value);
-                                if (selected) {
-                                  if (selected.expiryDate) {
-                                    newItems[idx].expiryDate = selected.expiryDate.split('T')[0];
-                                  }
-                                  if (selected.supplierId) {
-                                    newItems[idx].supplierId = selected.supplierId;
-                                  }
+                        <BatchSelect
+                          value={item.batchNo || ''}
+                          onChange={(val) => {
+                            const newItems = [...arrivalItems];
+                            newItems[idx].batchNo = val;
+                            if (val && item.availableBatches?.length) {
+                              const selected = item.availableBatches.find(b => b.batchNo === val);
+                              if (selected) {
+                                if (selected.expiryDate) {
+                                  newItems[idx].expiryDate = selected.expiryDate.split('T')[0];
+                                }
+                                if (selected.supplierId) {
+                                  newItems[idx].supplierId = selected.supplierId;
                                 }
                               }
-                              setArrivalItems(newItems);
-                            }}
-                            className={`border rounded px-2 py-1 text-sm font-mono ${item.arrivalQuantity > 0 && !item.batchNo ? 'border-red-300 bg-red-50' : ''}`}
-                          >
-                            <option value="">选择批次/新建</option>
-                            {item.availableBatches?.map((b, bi) => (
-                              <option key={bi} value={b.batchNo}>
-                                {b.batchNo} {b.expiryDate ? `(${b.expiryDate.split('T')[0]})` : ''}
-                              </option>
-                            ))}
-                            {item.batchNo && !item.availableBatches?.some(b => b.batchNo === item.batchNo) && (
-                              <option value={item.batchNo}>★ {item.batchNo}</option>
-                            )}
-                          </select>
-                          {item.batchNo && !item.availableBatches?.some(b => b.batchNo === item.batchNo) && (
-                            <span className="text-xs text-green-600">新批次</span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-                              const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-                              const newItems = [...arrivalItems];
-                              newItems[idx].batchNo = `${dateStr}${randomStr}`;
-                              setArrivalItems(newItems);
-                            }}
-                            className="px-1 py-1 text-xs bg-gray-100 hover:bg-gray-200 border rounded"
-                            title="自动生成新批次"
-                          >
-                            生成
-                          </button>
-                        </div>
+                            }
+                            setArrivalItems(newItems);
+                          }}
+                          options={(item.availableBatches || []).map(b => ({
+                            batchNo: b.batchNo,
+                            expiryDate: b.expiryDate,
+                            supplierId: b.supplierId,
+                            supplierName: b.supplierName,
+                          }))}
+                          onGenerate={() => {
+                            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                            const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+                            const newItems = [...arrivalItems];
+                            newItems[idx].batchNo = `${dateStr}${randomStr}`;
+                            setArrivalItems(newItems);
+                          }}
+                          isError={item.arrivalQuantity > 0 && !item.batchNo}
+                        />
                       </td>
                       {item.type === 'PRODUCT' && (
                       <td className="px-3 py-2 text-center">
@@ -1763,7 +1754,7 @@ export default function InboundPage() {
                             newItems[idx].expiryDate = e.target.value;
                             setArrivalItems(newItems);
                           }}
-                          className={`border rounded px-2 py-1 text-sm ${item.arrivalQuantity > 0 && !item.expiryDate ? 'border-red-300 bg-red-50' : ''}`}
+                          className={`border rounded px-1 py-1 text-sm w-full ${item.arrivalQuantity > 0 && !item.expiryDate ? 'border-red-300 bg-red-50' : ''}`}
                         />
                       </td>
                       )}
