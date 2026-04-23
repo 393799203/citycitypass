@@ -40,7 +40,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const [isOpen, setIsOpen] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [windowPosition, setWindowPosition] = useState({
-    x: typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 408) : 0,
+    x: typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 460) : 0,
     y: typeof window !== 'undefined' ? Math.max(0, window.innerHeight - 674) : 0
   });
   const currentOwnerId = useOwnerStore((state) => state.currentOwnerId);
@@ -899,7 +899,7 @@ quantity: ${option.quantity || 1}
       {/* AI助手窗口 - 可拖动 */}
       {isOpen && (
         <div
-          className="fixed z-50 bg-white rounded-xl shadow-2xl w-80 md:w-96 min-h-[650px] max-h-[650px] flex flex-col border border-gray-200"
+          className="fixed z-50 bg-white rounded-xl shadow-2xl w-96 md:w-[450px] min-h-[650px] max-h-[650px] flex flex-col border border-gray-200"
           style={{
             left: `${windowPosition.x}px`,
             top: `${windowPosition.y}px`,
