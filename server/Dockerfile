@@ -4,12 +4,17 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package*.json ./
+COPY server/package*.json ./server/
+COPY server/prisma ./server/prisma
+WORKDIR /app/server
 RUN npm ci && npm cache clean --force
 
 RUN npx prisma generate
 
-COPY . .
+COPY server/src ./src
+COPY server/tsconfig.json ./
+
+RUN npm run build
 
 EXPOSE 3001
 
