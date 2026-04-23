@@ -5,15 +5,12 @@ WORKDIR /app
 RUN corepack enable
 
 COPY package*.json ./
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 RUN npx prisma generate
 
 COPY . .
 
-RUN npm run build
-
 EXPOSE 3001
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
