@@ -7,13 +7,11 @@
   "steps": {
     "build": {
       "commands": [
-        "cd server && npm install",
-        "cd server && npx prisma generate",
-        "cd server && npm run build"
+        "sh -c 'cd server && npm install && npx prisma generate && npm run build'"
       ]
     }
   },
   "deploy": {
-    "startCommand": "cd server && npm start"
+    "startCommand": "sh -c 'cd server && npm start'"
   }
 }
