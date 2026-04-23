@@ -16,6 +16,7 @@ interface AddressInputProps {
   showRegion?: boolean;
   regionValue?: string;
   onRegionChange?: (region: string) => void;
+  required?: boolean;
 }
 
 const regions = [
@@ -33,6 +34,7 @@ export default function AddressInput({
   showRegion = false,
   regionValue = '',
   onRegionChange,
+  required = false,
 }: AddressInputProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'region' | 'province' | 'city'>('region');
@@ -146,7 +148,7 @@ export default function AddressInput({
       <div className="flex gap-2">
         <div className="relative flex-1 overflow-visible" ref={inputRef}>
           <div
-            className="w-full px-3 py-2 border rounded-lg cursor-pointer bg-white min-h-[42px] flex items-center gap-2"
+            className={`w-full px-3 py-2 border rounded-lg cursor-pointer bg-white min-h-[42px] flex items-center gap-2 ${required && !displayValue ? 'border-red-300 bg-red-50' : ''}`}
             onClick={handleOpen}
           >
             <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -229,7 +231,8 @@ export default function AddressInput({
           onChange={(e) => onChange({ ...value, address: e.target.value })}
           onBlur={handleAddressBlur}
           placeholder="详细地址"
-          className="flex-[2] px-3 py-2 border rounded-lg"
+          className={`flex-[2] px-3 py-2 border rounded-lg ${required && !value.address ? 'border-red-300 bg-red-50' : ''}`}
+          required={required}
         />
       </div>
 

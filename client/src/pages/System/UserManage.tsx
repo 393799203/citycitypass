@@ -77,6 +77,27 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      alert('请输入姓名');
+      return;
+    }
+    if (!user && !formData.username.trim()) {
+      alert('请输入用户名');
+      return;
+    }
+    if (!user && formData.password.length < 6) {
+      alert('密码至少6位');
+      return;
+    }
+    if (formData.phone) {
+      const phoneRegex = /^1[3-9]\d{9}$/;
+      if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+        alert('请输入正确的11位手机号');
+        return;
+      }
+    }
+    
     const dataToSave = {
       ...formData,
       ownerRoles: formData.isAdmin ? [] : ownerRoles,
@@ -105,64 +126,92 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b flex justify-between items-center">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
           <h3 className="text-lg font-medium">{user ? '编辑用户' : '新建用户'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
           <div className="space-y-4">
             {!user && (
-              <>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    用户名 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.username}
                     onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    密码 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="w-full px-3 py-2 border rounded-lg"
                     required={!user}
                     minLength={6}
+                    placeholder="至少6位"
                   />
                 </div>
-              </>
+              </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  姓名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+                <PhoneInput
+                  value={formData.phone}
+                  onChange={phone => setFormData(prev => ({ ...prev, phone }))}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+                <EmailInput
+                  value={formData.email}
+                  onChange={email => setFormData(prev => ({ ...prev, email }))}
+                  className="w-full"
+                />
+              </div>
             </div>
 
             {isCurrentUserAdmin && !isMemberMode && (
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.isAdmin}
-                    onChange={e => setFormData(prev => ({ ...prev, isAdmin: e.target.checked }))}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">系统管理员</span>
+              <div className="flex items-center gap-3 py-2">
+                <input
+                  type="checkbox"
+                  id="isAdmin"
+                  checked={formData.isAdmin}
+                  onChange={e => setFormData(prev => ({ ...prev, isAdmin: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="isAdmin" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  系统管理员
                 </label>
-                <p className="text-xs text-gray-500 mt-1">系统管理员无需选择主体，可访问所有数据</p>
+                <span className="text-xs text-gray-500">（可访问所有数据，无需选择主体）</span>
               </div>
             )}
 
@@ -234,37 +283,19 @@ export const UserModal: React.FC<UserModalProps> = ({
                 )}
               </>
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
-              <PhoneInput
-                value={formData.phone}
-                onChange={phone => setFormData(prev => ({ ...prev, phone }))}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
-              <EmailInput
-                value={formData.email}
-                onChange={email => setFormData(prev => ({ ...prev, email }))}
-                className="w-full"
-              />
-            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 border-t mt-6">
+          <div className="flex justify-end gap-3 pt-4 border-t mt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
             >
               取消
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
               保存
             </button>

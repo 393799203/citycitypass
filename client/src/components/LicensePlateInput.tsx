@@ -5,6 +5,7 @@ interface LicensePlateInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
 const PROVINCES = [
@@ -12,18 +13,19 @@ const PROVINCES = [
   '蒙', '陕', '吉', '闽', '贵', '粤', '青', '藏', '川', '宁', '琼', '使', '领', '港', '澳'
 ];
 
-export default function LicensePlateInput({ value, onChange, className = '' }: LicensePlateInputProps) {
+export default function LicensePlateInput({ value, onChange, className = '', required = false }: LicensePlateInputProps) {
   const province = PROVINCES.includes(value[0] || '') ? value[0] : '';
   const letters = value.slice(1);
   const hasContent = value && value.length >= 2;
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className} ${required && !value ? 'ring-1 ring-red-300 rounded-lg' : ''}`}>
       <div className="flex gap-1">
         <select
           value={province}
           onChange={(e) => onChange(e.target.value + letters)}
-          className="px-2 py-2 border rounded-lg bg-white w-14 flex-shrink-0"
+          className={`px-2 py-2 border rounded-lg bg-white w-14 flex-shrink-0 ${required && !province ? 'border-red-300 bg-red-50' : ''}`}
+          required={required}
         >
           <option value="">省</option>
           {PROVINCES.map(p => (
@@ -38,8 +40,9 @@ export default function LicensePlateInput({ value, onChange, className = '' }: L
             onChange(province + val);
           }}
           placeholder="ABCDEF"
-          className={`flex-1 min-w-0 px-2 py-2 border rounded-lg text-center uppercase ${hasContent ? 'text-left pr-16' : ''}`}
+          className={`flex-1 min-w-0 px-2 py-2 border rounded-lg text-center uppercase ${hasContent ? 'text-left pr-16' : ''} ${required && !letters ? 'border-red-300 bg-red-50' : ''}`}
           maxLength={6}
+          required={required}
         />
       </div>
       {hasContent && (

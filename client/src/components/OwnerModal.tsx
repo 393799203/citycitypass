@@ -114,6 +114,10 @@ export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: O
       toast.error('请输入主体名称');
       return;
     }
+    if (!formData.province || !formData.city || !formData.address.trim()) {
+      toast.error('请填写完整地址（省/市/详细地址）');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -289,7 +293,9 @@ export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: O
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              地址 <span className="text-red-500">*</span>
+            </label>
             <AddressInput
               value={{
                 province: formData.province || '',
@@ -306,6 +312,7 @@ export default function OwnerModal({ open, editingOwner, onClose, onSuccess }: O
                 latitude: val.latitude || '',
                 longitude: val.longitude || '',
               })}
+              required
             />
           </div>
 

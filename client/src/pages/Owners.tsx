@@ -82,6 +82,10 @@ export default function OwnersPage() {
       toast.error('请输入主体名');
       return;
     }
+    if (!formData.province || !formData.city || !formData.address) {
+      toast.error('请填写完整地址');
+      return;
+    }
 
     try {
       const data = {
@@ -507,7 +511,9 @@ export default function OwnersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  地址 <span className="text-red-500">*</span>
+                </label>
                 <AddressInput
                   value={{
                     province: formData.province || '',
@@ -524,6 +530,7 @@ export default function OwnersPage() {
                     latitude: val.latitude || '',
                     longitude: val.longitude || '',
                   })}
+                  required
                 />
               </div>
 

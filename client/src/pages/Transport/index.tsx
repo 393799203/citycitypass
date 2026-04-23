@@ -87,6 +87,19 @@ export default function TransportPage() {
           toast.error('请输入车牌号');
           return;
         }
+        if (!formData.vehicleType) {
+          toast.error('请选择车型');
+          return;
+        }
+        if (!formData.licenseNo) {
+          toast.error('请输入行驶证号(VIN)');
+          return;
+        }
+        const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/;
+        if (!vinRegex.test(formData.licenseNo)) {
+          toast.error('行驶证号格式不正确，应为17位');
+          return;
+        }
         const vehicleData = {
           warehouseId: formData.warehouseId,
           licensePlate: formData.licensePlate,
@@ -117,8 +130,21 @@ export default function TransportPage() {
           toast.error('请选择仓库');
           return;
         }
-        if (!formData.name || !formData.phone || !formData.licenseNo) {
-          toast.error('请填写完整信息');
+        if (!formData.name) {
+          toast.error('请输入姓名');
+          return;
+        }
+        if (!formData.phone) {
+          toast.error('请输入电话');
+          return;
+        }
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+          toast.error('请输入正确的11位手机号');
+          return;
+        }
+        if (!formData.licenseNo) {
+          toast.error('请输入驾驶证号');
           return;
         }
         const driverData = {

@@ -165,8 +165,26 @@ export default function SuppliersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) {
-      toast.error('请填写供应商名称');
+    
+    if (!formData.name.trim()) {
+      toast.error('请输入供应商名称');
+      return;
+    }
+    if (!formData.contact.trim()) {
+      toast.error('请输入联系人');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      toast.error('请输入联系电话');
+      return;
+    }
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      toast.error('请输入正确的11位手机号');
+      return;
+    }
+    if (!formData.province || !formData.city || !formData.address.trim()) {
+      toast.error('请填写完整地址（省/市/详细地址）');
       return;
     }
 
@@ -315,6 +333,24 @@ export default function SuppliersPage() {
 
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!contractForm.name.trim()) {
+      toast.error('请输入合同名称');
+      return;
+    }
+    if (!contractForm.startDate) {
+      toast.error('请选择开始日期');
+      return;
+    }
+    if (!contractForm.endDate) {
+      toast.error('请选择结束日期');
+      return;
+    }
+    if (contractForm.startDate > contractForm.endDate) {
+      toast.error('结束日期不能早于开始日期');
+      return;
+    }
+    
     try {
       const submitData = {
         ...contractForm,
@@ -704,19 +740,11 @@ export default function SuppliersPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-4 overflow-y-auto flex-1">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">供应商编码</label>
-                  <input
-                    type="text"
-                    value={formData.code}
-                    readOnly
-                    className="w-full px-3 py-2 border rounded-lg bg-gray-50"
-                    placeholder="自动生成"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">供应商名称 *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    供应商名称 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.name}
@@ -737,31 +765,36 @@ export default function SuppliersPage() {
                     <option value="INACTIVE">停用</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">联系人</label>
+                  <label className="block text-sm font-medium mb-1">
+                    联系人 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.contact}
                     onChange={e => setFormData({ ...formData, contact: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="请输入联系人姓名"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">联系电话</label>
+                  <label className="block text-sm font-medium mb-1">
+                    联系电话 <span className="text-red-500">*</span>
+                  </label>
                   <PhoneInput
                     value={formData.phone}
                     onChange={(val) => setFormData({ ...formData, phone: val })}
                     className="w-full"
+                    required
                   />
                 </div>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">所在地区</label>
+                <label className="block text-sm font-medium mb-1">
+                  所在地区 <span className="text-red-500">*</span>
+                </label>
                 <AddressInput
                   value={{
                     province: formData.province,
@@ -778,6 +811,7 @@ export default function SuppliersPage() {
                     latitude: val.latitude || '',
                     longitude: val.longitude || '',
                   })}
+                  required
                 />
               </div>
 
@@ -868,7 +902,7 @@ export default function SuppliersPage() {
 
       {showContractModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-bold">供应商合同 {selectedSupplier && `- ${selectedSupplier.name}`}</h2>
               <button onClick={() => { setShowContractModal(false); setSelectedSupplier(null); resetContractForm(); }}>
@@ -877,110 +911,120 @@ export default function SuppliersPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="border-t pt-4">
-                <h3 className="font-medium mb-2">{editingContractId ? '编辑合同' : '新建合同'}</h3>
-                <form onSubmit={handleContractSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">合同名称 *</label>
-                      <input
-                        type="text"
-                        value={contractForm.name}
-                        onChange={(e) => setContractForm({ ...contractForm, name: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">状态</label>
-                      <select
-                        value={contractForm.status}
-                        onChange={(e) => setContractForm({ ...contractForm, status: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      >
-                        <option value="DRAFT">草稿</option>
-                        <option value="PENDING">待生效</option>
-                        <option value="ACTIVE">生效中</option>
-                        <option value="EXPIRED">已过期</option>
-                        <option value="TERMINATED">已终止</option>
-                      </select>
-                    </div>
+              <form onSubmit={handleContractSubmit} className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      合同名称 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contractForm.name}
+                      onChange={(e) => setContractForm({ ...contractForm, name: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">开始日期</label>
-                      <input
-                        type="date"
-                        value={contractForm.startDate || ''}
-                        onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">结束日期</label>
-                      <input
-                        type="date"
-                        value={contractForm.endDate || ''}
-                        onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">状态</label>
+                    <select
+                      value={contractForm.status}
+                      onChange={(e) => setContractForm({ ...contractForm, status: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="DRAFT">草稿</option>
+                      <option value="PENDING">待生效</option>
+                      <option value="ACTIVE">生效中</option>
+                      <option value="EXPIRED">已过期</option>
+                      <option value="TERMINATED">已终止</option>
+                    </select>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">合同金额（元）</label>
-                      <input
-                        type="number"
-                        value={contractForm.amount || ''}
-                        onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">合同折扣</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
-                        value={contractForm.discount || ''}
-                        onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        placeholder="如 0.85 表示 85 折"
-                      />
-                    </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <input type="checkbox" id="autoRenew" checked={contractForm.autoRenew || false} onChange={(e) => setContractForm({ ...contractForm, autoRenew: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                    <label htmlFor="autoRenew" className="text-sm cursor-pointer">自动续约</label>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      开始日期 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={contractForm.startDate || ''}
+                      onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      结束日期 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={contractForm.endDate || ''}
+                      onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">合同金额(元)</label>
+                    <input
+                      type="number"
+                      value={contractForm.amount || ''}
+                      onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">折扣</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={contractForm.discount || ''}
+                      onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="如0.85"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">服务条款</label>
                     <textarea
                       value={contractForm.serviceTerms || ''}
                       onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
-                      rows={2}
+                      rows={3}
+                      placeholder="服务范围、质量标准等"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium mb-1">特殊条款</label>
                     <textarea
                       value={contractForm.specialTerms || ''}
                       onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
-                      rows={2}
+                      rows={3}
+                      placeholder="差异化条款、特殊约定等"
                     />
                   </div>
+                </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button type="button" onClick={resetContractForm} className="px-4 py-2 border rounded-lg">取消</button>
-                    <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                      {editingContractId ? '更新' : '创建'}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button type="button" onClick={resetContractForm} className="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                  <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                    {editingContractId ? '更新' : '创建'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

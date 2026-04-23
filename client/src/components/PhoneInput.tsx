@@ -5,9 +5,10 @@ interface PhoneInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
-export default function PhoneInput({ value, onChange, placeholder = '手机号', className = '' }: PhoneInputProps) {
+export default function PhoneInput({ value, onChange, placeholder = '手机号', className = '', required = false }: PhoneInputProps) {
   const formatPhone = (val: string) => {
     const digits = val.replace(/\D/g, '').slice(0, 11);
     let formatted = '';
@@ -31,7 +32,8 @@ export default function PhoneInput({ value, onChange, placeholder = '手机号',
       value={formatPhone(value)}
       onChange={handleChange}
       placeholder={placeholder}
-      className={`px-3 py-2 border rounded-lg ${className}`}
+      className={`px-3 py-2 border rounded-lg ${className} ${required && !value ? 'border-red-300 bg-red-50' : ''}`}
+      required={required}
     />
   );
 }

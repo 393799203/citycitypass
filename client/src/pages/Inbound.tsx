@@ -479,6 +479,25 @@ export default function InboundPage() {
 
   const handleArrivalSubmit = async () => {
     if (!selectedArrivalOrder) return;
+    
+    // 验证必填字段
+    for (const item of arrivalItems) {
+      if (item.arrivalQuantity > 0) {
+        if (!item.batchNo) {
+          toast.error(`请填写商品"${item.productName}"的批次号`);
+          return;
+        }
+        if (!item.supplierId) {
+          toast.error(`请选择商品"${item.productName}"的供应商`);
+          return;
+        }
+        if ((item.type === 'PRODUCT' || item.type === 'BUNDLE') && !item.expiryDate) {
+          toast.error(`请填写商品"${item.productName}"的有效期`);
+          return;
+        }
+      }
+    }
+    
     try {
       const items = arrivalItems.map(item => ({
         id: item.id,
@@ -1628,12 +1647,12 @@ export default function InboundPage() {
                     <th className="px-3 py-2 text-left text-xs">规格/包装</th>
                     <th className="px-3 py-2 text-center text-xs">计划数</th>
                     <th className="px-3 py-2 text-center text-xs">到货数</th>
-                    <th className="px-3 py-2 text-center text-xs">供应商</th>
-                    <th className="px-3 py-2 text-center text-xs">批次号</th>
+                    <th className="px-3 py-2 text-center text-xs"><span className="text-red-500">*</span>供应商</th>
+                    <th className="px-3 py-2 text-center text-xs"><span className="text-red-500">*</span>批次号</th>
                     {arrivalItems.some(i => i.type === 'PRODUCT' || i.type === 'BUNDLE') && (
                       <>
                         {arrivalItems.some(i => i.type === 'PRODUCT') && (
-                          <th className="px-3 py-2 text-center text-xs">有效期</th>
+                          <th className="px-3 py-2 text-center text-xs"><span className="text-red-500">*</span>有效期</th>
                         )}
                       </>
                     )}
@@ -1675,7 +1694,7 @@ export default function InboundPage() {
                             newItems[idx].supplierId = e.target.value;
                             setArrivalItems(newItems);
                           }}
-                          className="border rounded px-2 py-1 text-sm"
+                          className={`border rounded px-2 py-1 text-sm ${item.arrivalQuantity > 0 && !item.supplierId ? 'border-red-300 bg-red-50' : ''}`}
                         >
                           <option value="">选择供应商</option>
                           {suppliers.map(s => (
@@ -1703,7 +1722,7 @@ export default function InboundPage() {
                               }
                               setArrivalItems(newItems);
                             }}
-                            className="border rounded px-2 py-1 text-sm font-mono"
+                            className={`border rounded px-2 py-1 text-sm font-mono ${item.arrivalQuantity > 0 && !item.batchNo ? 'border-red-300 bg-red-50' : ''}`}
                           >
                             <option value="">选择批次/新建</option>
                             {item.availableBatches?.map((b, bi) => (
@@ -1744,7 +1763,7 @@ export default function InboundPage() {
                             newItems[idx].expiryDate = e.target.value;
                             setArrivalItems(newItems);
                           }}
-                          className="border rounded px-2 py-1 text-sm"
+                          className={`border rounded px-2 py-1 text-sm ${item.arrivalQuantity > 0 && !item.expiryDate ? 'border-red-300 bg-red-50' : ''}`}
                         />
                       </td>
                       )}

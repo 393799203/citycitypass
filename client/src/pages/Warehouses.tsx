@@ -71,6 +71,20 @@ export default function WarehousesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.code.trim()) {
+      toast.error('请输入仓库编码');
+      return;
+    }
+    if (!formData.name.trim()) {
+      toast.error('请输入仓库名称');
+      return;
+    }
+    if (!formData.province || !formData.city || !formData.address.trim()) {
+      toast.error('请填写完整地址');
+      return;
+    }
+    
     try {
       const data = {
         ...formData,
@@ -335,15 +349,15 @@ export default function WarehousesPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
-            <div className="flex items-center justify-between p-4 border-b">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-semibold">{editingId ? '编辑仓库' : '创建仓库'}</h2>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     仓库编码 <span className="text-red-500">*</span>
@@ -352,7 +366,7 @@ export default function WarehousesPage() {
                     type="text"
                     value={formData.code}
                     onChange={e => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
                 </div>
@@ -364,19 +378,16 @@ export default function WarehousesPage() {
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border rounded-lg"
                     required
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">类型</label>
                   <select
                     value={formData.type}
                     onChange={e => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border rounded-lg"
                   >
                     <option value="NORMAL">普通仓</option>
                     <option value="COLD">冷链仓</option>
@@ -388,7 +399,7 @@ export default function WarehousesPage() {
                   <select
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border rounded-lg"
                   >
                     <option value="ACTIVE">启用</option>
                     <option value="INACTIVE">停用</option>
@@ -397,7 +408,7 @@ export default function WarehousesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">管理员</label>
                   <input
@@ -416,28 +427,30 @@ export default function WarehousesPage() {
                     className="w-full"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">营业时间</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="time"
-                    value={formData.businessStartTime}
-                    onChange={e => setFormData({ ...formData, businessStartTime: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                  <input
-                    type="time"
-                    value={formData.businessEndTime}
-                    onChange={e => setFormData({ ...formData, businessEndTime: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">营业时间</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="time"
+                      value={formData.businessStartTime}
+                      onChange={e => setFormData({ ...formData, businessStartTime: e.target.value })}
+                      className="flex-1 px-2 py-2 border rounded-lg text-sm"
+                    />
+                    <span className="py-2 text-gray-400">-</span>
+                    <input
+                      type="time"
+                      value={formData.businessEndTime}
+                      onChange={e => setFormData({ ...formData, businessEndTime: e.target.value })}
+                      className="flex-1 px-2 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">地址</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  地址 <span className="text-red-500">*</span>
+                </label>
                 <AddressInput
                   value={{
                     province: formData.province || '',
@@ -454,6 +467,7 @@ export default function WarehousesPage() {
                     latitude: val.latitude || '',
                     longitude: val.longitude || '',
                   })}
+                  required
                 />
               </div>
 

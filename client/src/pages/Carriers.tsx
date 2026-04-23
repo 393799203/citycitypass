@@ -9,6 +9,8 @@ import { usePermission } from '../hooks/usePermission';
 import { useAuthStore } from '../stores/auth';
 import PhoneInput from '../components/PhoneInput';
 import LicensePlateInput from '../components/LicensePlateInput';
+import BusinessLicenseInput from '../components/BusinessLicenseInput';
+import VinInput from '../components/VinInput';
 import { useOwnerStore } from '../stores/owner';
 import { formatPhone } from '../utils/format';
 
@@ -158,8 +160,22 @@ export default function CarriersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) {
+    
+    if (!formData.name.trim()) {
       toast.error('请输入承运商名称');
+      return;
+    }
+    if (!formData.contact.trim()) {
+      toast.error('请输入联系人');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      toast.error('请输入联系电话');
+      return;
+    }
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      toast.error('请输入正确的11位手机号');
       return;
     }
     if (!currentOwnerId) {
@@ -273,6 +289,23 @@ export default function CarriersPage() {
     e.preventDefault();
     if (!selectedCarrier) return;
 
+    if (!contractForm.name.trim()) {
+      toast.error('请输入合同名称');
+      return;
+    }
+    if (!contractForm.startDate) {
+      toast.error('请选择开始日期');
+      return;
+    }
+    if (!contractForm.endDate) {
+      toast.error('请选择结束日期');
+      return;
+    }
+    if (contractForm.startDate > contractForm.endDate) {
+      toast.error('结束日期不能早于开始日期');
+      return;
+    }
+
     try {
       const data = {
         ...contractForm,
@@ -308,6 +341,24 @@ export default function CarriersPage() {
   const handleVehicleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vehicleCarrier) return;
+
+    if (!vehicleForm.licensePlate) {
+      toast.error('请输入车牌号');
+      return;
+    }
+    if (!vehicleForm.vehicleType) {
+      toast.error('请选择车型');
+      return;
+    }
+    if (!vehicleForm.licenseNo) {
+      toast.error('请输入行驶证号(VIN)');
+      return;
+    }
+    const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/;
+    if (!vinRegex.test(vehicleForm.licenseNo)) {
+      toast.error('行驶证号格式不正确，应为17位');
+      return;
+    }
 
     try {
       if (editingVehicleId) {
@@ -722,7 +773,7 @@ export default function CarriersPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold">{editingId ? '编辑承运商' : '新增承运商'}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -730,15 +781,18 @@ export default function CarriersPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">承运商名称 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    承运商名称 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                     placeholder="请输入承运商名称"
+                    required
                   />
                 </div>
                 <div>
@@ -752,32 +806,53 @@ export default function CarriersPage() {
                     <option value="COMPANY">企业</option>
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">等级</label>
-                <select
-                  value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value as 'A' | 'B' | 'C' })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  <option value="A">A - 优质</option>
-                  <option value="B">B - 良好</option>
-                  <option value="C">C - 合格</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">营业执照号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    联系人 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={formData.businessLicenseNo}
-                    onChange={(e) => setFormData({ ...formData, businessLicenseNo: e.target.value })}
+                    value={formData.contact}
+                    onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
+                    required
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    电话 <span className="text-red-500">*</span>
+                  </label>
+                  <PhoneInput
+                    value={formData.phone}
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    className="w-full"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="w-1/4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">等级</label>
+                  <select
+                    value={formData.level}
+                    onChange={(e) => setFormData({ ...formData, level: e.target.value as 'A' | 'B' | 'C' })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="A">A - 优质</option>
+                    <option value="B">B - 良好</option>
+                    <option value="C">C - 合格</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">营业执照号</label>
+                  <BusinessLicenseInput
+                    value={formData.businessLicenseNo}
+                    onChange={(val) => setFormData({ ...formData, businessLicenseNo: val })}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">运输许可证号</label>
                   <input
                     type="text"
@@ -842,26 +917,6 @@ export default function CarriersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">联系人</label>
-                  <input
-                    type="text"
-                    value={formData.contact}
-                    onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
-                  <PhoneInput
-                    value={formData.phone}
-                    onChange={(val) => setFormData({ ...formData, phone: val })}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
                 <textarea
@@ -894,17 +949,19 @@ export default function CarriersPage() {
 
       {showContractModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">{editingContractId ? '编辑合同' : '添加合同'}</h2>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+              <h2 className="text-lg font-bold">{editingContractId ? '编辑合同' : '添加合同'}</h2>
               <button onClick={() => { setShowContractModal(false); setEditingContractId(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleContractSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleContractSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">合同名称</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    合同名称 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={contractForm.name}
@@ -920,13 +977,29 @@ export default function CarriersPage() {
                     value={contractForm.contractNo}
                     onChange={(e) => setContractForm({ ...contractForm, contractNo: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    required
+                    placeholder="可选"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                  <select
+                    value={contractForm.status || 'DRAFT'}
+                    onChange={(e) => setContractForm({ ...contractForm, status: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="DRAFT">草稿</option>
+                    <option value="PENDING">待生效</option>
+                    <option value="ACTIVE">生效中</option>
+                    <option value="EXPIRED">已过期</option>
+                    <option value="TERMINATED">已终止</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    开始日期 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     value={contractForm.startDate}
@@ -936,7 +1009,9 @@ export default function CarriersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    结束日期 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     value={contractForm.endDate}
@@ -945,24 +1020,24 @@ export default function CarriersPage() {
                     required
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">合同金额</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">合同金额(元)</label>
                   <input
                     type="number"
                     value={contractForm.amount}
                     onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="0.00"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">保证金</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">保证金(元)</label>
                   <input
                     type="number"
                     value={contractForm.deposit}
                     onChange={(e) => setContractForm({ ...contractForm, deposit: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
@@ -973,14 +1048,13 @@ export default function CarriersPage() {
                   onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                   rows={3}
+                  placeholder="服务范围、质量标准等"
                 />
               </div>
-              <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => { setShowContractModal(false); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
                   {editingContractId ? '保存' : '创建'}
-                </button>
-                <button type="button" onClick={() => { setShowContractModal(false); setEditingContractId(null); }} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">
-                  取消
                 </button>
               </div>
             </form>
@@ -1075,7 +1149,7 @@ export default function CarriersPage() {
 
       {showVehicleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl">
             <div className="flex justify-between items-center p-6 border-b">
               <div className="flex items-center gap-2">
                 <button onClick={() => { setShowVehicleModal(false); setShowVehicleListModal(true); }} className="p-2 hover:bg-gray-100 rounded-lg" title="返回列表">
@@ -1088,7 +1162,7 @@ export default function CarriersPage() {
               </button>
             </div>
             <form onSubmit={handleVehicleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">承运商</label>
                   <input
@@ -1099,17 +1173,20 @@ export default function CarriersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">车牌号 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    车牌号 <span className="text-red-500">*</span>
+                  </label>
                   <LicensePlateInput
                     value={vehicleForm.licensePlate}
                     onChange={(val) => setVehicleForm({ ...vehicleForm, licensePlate: val })}
                     className="w-full"
+                    required
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">车辆类型 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    车型 <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={vehicleForm.vehicleType}
                     onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleType: e.target.value })}
@@ -1122,6 +1199,8 @@ export default function CarriersPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
                   <input
@@ -1129,7 +1208,6 @@ export default function CarriersPage() {
                     value={vehicleForm.brand}
                     onChange={(e) => setVehicleForm({ ...vehicleForm, brand: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
                 <div>
@@ -1139,11 +1217,8 @@ export default function CarriersPage() {
                     value={vehicleForm.model}
                     onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">载重(吨)</label>
                   <input
@@ -1151,29 +1226,28 @@ export default function CarriersPage() {
                     value={vehicleForm.capacity}
                     onChange={(e) => setVehicleForm({ ...vehicleForm, capacity: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">容积(方)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">容积(m³)</label>
                   <input
                     type="number"
                     value={vehicleForm.volume}
                     onChange={(e) => setVehicleForm({ ...vehicleForm, volume: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">行驶证号</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    行驶证号(VIN) <span className="text-red-500">*</span>
+                  </label>
+                  <VinInput
                     value={vehicleForm.licenseNo}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, licenseNo: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
+                    onChange={(val) => setVehicleForm({ ...vehicleForm, licenseNo: val })}
+                    className="w-full"
+                    required
                   />
                 </div>
                 <div>
@@ -1183,7 +1257,6 @@ export default function CarriersPage() {
                     value={vehicleForm.insuranceNo}
                     onChange={(e) => setVehicleForm({ ...vehicleForm, insuranceNo: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
               </div>

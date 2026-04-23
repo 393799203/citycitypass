@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import LicensePlateInput from '../../components/LicensePlateInput';
 import PhoneInput from '../../components/PhoneInput';
 import LicenseNoInput from '../../components/LicenseNoInput';
+import VinInput from '../../components/VinInput';
 import { Vehicle, Driver, FormData, Warehouse } from '../../types/dispatch';
 
 interface VehicleDriverFormProps {
@@ -36,8 +37,8 @@ export default function VehicleDriverForm({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-2xl">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <h3 className="text-lg font-semibold">
             {isEditing ? '编辑' : '添加'}{activeTab === 'vehicle' ? '车辆' : '司机'}
           </h3>
@@ -46,10 +47,10 @@ export default function VehicleDriverForm({
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 p-4 overflow-y-auto flex-1">
           {activeTab === 'vehicle' ? (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 {editingItem && 'sourceType' in editingItem && editingItem.sourceType === 'CARRIER' ? (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">承运商</label>
@@ -72,11 +73,14 @@ export default function VehicleDriverForm({
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">仓库 *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      仓库 <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={formData.warehouseId}
                       onChange={e => onWarehouseChange(e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg"
+                      required
                     >
                       <option value="">请选择仓库</option>
                       {warehouses.map(w => (
@@ -86,7 +90,9 @@ export default function VehicleDriverForm({
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">车牌号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    车牌号 <span className="text-red-500">*</span>
+                  </label>
                   {editingItem ? (
                     <input
                       type="text"
@@ -99,17 +105,19 @@ export default function VehicleDriverForm({
                       value={formData.licensePlate}
                       onChange={(val) => onFormChange('licensePlate', val)}
                       className="w-full"
+                      required
                     />
                   )}
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">车型</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    车型 <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={formData.vehicleType}
                     onChange={e => onFormChange('vehicleType', e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
+                    required
                   >
                     <option value="小型货车">小型货车</option>
                     <option value="中型货车">中型货车</option>
@@ -119,6 +127,8 @@ export default function VehicleDriverForm({
                     <option value="冷藏车">冷藏车</option>
                   </select>
                 </div>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
                   <input
@@ -126,7 +136,6 @@ export default function VehicleDriverForm({
                     value={formData.brand}
                     onChange={e => onFormChange('brand', e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
                 <div>
@@ -136,11 +145,8 @@ export default function VehicleDriverForm({
                     value={formData.model}
                     onChange={e => onFormChange('model', e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">载重(吨)</label>
                   <input
@@ -157,19 +163,19 @@ export default function VehicleDriverForm({
                     value={formData.volume}
                     onChange={e => onFormChange('volume', e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">行驶证号</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    行驶证号(VIN) <span className="text-red-500">*</span>
+                  </label>
+                  <VinInput
                     value={formData.licenseNo}
-                    onChange={e => onFormChange('licenseNo', e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
+                    onChange={(val) => onFormChange('licenseNo', val)}
+                    className="w-full"
+                    required
                   />
                 </div>
                 <div>
@@ -179,68 +185,86 @@ export default function VehicleDriverForm({
                     value={formData.insuranceNo}
                     onChange={e => onFormChange('insuranceNo', e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="可选"
                   />
                 </div>
               </div>
             </>
           ) : (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
-                <select
-                  value={formData.warehouseId}
-                  onChange={e => onWarehouseChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  <option value="">请选择仓库</option>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    仓库 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.warehouseId}
+                    onChange={e => onWarehouseChange(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  >
+                    <option value="">请选择仓库</option>
+                    {warehouses.map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    姓名 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={e => onFormChange('name', e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">电话</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    电话 <span className="text-red-500">*</span>
+                  </label>
                   <PhoneInput
                     value={formData.phone}
                     onChange={(val) => onFormChange('phone', val)}
                     className="w-full"
+                    required
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">驾驶证号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    驾驶证号 <span className="text-red-500">*</span>
+                  </label>
                   <LicenseNoInput
                     value={formData.licenseNo}
                     onChange={(val) => onFormChange('licenseNo', val)}
                     className="w-full"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">准驾车型</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'].map(type => (
-                      <label key={type} className="flex items-center gap-1 px-3 py-1 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input
-                          type="checkbox"
-                          checked={formData.licenseTypes.includes(type)}
-                          onChange={() => onLicenseTypeToggle(type)}
-                          className="w-4 h-4 rounded border-gray-300 text-primary-600"
-                        />
-                        <span className="text-sm">{type}</span>
-                      </label>
-                    ))}
+                  <div className="flex flex-wrap gap-1.5">
+                    {['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'].map(type => {
+                      const isSelected = formData.licenseTypes.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => onLicenseTypeToggle(type)}
+                          className={`px-3 py-1.5 text-sm rounded-full border transition-all ${
+                            isSelected
+                              ? 'bg-primary-50 border-primary-300 text-primary-700'
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {isSelected && <span className="mr-1">✓</span>}
+                          {type}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -253,7 +277,7 @@ export default function VehicleDriverForm({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3 p-4 border-t flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"

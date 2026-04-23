@@ -155,6 +155,29 @@ export default function CustomersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast.error('请输入客户名称');
+      return;
+    }
+    if (!formData.contact.trim()) {
+      toast.error('请输入联系人');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      toast.error('请输入联系电话');
+      return;
+    }
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      toast.error('请输入正确的11位手机号');
+      return;
+    }
+    if (!formData.province || !formData.city || !formData.address.trim()) {
+      toast.error('请填写完整配送地址');
+      return;
+    }
+    
     try {
       if (editingId) {
         await customerApi.update(editingId, formData);
@@ -215,6 +238,24 @@ export default function CustomersPage() {
 
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!contractForm.name.trim()) {
+      toast.error('请输入合同名称');
+      return;
+    }
+    if (!contractForm.startDate) {
+      toast.error('请选择开始日期');
+      return;
+    }
+    if (!contractForm.endDate) {
+      toast.error('请选择结束日期');
+      return;
+    }
+    if (contractForm.startDate > contractForm.endDate) {
+      toast.error('结束日期不能早于开始日期');
+      return;
+    }
+    
     try {
       if (editingContractId) {
         await contractApi.update(editingContractId, contractForm);
@@ -449,7 +490,9 @@ export default function CustomersPage() {
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">客户名称 *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    客户名称 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.name}
@@ -487,7 +530,9 @@ export default function CustomersPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">联系人 *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    联系人 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.contact}
@@ -497,17 +542,22 @@ export default function CustomersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">联系电话 *</label>
+                  <label className="block text-sm font-medium mb-1">
+                    联系电话 <span className="text-red-500">*</span>
+                  </label>
                   <PhoneInput
                     value={formData.phone}
                     onChange={(val) => setFormData({ ...formData, phone: val })}
                     className="w-full"
+                    required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">配送地址</label>
+                <label className="block text-sm font-medium mb-1">
+                  配送地址 <span className="text-red-500">*</span>
+                </label>
                 <AddressInput
                   value={{
                     province: formData.province,
@@ -524,6 +574,7 @@ export default function CustomersPage() {
                     latitude: val.latitude || '',
                     longitude: val.longitude || '',
                   })}
+                  required
                 />
               </div>
 
@@ -618,8 +669,8 @@ export default function CustomersPage() {
 
       {showContractModal && selectedCustomer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-4 border-b">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
               <h2 className="text-lg font-bold">合同管理 - {selectedCustomer.name}</h2>
               <button onClick={() => { setShowContractModal(false); setContractView('list'); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', discount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
                 <X className="w-5 h-5" />
@@ -680,13 +731,15 @@ export default function CustomersPage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleContractSubmit} className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleContractSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="hidden">
                     <input type="text" value={contractForm.contractNo} onChange={(e) => setContractForm({ ...contractForm, contractNo: e.target.value })} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">合同名称 *</label>
+                    <label className="block text-sm font-medium mb-1">
+                      合同名称 <span className="text-red-500">*</span>
+                    </label>
                     <input type="text" value={contractForm.name} onChange={(e) => setContractForm({ ...contractForm, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
                   </div>
                   <div>
@@ -699,40 +752,42 @@ export default function CustomersPage() {
                       <option value="TERMINATED">已终止</option>
                     </select>
                   </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <input type="checkbox" id="autoRenew" checked={contractForm.autoRenew} onChange={(e) => setContractForm({ ...contractForm, autoRenew: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                    <label htmlFor="autoRenew" className="text-sm cursor-pointer">自动续约</label>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">开始日期 *</label>
+                    <label className="block text-sm font-medium mb-1">
+                      开始日期 <span className="text-red-500">*</span>
+                    </label>
                     <input type="date" value={contractForm.startDate} onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">结束日期 *</label>
+                    <label className="block text-sm font-medium mb-1">
+                      结束日期 <span className="text-red-500">*</span>
+                    </label>
                     <input type="date" value={contractForm.endDate} onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">合同金额(元)</label>
+                    <input type="number" value={contractForm.amount} onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">折扣</label>
+                    <input type="number" step="0.01" min="0" max="1" value={contractForm.discount} onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="如0.85" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">合同金额（元）</label>
-                    <input type="number" value={contractForm.amount} onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                    <label className="block text-sm font-medium mb-1">服务条款</label>
+                    <textarea value={contractForm.serviceTerms} onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="服务范围、质量标准等" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">合同折扣（如 0.85 表示 85 折）</label>
-                    <input type="number" step="0.01" min="0" max="1" value={contractForm.discount} onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="不填则不打折" />
+                    <label className="block text-sm font-medium mb-1">特殊条款</label>
+                    <textarea value={contractForm.specialTerms} onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="差异化条款、特殊约定等" />
                   </div>
-                </div>
-                <div>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={contractForm.autoRenew} onChange={(e) => setContractForm({ ...contractForm, autoRenew: e.target.checked })} className="w-4 h-4" />
-                    <span className="text-sm">自动续约</span>
-                  </label>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">服务条款</label>
-                  <textarea value={contractForm.serviceTerms} onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="描述服务范围、质量标准等" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">特殊条款</label>
-                  <textarea value={contractForm.specialTerms} onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="差异化条款、特殊约定等" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">合同文件</label>
@@ -768,9 +823,9 @@ export default function CustomersPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-4">
-                  <button type="button" onClick={() => { setContractView('list'); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg">取消</button>
-                  <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg">保存</button>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button type="button" onClick={() => { setContractView('list'); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                  <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">保存</button>
                 </div>
               </form>
             )}

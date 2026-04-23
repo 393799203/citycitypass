@@ -39,6 +39,16 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (role?.isDefault && !isAdmin) return;
+    
+    if (!formData.code.trim()) {
+      alert('请输入角色代码');
+      return;
+    }
+    if (!formData.name.trim()) {
+      alert('请输入角色名称');
+      return;
+    }
+    
     onSave(formData);
   };
 
@@ -46,47 +56,53 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div className="px-6 py-4 border-b flex justify-between items-center">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
           <h3 className="text-lg font-medium">{!canWrite || (role?.isDefault && !isAdmin) ? '查看角色' : (role ? '编辑角色' : '新建角色')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-130px)] p-6">
-          <div className="grid grid-cols-2 gap-4 mb-6">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6">
+          <div className="grid grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">角色代码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                角色代码 <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={formData.code}
                 onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
                 disabled={!!role || isReadOnly}
-                className="w-full px-3 py-2 border rounded-md disabled:bg-gray-100"
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
                 required
+                placeholder="如：MANAGER"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">角色名称</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                角色名称 <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 disabled={isReadOnly}
-                className="w-full px-3 py-2 border rounded-md disabled:bg-gray-100"
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
                 required
+                placeholder="如：管理员"
               />
             </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">角色描述</label>
-            <textarea
-              value={formData.description || ''}
-              onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              disabled={isReadOnly}
-              className="w-full px-3 py-2 border rounded-md disabled:bg-gray-100"
-              rows={2}
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">角色描述</label>
+              <input
+                type="text"
+                value={formData.description || ''}
+                onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                disabled={isReadOnly}
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+                placeholder="可选"
+              />
+            </div>
           </div>
 
           <div className="mb-6">
@@ -165,14 +181,14 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
             >
               取消
             </button>
             {!isReadOnly && (
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
                 保存
               </button>
