@@ -148,7 +148,7 @@ export default function ReturnDetailModal({
                                 <span className="text-purple-600 font-medium">[套装] {item.productName}</span>
                               </div>
                             ) : (
-                              <span className="text-blue-600">[商品] {item.productName || item.sku?.product?.name || '-'}</span>
+                              <span className="text-blue-600">[商品] {item.productName || '-'}</span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-base text-gray-500 text-center">{item.packaging} · {item.spec}</td>

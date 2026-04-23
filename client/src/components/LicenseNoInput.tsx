@@ -5,6 +5,7 @@ interface LicenseNoInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
 export default function LicenseNoInput({ value, onChange, placeholder = '驾驶证号', className = '' }: LicenseNoInputProps) {

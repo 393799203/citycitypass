@@ -392,7 +392,7 @@ export default function Layout() {
                                       .then(res => {
                                         if (res.data.success) {
                                           const { user: freshUser, permissions: freshPermissions, owners: userOwners } = res.data.data;
-                                          setAuth(token, freshUser, freshPermissions, userOwners);
+                                          setAuth(token || '', freshUser, freshPermissions, userOwners);
                                         }
                                       });
                                   } catch (error: any) {
@@ -489,7 +489,7 @@ export default function Layout() {
             .then(res => {
               if (res.data.success) {
                 const { user: freshUser, permissions: freshPermissions, owners: userOwners } = res.data.data;
-                setAuth(token, freshUser, freshPermissions, userOwners);
+                setAuth(token || '', freshUser, freshPermissions, userOwners);
               }
             });
         }}

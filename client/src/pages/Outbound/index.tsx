@@ -67,7 +67,7 @@ export default function OutboundPage() {
             reviewOrders.sort((a: PickOrder, b: PickOrder) => {
               if (a.status === 'PICKED' && b.status !== 'PICKED') return -1;
               if (a.status !== 'PICKED' && b.status === 'PICKED') return 1;
-              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+              return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
             });
             setPickOrders(reviewOrders);
           }

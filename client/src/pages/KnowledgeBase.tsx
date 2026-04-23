@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth';
+import { useOwnerStore } from '../stores/owner';
 import { aiApi } from '../api/ai';
 import { toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, Search, RefreshCw, Save, X } from 'lucide-react';
@@ -60,6 +61,7 @@ interface DocumentFormData {
 
 export default function KnowledgeBase() {
   const { user } = useAuthStore();
+  const { currentOwnerId } = useOwnerStore();
   const { confirm } = useConfirm();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
@@ -217,7 +219,13 @@ export default function KnowledgeBase() {
         <h1 className="text-xl font-semibold text-gray-800">知识库管理</h1>
         <button
           onClick={handleAdd}
-          className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+          disabled={!currentOwnerId}
+          title={!currentOwnerId ? '请先选择主体' : ''}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+            currentOwnerId
+              ? 'bg-primary-600 text-white hover:bg-primary-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
           <Plus className="w-4 h-4" />
           添加文档

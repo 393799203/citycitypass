@@ -111,7 +111,8 @@ export default function PendingOrdersTab({
                     }
                     return locks.map((lock, idx) => {
                       const locationStr = lock?.location ? `${lock.location.shelf?.zone?.code}-${lock.location.shelf?.code}-L${lock.location.level}` : '';
-                      const showInfo = item.bundleId && item.bundle?.items?.length > 0;
+                      const bundle = lock as any;
+                      const showInfo = item.bundleId && bundle?.bundle?.items?.length > 0;
                       return (
                         <div key={`${item.id}-${idx}`} className="text-sm mb-1 flex items-center justify-center">
                           <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
@@ -121,9 +122,9 @@ export default function PendingOrdersTab({
                             {showInfo && idx === 0 && (
                               <button
                                 type="button"
-                                onMouseEnter={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                onMouseEnter={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{bundle?.bundle?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                                 onMouseLeave={() => onTooltip(null)}
-                                onMouseMove={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                onMouseMove={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{bundle?.bundle?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                                 className="hover:bg-gray-100 rounded ml-1"
                               >
                                 <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
@@ -136,11 +137,11 @@ export default function PendingOrdersTab({
                               [{locationStr}]
                             </span>
                           )}
-                          {(lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo) && (
+                          {(lock as any).skuBatch?.batchNo || (lock as any).bundleBatch?.batchNo ? (
                             <span className="ml-1 text-purple-500 text-xs">
-                              批:{lock.skuBatch?.batchNo || lock.bundleBatch?.batchNo}
+                              批:{(lock as any).skuBatch?.batchNo || (lock as any).bundleBatch?.batchNo}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       );
                     });

@@ -48,6 +48,7 @@ interface SupplierContract {
   fileUrl: string | null;
   fileName: string | null;
   fileSize: number | null;
+  autoRenew?: boolean;
 }
 
 const defaultFormData: Supplier = {

@@ -64,7 +64,7 @@ export default function OutboundPage() {
             reviewOrders.sort((a: PickOrder, b: PickOrder) => {
               if (a.status === 'PICKED' && b.status !== 'PICKED') return -1;
               if (a.status !== 'PICKED' && b.status === 'PICKED') return 1;
-              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+              return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
             });
             setPickOrders(reviewOrders);
           }
@@ -295,7 +295,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
           <h1 className="text-2xl font-bold text-gray-800">发货管理</h1>
         </div>
         <button
-          onClick={() => fetchOrders()}
+          onClick={() => fetchData()}
           className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />

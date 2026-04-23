@@ -74,6 +74,10 @@ export interface QualifyItem {
   quantity: number;
   qualifiedQuantity: number;
   rejectedQuantity: number;
+  skuId?: string;
+  bundleId?: string;
+  packaging?: string;
+  spec?: string;
   skuBatchId?: string;
   bundleBatchId?: string;
   skuBatch?: {

@@ -102,7 +102,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         toZone: true,
         items: {
           include: {
-            sku: { include: { product: { include: { brand: true, category: true } } } },
+            sku: { include: { product: { include: { brand: true, subCategory: { include: { category: true } } } } } },
             bundle: { include: { items: { include: { sku: true } } } },
             fromLocation: { include: { shelf: { include: { zone: true } } } },
             toLocation: { include: { shelf: { include: { zone: true } } } },

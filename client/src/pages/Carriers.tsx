@@ -53,6 +53,7 @@ interface CarrierContract {
   deposit?: number;
   status: 'DRAFT' | 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'TERMINATED';
   fileUrl?: string;
+  autoRenew?: boolean;
 }
 
 interface CarrierVehicle {
@@ -126,6 +127,8 @@ export default function CarriersPage() {
     priceTerms: '',
     amount: '',
     deposit: '',
+    status: 'DRAFT',
+    autoRenew: false,
   });
 
   const [vehicleForm, setVehicleForm] = useState({
@@ -323,7 +326,18 @@ export default function CarriersPage() {
         toast.success('合同创建成功');
       }
       setShowContractModal(false);
-      setContractForm({ contractNo: '', name: '', startDate: '', endDate: '', serviceTerms: '', priceTerms: '', amount: '', deposit: '' });
+      setContractForm({
+        contractNo: '',
+        name: '',
+        startDate: '',
+        endDate: '',
+        serviceTerms: '',
+        priceTerms: '',
+        amount: '',
+        deposit: '',
+        status: 'DRAFT',
+        autoRenew: false,
+      });
       refreshCarrier();
     } catch (error: any) {
       toast.error(error.response?.data?.message || '操作失败');
@@ -727,6 +741,8 @@ export default function CarriersPage() {
                                         priceTerms: contract.priceTerms || '',
                                         amount: contract.amount?.toString() || '',
                                         deposit: contract.deposit?.toString() || '',
+                                        status: contract.status || 'DRAFT',
+                                        autoRenew: contract.autoRenew || false,
                                       });
                                       setEditingContractId(contract.id);
                                       setShowContractModal(true);

@@ -538,7 +538,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
-        category: true,
+        subCategory: { include: { category: true } },
         brand: true,
         skus: true,
       },

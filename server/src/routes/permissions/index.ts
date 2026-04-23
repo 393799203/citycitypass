@@ -1,12 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// 获取所有角色
 router.get('/roles', async (req: Request, res: Response) => {
   try {
     const roles = await prisma.role.findMany({
@@ -19,7 +18,6 @@ router.get('/roles', async (req: Request, res: Response) => {
   }
 });
 
-// 获取角色详情
 router.get('/roles/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -36,7 +34,6 @@ router.get('/roles/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 创建角色
 router.post('/roles',
   body('code').isString().notEmpty(),
   body('name').isString().notEmpty(),
@@ -50,7 +47,6 @@ router.post('/roles',
 
       const { code, name, description, permissions } = req.body;
 
-      // 检查角色代码是否已存在
       const existingRole = await prisma.role.findUnique({
         where: { code }
       });
@@ -76,13 +72,11 @@ router.post('/roles',
   }
 );
 
-// 更新角色
 router.put('/roles/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, permissions } = req.body;
 
-    // 检查是否为 ADMIN 角色
     const existingRole = await prisma.role.findUnique({ where: { id } });
     if (!existingRole) {
       return res.status(404).json({ success: false, message: '角色不存在' });
@@ -107,24 +101,20 @@ router.put('/roles/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 删除角色
 router.delete('/roles/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // 检查是否为内置角色
     const role = await prisma.role.findUnique({
       where: { id }
     });
     if (!role) {
       return res.status(404).json({ success: false, message: '角色不存在' });
     }
-    // ADMIN 和 OWNER 不能删除
     if (role.code === 'ADMIN' || role.code === 'OWNER') {
       return res.status(400).json({ success: false, message: '系统内置角色不能删除' });
     }
 
-    // 检查是否有用户关联该角色
     const usersWithRole = await prisma.userOwner.count({
       where: { roleId: role.id }
     });
@@ -143,15 +133,11 @@ router.delete('/roles/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 获取所有用户
 router.get('/users', async (req: Request, res: Response) => {
   try {
-    const { ownerId, role, keyword } = req.query;
+    const { ownerId, keyword } = req.query;
     const where: any = {};
 
-    if (role) {
-      where.role = role as UserRole;
-    }
     if (keyword) {
       where.OR = [
         { name: { contains: keyword as string } },
@@ -197,7 +183,6 @@ router.get('/users', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // 转换数据格式
     const formattedUsers = users.map(user => ({
       id: user.id,
       username: user.username,
@@ -223,7 +208,6 @@ router.get('/users', async (req: Request, res: Response) => {
   }
 });
 
-// 获取用户详情
 router.get('/users/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -241,6 +225,13 @@ router.get('/users/:id', async (req: Request, res: Response) => {
             owner: {
               select: {
                 id: true,
+                name: true,
+              }
+            },
+            role: {
+              select: {
+                id: true,
+                code: true,
                 name: true,
               }
             }
@@ -265,7 +256,9 @@ router.get('/users/:id', async (req: Request, res: Response) => {
       owners: user.userOwners.map(uo => ({
         ownerId: uo.owner.id,
         ownerName: uo.owner.name,
-        role: uo.role,
+        roleId: uo.role?.id,
+        roleCode: uo.role?.code,
+        roleName: uo.role?.name,
       })),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -278,7 +271,6 @@ router.get('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 创建用户
 router.post('/users',
   body('username').isString().notEmpty(),
   body('password').isString().isLength({ min: 6 }),
@@ -293,7 +285,6 @@ router.post('/users',
 
       const { username, password, name, isAdmin, phone, email, ownerRoles } = req.body;
 
-      // 检查用户名是否已存在
       const existingUser = await prisma.user.findUnique({
         where: { username }
       });
@@ -301,10 +292,8 @@ router.post('/users',
         return res.status(400).json({ success: false, message: '用户名已存在' });
       }
 
-      // 加密密码
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // ownerRoles: [{ownerId, roleId}]
       let userOwnerData: { ownerId: string; roleId: string }[] = [];
       if (ownerRoles && Array.isArray(ownerRoles)) {
         userOwnerData = ownerRoles;
@@ -349,13 +338,11 @@ router.post('/users',
   }
 );
 
-// 更新用户
 router.put('/users/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, isAdmin, phone, email, ownerRoles } = req.body;
 
-    // ownerRoles: [{ownerId, roleId}]
     let userOwnerData: { ownerId: string; roleId: string }[] = [];
     if (ownerRoles && Array.isArray(ownerRoles)) {
       userOwnerData = ownerRoles;
@@ -369,7 +356,6 @@ router.put('/users/:id', async (req: Request, res: Response) => {
       }));
     }
 
-    // 更新用户基本信息
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -389,12 +375,10 @@ router.put('/users/:id', async (req: Request, res: Response) => {
       }
     });
 
-    // 删除旧的主体关联
     await prisma.userOwner.deleteMany({
       where: { userId: id }
     });
 
-    // 创建新的主体关联
     if (userOwnerData.length > 0) {
       await prisma.userOwner.createMany({
         data: userOwnerData.map((uo: { ownerId: string; roleId: string }) => ({
@@ -412,7 +396,6 @@ router.put('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 修改密码
 router.put('/users/:id/password',
   body('password').isString().isLength({ min: 6 }),
   async (req: Request, res: Response) => {
@@ -440,12 +423,10 @@ router.put('/users/:id/password',
   }
 );
 
-// 删除用户
 router.delete('/users/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // 检查是否为ADMIN用户
     const userToDelete = await prisma.user.findUnique({
       where: { id },
       select: { isAdmin: true }
@@ -469,7 +450,6 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
-// 解除用户与主体的关联
 router.delete('/users/:id/owner/:ownerId', async (req: Request, res: Response) => {
   try {
     const { id, ownerId } = req.params;
@@ -488,17 +468,15 @@ router.delete('/users/:id/owner/:ownerId', async (req: Request, res: Response) =
   }
 });
 
-// 添加用户与主体的关联
 router.post('/users/:id/owner', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { ownerId, role } = req.body;
+    const { ownerId, roleId } = req.body;
 
-    if (!ownerId || !role) {
-      return res.status(400).json({ success: false, message: 'ownerId和role为必填项' });
+    if (!ownerId || !roleId) {
+      return res.status(400).json({ success: false, message: 'ownerId和roleId为必填项' });
     }
 
-    // 检查是否已存在关联
     const existing = await prisma.userOwner.findFirst({
       where: { userId: id, ownerId }
     });
@@ -511,7 +489,7 @@ router.post('/users/:id/owner', async (req: Request, res: Response) => {
       data: {
         userId: id,
         ownerId,
-        role,
+        roleId,
       },
     });
 
@@ -522,7 +500,6 @@ router.post('/users/:id/owner', async (req: Request, res: Response) => {
   }
 });
 
-// 获取当前用户的权限
 router.get('/my-permissions', async (req: Request, res: Response) => {
   try {
     // @ts-ignore
@@ -534,7 +511,14 @@ router.get('/my-permissions', async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        role: true,
+        id: true,
+        isAdmin: true,
+        userOwners: {
+          include: {
+            role: true,
+            owner: true
+          }
+        }
       }
     });
 
@@ -542,16 +526,24 @@ router.get('/my-permissions', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '用户不存在' });
     }
 
-    // 获取角色权限
-    const role = await prisma.role.findUnique({
-      where: { code: user.role }
+    const permissions: Record<string, any> = {};
+    user.userOwners.forEach(uo => {
+      if (uo.role?.permissions) {
+        Object.assign(permissions, uo.role.permissions as Record<string, any>);
+      }
     });
 
     res.json({
       success: true,
       data: {
-        role: user.role,
-        permissions: role?.permissions || {},
+        isAdmin: user.isAdmin,
+        permissions,
+        owners: user.userOwners.map(uo => ({
+          ownerId: uo.ownerId,
+          ownerName: uo.owner?.name,
+          roleId: uo.roleId,
+          roleName: uo.role?.name,
+        }))
       }
     });
   } catch (error) {

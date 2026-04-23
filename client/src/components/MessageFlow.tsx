@@ -30,7 +30,7 @@ interface MessageFlowProps {
   messages: Message[];
 }
 
-function ItemsDisplay({ items }: { items: any[] }) {
+function ItemsDisplay({ items }: { items?: any[] }) {
   if (!items?.length) return null;
   return (
     <div>
@@ -110,7 +110,9 @@ function InboundCard({ message }: { message: Message }) {
 }
 
 function BatchInventoryCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  const data = structuredData?.data;
+  if (!data) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-amber-700 font-medium">
@@ -118,18 +120,18 @@ function BatchInventoryCard({ message }: { message: Message }) {
         <span>批次库存查询结果</span>
       </div>
       <div className="text-xs bg-amber-50 p-2 rounded space-y-1">
-        <div><b>{structuredData.data.productName}</b> {structuredData.data.spec} {structuredData.data.packaging}</div>
-        <div>批次号：{structuredData.data.batchNo}</div>
+        <div><b>{data.productName || '-'}</b> {data.spec || ''} {data.packaging || ''}</div>
+        <div>批次号：{data.batchNo || '-'}</div>
       </div>
       <div className="flex gap-4 text-xs bg-amber-50 p-2 rounded">
-        <span>入库：<b className="text-green-600">{structuredData.data.totalInbound}</b></span>
-        <span>出库：<b className="text-red-500">{structuredData.data.totalOutbound}</b></span>
-        <span>在库：<b className="text-amber-700">{structuredData.data.totalInWarehouse}</b></span>
+        <span>入库：<b className="text-green-600">{data.totalInbound ?? '-'}</b></span>
+        <span>出库：<b className="text-red-500">{data.totalOutbound ?? '-'}</b></span>
+        <span>在库：<b className="text-amber-700">{data.totalInWarehouse ?? '-'}</b></span>
       </div>
-      {structuredData.data?.locations?.length > 0 && (
+      {data.locations?.length > 0 && (
         <div className="text-xs space-y-1">
           <div className="font-medium text-gray-600">库位分布：</div>
-          {structuredData.data.locations.map((item: any, idx: number) => (
+          {data.locations.map((item: any, idx: number) => (
             <div key={idx} className="border-l-2 border-amber-300 pl-2 py-1">
               <div className="text-gray-500">
                 仓库：{item.warehouseName} | 库位：{item.locationCode} | 数量：{item.quantity}
@@ -138,10 +140,10 @@ function BatchInventoryCard({ message }: { message: Message }) {
           ))}
         </div>
       )}
-      {structuredData.data?.stockOuts?.length > 0 && (
+      {data.stockOuts?.length > 0 && (
         <div className="text-xs space-y-1">
           <div className="font-medium text-gray-600">关联出库订单：</div>
-          {structuredData.data.stockOuts.map((item: any, idx: number) => (
+          {data.stockOuts.map((item: any, idx: number) => (
             <div key={idx} className="border-l-2 border-red-300 pl-2 py-1">
               <div className="text-gray-500">
                 订单号：{item.orderNo} | 客户：{item.customerName} | 数量：{item.quantity} | 时间：{item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}
@@ -155,23 +157,25 @@ function BatchInventoryCard({ message }: { message: Message }) {
 }
 
 function BundleInventoryCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  const data = structuredData?.data;
+  if (!data) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-green-700 font-medium">
         <Package className="w-4 h-4" />
-        <span>套装库存查询结果 - {structuredData.data.bundleName || structuredData.data.productName || ''} {structuredData.data.spec || ''}</span>
+        <span>套装库存查询结果 - {data.bundleName || data.productName || ''} {data.spec || ''}</span>
       </div>
-      {structuredData.data?.summary && (
+      {data.summary && (
         <div className="flex gap-4 text-xs bg-green-50 p-2 rounded">
-          <span>总数量：<b className="text-green-700">{structuredData.data.summary.totalQuantity}</b></span>
-          <span>可用：<b className="text-green-600">{structuredData.data.summary.availableQuantity}</b></span>
-          <span>锁定：<b className="text-orange-500">{structuredData.data.summary.lockedQuantity}</b></span>
+          <span>总数量：<b className="text-green-700">{data.summary.totalQuantity}</b></span>
+          <span>可用：<b className="text-green-600">{data.summary.availableQuantity}</b></span>
+          <span>锁定：<b className="text-orange-500">{data.summary.lockedQuantity}</b></span>
         </div>
       )}
-      {structuredData.data?.details?.length > 0 && (
+      {data.details?.length > 0 && (
         <div className="text-xs space-y-1 max-h-60 overflow-y-auto">
-          {structuredData.data.details.map((item: any, idx: number) => (
+          {data.details.map((item: any, idx: number) => (
             <div key={idx} className="border-l-2 border-green-300 pl-2 py-1">
               <div className="text-gray-500">
                 仓库：{item.warehouseName} | 库位：{item.locationCode} | 批次：{item.batchNo}
@@ -188,8 +192,9 @@ function BundleInventoryCard({ message }: { message: Message }) {
 }
 
 function SkuSelectCard({ message }: { message: Message }) {
-  const { structuredData } = message;
-  const data = structuredData.data;
+  const structuredData = message.structuredData;
+  if (!structuredData) return null;
+  const data = structuredData.data || {};
   const type = structuredData.type;
   const productName = data.productName || data.options?.[0]?.productName || '';
   const spec = data.spec || data.options?.[0]?.spec || '';
@@ -197,7 +202,7 @@ function SkuSelectCard({ message }: { message: Message }) {
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
       <div className="flex items-center gap-2 text-blue-700 text-xs">
         <Package className="w-3 h-3" />
-        <span className="font-medium">{productName} {spec} - 找到 {data.options.length} 种SKU</span>
+        <span className="font-medium">{productName} {spec} - 找到 {data.options?.length || 0} 种SKU</span>
       </div>
       {type === 'create' && data.quantity && (
         <div className="text-xs text-gray-600">
@@ -234,7 +239,7 @@ function SkuSelectCard({ message }: { message: Message }) {
         </div>
       )}
       <div className="grid grid-cols-2 gap-1">
-        {data.options.map((item: any, idx: number) => {
+        {(data.options || []).map((item: any, idx: number) => {
           const isSelected = message.selectedOption?.skuId === item.skuId;
           const isDisabled = message.confirmed || message.selectedOption;
           return (
@@ -282,23 +287,25 @@ function SkuSelectCard({ message }: { message: Message }) {
 }
 
 function SkuInventoryCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  const data = structuredData?.data;
+  if (!data) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-blue-700 font-medium">
         <Package className="w-4 h-4" />
-        <span>SKU库存查询结果 - {structuredData.data.productName} {structuredData.data.spec} {structuredData.data.packaging}</span>
+        <span>SKU库存查询结果 - {data.productName} {data.spec} {data.packaging}</span>
       </div>
-      {structuredData.data?.summary && (
+      {data.summary && (
         <div className="flex gap-4 text-xs bg-blue-50 p-2 rounded">
-          <span>总数量：<b className="text-blue-700">{structuredData.data.summary.totalQuantity}</b></span>
-          <span>可用：<b className="text-green-600">{structuredData.data.summary.availableQuantity}</b></span>
-          <span>锁定：<b className="text-orange-500">{structuredData.data.summary.lockedQuantity}</b></span>
+          <span>总数量：<b className="text-blue-700">{data.summary.totalQuantity}</b></span>
+          <span>可用：<b className="text-green-600">{data.summary.availableQuantity}</b></span>
+          <span>锁定：<b className="text-orange-500">{data.summary.lockedQuantity}</b></span>
         </div>
       )}
-      {structuredData.data?.details?.length > 0 && (
+      {data.details?.length > 0 && (
         <div className="text-xs space-y-1 max-h-60 overflow-y-auto">
-          {structuredData.data.details.map((item: any, idx: number) => (
+          {data.details.map((item: any, idx: number) => (
             <div key={idx} className="border-l-2 border-blue-300 pl-2 py-1">
               <div className="text-gray-500">
                 仓库：{item.warehouseName} | 库位：{item.locationCode} | 批次：{item.batchNo || '-'}
@@ -310,9 +317,9 @@ function SkuInventoryCard({ message }: { message: Message }) {
           ))}
         </div>
       )}
-      {!structuredData.data?.details?.length && structuredData.data?.summary && (
+      {!data.details?.length && data.summary && (
         <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-          {structuredData.data.productName} {structuredData.data.spec} {structuredData.data.packaging} 的库存汇总：总数量 {structuredData.data.summary.totalQuantity}，可用 {structuredData.data.summary.availableQuantity}
+          {data.productName} {data.spec} {data.packaging} 的库存汇总：总数量 {data.summary.totalQuantity}，可用 {data.summary.availableQuantity}
         </div>
       )}
     </div>
@@ -320,17 +327,19 @@ function SkuInventoryCard({ message }: { message: Message }) {
 }
 
 function OwnerStockSummaryCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  const data = structuredData?.data;
+  if (!data) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-indigo-700 font-medium">
         <Package className="w-4 h-4" />
         <span>主体库存汇总</span>
       </div>
-      {structuredData.data?.products?.length > 0 && (
+      {data.products?.length > 0 && (
         <div className="space-y-1">
           <div className="text-xs font-medium text-gray-600">商品库存：</div>
-          {structuredData.data.products.map((item: any, idx: number) => (
+          {data.products.map((item: any, idx: number) => (
             <div key={`p-${idx}`} className="text-xs border-l-2 border-indigo-300 pl-2 py-1">
               <div className="font-medium text-gray-700">{item.productName} {item.spec} {item.packaging}</div>
               <div className="text-gray-500">SKU：{item.skuId} | 可用：{item.totalAvailable}</div>
@@ -338,10 +347,10 @@ function OwnerStockSummaryCard({ message }: { message: Message }) {
           ))}
         </div>
       )}
-      {structuredData.data?.bundles?.length > 0 && (
+      {data.bundles?.length > 0 && (
         <div className="space-y-1">
           <div className="text-xs font-medium text-gray-600">套装库存：</div>
-          {structuredData.data.bundles.map((item: any, idx: number) => (
+          {data.bundles.map((item: any, idx: number) => (
             <div key={`b-${idx}`} className="text-xs border-l-2 border-indigo-300 pl-2 py-1">
               <div className="font-medium text-gray-700">{item.bundleName} {item.packaging}</div>
               <div className="text-gray-500">套装ID：{item.bundleId} | 可用：{item.totalAvailable}</div>
@@ -354,7 +363,8 @@ function OwnerStockSummaryCard({ message }: { message: Message }) {
 }
 
 function OthersCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  const data = structuredData?.data;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-blue-700 font-medium">
@@ -362,14 +372,15 @@ function OthersCard({ message }: { message: Message }) {
         <span>知识库回答</span>
       </div>
       <div className="text-gray-700 text-sm whitespace-pre-wrap bg-blue-50 p-3 rounded">
-        {structuredData.data?.answer || structuredData.data?.content || JSON.stringify(structuredData.data)}
+        {data?.answer || data?.content || JSON.stringify(data || {})}
       </div>
     </div>
   );
 }
 
 function FallbackCard({ message }: { message: Message }) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  if (!structuredData) return null;
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 text-purple-700 font-medium">
@@ -387,7 +398,7 @@ function FallbackCard({ message }: { message: Message }) {
                 <span className="font-medium">{key}：</span>
                 <span className="flex-1 break-all">
                   {typeof value === 'object' ? (
-                    Array.isArray(value) ? value.join(', ') : JSON.stringify(value)
+                    Array.isArray(value) ? (value as any[]).join(', ') : JSON.stringify(value)
                   ) : String(value)}
                 </span>
               </div>
@@ -440,25 +451,26 @@ function PlainTextDisplay({ content }: { content: string }) {
 }
 
 function renderStructuredContent(message: Message) {
-  const { structuredData } = message;
+  const structuredData = message.structuredData;
+  if (!structuredData) return null;
 
-  if (structuredData?.intent === 'create_order') {
+  if (structuredData.intent === 'create_order') {
     return <OrderCard message={message} />;
   }
 
-  if (structuredData?.intent === 'create_purchase_order') {
+  if (structuredData.intent === 'create_purchase_order') {
     return <PurchaseOrderCard message={message} />;
   }
 
-  if (structuredData?.intent === 'create_inbound') {
+  if (structuredData.intent === 'create_inbound') {
     return <InboundCard message={message} />;
   }
 
-  if (structuredData?.intent === 'match_sku') {
+  if (structuredData.intent === 'match_sku') {
     return <SkuSelectCard message={message} />;
   }
 
-  if (structuredData?.intent === 'query') {
+  if (structuredData.intent === 'query') {
     switch (structuredData.type) {
       case 'batch_inventory':
         return <BatchInventoryCard message={message} />;

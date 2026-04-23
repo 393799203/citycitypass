@@ -19,6 +19,18 @@ export default function ReturnDetail() {
   const [returnOrder, setReturnOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const statusTexts: Record<string, string> = {
+    RETURN_REQUESTED: '待发货',
+    RETURN_SHIPPED: '已发货',
+    RETURN_RECEIVING: '收货中',
+    RETURN_QUALIFIED: '已验收(全合格)',
+    RETURN_PARTIAL_QUALIFIED: '已验收(部分)',
+    RETURN_REJECTED: '已拒收',
+    RETURN_STOCK_IN: '已入库',
+    REFUNDED: '已退款',
+    CANCELLED: '已取消'
+  };
+
   const [returnTrackingModal, setReturnTrackingModal] = useState<{ show: boolean; returnId: string; returnNo: string } | null>(null);
   const [returnTrackingNo, setReturnTrackingNo] = useState('');
   const [returnLogisticsCompany, setReturnLogisticsCompany] = useState('');
@@ -176,17 +188,7 @@ export default function ReturnDetail() {
                     returnOrder.status === 'REFUNDED' ? 'bg-pink-50 text-pink-600' :
                     'bg-gray-50 text-gray-600'
                   }`}>
-                    {{
-                      RETURN_REQUESTED: '待发货',
-                      RETURN_SHIPPED: '已发货',
-                      RETURN_RECEIVING: '收货中',
-                      RETURN_QUALIFIED: '已验收(全合格)',
-                      RETURN_PARTIAL_QUALIFIED: '已验收(部分)',
-                      RETURN_REJECTED: '已拒收',
-                      RETURN_STOCK_IN: '已入库',
-                      REFUNDED: '已退款',
-                      CANCELLED: '已取消'
-                    }[returnOrder.status] || returnOrder.status}
+                    {statusTexts[returnOrder.status] || returnOrder.status}
                   </span>
                 </div>
               </div>

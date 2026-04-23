@@ -134,8 +134,19 @@ export default function Returns() {
   const openStockInModal = async (returnOrder: ReturnOrder) => {
     setQualifyItems(
       returnOrder.items.map((i) => ({
-        ...i,
+        id: i.id,
+        productName: i.productName,
+        quantity: i.quantity,
         qualifiedQuantity: i.qualifiedQuantity ?? 0,
+        rejectedQuantity: i.rejectedQuantity ?? 0,
+        skuId: i.skuId,
+        bundleId: i.bundleId,
+        packaging: i.packaging,
+        spec: i.spec,
+        skuBatchId: i.skuBatchId,
+        bundleBatchId: i.bundleBatchId,
+        skuBatch: i.skuBatch,
+        bundleBatch: i.bundleBatch,
       }))
     );
     setStockInReturnOrder(returnOrder);
@@ -340,7 +351,7 @@ export default function Returns() {
       )}
 
       <RefundModal
-        isOpen={refundModal?.show}
+        isOpen={!!refundModal?.show}
         returnOrder={refundModal?.returnOrder || null}
         refundAmount={refundModal?.refundAmount || 0}
         onClose={() => setRefundModal(null)}

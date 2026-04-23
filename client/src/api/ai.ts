@@ -3,27 +3,6 @@ import api from './index';
 const AI_BASE = '/ai';
 
 export const aiApi = {
-  async analyzeImage(image: File): Promise<any> {
-    const formData = new FormData();
-    formData.append('image', image);
-
-    const response = await api.post(`${AI_BASE}/image/analyze`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
-  },
-
-  async analyzeImageUrl(imageUrl: string): Promise<any> {
-    const response = await api.post(`${AI_BASE}/image/analyze-url`, {
-      imageUrl,
-    });
-
-    return response.data;
-  },
-
   async addDocument(content: string, metadata?: Record<string, any>): Promise<any> {
     const response = await api.post(`${AI_BASE}/rag/add`, {
       content,

@@ -188,13 +188,13 @@ router.get('/me', async (req: Request, res: Response) => {
     }
 
     // 从数据库读取角色权限
-    let permissions = {};
+    let permissions: Record<string, any> = {};
     if (userRoleCode) {
       const role = await prisma.role.findUnique({
         where: { code: userRoleCode }
       });
       if (role) {
-        permissions = role.permissions;
+        permissions = role.permissions as Record<string, any>;
       }
     }
 

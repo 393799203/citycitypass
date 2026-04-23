@@ -10,16 +10,16 @@ const updateUserSchema = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
-  role: z.enum(['ADMIN', 'MANAGER', 'OPERATOR', 'WAREHOUSE_STAFF', 'DRIVER']).optional(),
+  isAdmin: z.boolean().optional(),
 });
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { name, role } = req.query;
+    const { name, isAdmin } = req.query;
     
     const where: any = {};
     if (name) where.name = { contains: String(name) };
-    if (role) where.role = String(role);
+    if (isAdmin !== undefined) where.isAdmin = isAdmin === 'true';
 
     const users = await prisma.user.findMany({
       where,
@@ -27,9 +27,15 @@ router.get('/', async (req: Request, res: Response) => {
         id: true,
         username: true,
         name: true,
-        role: true,
+        isAdmin: true,
         phone: true,
         email: true,
+        userOwners: {
+          include: {
+            owner: { select: { id: true, name: true } },
+            role: { select: { id: true, code: true, name: true } }
+          }
+        },
         updatedAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -51,9 +57,15 @@ router.get('/:id', async (req: Request, res: Response) => {
         id: true,
         username: true,
         name: true,
-        role: true,
+        isAdmin: true,
         phone: true,
         email: true,
+        userOwners: {
+          include: {
+            owner: { select: { id: true, name: true } },
+            role: { select: { id: true, code: true, name: true } }
+          }
+        },
         createdAt: true,
         updatedAt: true,
       },
@@ -82,7 +94,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         id: true,
         username: true,
         name: true,
-        role: true,
+        isAdmin: true,
         phone: true,
         email: true,
         createdAt: true,
@@ -109,7 +121,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '用户不存在' });
     }
     
-    if (targetUser.role === 'ADMIN') {
+    if (targetUser.isAdmin) {
       return res.status(400).json({ success: false, message: '管理员账号不能被删除' });
     }
     

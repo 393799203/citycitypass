@@ -45,9 +45,9 @@ services:
     container_name: zlai-client
     restart: unless-stopped
     environment:
-      VITE_API_BASE_URL: http://localhost:3001/api
+      VITE_API_BASE_URL: http://8.136.144.140:3001/api
     ports:
-      - "5173:80"
+      - "80:80"
     depends_on:
       - server
 

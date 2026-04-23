@@ -1,12 +1,10 @@
 import { Router, type Request, type Response } from 'express';
-import imageRouter from './image';
 import ragRouter from './rag';
 import { callAI, ToolCall } from '../../api/ai';
 import { inventoryTools, executeTool } from '../../api/tools';
 
 const router = Router();
 
-router.use('/image', imageRouter);
 router.use('/rag', ragRouter);
 
 router.get('/health', (req, res) => {

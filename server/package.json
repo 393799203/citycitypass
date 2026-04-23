@@ -13,6 +13,9 @@
     "init": "node prisma/seed.js",
     "db:seed": "node prisma/seed.js"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.6",
