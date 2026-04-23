@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin, Edit2, Trash2 } from 'lucide-react';
 import { Driver } from '../../types/dispatch';
 import { formatPhone } from '../../utils/format';
+import LicensePlateBadge from '../../components/LicensePlateBadge';
 
 interface DriverTableProps {
   drivers: Driver[];
@@ -78,11 +79,7 @@ export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelet
                       )}
                     </td>
                     <td className="py-3 text-center">
-                      {driver.vehicle?.licensePlate
-                        ? <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
-                            {driver.vehicle.licensePlate.slice(0, 2)}·{driver.vehicle.licensePlate.slice(2)}
-                          </div>
-                        : '-'}
+                      <LicensePlateBadge plate={driver.vehicle?.licensePlate} />
                     </td>
                     <td className="py-3 text-center">
                       <span className={`px-2 py-1 text-xs rounded-full ${

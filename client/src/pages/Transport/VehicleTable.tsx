@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin, Edit2, Trash2 } from 'lucide-react';
 import { Vehicle } from '../../types/dispatch';
 import { formatPhone } from '../../utils/format';
+import LicensePlateBadge from '../../components/LicensePlateBadge';
 
 interface VehicleTableProps {
   vehicles: Vehicle[];
@@ -73,9 +74,7 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
                       {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded">承运商</span>}
                     </td>}
                     <td className="py-3 text-center">
-                      <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
-                        {vehicle.licensePlate ? vehicle.licensePlate.slice(0, 2) + '·' + vehicle.licensePlate.slice(2) : '-'}
-                      </div>
+                      <LicensePlateBadge plate={vehicle.licensePlate} />
                     </td>
                     <td className="py-3 text-center">
                       {vehicle.vehicleType && vehicleTypeColors[vehicle.vehicleType] ? (

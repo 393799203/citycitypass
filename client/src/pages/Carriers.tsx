@@ -9,6 +9,7 @@ import { usePermission } from '../hooks/usePermission';
 import { useAuthStore } from '../stores/auth';
 import PhoneInput from '../components/PhoneInput';
 import LicensePlateInput from '../components/LicensePlateInput';
+import LicensePlateBadge from '../components/LicensePlateBadge';
 import BusinessLicenseInput from '../components/BusinessLicenseInput';
 import VinInput from '../components/VinInput';
 import { useOwnerStore } from '../stores/owner';
@@ -1095,9 +1096,13 @@ export default function CarriersPage() {
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
                           <Car className="w-5 h-5 text-gray-400" />
-                          <div>
-                            <h4 className="font-medium">{vehicle.licensePlate}</h4>
-                            <p className="text-xs text-gray-500">{vehicle.vehicleType}</p>
+                          <div className="flex items-center gap-2">
+                            <LicensePlateBadge plate={vehicle.licensePlate} />
+                            {vehicle.vehicleType && (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
+                                {vehicle.vehicleType}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1181,6 +1186,7 @@ export default function CarriersPage() {
                     onChange={(val) => setVehicleForm({ ...vehicleForm, licensePlate: val })}
                     className="w-full"
                     required
+                    disabled={!!editingVehicleId}
                   />
                 </div>
                 <div>

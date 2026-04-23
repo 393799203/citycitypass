@@ -93,21 +93,13 @@ export default function VehicleDriverForm({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     车牌号 <span className="text-red-500">*</span>
                   </label>
-                  {editingItem ? (
-                    <input
-                      type="text"
-                      value={formData.licensePlate}
-                      disabled
-                      className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
-                    />
-                  ) : (
-                    <LicensePlateInput
-                      value={formData.licensePlate}
-                      onChange={(val) => onFormChange('licensePlate', val)}
-                      className="w-full"
-                      required
-                    />
-                  )}
+                  <LicensePlateInput
+                    value={formData.licensePlate}
+                    onChange={(val) => onFormChange('licensePlate', val)}
+                    className="w-full"
+                    required
+                    disabled={!!editingItem}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
