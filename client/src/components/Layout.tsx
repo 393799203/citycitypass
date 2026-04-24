@@ -167,6 +167,10 @@ export default function Layout() {
     ['/system'].includes(item.path)
   );
 
+  const mobileNavItems = filteredMenuItems.filter(item =>
+    ['/orders', '/outbound', '/dispatch', '/returns', '/inventory'].includes(item.path)
+  );
+
   const showOwnerGuard = !user?.isAdmin && !!user && owners.length === 0 && !currentOwnerId;
 
   const canGoBack = !showOwnerGuard && !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
@@ -492,61 +496,21 @@ export default function Layout() {
       {/* 移动端底部导航 */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-pb">
         <div className="flex items-center justify-around h-14">
-          <NavLink
-            to="/orders"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-3 ${
-                isActive ? 'text-primary-600' : 'text-gray-500'
-              }`
-            }
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span className="text-xs mt-0.5">订单</span>
-          </NavLink>
-          <NavLink
-            to="/outbound"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-3 ${
-                isActive ? 'text-primary-600' : 'text-gray-500'
-              }`
-            }
-          >
-            <ArrowUpFromLine className="w-5 h-5" />
-            <span className="text-xs mt-0.5">发货</span>
-          </NavLink>
-          <NavLink
-            to="/dispatch"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-3 ${
-                isActive ? 'text-primary-600' : 'text-gray-500'
-              }`
-            }
-          >
-            <Route className="w-5 h-5" />
-            <span className="text-xs mt-0.5">运力</span>
-          </NavLink>
-          <NavLink
-            to="/returns"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-3 ${
-                isActive ? 'text-primary-600' : 'text-gray-500'
-              }`
-            }
-          >
-            <RotateCcw className="w-5 h-5" />
-            <span className="text-xs mt-0.5">退货</span>
-          </NavLink>
-          <NavLink
-            to="/inventory"
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-3 ${
-                isActive ? 'text-primary-600' : 'text-gray-500'
-              }`
-            }
-          >
-            <Boxes className="w-5 h-5" />
-            <span className="text-xs mt-0.5">库存</span>
-          </NavLink>
+          {mobileNavItems.map(item => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/orders'}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center py-1 px-3 ${
+                  isActive ? 'text-primary-600' : 'text-gray-500'
+                }`
+              }
+            >
+              <MenuIcon path={item.path} className="w-5 h-5" />
+              <span className="text-xs mt-0.5">{item.label.replace('中心', '').replace('管理', '').replace('看板', '').replace('调度', '')}</span>
+            </NavLink>
+          ))}
           <NavLink
             to="/profile"
             className={({ isActive }) =>

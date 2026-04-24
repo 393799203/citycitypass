@@ -5,11 +5,13 @@ import { useOwnerStore } from '../../stores/owner';
 import { useConfirm } from '../../components/ConfirmProvider';
 import SystemManage from '../System';
 import { formatPhone } from '../../utils/format';
+import { usePermission } from '../../hooks/usePermission';
 
 const Profile: React.FC = () => {
   const { user, logout, owners: authOwners } = useAuthStore();
   const { currentOwnerId, currentOwnerName, setCurrentOwner, logout: logoutOwner } = useOwnerStore();
   const { confirm } = useConfirm();
+  const { canRead } = usePermission('system', 'system');
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
 
   const handleLogout = async () => {
@@ -134,9 +136,11 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-2">
-        <SystemManage />
-      </div>
+      {canRead && (
+        <div className="mt-2">
+          <SystemManage />
+        </div>
+      )}
     </div>
   );
 };
