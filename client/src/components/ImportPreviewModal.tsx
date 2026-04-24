@@ -176,7 +176,7 @@ ${rawRows}
           '待拣货': 'PENDING',
           '拣货中': 'PICKING',
           '出库审核中': 'OUTBOUND_REVIEW',
-          '待运力调度': 'DISPATCHING',
+          '运力调度': 'DISPATCHING',
           '已调度': 'DISPATCHED',
           '运输中': 'IN_TRANSIT',
           '已送达': 'DELIVERED',

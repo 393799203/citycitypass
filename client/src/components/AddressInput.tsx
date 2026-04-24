@@ -138,7 +138,7 @@ export default function AddressInput({
             if (onRegionChange) onRegionChange(e.target.value);
             onChange({ province: '', city: '', address: '', latitude: '', longitude: '' });
           }}
-          className="w-full px-3 py-2 border rounded-lg mb-2 bg-white"
+          className="w-full px-2 py-1.5 sm:px-3 sm:py-2 border rounded-lg mb-1.5 sm:mb-2 bg-white text-xs sm:text-sm"
         >
           <option value="">选择区域</option>
           {regions.map(r => (
@@ -147,19 +147,19 @@ export default function AddressInput({
         </select>
       )}
       
-      <div className="flex gap-2">
+      <div className="flex gap-1.5 sm:gap-2">
         <div className="relative flex-1 overflow-visible" ref={inputRef}>
           <div
-            className={`w-full px-3 py-2 border rounded-lg cursor-pointer bg-white min-h-[42px] flex items-center gap-2 ${required && !displayValue ? 'border-red-300 bg-red-50' : ''}`}
+            className={`w-full px-2 py-1.5 sm:px-3 sm:py-2 border rounded-lg cursor-pointer bg-white min-h-[32px] sm:min-h-[42px] flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${required && !displayValue ? 'border-red-300 bg-red-50' : ''}`}
             onClick={handleOpen}
           >
-            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
             <span className={displayValue ? 'text-gray-900' : 'text-gray-400'}>
-              <span className="sm:hidden">{mobileDisplayValue || '选择省/市'}</span>
+              <span className="sm:hidden">{mobileDisplayValue || '省/市'}</span>
               <span className="hidden sm:inline">{displayValue || '选择省/市'}</span>
             </span>
             {displayValue && (
-              <X className="w-4 h-4 text-gray-400 ml-auto" onClick={handleClear} />
+              <X className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 ml-auto" onClick={handleClear} />
             )}
           </div>
 
@@ -234,7 +234,7 @@ export default function AddressInput({
           onChange={(e) => onChange({ ...value, address: e.target.value })}
           onBlur={handleAddressBlur}
           placeholder="详细地址"
-          className={`flex-[2] px-3 py-2 border rounded-lg ${required && !value.address ? 'border-red-300 bg-red-50' : ''}`}
+          className={`flex-[2] px-2 py-1.5 sm:px-3 sm:py-2 border rounded-lg text-xs sm:text-sm ${required && !value.address ? 'border-red-300 bg-red-50' : ''}`}
           required={required}
         />
       </div>

@@ -452,7 +452,7 @@ export default function Layout() {
             </button>
           </div>
         </header>
-        <main className="p-2 lg:p-4 pb-16 lg:pb-6">
+        <main className="lg:p-4 pb-16 lg:pb-6">
           {showOwnerGuard ? (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
               <div className="text-center">
@@ -553,7 +553,7 @@ export default function Layout() {
             }
           >
             <User className="w-5 h-5" />
-            <span className="text-xs mt-0.5">我的</span>
+            <span className="text-xs mt-0.5">权限</span>
           </NavLink>
         </div>
       </nav>

@@ -13,7 +13,7 @@ const orderStatusMap: Record<string, string> = {
   PENDING: '待拣货',
   PICKING: '拣货中',
   OUTBOUND_REVIEW: '出库审核中',
-  DISPATCHING: '待运力调度',
+  DISPATCHING: '运力调度',
   DISPATCHED: '已调度',
   IN_TRANSIT: '运输中',
   DELIVERED: '已送达',

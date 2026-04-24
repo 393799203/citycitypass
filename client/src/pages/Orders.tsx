@@ -101,7 +101,7 @@ const statusOptions = [
   { value: 'PENDING', label: '待拣货' },
   { value: 'PICKING', label: '拣货中' },
   { value: 'OUTBOUND_REVIEW', label: '出库审核中' },
-  { value: 'DISPATCHING', label: '待运力调度' },
+  { value: 'DISPATCHING', label: '运力调度' },
   { value: 'DISPATCHED', label: '已调度' },
   { value: 'IN_TRANSIT', label: '运输中' },
   { value: 'DELIVERED', label: '已送达' },
@@ -460,7 +460,7 @@ export default function OrdersPage() {
           '待拣货': 'PENDING',
           '拣货中': 'PICKING',
           '出库审核中': 'OUTBOUND_REVIEW',
-          '待运力调度': 'DISPATCHING',
+          '运力调度': 'DISPATCHING',
           '已调度': 'DISPATCHED',
           '运输中': 'IN_TRANSIT',
           '已送达': 'DELIVERED',
@@ -1464,42 +1464,43 @@ export default function OrdersPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center p-3 sm:p-4 border-b bg-gray-50">
-              <h2 className="text-base sm:text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2>
-              <button onClick={() => { setShowModal(false); resetForm(); setEditingId(null); }} className="p-2 hover:bg-gray-200 rounded-lg">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center px-3 py-2 sm:p-4 border-b bg-gray-50 flex-shrink-0">
+              <h2 className="text-sm sm:text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2>
+              <button onClick={() => { setShowModal(false); resetForm(); setEditingId(null); }} className="p-1.5 sm:p-2 hover:bg-gray-200 rounded-lg">
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row h-[calc(85vh-60px)] sm:h-[calc(80vh-60px)]">
+            <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row flex-1 overflow-hidden">
               {/* 左侧 - 商品选择 */}
-              <div className={`w-full lg:w-1/2 border-r-0 lg:border-r border-b lg:border-b-0 flex flex-col max-h-[40vh] lg:max-h-none ${editingId ? 'opacity-50 pointer-events-none' : ''}`}>
-                {(formData.ownerId && ownerStockSummary) && (
-                  <div className="flex border-b">
-                    <button
-                      type="button"
-                      onClick={() => { setItemType('product'); setSelectedBundle(''); }}
-                      className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
-                        itemType === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
-                      }`}
-                    >
-                      商品
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setItemType('bundle'); setSelectedProduct(''); setSelectedSku(''); }}
-                      className={`flex-1 py-2.5 text-sm font-medium border-b-2 ${
-                        itemType === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
-                      }`}
-                    >
-                      套装
-                    </button>
-                  </div>
-                )}
+              {!editingId && (
+                <div className={`w-full lg:w-1/2 border-r-0 lg:border-r border-b lg:border-b-0 flex flex-col overflow-hidden`}>
+                  {(formData.ownerId && ownerStockSummary) && (
+                    <div className="flex border-b flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => { setItemType('product'); setSelectedBundle(''); }}
+                        className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 ${
+                          itemType === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
+                        }`}
+                      >
+                        商品
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setItemType('bundle'); setSelectedProduct(''); setSelectedSku(''); }}
+                        className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 ${
+                          itemType === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
+                        }`}
+                      >
+                        套装
+                      </button>
+                    </div>
+                  )}
 
-                <div className="flex-1 overflow-y-auto p-2">
+                  <div className="flex-1 overflow-y-auto p-1.5 sm:p-2 min-h-0">
                   {formData.ownerId && ownerStockSummary && itemType === 'product' ? (
                     (() => {
                       const products = ownerStockSummary.products as any[];
@@ -1514,38 +1515,38 @@ export default function OrdersPage() {
                         skus.some((sku: any) => sku.totalAvailable > 0)
                       );
                       if (filteredProducts.length === 0) {
-                        return <div className="text-center py-12 text-gray-500">
-                        <Package className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                        <p>该主体暂无商品</p>
+                        return <div className="text-center py-8 sm:py-12 text-gray-500">
+                        <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 text-gray-300" />
+                        <p className="text-[10px] sm:text-xs">该主体暂无商品</p>
                       </div>;
                       }
                       return (
-                        <div className="space-y-3">
+                        <div className="space-y-1.5 sm:space-y-2">
                           {filteredProducts.map(([productName, skus]: [string, any[]]) => {
                             const firstSku = skus[0];
                             const brand = firstSku?.brand;
                             const category = firstSku?.category;
                             return (
-                            <div key={productName} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Package className="w-5 h-5 text-blue-500" />
-                                  <h3 className="font-bold text-base">{productName}</h3>
+                            <div key={productName} className="border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4 hover:shadow-lg transition-all bg-white">
+                              <div className="flex items-center justify-between mb-1 sm:mb-1.5 lg:mb-2">
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Package className="w-3 h-3 sm:w-4 text-blue-500" />
+                                  <h3 className="font-bold text-[10px] sm:text-xs lg:text-base">{productName}</h3>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-0.5 sm:gap-1">
                                   {category && (
-                                    <span className="px-2 py-0.5 text-xs rounded-full border border-gray-300 bg-gray-100 text-gray-700">
+                                    <span className="px-1 py-0.5 text-[10px] rounded-full border border-gray-300 bg-gray-100 text-gray-700 hidden sm:inline">
                                       {category.name}
                                     </span>
                                   )}
                                   {brand && (
-                                    <span className="px-2 py-0.5 text-xs rounded-full border border-blue-300 bg-blue-100 text-blue-700">
+                                    <span className="px-1 py-0.5 text-[10px] rounded-full border border-blue-300 bg-blue-100 text-blue-700 hidden sm:inline">
                                       {brand.name}
                                     </span>
                                   )}
                                 </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-2 gap-1 sm:gap-1.5 lg:gap-2">
                                 {skus.filter((sku: any) => sku.totalAvailable > 0).map((sku: any) => {
                                   const isAdded = formData.items.some(item => item.skuId === sku.skuId);
                                   return (
@@ -1569,19 +1570,19 @@ export default function OrdersPage() {
                                           }));
                                         }
                                       }}
-                                      className={`p-2 rounded-lg border text-left transition-all ${
+                                      className={`p-1 sm:p-1.5 lg:p-2 rounded-lg border text-left transition-all text-[10px] sm:text-xs ${
                                         isAdded
                                           ? 'bg-gray-50 border-gray-200 opacity-60'
                                           : 'bg-gray-50 border-gray-200 hover:border-blue-400 hover:bg-blue-50'
                                       }`}
                                     >
-                                      <div className="text-xs text-gray-600">{sku.spec} / {sku.packaging}</div>
-                                      <div className="flex items-center justify-between mt-1">
-                                        <span className="text-sm font-bold text-blue-600">¥{sku.price}</span>
-                                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                      <div className="text-[10px] text-gray-600 truncate">{sku.spec} / {sku.packaging}</div>
+                                      <div className="flex items-center justify-between mt-0.5">
+                                        <span className="text-[10px] sm:text-xs font-bold text-blue-600">¥{sku.price}</span>
+                                        <span className={`text-[10px] px-1 py-0.5 rounded ${
                                           isAdded ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'
                                         }`}>
-                                          {isAdded ? '✓' : `${sku.totalAvailable}件`}
+                                          {isAdded ? '✓' : `${sku.totalAvailable}`}
                                         </span>
                                       </div>
                                     </button>
@@ -1598,13 +1599,13 @@ export default function OrdersPage() {
                     (() => {
                       const bundles = (ownerStockSummary.bundles as any[])?.filter((b: any) => b.totalAvailable > 0) || [];
                       return bundles.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                           {bundles.map((b: any) => {
                             const isAdded = formData.items.some(item => item.bundleId === b.bundleId);
                             return (
                               <div
                                 key={b.bundleId}
-                                className={`border border-purple-200 rounded-lg p-3 hover:shadow-lg transition-all bg-white ${
+                                className={`border border-purple-200 rounded-lg p-1.5 sm:p-2 hover:shadow-lg transition-all bg-white text-[10px] sm:text-xs ${
                                   isAdded ? 'opacity-60' : 'cursor-pointer'
                                 }`}
                                 onClick={() => {
@@ -1624,15 +1625,15 @@ export default function OrdersPage() {
                                   }
                                 }}
                               >
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Package className="w-4 h-4 text-purple-500" />
-                                  <span className="font-bold text-sm">{b.bundleName}</span>
+                                <div className="flex items-center gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
+                                  <Package className="w-3 h-3 text-purple-500" />
+                                  <span className="font-bold text-[10px] sm:text-xs truncate">{b.bundleName}</span>
                                 </div>
-                                <div className="text-lg font-bold text-purple-600 mb-2">
+                                <div className="text-xs sm:text-sm font-bold text-purple-600 mb-0.5 sm:mb-1">
                                   ¥{Number(b.price).toFixed(2)}
                                 </div>
                                 {b.items && b.items.length > 0 && (
-                                  <div className="text-xs text-purple-700 bg-purple-50 rounded p-2 mb-2 max-h-20 overflow-y-auto">
+                                  <div className="text-[10px] text-purple-700 bg-purple-50 rounded p-0.5 sm:p-1 mb-0.5 sm:mb-1 max-h-10 sm:max-h-16 overflow-y-auto hidden sm:block">
                                     {b.items.map((item: any, idx: number) => (
                                       <div key={idx} className="flex justify-between py-0.5">
                                         <span className="truncate">{item.productName} {item.spec}/{item.packaging}</span>
@@ -1642,8 +1643,8 @@ export default function OrdersPage() {
                                   </div>
                                 )}
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-500">库存 {b.totalAvailable}</span>
-                                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                                  <span className="text-[10px] text-gray-500">库存 {b.totalAvailable}</span>
+                                  <span className={`px-1 py-0.5 text-[10px] rounded font-medium ${
                                     isAdded ? 'bg-gray-200 text-gray-500' : 'bg-purple-100 text-purple-700'
                                   }`}>
                                     {isAdded ? '✓' : '添加'}
@@ -1654,9 +1655,9 @@ export default function OrdersPage() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-12 text-gray-500">
-                          <Package className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                          <p>该主体暂无套装</p>
+                        <div className="text-center py-8 sm:py-12 text-gray-500">
+                          <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 text-gray-300" />
+                          <p className="text-[10px] sm:text-xs">该主体暂无套装</p>
                         </div>
                       );
                     })()
@@ -1748,15 +1749,16 @@ export default function OrdersPage() {
                   )}
                 </div>
               </div>
+                )}
 
               {/* 右侧 - 订单信息 */}
-              <div className="w-full lg:w-1/2 flex flex-col flex-1 lg:flex-none">
-                <div className="p-4 border-b bg-gray-50">
-                  <div className="text-sm font-medium text-gray-700 mb-3">收货人信息</div>
+              <div className={`flex flex-col flex-1 overflow-hidden min-h-0 ${editingId ? 'w-full' : 'w-full lg:w-1/2 lg:flex-none'}`}>
+                <div className="p-2 sm:p-4 border-b bg-gray-50 flex-shrink-0">
+                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">收货人信息</div>
                   {!editingId && (
-                    <div className="mb-3">
-                      <div className="flex gap-4 mb-3">
-                        <label className="flex items-center gap-2">
+                    <div className="mb-1.5 sm:mb-2">
+                      <div className="flex gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+                        <label className="flex items-center gap-1">
                           <input
                             type="radio"
                             name="customerType"
@@ -1766,24 +1768,26 @@ export default function OrdersPage() {
                               setSelectedCustomerId('');
                               setFormData(prev => ({ ...prev, receiver: '', phone: '', province: '', city: '', address: '', contractDiscount: undefined }));
                             }}
+                            className="w-3 h-3"
                           />
-                          <span className="text-sm">自然人订单</span>
+                          <span className="text-[10px] sm:text-xs">自然人</span>
                         </label>
-                        <label className="flex items-center gap-2">
+                        <label className="flex items-center gap-1">
                           <input
                             type="radio"
                             name="customerType"
                             checked={customerType === 'CORPORATE'}
                             onChange={() => setCustomerType('CORPORATE')}
+                            className="w-3 h-3"
                           />
-                          <span className="text-sm">大客户订单</span>
+                          <span className="text-[10px] sm:text-xs">大客户</span>
                         </label>
                       </div>
                       {customerType === 'CORPORATE' && (
                         <select
                           value={selectedCustomerId}
                           onChange={(e) => setSelectedCustomerId(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100"
+                          className="w-full px-2 py-1 border rounded-lg text-[10px] sm:text-sm bg-gray-100"
                           disabled={!!editingId}
                         >
                           <option value="">选择客户</option>
@@ -1795,30 +1799,30 @@ export default function OrdersPage() {
                     </div>
                   )}
                   {formData.contractDiscount && (
-                    <div className="mb-3 text-sm text-green-600 bg-green-50 px-3 py-2 rounded">
+                    <div className="mb-1.5 text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
                       已应用客户折扣：{formData.contractDiscount * 10}折
                     </div>
                   )}
                   {customerType !== 'CORPORATE' && (
-                    <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
                       <input
                         type="text"
                         value={formData.receiver}
                         onChange={(e) => setFormData({ ...formData, receiver: e.target.value })}
                         placeholder="收货人"
-                        className="px-3 py-2 border rounded-lg text-sm"
+                        className="px-2 py-1 border rounded-lg text-[10px] sm:text-sm"
                         required
                       />
                       <PhoneInput
                         value={formData.phone}
                         onChange={(val) => setFormData({ ...formData, phone: val })}
-                        className="px-3 py-2 border rounded-lg text-sm"
+                        className="px-2 py-1 border rounded-lg text-[10px] sm:text-sm"
                       />
                     </div>
                   )}
                   {customerType !== 'CORPORATE' ? (
-                    <div className="mb-3">
-                      <label className="block text-sm font-medium mb-1">配送地址</label>
+                    <div>
+                      <label className="block text-[10px] font-medium mb-0.5 sm:mb-1">配送地址</label>
                       <AddressInput
                         value={{
                           province: formData.province,
@@ -1838,30 +1842,30 @@ export default function OrdersPage() {
                       />
                     </div>
                   ) : selectedCustomerId ? (
-                    <div className="px-3 py-1.5 bg-gray-50 rounded text-sm">
+                    <div className="px-1.5 py-0.5 bg-gray-50 rounded text-[10px] sm:text-xs">
                       <span className="text-gray-500">配送至：</span>
                       <span className="font-medium text-gray-800">{formData.receiver}</span>
-                      <span className="mx-2 text-gray-400">|</span>
+                      <span className="mx-1 text-gray-400">|</span>
                       <span className="text-gray-600">{formatPhone(formData.phone)}</span>
-                      <span className="mx-2 text-gray-400">|</span>
+                      <span className="mx-1 text-gray-400">|</span>
                       <span className="text-gray-500">{formatAddress(formData.province, formData.city, formData.address)}</span>
                     </div>
                   ) : null}
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="text-sm font-medium text-gray-700 mb-2">已选商品 ({formData.items.length})</div>
+                <div className="flex-1 overflow-y-auto p-2 sm:p-4 min-h-0">
+                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">已选商品 ({formData.items.length})</div>
                   {formData.items.length === 0 ? (
-                    <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
+                    <div className="text-center text-gray-400 py-4 sm:py-6 bg-gray-50 rounded-lg text-[10px] sm:text-sm">
                       暂无商品，请从左侧添加
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1 sm:space-y-1.5">
                       {formData.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 border rounded-lg">
+                        <div key={idx} className="flex items-center gap-1 p-1 sm:p-1.5 sm:gap-1.5 sm:p-2 border rounded-lg text-[10px] sm:text-xs">
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{item.productName}</div>
-                            <div className="text-xs text-gray-500">{item.packaging} {item.spec}</div>
+                            <div className="font-medium truncate">{item.productName}</div>
+                            <div className="text-[10px] text-gray-500">{item.packaging} {item.spec}</div>
                           </div>
                           <input
                             type="number"
@@ -1876,52 +1880,53 @@ export default function OrdersPage() {
                               newItems[idx].quantity = qty;
                               setFormData({ ...formData, items: newItems });
                             }}
-                            className="w-16 px-2 py-1 border rounded text-sm text-center"
+                            className="w-10 sm:w-12 px-1 py-0.5 sm:px-1.5 sm:py-1 border rounded text-[10px] sm:text-xs text-center"
                             disabled={!!editingId}
                           />
-                          <div className="w-20 text-right text-sm font-medium">¥{item.price * item.quantity}</div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newItems = formData.items.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, items: newItems });
-                            }}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded"
-                            disabled={!!editingId}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="w-12 sm:w-16 text-right font-medium">¥{item.price * item.quantity}</div>
+                          {!editingId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = formData.items.filter((_, i) => i !== idx);
+                                setFormData({ ...formData, items: newItems });
+                              }}
+                              className="p-0.5 sm:p-1 text-red-500 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="border-t p-4 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
+                <div className="border-t p-2 sm:p-4 bg-gray-50 flex-shrink-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-shrink-0">
                       {formData.contractDiscount && formData.contractDiscount < 1 && (
-                        <div className="text-sm text-gray-500 mb-1">
+                        <div className="text-[10px] sm:text-xs text-gray-500 mb-0.5">
                           原价: ¥{formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()} × {formData.contractDiscount * 10}折
                         </div>
                       )}
-                      <span className="text-sm text-gray-600">应付: </span>
-                      <span className="text-xl font-bold text-primary-600">¥{(formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * (formData.contractDiscount || 1)).toLocaleString()}</span>
+                      <span className="text-[10px] sm:text-sm text-gray-600">应付: </span>
+                      <span className="text-sm sm:text-xl font-bold text-primary-600">¥{(formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * (formData.contractDiscount || 1)).toLocaleString()}</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => { setShowModal(false); resetForm(); }}
-                        className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-100"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg text-xs sm:text-sm hover:bg-gray-100"
                       >
                         取消
                       </button>
                       <button
                         type="submit"
                         disabled={formData.items.length === 0}
-                        className="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        className="px-4 sm:px-6 py-1.5 sm:py-2 bg-primary-600 text-white rounded-lg text-xs sm:text-sm hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                       >
-                        创建订单
+                        {editingId ? '修改订单' : '创建订单'}
                       </button>
                     </div>
                   </div>
