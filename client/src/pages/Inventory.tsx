@@ -346,7 +346,7 @@ export default function InventoryPage() {
           <div className="text-lg sm:text-2xl font-bold text-orange-600">{stockOuts.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-2 sm:p-4 col-span-2 sm:col-span-1">
-          <div className="text-gray-500 text-xs sm:text-sm">总库存(不含原料仓)</div>
+          <div className="text-gray-500 text-xs sm:text-sm">总库存</div>
           <div className="text-lg sm:text-2xl font-bold text-gray-700">{stocks.filter(s => s.warehouse?.type !== 'MATERIAL').reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
         </div>
       </div>

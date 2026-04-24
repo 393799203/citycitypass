@@ -106,6 +106,9 @@ export default function Layout() {
             if (userOwners && userOwners.length > 0) {
               // 非ADMIN用户默认选中第一个主体（如果没有选中的主体）
               if (!freshUser.isAdmin && !currentOwnerId) {
+                // 先清除可能存在的旧的主体信息
+                localStorage.removeItem('currentOwnerId');
+                localStorage.removeItem('currentOwnerName');
                 setCurrentOwner(userOwners[0].id, userOwners[0].name);
               }
             }
@@ -545,7 +548,7 @@ export default function Layout() {
             <span className="text-xs mt-0.5">库存</span>
           </NavLink>
           <NavLink
-            to="/system"
+            to="/profile"
             className={({ isActive }) =>
               `flex flex-col items-center justify-center py-1 px-3 ${
                 isActive ? 'text-primary-600' : 'text-gray-500'
@@ -553,7 +556,7 @@ export default function Layout() {
             }
           >
             <User className="w-5 h-5" />
-            <span className="text-xs mt-0.5">权限</span>
+            <span className="text-xs mt-0.5">我的</span>
           </NavLink>
         </div>
       </nav>

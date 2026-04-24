@@ -30,6 +30,7 @@ const PurchaseOrders = lazy(() => import('./pages/Purchase/index'));
 const PurchaseDetail = lazy(() => import('./pages/PurchaseDetail/index'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 const SystemManage = lazy(() => import('./pages/System'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function PageLoader() {
   return (
@@ -84,6 +85,7 @@ function App() {
                 <Route path="owners" element={<Owners />} />
                 <Route path="knowledge-base" element={<KnowledgeBase />} />
                 <Route path="system" element={<SystemManage />} />
+                <Route path="profile" element={<Profile />} />
                 <Route path="*" element={<Navigate to="/orders" replace />} />
               </Route>
             </Route>

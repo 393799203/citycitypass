@@ -316,7 +316,7 @@ interface UserListProps {
 export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, canWrite = false }) => {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
@@ -385,6 +385,64 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
           })}
         </tbody>
       </table>
+      <div className="sm:hidden space-y-2 p-2">
+        {users
+          .sort((a, b) => (b.isAdmin ? 1 : 0) - (a.isAdmin ? 1 : 0))
+          .map(user => {
+            const ownerCount = user.isAdmin ? 1 : (user.owners?.length || 0);
+            return (
+              <div key={user.id} className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="font-medium text-sm text-gray-800 truncate">{user.name}</span>
+                    <span className="text-xs text-gray-400 flex-shrink-0">{user.username}</span>
+                    {user.isAdmin && (
+                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] flex-shrink-0">管理员</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    {canWrite && (
+                      <>
+                        <button
+                          onClick={() => onEdit(user)}
+                          className="text-blue-600 text-xs"
+                        >
+                          编辑
+                        </button>
+                        {!user.isAdmin && (
+                          <button
+                            onClick={() => onDelete(user.id)}
+                            className="text-red-600 text-xs"
+                          >
+                            删除
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                  {user.phone && <span>{formatPhone(user.phone)}</span>}
+                </div>
+                {!user.isAdmin && ownerCount > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {user.owners!.map(o => (
+                      <span key={o.ownerId} className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] ${ROLE_COLORS[o.roleCode]?.bg || 'bg-gray-100'} ${ROLE_COLORS[o.roleCode]?.text || 'text-gray-800'}`}>
+                        {o.ownerName}: {o.roleName || o.roleCode}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {user.isAdmin && (
+                  <div className="mt-1 text-xs text-gray-500">所有主体</div>
+                )}
+              </div>
+            );
+          })}
+        {users.length === 0 && (
+          <div className="text-center text-gray-500 py-8">暂无用户数据</div>
+        )}
+      </div>
     </div>
   );
 };

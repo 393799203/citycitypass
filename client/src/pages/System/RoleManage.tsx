@@ -284,63 +284,63 @@ export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete, can
       <div className="sm:hidden space-y-2 p-2">
         {roles.map(role => (
           <div key={role.id} className="bg-gray-50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm text-gray-800">{role.name}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="font-medium text-sm text-gray-800 truncate">{role.name}</span>
+                <span className="text-xs text-gray-400 flex-shrink-0">{role.code}</span>
                 {role.isDefault && (
-                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">默认</span>
+                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] flex-shrink-0">默认</span>
                 )}
               </div>
-              <span className="text-xs text-gray-400">{role.code}</span>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                {isAdmin ? (
+                  <>
+                    {role.code !== 'ADMIN' && (
+                      <>
+                        <button
+                          onClick={() => onEdit(role)}
+                          className="text-blue-600 text-xs"
+                        >
+                          编辑权限
+                        </button>
+                        {!role.isDefault && role.code !== 'ADMIN' && role.code !== 'OWNER' && (
+                          <button
+                            onClick={() => onDelete(role.id)}
+                            className="text-red-600 text-xs"
+                          >
+                            删除
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : canWrite && role.isDefault ? (
+                  <button
+                    onClick={() => onEdit(role)}
+                    className="text-blue-600 text-xs"
+                  >
+                    查看
+                  </button>
+                ) : canWrite ? (
+                  <button
+                    onClick={() => onEdit(role)}
+                    className="text-blue-600 text-xs"
+                  >
+                    编辑
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onEdit(role)}
+                    className="text-blue-600 text-xs"
+                  >
+                    查看
+                  </button>
+                )}
+              </div>
             </div>
             {role.description && (
-              <div className="text-xs text-gray-500 mb-2">{role.description}</div>
+              <div className="text-xs text-gray-500 mt-1 truncate">{role.description}</div>
             )}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              {isAdmin ? (
-                <>
-                  {role.code !== 'ADMIN' && (
-                    <>
-                      <button
-                        onClick={() => onEdit(role)}
-                        className="text-blue-600 text-xs"
-                      >
-                        编辑权限
-                      </button>
-                      {!role.isDefault && role.code !== 'ADMIN' && role.code !== 'OWNER' && (
-                        <button
-                          onClick={() => onDelete(role.id)}
-                          className="text-red-600 text-xs"
-                        >
-                          删除
-                        </button>
-                      )}
-                    </>
-                  )}
-                </>
-              ) : canWrite && role.isDefault ? (
-                <button
-                  onClick={() => onEdit(role)}
-                  className="text-blue-600 text-xs"
-                >
-                  查看权限
-                </button>
-              ) : canWrite ? (
-                <button
-                  onClick={() => onEdit(role)}
-                  className="text-blue-600 text-xs"
-                >
-                  编辑权限
-                </button>
-              ) : (
-                <button
-                  onClick={() => onEdit(role)}
-                  className="text-blue-600 text-xs"
-                >
-                  查看权限
-                </button>
-              )}
-            </div>
           </div>
         ))}
         {roles.length === 0 && (

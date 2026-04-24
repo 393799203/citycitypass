@@ -291,7 +291,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
         </div>
       )}
 
-      <div className="hidden sm:flex items-center justify-between">
+      <div className="hidden sm:flex items-center justify-between mb-0 sm:mb-4">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-800">发货管理</h1>
         </div>
@@ -303,7 +303,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border">
+      <div className="bg-white rounded-xl shadow-sm border !mt-0">
         <div className="border-b">
           <nav className="flex">
             <button

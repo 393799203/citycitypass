@@ -178,12 +178,12 @@ export const SystemManage: React.FC = () => {
 
   return (
     <div className="p-2 space-y-4">
-      <div className="hidden sm:block mb-6">
+      <div className="hidden sm:block mb-0 sm:mb-6">
         <h1 className="text-2xl font-bold text-gray-800">系统管理</h1>
         <p className="text-gray-600 mt-1">管理系统用户和角色权限</p>
       </div>
 
-      <div className="mb-4 border-b border-gray-200">
+      <div className="mb-4 border-b border-gray-200 !mt-0">
         <nav className="-mb-px flex">
           {!isAdminView && (
             <button
@@ -222,7 +222,7 @@ export const SystemManage: React.FC = () => {
         </nav>
       </div>
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end hidden sm:flex">
         {canWrite && activeTab !== 'members' && (
           <button
             onClick={() => {
@@ -234,9 +234,39 @@ export const SystemManage: React.FC = () => {
                 setShowUserModal(true);
               }
             }}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
           >
             {activeTab === 'roles' ? '新建角色' : '注册新用户'}
+          </button>
+        )}
+      </div>
+
+      <div className="sm:hidden mb-3">
+        {canWrite && activeTab !== 'members' && (
+          <button
+            onClick={() => {
+              if (activeTab === 'roles') {
+                setEditingRole(undefined);
+                setShowRoleModal(true);
+              } else {
+                setEditingUser(undefined);
+                setShowUserModal(true);
+              }
+            }}
+            className="w-full py-2 bg-blue-600 text-white text-sm rounded-md"
+          >
+            {activeTab === 'roles' ? '新建角色' : '注册新用户'}
+          </button>
+        )}
+        {activeTab === 'members' && canWrite && (
+          <button
+            onClick={() => {
+              setEditingUser(undefined);
+              setShowUserModal(true);
+            }}
+            className="w-full py-2 bg-blue-600 text-white text-sm rounded-md"
+          >
+            注册并加入主体
           </button>
         )}
       </div>
@@ -254,7 +284,7 @@ export const SystemManage: React.FC = () => {
                     setEditingUser(undefined);
                     setShowUserModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
                 >
                   注册并加入主体
                 </button>
@@ -265,17 +295,6 @@ export const SystemManage: React.FC = () => {
 
           <div className="sm:hidden mb-3">
             <h3 className="text-base font-medium mb-2">当前主体成员</h3>
-            {canWrite && (
-              <button
-                onClick={() => {
-                  setEditingUser(undefined);
-                  setShowUserModal(true);
-                }}
-                className="w-full py-2 bg-blue-600 text-white text-sm rounded-md"
-              >
-                注册并加入主体
-              </button>
-            )}
           </div>
           
           {ownerMembers.length > 0 ? (
