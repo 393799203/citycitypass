@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { orderApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi, contractApi } from '../api';
 import { toast } from 'react-toastify';
@@ -113,6 +113,7 @@ const statusOptions = [
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { confirm } = useConfirm();
   const { currentOwnerId, owners: ownerStoreOwners, setCurrentOwner } = useOwnerStore();
   const { user, owners: authOwners } = useAuthStore();
@@ -224,6 +225,39 @@ export default function OrdersPage() {
       setOwnerStockSummary(null);
     }
   }, [formData.ownerId]);
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.editingOrder) {
+      const order = state.editingOrder;
+      setEditingId(order.id);
+      setCustomerType(order.customerId ? 'CORPORATE' : 'RETAIL');
+      setSelectedCustomerId(order.customerId || '');
+      setFormData({
+        ownerId: order.ownerId,
+        warehouseId: order.warehouseId,
+        receiver: order.receiver,
+        phone: order.phone,
+        province: order.province || '',
+        city: order.city || '',
+        address: order.address,
+        latitude: order.latitude?.toString() || '',
+        longitude: order.longitude?.toString() || '',
+        items: (order.items || []).map((item: any) => ({
+          skuId: item.skuId,
+          bundleId: item.bundleId,
+          productName: item.productName,
+          packaging: item.packaging,
+          spec: item.spec,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        contractDiscount: order.contractDiscount,
+      });
+      setShowModal(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const handleExport = () => {
     const exportData: any[] = [];
@@ -843,7 +877,7 @@ export default function OrdersPage() {
   const selectedProductSkus = selectedProduct ? products.find(p => p.id === selectedProduct)?.skus || [] : [];
 
   return (
-    <div className="p-2 space-y-6">
+    <div className="p-2 space-y-4">
       
 
       {returnModal?.show && (
@@ -912,10 +946,10 @@ export default function OrdersPage() {
         />
       )}
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">订单中心</h1>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h1 className="hidden sm:block text-xl sm:text-2xl font-bold text-gray-800">订单中心</h1>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -927,7 +961,7 @@ export default function OrdersPage() {
               }}
               onKeyDown={(e) => e.key === 'Enter' && fetchOrders(filters)}
               placeholder="订单编号"
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm w-36"
+              className="w-full sm:w-36 pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
           </div>
           <select
@@ -948,11 +982,11 @@ export default function OrdersPage() {
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+          <div className="hidden sm:block w-px h-6 bg-gray-300 mx-1" />
           <button
             onClick={handleExport}
             disabled={orders.length === 0}
-            className="flex items-center gap-2 px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
+            className="hidden sm:flex items-center gap-2 px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
             导出
@@ -968,19 +1002,19 @@ export default function OrdersPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={!currentOwnerId || !canWrite}
             title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 text-sm shadow-md hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 text-sm shadow-md hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-4 h-4" />
-            AI导入
+            <span className="hidden sm:inline">AI导入</span>
           </button>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
             disabled={!currentOwnerId || !canWrite}
             title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
-            className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
-            新建订单
+            <span className="hidden sm:inline">新建订单</span>
           </button>
         </div>
       </div>
@@ -993,83 +1027,17 @@ export default function OrdersPage() {
         ) : orders.length === 0 ? (
           <div className="text-center py-12 text-gray-500">暂无数据</div>
         ) : (
-          <table className="w-full table-fixed">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">主体</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">金额</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
-                <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
-                <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-28">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <>
+            {/* 移动端卡片列表 */}
+            <div className="lg:hidden divide-y divide-gray-200">
               {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="pl-4 pr-2 py-4 whitespace-nowrap text-base font-medium w-40 text-center">
-                    <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
+                <div key={order.id} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <Link to={`/orders/${order.id}`} className="text-primary-600 font-medium">
                       {order.orderNo}
                     </Link>
-                    {(() => {
-                      const latestReturn = getLatestActiveReturn(order as any);
-                      return latestReturn ? (
-                        <div className="text-orange-500 text-sm mt-0.5">
-                          退: <Link to={`/returns/${latestReturn.id}`} className="text-orange-500 hover:underline">{latestReturn.returnNo}</Link>
-                        </div>
-                      ) : null;
-                    })()}
-                  </td>
-                  <td className="px-2 py-4 text-base text-gray-500 w-24 text-center">
-                    <div className="truncate">{order.owner?.name}</div>
-                    <div className="text-sm text-gray-400 truncate">{order.warehouse?.name}</div>
-                  </td>
-                  <td className="px-2 py-4 text-base w-32 text-center">
-                    {(order as any).customerId && (order as any).customer ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-1">
-                          <span className="truncate font-medium">{(order as any).customer.name}</span>
-                          {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
-                            <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">VIP</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
-                          <Phone className="w-4 h-4 shrink-0" />
-                          <span>{order.receiver}</span>
-                          <span className="text-gray-300">|</span>
-                          <span>{formatPhone(order.phone)}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="truncate">{order.receiver}</div>
-                        <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
-                          <Phone className="w-4 h-4 shrink-0" />
-                          {formatPhone(order.phone)}
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-2 py-4 text-base w-48 text-center">
-                    <div className="flex items-center justify-center gap-1 text-gray-500">
-                      <MapPin className="w-4 h-4 shrink-0 text-gray-400" />
-                      <span className="whitespace-normal">{formatAddress(order.province, order.city, order.address)}</span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-12 text-center">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-primary-600 font-medium w-16 text-center">
-                    <div>¥{Number(order.totalAmount).toLocaleString()}</div>
-                    {(order as any).customerId && (order as any).contractDiscount && (
-                      <span className="inline-block px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-4 whitespace-nowrap w-14 text-center">
                     <span className={`px-2 py-1 text-xs rounded border ${
                       order.status === 'PENDING' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
-                      order.status === 'APPROVED' ? 'bg-blue-50 border-blue-500 text-blue-700' :
                       order.status === 'PICKING' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' :
                       order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-50 border-purple-500 text-purple-700' :
                       order.status === 'DISPATCHING' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
@@ -1078,187 +1046,436 @@ export default function OrdersPage() {
                       order.status === 'DELIVERED' ? 'bg-green-50 border-green-500 text-green-700' :
                       order.status === 'COMPLETED' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' :
                       order.status === 'RETURNING' ? 'bg-orange-50 border-orange-500 text-orange-700' :
-                      order.status === 'RETURNED' ? 'bg-pink-50 border-pink-500 text-pink-700' :
                       order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
                       'bg-gray-50 border-gray-500 text-gray-700'
                     }`}>
                       {statusMap[order.status]}
                     </span>
-                  </td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20 text-center">
-                    <div className="flex flex-col items-center">
-                      <span>{new Date(order.createdAt).toLocaleDateString()}</span>
-                      <span className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400">收货人:</span>
+                      <span>{order.receiver}</span>
+                      <span className="text-gray-400">|</span>
+                      <span>{formatPhone(order.phone)}</span>
                     </div>
-                  </td>
-                  <td className="px-2 py-4 whitespace-nowrap text-base text-center">
+                    <div className="flex items-center gap-1 text-gray-500">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{formatAddress(order.province, order.city, order.address)}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-gray-400">共{order.items.reduce((sum, item) => sum + item.quantity, 0)}件</span>
+                      <span className="text-primary-600 font-bold">¥{Number(order.totalAmount).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
                     {order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW' ? (
-                        <>
-                          {(order as any).customerId ? null : canWrite && (
-                            <button
-                              onClick={() => {
-                                const orderData = order as any;
-
-                                setEditingId(order.id);
-                                setCustomerType(orderData.customerId ? 'CORPORATE' : 'RETAIL');
-                                setSelectedCustomerId(orderData.customerId || '');
-                                setFormData({
-                                  ownerId: orderData.ownerId,
-                                  warehouseId: orderData.warehouseId,
-                                  receiver: orderData.receiver,
-                                  phone: orderData.phone,
-                                  province: orderData.province,
-                                  city: orderData.city,
-                                  address: orderData.address,
-                                  latitude: orderData.latitude?.toString() || '',
-                                  longitude: orderData.longitude?.toString() || '',
-                                  items: (orderData.items || []).map((item: any) => ({
-                                    skuId: item.skuId,
-                                    bundleId: item.bundleId,
-                                    productName: item.productName,
-                                    packaging: item.packaging,
-                                    spec: item.spec,
-                                    price: item.price,
-                                    quantity: item.quantity,
-                                  })),
-                                  contractDiscount: orderData.contractDiscount,
-                                });
-                                setShowModal(true);
-                              }}
-                              className="px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 mr-1"
-                            >
-                              修改
-                            </button>
-                          )}
-                          {canWrite && (
-                            <button
-                              onClick={async () => {
-                                const ok = await confirm({ message: '确定要取消该订单吗？' });
-                                if (ok) {
-                                  handleStatusChange(order.id, 'CANCELLED');
-                                }
-                              }}
-                              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
-                            >
-                              取消
-                            </button>
-                          )}
-                        </>
-                      ) : null}
-                      {order.status === 'CANCELLED' && canWrite && (
-                        <button
-                          onClick={async () => {
-                            const ok = await confirm({ message: '确定要删除该订单吗？' });
-                            if (ok) {
-                              handleDelete(order.id);
-                            }
-                          }}
-                          className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                          删除
-                        </button>
-                      )}
-                      {order.status === 'DELIVERED' && (
-                        <>
+                      <>
+                        {!(order as any).customerId && canWrite && (
+                          <button
+                            onClick={() => {
+                              const orderData = order as any;
+                              setEditingId(order.id);
+                              setCustomerType(orderData.customerId ? 'CORPORATE' : 'RETAIL');
+                              setSelectedCustomerId(orderData.customerId || '');
+                              setFormData({
+                                ownerId: orderData.ownerId,
+                                warehouseId: orderData.warehouseId,
+                                receiver: orderData.receiver,
+                                phone: orderData.phone,
+                                province: orderData.province,
+                                city: orderData.city,
+                                address: orderData.address,
+                                latitude: orderData.latitude?.toString() || '',
+                                longitude: orderData.longitude?.toString() || '',
+                                items: (orderData.items || []).map((item: any) => ({
+                                  skuId: item.skuId,
+                                  bundleId: item.bundleId,
+                                  productName: item.productName,
+                                  packaging: item.packaging,
+                                  spec: item.spec,
+                                  price: item.price,
+                                  quantity: item.quantity,
+                                })),
+                                contractDiscount: orderData.contractDiscount,
+                              });
+                              setShowModal(true);
+                            }}
+                            className="flex-1 px-2 py-1.5 text-xs bg-primary-600 text-white rounded hover:bg-primary-700"
+                          >
+                            修改
+                          </button>
+                        )}
+                        {canWrite && (
                           <button
                             onClick={async () => {
-                              const ok = await confirm({ message: '确认已收到货？' });
-                              if (ok) {
-                                handleStatusChange(order.id, 'COMPLETED');
-                              }
+                              const ok = await confirm({ message: '确定要取消该订单吗？' });
+                              if (ok) handleStatusChange(order.id, 'CANCELLED');
                             }}
-                            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 mr-1"
+                            className="flex-1 px-2 py-1.5 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
                           >
-                            确认收货
+                            取消
                           </button>
-                          {canWrite && (
-                            <button
-                              onClick={() => {
-                                setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
-                                setReturnReason('');
-                              }}
-                              className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
-                            >
-                              申请退货
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {order.status === 'COMPLETED' && (
+                        )}
+                      </>
+                    ) : null}
+                    {order.status === 'DELIVERED' && (
+                      <>
                         <button
-                          onClick={() => {
-                            setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
-                            setReturnReason('');
+                          onClick={async () => {
+                            const ok = await confirm({ message: '确认已收到货？' });
+                            if (ok) handleStatusChange(order.id, 'COMPLETED');
                           }}
-                          className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
+                          className="flex-1 px-2 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                         >
-                          申请退货
+                          确认收货
                         </button>
-                      )}
-                      {order.status === 'RETURNING' && (
-                        <>
-                          {(() => {
-                          const orderData = order as any;
-                          const returnOrder = getLatestActiveReturn(orderData);
-                          if (!returnOrder) return null;
-                          return (
-                            <>
-                              {returnOrder.status === 'RETURN_REQUESTED' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
-                                      setReturnTrackingNo('');
-                                      setReturnLogisticsCompany('');
-                                    }}
-                                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 mr-1"
-                                  >
-                                    填写快递
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
-                                      if (ok) {
-                                        returnApi.cancel(returnOrder.id).then(() => {
-                                          toast.success('已取消退货');
-                                          fetchOrders();
-                                        }).catch((err: any) => {
-                                          toast.error(err.response?.data?.message || '取消失败');
-                                        });
-                                      }
-                                    }}
-                                    className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                                  >
-                                    取消退货
-                                  </button>
-                                </>
-                              )}
-                            </>
-                          );
-                        })()}
+                        {canWrite && (
+                          <button
+                            onClick={() => {
+                              setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                              setReturnReason('');
+                            }}
+                            className="flex-1 px-2 py-1.5 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
+                          >
+                            申请退货
+                          </button>
+                        )}
                       </>
                     )}
-                  </td>
-                </tr>
+                    {order.status === 'COMPLETED' && (
+                      <button
+                        onClick={() => {
+                          setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                          setReturnReason('');
+                        }}
+                        className="flex-1 px-2 py-1.5 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
+                      >
+                        申请退货
+                      </button>
+                    )}
+                    {order.status === 'RETURNING' && (() => {
+                      const returnOrder = (order as any).returnOrders?.find((r: any) => r.status !== 'CANCELLED');
+                      if (!returnOrder) return null;
+                      return (
+                        <>
+                          {returnOrder.status === 'RETURN_REQUESTED' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
+                                  setReturnTrackingNo('');
+                                  setReturnLogisticsCompany('');
+                                }}
+                                className="flex-1 px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                              >
+                                填写快递
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                                  if (ok) {
+                                    returnApi.cancel(returnOrder.id).then(() => {
+                                      toast.success('已取消退货');
+                                      fetchOrders();
+                                    }).catch((err: any) => {
+                                      toast.error(err.response?.data?.message || '取消失败');
+                                    });
+                                  }
+                                }}
+                                className="flex-1 px-2 py-1.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                              >
+                                取消退货
+                              </button>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
+                    {order.status === 'CANCELLED' && canWrite && (
+                      <button
+                        onClick={async () => {
+                          const ok = await confirm({ message: '确定要删除该订单吗？' });
+                          if (ok) handleDelete(order.id);
+                        }}
+                        className="flex-1 px-2 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        删除
+                      </button>
+                    )}
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* 桌面端表格 */}
+            <table className="w-full table-fixed hidden lg:table">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">主体</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">金额</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
+                  <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-28">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {orders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="pl-4 pr-2 py-4 whitespace-nowrap text-base font-medium w-40 text-center">
+                      <Link to={`/orders/${order.id}`} className="text-primary-600 hover:text-primary-800 hover:underline">
+                        {order.orderNo}
+                      </Link>
+                      {(() => {
+                        const latestReturn = getLatestActiveReturn(order as any);
+                        return latestReturn ? (
+                          <div className="text-orange-500 text-sm mt-0.5">
+                            退: <Link to={`/returns/${latestReturn.id}`} className="text-orange-500 hover:underline">{latestReturn.returnNo}</Link>
+                          </div>
+                        ) : null;
+                      })()}
+                    </td>
+                    <td className="px-2 py-4 text-base text-gray-500 w-24 text-center">
+                      <div className="truncate">{order.owner?.name}</div>
+                      <div className="text-sm text-gray-400 truncate">{order.warehouse?.name}</div>
+                    </td>
+                    <td className="px-2 py-4 text-base w-32 text-center">
+                      {(order as any).customerId && (order as any).customer ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex items-center gap-1">
+                            <span className="truncate font-medium">{(order as any).customer.name}</span>
+                            {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
+                              <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">VIP</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
+                            <Phone className="w-4 h-4 shrink-0" />
+                            <span>{order.receiver}</span>
+                            <span className="text-gray-300">|</span>
+                            <span>{formatPhone(order.phone)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="truncate">{order.receiver}</div>
+                          <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
+                            <Phone className="w-4 h-4 shrink-0" />
+                            {formatPhone(order.phone)}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-2 py-4 text-base w-48 text-center">
+                      <div className="flex items-center justify-center gap-1 text-gray-500">
+                        <MapPin className="w-4 h-4 shrink-0 text-gray-400" />
+                        <span className="whitespace-normal">{formatAddress(order.province, order.city, order.address)}</span>
+                      </div>
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-12 text-center">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                    <td className="px-2 py-4 whitespace-nowrap text-base text-primary-600 font-medium w-16 text-center">
+                      <div>¥{Number(order.totalAmount).toLocaleString()}</div>
+                      {(order as any).customerId && (order as any).contractDiscount && (
+                        <span className="inline-block px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap w-14 text-center">
+                      <span className={`px-2 py-1 text-xs rounded border ${
+                        order.status === 'PENDING' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
+                        order.status === 'APPROVED' ? 'bg-blue-50 border-blue-500 text-blue-700' :
+                        order.status === 'PICKING' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' :
+                        order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-50 border-purple-500 text-purple-700' :
+                        order.status === 'DISPATCHING' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
+                        order.status === 'DISPATCHED' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
+                        order.status === 'IN_TRANSIT' ? 'bg-purple-50 border-purple-500 text-purple-700' :
+                        order.status === 'DELIVERED' ? 'bg-green-50 border-green-500 text-green-700' :
+                        order.status === 'COMPLETED' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' :
+                        order.status === 'RETURNING' ? 'bg-orange-50 border-orange-500 text-orange-700' :
+                        order.status === 'RETURNED' ? 'bg-pink-50 border-pink-500 text-pink-700' :
+                        order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
+                        'bg-gray-50 border-gray-500 text-gray-700'
+                      }`}>
+                        {statusMap[order.status]}
+                      </span>
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20 text-center">
+                      <div className="flex flex-col items-center">
+                        <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</span>
+                      </div>
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap text-base text-center">
+                      {order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW' ? (
+                          <>
+                            {(order as any).customerId ? null : canWrite && (
+                              <button
+                                onClick={() => {
+                                  const orderData = order as any;
+
+                                  setEditingId(order.id);
+                                  setCustomerType(orderData.customerId ? 'CORPORATE' : 'RETAIL');
+                                  setSelectedCustomerId(orderData.customerId || '');
+                                  setFormData({
+                                    ownerId: orderData.ownerId,
+                                    warehouseId: orderData.warehouseId,
+                                    receiver: orderData.receiver,
+                                    phone: orderData.phone,
+                                    province: orderData.province,
+                                    city: orderData.city,
+                                    address: orderData.address,
+                                    latitude: orderData.latitude?.toString() || '',
+                                    longitude: orderData.longitude?.toString() || '',
+                                    items: (orderData.items || []).map((item: any) => ({
+                                      skuId: item.skuId,
+                                      bundleId: item.bundleId,
+                                      productName: item.productName,
+                                      packaging: item.packaging,
+                                      spec: item.spec,
+                                      price: item.price,
+                                      quantity: item.quantity,
+                                    })),
+                                    contractDiscount: orderData.contractDiscount,
+                                  });
+                                  setShowModal(true);
+                                }}
+                                className="px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 mr-1"
+                              >
+                                修改
+                              </button>
+                            )}
+                            {canWrite && (
+                              <button
+                                onClick={async () => {
+                                  const ok = await confirm({ message: '确定要取消该订单吗？' });
+                                  if (ok) {
+                                    handleStatusChange(order.id, 'CANCELLED');
+                                  }
+                                }}
+                                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                              >
+                                取消
+                              </button>
+                            )}
+                          </>
+                        ) : null}
+                        {order.status === 'CANCELLED' && canWrite && (
+                          <button
+                            onClick={async () => {
+                              const ok = await confirm({ message: '确定要删除该订单吗？' });
+                              if (ok) {
+                                handleDelete(order.id);
+                              }
+                            }}
+                            className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                          >
+                            删除
+                          </button>
+                        )}
+                        {order.status === 'DELIVERED' && (
+                          <>
+                            <button
+                              onClick={async () => {
+                                const ok = await confirm({ message: '确认已收到货？' });
+                                if (ok) {
+                                  handleStatusChange(order.id, 'COMPLETED');
+                                }
+                              }}
+                              className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 mr-1"
+                            >
+                              确认收货
+                            </button>
+                            {canWrite && (
+                              <button
+                                onClick={() => {
+                                  setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                                  setReturnReason('');
+                                }}
+                                className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
+                              >
+                                申请退货
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {order.status === 'COMPLETED' && (
+                          <button
+                            onClick={() => {
+                              setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                              setReturnReason('');
+                            }}
+                            className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
+                          >
+                            申请退货
+                          </button>
+                        )}
+                        {order.status === 'RETURNING' && (
+                          <>
+                            {(() => {
+                            const orderData = order as any;
+                            const returnOrder = getLatestActiveReturn(orderData);
+                            if (!returnOrder) return null;
+                            return (
+                              <>
+                                {returnOrder.status === 'RETURN_REQUESTED' && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
+                                        setReturnTrackingNo('');
+                                        setReturnLogisticsCompany('');
+                                      }}
+                                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 mr-1"
+                                    >
+                                      填写快递
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                                        if (ok) {
+                                          returnApi.cancel(returnOrder.id).then(() => {
+                                            toast.success('已取消退货');
+                                            fetchOrders();
+                                          }).catch((err: any) => {
+                                            toast.error(err.response?.data?.message || '取消失败');
+                                          });
+                                        }
+                                      }}
+                                      className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                                    >
+                                      取消退货
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h2 className="text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-3 sm:p-4 border-b bg-gray-50">
+              <h2 className="text-base sm:text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); setEditingId(null); }} className="p-2 hover:bg-gray-200 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex h-[calc(90vh-60px)]">
+            <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row h-[calc(85vh-60px)] sm:h-[calc(80vh-60px)]">
               {/* 左侧 - 商品选择 */}
-              <div className={`w-1/2 border-r flex flex-col ${editingId ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className={`w-full lg:w-1/2 border-r-0 lg:border-r border-b lg:border-b-0 flex flex-col max-h-[40vh] lg:max-h-none ${editingId ? 'opacity-50 pointer-events-none' : ''}`}>
                 {(formData.ownerId && ownerStockSummary) && (
                   <div className="flex border-b">
                     <button
@@ -1533,7 +1750,7 @@ export default function OrdersPage() {
               </div>
 
               {/* 右侧 - 订单信息 */}
-              <div className="w-1/2 flex flex-col">
+              <div className="w-full lg:w-1/2 flex flex-col flex-1 lg:flex-none">
                 <div className="p-4 border-b bg-gray-50">
                   <div className="text-sm font-medium text-gray-700 mb-3">收货人信息</div>
                   {!editingId && (

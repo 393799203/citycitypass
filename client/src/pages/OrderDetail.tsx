@@ -10,14 +10,14 @@ import { useConfirm } from '../components/ConfirmProvider';
 import { usePermission } from '../hooks/usePermission';
 
 const statusFlow = [
-  { key: 'PENDING', label: '待拣货', description: '订单已创建，等待仓库拣货' },
-  { key: 'PICKING', label: '拣货中', description: '仓库正在拣货中' },
-  { key: 'OUTBOUND_REVIEW', label: '出库审核中', description: '等待出库审核' },
-  { key: 'DISPATCHING', label: '待运力调度', description: '审核通过，等待调度运力' },
-  { key: 'DISPATCHED', label: '已调度', description: '已分配运力' },
-  { key: 'IN_TRANSIT', label: '运输中', description: '货物运输中' },
-  { key: 'DELIVERED', label: '已送达', description: '货物已送达' },
-  { key: 'COMPLETED', label: '已收货', description: '客户已确认收货' },
+  { key: 'PENDING', label: '待拣货', mobileLabel: '待拣', description: '订单已创建，等待仓库拣货' },
+  { key: 'PICKING', label: '拣货中', mobileLabel: '拣货', description: '仓库正在拣货中' },
+  { key: 'OUTBOUND_REVIEW', label: '出库审核', mobileLabel: '出库', description: '等待出库审核' },
+  { key: 'DISPATCHING', label: '运力调度', mobileLabel: '运调', description: '审核通过，等待调度运力' },
+  { key: 'DISPATCHED', label: '已调度', mobileLabel: '已调', description: '已分配运力' },
+  { key: 'IN_TRANSIT', label: '运输中', mobileLabel: '运输', description: '货物运输中' },
+  { key: 'DELIVERED', label: '已送达', mobileLabel: '送达', description: '货物已送达' },
+  { key: 'COMPLETED', label: '已收货', mobileLabel: '收货', description: '客户已确认收货' },
 ];
 
 const returnStatusFlow = [
@@ -217,19 +217,12 @@ export default function OrderDetail() {
         />
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">订单详情</h1>
-            <div className="flex items-center gap-4 mt-1">
-              <p className="text-gray-500">订单号: {order.orderNo}</p>
-              {(order as any).returnOrders?.[0] && (
-                <p className="text-orange-500 text-sm">退货单号: {(order as any).returnOrders[0].returnNo}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1.5 text-sm rounded-full ${
+      <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6 pb-20 lg:pb-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="hidden sm:block text-2xl font-bold text-gray-800">订单详情</h1>
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <p className="text-sm sm:text-base text-gray-500">订单号: {order.orderNo}</p>
+            <span className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm rounded-full ${
               order.status === 'PENDING' ? 'bg-yellow-500 text-white' :
               order.status === 'PICKING' ? 'bg-orange-600 text-white' :
               (order.status === 'OUTBOUND_REVIEW') ? 'bg-purple-600 text-white' :
@@ -241,188 +234,58 @@ export default function OrderDetail() {
             }`}>
               {statusMap[order.status]}
             </span>
-            {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
-              <>
-                {(order as any).customerId ? null : canWrite && (
-                  <button
-                    onClick={() => navigate('/orders', { state: { editingOrder: order } })}
-                    className="flex items-center gap-2 px-3 py-1.5 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    修改
-                  </button>
-                )}
-                {canWrite && (
-                  <button
-                    onClick={async () => {
-                      const ok = await confirm({ message: '确定要取消该订单吗？' });
-                      if (ok) {
-                        handleStatusChange('CANCELLED');
-                      }
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
-                  >
-                    <Ban className="w-4 h-4" />
-                    取消
-                  </button>
-                )}
-              </>
-            )}
-            {order.status === 'CANCELLED' && canWrite && (
-              <button
-                onClick={async () => {
-                  const ok = await confirm({ message: '确定要删除该订单吗？' });
-                  if (ok) {
-                    orderApi.delete(order.id).then(() => {
-                      toast.success('订单已删除');
-                      navigate('/orders');
-                    });
-                  }
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
-              >
-                <Trash2 className="w-4 h-4" />
-                删除
-              </button>
-            )}
-            {order.status === 'DELIVERED' && (
-              <>
-                <button
-                  onClick={async () => {
-                    const ok = await confirm({ message: '确认已收到货？' });
-                    if (ok) {
-                      handleStatusChange('COMPLETED');
-                    }
-                  }}
-                  className="flex items-center gap-2 px-3 py-1.5 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  确认收货
-                </button>
-                <button
-                  onClick={() => {
-                    setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
-                    setReturnReason('');
-                  }}
-                  className="flex items-center gap-2 px-3 py-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  申请退货
-                </button>
-              </>
-            )}
-            {order.status === 'COMPLETED' && (
-              <button
-                onClick={() => {
-                  setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
-                  setReturnReason('');
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg"
-              >
-                <RotateCcw className="w-4 h-4" />
-                申请退货
-              </button>
-            )}
-            {order.status === 'RETURNING' && (order as any).returnOrders?.[0] && (
-              (() => {
-                const returnOrder = (order as any).returnOrders.find((r: any) => r.status !== 'CANCELLED');
-                if (!returnOrder) return null;
-                return (
-                  <>
-                    {returnOrder.status === 'RETURN_REQUESTED' && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
-                            setReturnTrackingNo('');
-                            setReturnLogisticsCompany('');
-                          }}
-                          className="flex items-center gap-2 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg"
-                        >
-                          <Pencil className="w-4 h-4" />
-                          填写快递单号
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
-                            if (ok) {
-                              returnApi.cancel(returnOrder.id).then(() => {
-                                toast.success('已取消退货');
-                                fetchOrder();
-                              }).catch((err: any) => {
-                                toast.error(err.response?.data?.message || '取消失败');
-                              });
-                            }
-                          }}
-                          className="flex items-center gap-2 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          取消退货
-                        </button>
-                      </>
-                    )}
-                  </>
-                );
-              })()
+            {(order as any).returnOrders?.[0] && (
+              <p className="text-orange-500 text-xs sm:text-sm">退货单号: {(order as any).returnOrders[0].returnNo}</p>
             )}
           </div>
         </div>
 
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6">订单流程</h2>
-          <div className="flex items-center">
-            {statusFlow.map((step, index) => {
-              const stepStatus = getStepStatus(step.key);
-              const isLast = index === statusFlow.length - 1;
-              return (
-                <div key={step.key} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">订单流程</h2>
+          <div className="sm:hidden">
+            <div className="flex items-start justify-between">
+              {statusFlow.map((step, index) => {
+                const stepStatus = getStepStatus(step.key);
+                return (
+                  <div key={step.key} className="flex flex-col items-center flex-1">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                       stepStatus === 'completed' ? 'bg-green-500 text-white' :
                       stepStatus === 'current' ? 'bg-primary-600 text-white' :
                       stepStatus === 'cancelled' ? 'bg-red-500 text-white' :
                       'bg-gray-100 text-gray-400'
                     }`}>
                       {stepStatus === 'completed' ? (
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-3 h-3" />
                       ) : stepStatus === 'current' ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
-                        <span className="text-xs font-medium">{index + 1}</span>
+                        <span className="text-[10px] font-medium">{index + 1}</span>
                       )}
                     </div>
-                    <div className="mt-2 text-center">
-                      <div className={`text-xs font-medium ${
+                    <div className="mt-1 text-center">
+                      <div className={`text-[10px] font-medium ${
                         stepStatus === 'completed' || stepStatus === 'current' ? 'text-gray-800' : 'text-gray-400'
                       }`}>
-                        {step.label}
+                        {step.mobileLabel}
                       </div>
                     </div>
                   </div>
-                  {!isLast && (
-                    <div className={`flex-1 h-0.5 mx-1 -mt-4 ${
-                      stepStatus === 'completed' ? 'bg-green-500' : 'bg-gray-200'
-                    }`} />
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-
-        {(order as any).returnOrders?.[0] && (order as any).returnOrders[0].status !== 'CANCELLED' && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-6">退货流程</h2>
-            <div className="flex items-center">
-              {returnStatusFlow.map((step, index) => {
-                const stepStatus = getReturnStepStatus((order as any).returnOrders[0], step.key);
-                const isLast = index === returnStatusFlow.length - 1;
+          <div className="hidden sm:block overflow-x-auto pb-2">
+            <div className="flex items-center min-w-0">
+              {statusFlow.map((step, index) => {
+                const stepStatus = getStepStatus(step.key);
+                const isLast = index === statusFlow.length - 1;
                 return (
                   <div key={step.key} className="flex items-center flex-1">
                     <div className="flex flex-col items-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         stepStatus === 'completed' ? 'bg-green-500 text-white' :
-                        stepStatus === 'current' ? 'bg-orange-500 text-white' :
+                        stepStatus === 'current' ? 'bg-primary-600 text-white' :
+                        stepStatus === 'cancelled' ? 'bg-red-500 text-white' :
                         'bg-gray-100 text-gray-400'
                       }`}>
                         {stepStatus === 'completed' ? (
@@ -451,51 +314,96 @@ export default function OrderDetail() {
               })}
             </div>
           </div>
-        )}
+        </div>
 
-        {(order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && order.picking && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-wrap">
-                <ClipboardList className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-900">关联拣货单: {order.picking.pickNo}</span>
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  order.picking.status === 'PENDING' ? 'bg-yellow-500 text-white' :
-                  order.picking.status === 'PICKING' ? 'bg-blue-600 text-white' :
-                  'bg-green-600 text-white'
-                }`}>
-                  {order.picking.status === 'PENDING' ? '待拣货' :
-                   order.picking.status === 'PICKING' ? '拣货中' : '已拣货'}
-                </span>
-                {order.picking.picker && (
-                  <span className="text-sm text-gray-600">拣货人: {order.picking.picker.name}</span>
-                )}
-                {order.picking.approver && (
-                  <span className="text-sm text-gray-600">审核人: {order.picking.approver.name}</span>
-                )}
+        {(order as any).returnOrders?.[0] && (order as any).returnOrders[0].status !== 'CANCELLED' && (
+          <div className="mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">退货流程</h2>
+            <div className="sm:hidden">
+              <div className="flex items-start justify-between">
+                {returnStatusFlow.map((step, index) => {
+                  const stepStatus = getReturnStepStatus((order as any).returnOrders[0], step.key);
+                  return (
+                    <div key={step.key} className="flex flex-col items-center flex-1">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        stepStatus === 'completed' ? 'bg-green-500 text-white' :
+                        stepStatus === 'current' ? 'bg-orange-500 text-white' :
+                        'bg-gray-100 text-gray-400'
+                      }`}>
+                        {stepStatus === 'completed' ? (
+                          <CheckCircle className="w-3 h-3" />
+                        ) : stepStatus === 'current' ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <span className="text-[10px] font-medium">{index + 1}</span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-center">
+                        <div className={`text-[10px] font-medium ${
+                          stepStatus === 'completed' || stepStatus === 'current' ? 'text-gray-800' : 'text-gray-400'
+                        }`}>
+                          {step.label}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <Link
-                to="/outbound"
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                查看详情 →
-              </Link>
+            </div>
+            <div className="hidden sm:block overflow-x-auto pb-2">
+              <div className="flex items-center min-w-0">
+                {returnStatusFlow.map((step, index) => {
+                  const stepStatus = getReturnStepStatus((order as any).returnOrders[0], step.key);
+                  const isLast = index === returnStatusFlow.length - 1;
+                  return (
+                    <div key={step.key} className="flex items-center flex-1">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          stepStatus === 'completed' ? 'bg-green-500 text-white' :
+                          stepStatus === 'current' ? 'bg-orange-500 text-white' :
+                          'bg-gray-100 text-gray-400'
+                        }`}>
+                          {stepStatus === 'completed' ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : stepStatus === 'current' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <span className="text-xs font-medium">{index + 1}</span>
+                          )}
+                        </div>
+                        <div className="mt-2 text-center">
+                          <div className={`text-xs font-medium ${
+                            stepStatus === 'completed' || stepStatus === 'current' ? 'text-gray-800' : 'text-gray-400'
+                          }`}>
+                            {step.label}
+                          </div>
+                        </div>
+                      </div>
+                      {!isLast && (
+                        <div className={`flex-1 h-0.5 mx-1 -mt-4 ${
+                          stepStatus === 'completed' ? 'bg-green-500' : 'bg-gray-200'
+                        }`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 border-t pt-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 mt-6 sm:mt-8 border-t pt-4 sm:pt-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">收货信息</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-gray-600">
-                <Building2 className="w-5 h-5 text-gray-400" />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">收货信息</h3>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <span>{order.owner?.name}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
-                <User className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 {(order as any).customerId && (order as any).customer ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{(order as any).customer.name}</span>
                     {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
                       <span className="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">VIP</span>
@@ -506,35 +414,35 @@ export default function OrderDetail() {
                   <span>{order.receiver}</span>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
-                <Phone className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <span>{formatPhone(order.phone)}</span>
               </div>
-              <div className="flex items-start gap-3 text-gray-600">
-                <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div className="flex items-start gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
                 <span>{formatAddress(order.province, order.city, order.address)}</span>
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">订单信息</h3>
-            <div className="space-y-3">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">订单信息</h3>
+            <div className="space-y-2 sm:space-y-3">
               {order.warehouse && (
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Building2 className="w-5 h-5 text-gray-400" />
+                <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                   <span>发货仓库: {order.warehouse.name}</span>
                 </div>
               )}
-              <div className="flex items-center gap-3 text-gray-600">
-                <Calendar className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <span>创建时间: {new Date(order.createdAt).toLocaleString()}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
-                <Package className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <span>商品数量: {order.items?.length || 0} 种</span>
               </div>
-              <div className="flex items-center gap-3 text-lg font-medium text-primary-600">
+              <div className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg font-medium text-primary-600">
                 <span>订单金额: ¥{Number(order.totalAmount).toLocaleString()}</span>
                 {(order as any).customerId && (order as any).contractDiscount && (
                   <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
@@ -544,9 +452,9 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        <div className="border-t pt-6 mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">关联信息</h3>
-            <div className={`grid grid-cols-1 ${(order as any).returnOrders?.filter((ret: any) => ret.status !== 'CANCELLED')?.[0] ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">关联信息</h3>
+            <div className={`grid grid-cols-1 ${(order as any).returnOrders?.filter((ret: any) => ret.status !== 'CANCELLED')?.[0] ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="w-5 h-5 text-primary-600" />
@@ -690,9 +598,43 @@ export default function OrderDetail() {
             </div>
           </div>
 
-        <div className="border-t pt-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">商品明细</h3>
-          <div className="overflow-x-auto">
+        <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">商品明细</h3>
+          
+          {/* 移动端卡片列表 */}
+          <div className="sm:hidden space-y-3">
+            {order.items?.map((item: any) => (
+              <div key={item.id} className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Package className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    {item.bundleId ? (
+                      <div>
+                        <span className="text-purple-600 text-sm font-medium">[套装] {item.productName}</span>
+                        <div className="text-xs text-purple-600 mt-1">
+                          包含: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="font-medium text-blue-600 text-sm">[商品] {item.productName}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <div>包装: {item.packaging}</div>
+                  <div>规格: {item.spec}</div>
+                  <div>单价: ¥{Number(item.price).toLocaleString()}</div>
+                  <div>数量: {item.quantity}</div>
+                </div>
+                <div className="mt-2 text-right text-sm font-medium text-primary-600">
+                  小计: ¥{Number(item.subtotal).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 桌面端表格 */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr className="text-center">
@@ -733,7 +675,263 @@ export default function OrderDetail() {
             </table>
           </div>
         </div>
+
+        {/* 桌面端操作按钮 */}
+        <div className="hidden lg:flex border-t pt-4 mt-4 justify-end gap-3">
+          {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
+            <>
+              {(order as any).customerId ? null : canWrite && (
+                <button
+                  onClick={() => navigate('/orders', { state: { editingOrder: order } })}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg"
+                >
+                  <Pencil className="w-4 h-4" />
+                  修改
+                </button>
+              )}
+              {canWrite && (
+                <button
+                  onClick={async () => {
+                    const ok = await confirm({ message: '确定要取消该订单吗？' });
+                    if (ok) handleStatusChange('CANCELLED');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                >
+                  <Ban className="w-4 h-4" />
+                  取消
+                </button>
+              )}
+            </>
+          )}
+          {order.status === 'CANCELLED' && canWrite && (
+            <button
+              onClick={async () => {
+                const ok = await confirm({ message: '确定要删除该订单吗？' });
+                if (ok) {
+                  orderApi.delete(order.id).then(() => {
+                    toast.success('订单已删除');
+                    navigate('/orders');
+                  });
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+            >
+              <Trash2 className="w-4 h-4" />
+              删除
+            </button>
+          )}
+          {order.status === 'DELIVERED' && (
+            <>
+              <button
+                onClick={async () => {
+                  const ok = await confirm({ message: '确认已收到货？' });
+                  if (ok) handleStatusChange('COMPLETED');
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-green-600 bg-green-50 hover:bg-green-100 rounded-lg"
+              >
+                <CheckCircle className="w-4 h-4" />
+                确认收货
+              </button>
+              <button
+                onClick={() => {
+                  setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                  setReturnReason('');
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg"
+              >
+                <RotateCcw className="w-4 h-4" />
+                申请退货
+              </button>
+            </>
+          )}
+          {order.status === 'COMPLETED' && (
+            <button
+              onClick={() => {
+                setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                setReturnReason('');
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg"
+            >
+              <RotateCcw className="w-4 h-4" />
+              申请退货
+            </button>
+          )}
+          {order.status === 'RETURNING' && (order as any).returnOrders?.[0] && (
+            (() => {
+              const returnOrder = (order as any).returnOrders.find((r: any) => r.status !== 'CANCELLED');
+              if (!returnOrder) return null;
+              return (
+                <>
+                  {returnOrder.status === 'RETURN_REQUESTED' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
+                          setReturnTrackingNo('');
+                          setReturnLogisticsCompany('');
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        填写快递单号
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                          if (ok) {
+                            returnApi.cancel(returnOrder.id).then(() => {
+                              toast.success('已取消退货');
+                              fetchOrder();
+                            }).catch((err: any) => {
+                              toast.error(err.response?.data?.message || '取消失败');
+                            });
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        取消退货
+                      </button>
+                    </>
+                  )}
+                </>
+              );
+            })()
+          )}
+        </div>
       </div>
+
+      {/* 移动端底部操作栏 */}
+      {(() => {
+        const hasButtons = 
+          (order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && 
+          ((!(order as any).customerId && canWrite) || canWrite) ||
+          (order.status === 'CANCELLED' && canWrite) ||
+          order.status === 'DELIVERED' ||
+          order.status === 'COMPLETED' ||
+          (order.status === 'RETURNING' && (order as any).returnOrders?.some((r: any) => r.status === 'RETURN_REQUESTED'));
+        
+        if (!hasButtons) return null;
+        
+        return (
+          <div className="lg:hidden fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-3 z-40">
+            <div className="flex items-center gap-2">
+              {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
+                <>
+                  {(order as any).customerId ? null : canWrite && (
+                    <button
+                      onClick={() => navigate('/orders', { state: { editingOrder: order } })}
+                      className="flex-1 py-2.5 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg text-center"
+                    >
+                      修改
+                    </button>
+                  )}
+                  {canWrite && (
+                    <button
+                      onClick={async () => {
+                        const ok = await confirm({ message: '确定要取消该订单吗？' });
+                        if (ok) handleStatusChange('CANCELLED');
+                      }}
+                      className="flex-1 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-center"
+                    >
+                      取消
+                    </button>
+                  )}
+                </>
+              )}
+              {order.status === 'CANCELLED' && canWrite && (
+                <button
+                  onClick={async () => {
+                    const ok = await confirm({ message: '确定要删除该订单吗？' });
+                    if (ok) {
+                      orderApi.delete(order.id).then(() => {
+                        toast.success('订单已删除');
+                        navigate('/orders');
+                      });
+                    }
+                  }}
+                  className="flex-1 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-center"
+                >
+                  删除
+                </button>
+              )}
+              {order.status === 'DELIVERED' && (
+                <>
+                  <button
+                    onClick={async () => {
+                      const ok = await confirm({ message: '确认已收到货？' });
+                      if (ok) handleStatusChange('COMPLETED');
+                    }}
+                    className="flex-1 py-2.5 text-sm text-green-600 bg-green-50 hover:bg-green-100 rounded-lg text-center"
+                  >
+                    确认收货
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                      setReturnReason('');
+                    }}
+                    className="flex-1 py-2.5 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg text-center"
+                  >
+                    申请退货
+                  </button>
+                </>
+              )}
+              {order.status === 'COMPLETED' && (
+                <button
+                  onClick={() => {
+                    setReturnModal({ show: true, orderId: order.id, orderNo: order.orderNo });
+                    setReturnReason('');
+                  }}
+                  className="flex-1 py-2.5 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg text-center"
+                >
+                  申请退货
+                </button>
+              )}
+              {order.status === 'RETURNING' && (order as any).returnOrders?.[0] && (
+                (() => {
+                  const returnOrder = (order as any).returnOrders.find((r: any) => r.status !== 'CANCELLED');
+                  if (!returnOrder) return null;
+                  return (
+                    <>
+                      {returnOrder.status === 'RETURN_REQUESTED' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setReturnTrackingModal({ show: true, returnId: returnOrder.id, returnNo: returnOrder.returnNo });
+                              setReturnTrackingNo('');
+                              setReturnLogisticsCompany('');
+                            }}
+                            className="flex-1 py-2.5 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg text-center"
+                          >
+                            填写快递
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                              if (ok) {
+                                returnApi.cancel(returnOrder.id).then(() => {
+                                  toast.success('已取消退货');
+                                  fetchOrder();
+                                }).catch((err: any) => {
+                                  toast.error(err.response?.data?.message || '取消失败');
+                                });
+                              }
+                            }}
+                            className="flex-1 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-center"
+                          >
+                            取消退货
+                          </button>
+                        </>
+                      )}
+                    </>
+                  );
+                })()
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

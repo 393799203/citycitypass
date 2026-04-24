@@ -21,7 +21,6 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Menu,
   Settings,
   Building2,
   Factory,
@@ -37,6 +36,7 @@ import {
   Truck,
   PlayCircle,
   X,
+  User,
 } from 'lucide-react';
 
 import { MENU_ITEMS } from '../constants/menus';
@@ -69,12 +69,12 @@ const MenuIcon = ({ path, className }: { path: string; className?: string }) => 
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [ownerDropdownOpen, setOwnerDropdownOpen] = useState(false);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any>(null);
   const [contentKey, setContentKey] = useState(0);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showMobileTip, setShowMobileTip] = useState(false);
   const { user, permissions, logout, token, setAuth, owners: authOwners } = useAuthStore();
   const { currentOwnerId, currentOwnerName, setCurrentOwner, logout: logoutOwner } = useOwnerStore();
   const { confirm } = useConfirm();
@@ -83,6 +83,16 @@ export default function Layout() {
 
   // 使用 authStore 的 owners
   const owners = authOwners;
+
+  // 移动端首次登录提示
+  useEffect(() => {
+    const isMobile = window.innerWidth < 1024;
+    const hasShownTip = localStorage.getItem('mobile_tip_shown');
+    if (isMobile && !hasShownTip && user) {
+      setShowMobileTip(true);
+      localStorage.setItem('mobile_tip_shown', 'true');
+    }
+  }, [user]);
 
   // 初始化时调用 /me 获取最新用户信息和权限
   useEffect(() => {
@@ -173,21 +183,15 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-50">
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen bg-white border-r shadow-sm transition-all duration-300 ${
+        className={`hidden lg:block fixed top-0 left-0 z-50 h-screen bg-white border-r shadow-sm transition-all duration-300 ${
           collapsed ? 'w-16' : 'w-56'
-        } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        }`}
       >
         <div className="h-14 flex items-center justify-between px-3 border-b bg-primary-600">
           <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
             <LogoIcon className="w-7 h-7 text-white flex-shrink-0" />
             {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链云AI</span>}
           </div>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden p-1 hover:bg-white/10 rounded"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
         </div>
 
         <nav className="p-2 space-y-1">
@@ -204,7 +208,6 @@ export default function Layout() {
                 key={item.path}
                 to={item.path}
                 end={item.path === '/orders'}
-                onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
@@ -232,7 +235,6 @@ export default function Layout() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
@@ -260,7 +262,6 @@ export default function Layout() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
@@ -301,7 +302,7 @@ export default function Layout() {
           collapsed ? 'lg:ml-16' : 'lg:ml-56'
         }`}
       >
-        <header className="h-14 bg-white border-b flex items-center justify-between px-4 sticky top-0 z-40">
+        <header className="hidden lg:flex h-14 bg-white border-b items-center justify-between px-4 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             {canGoBack && (
               <button
@@ -309,15 +310,9 @@ export default function Layout() {
                 className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">返回</span>
+                <span>返回</span>
               </button>
             )}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
           </div>
           
           <button
@@ -457,7 +452,7 @@ export default function Layout() {
             </button>
           </div>
         </header>
-        <main className="p-4 lg:p-6 pt-0">
+        <main className="p-2 lg:p-4 pb-16 lg:pb-6">
           {showOwnerGuard ? (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
               <div className="text-center">
@@ -491,6 +486,78 @@ export default function Layout() {
         </main>
       </div>
 
+      {/* 移动端底部导航 */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-pb">
+        <div className="flex items-center justify-around h-14">
+          <NavLink
+            to="/orders"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 px-3 ${
+                isActive ? 'text-primary-600' : 'text-gray-500'
+              }`
+            }
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span className="text-xs mt-0.5">订单</span>
+          </NavLink>
+          <NavLink
+            to="/outbound"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 px-3 ${
+                isActive ? 'text-primary-600' : 'text-gray-500'
+              }`
+            }
+          >
+            <ArrowUpFromLine className="w-5 h-5" />
+            <span className="text-xs mt-0.5">发货</span>
+          </NavLink>
+          <NavLink
+            to="/dispatch"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 px-3 ${
+                isActive ? 'text-primary-600' : 'text-gray-500'
+              }`
+            }
+          >
+            <Route className="w-5 h-5" />
+            <span className="text-xs mt-0.5">运力</span>
+          </NavLink>
+          <NavLink
+            to="/returns"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 px-3 ${
+                isActive ? 'text-primary-600' : 'text-gray-500'
+              }`
+            }
+          >
+            <RotateCcw className="w-5 h-5" />
+            <span className="text-xs mt-0.5">退货</span>
+          </NavLink>
+          <NavLink
+            to="/inventory"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 px-3 ${
+                isActive ? 'text-primary-600' : 'text-gray-500'
+              }`
+            }
+          >
+            <Boxes className="w-5 h-5" />
+            <span className="text-xs mt-0.5">库存</span>
+          </NavLink>
+          <NavLink
+            to="/system"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center py-1 px-3 ${
+                isActive ? 'text-primary-600' : 'text-gray-500'
+              }`
+            }
+          >
+            <User className="w-5 h-5" />
+            <span className="text-xs mt-0.5">我的</span>
+          </NavLink>
+        </div>
+      </nav>
+
       <OwnerModal
         open={showOwnerModal}
         editingOwner={editingOwner}
@@ -509,14 +576,30 @@ export default function Layout() {
 
       <ToastContainer />
 
-      <AIAssistantWrapper />
-
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
+      {/* 移动端首次登录提示 */}
+      {showMobileTip && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Settings className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">温馨提示</h3>
+              <p className="text-gray-600 text-sm mb-6">
+                移动端仅支持部分能力，全量能力请登录PC查看。
+              </p>
+              <button
+                onClick={() => setShowMobileTip(false)}
+                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                我知道了
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      <AIAssistantWrapper />
 
       {showVideoModal && (
         <div

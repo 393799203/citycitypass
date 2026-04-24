@@ -251,13 +251,11 @@ export default function ReturnDetail() {
   const statusConfig = STATUS_CONFIG[effectiveStatus] || { label: effectiveStatus, color: 'text-gray-600', bgColor: 'bg-gray-50' };
 
   return (
-    <div className="p-2 space-y-6">
-      
-
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-6">
+    <div className="p-2 space-y-4 pb-20">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="col-span-1 lg:col-span-2 space-y-4 lg:space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6">
+            <div className="hidden sm:flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">退货单详情</h1>
                 <div className="flex items-center gap-4 mt-1">
@@ -266,6 +264,15 @@ export default function ReturnDetail() {
                     {statusConfig.label}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            <div className="sm:hidden flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{returnOrder.returnNo}</span>
+                <span className={`px-2 py-0.5 text-xs rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}>
+                  {statusConfig.label}
+                </span>
               </div>
             </div>
 
@@ -462,8 +469,8 @@ export default function ReturnDetail() {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className={`grid ${(returnOrder.trackingNo || returnOrder.logisticsCompany) ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}>
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+              <div className={`hidden sm:grid ${(returnOrder.trackingNo || returnOrder.logisticsCompany) ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}>
                 <div>
                   <div className="text-sm text-gray-500 mb-1">退货人</div>
                   <div className="flex items-center gap-2">
@@ -503,77 +510,123 @@ export default function ReturnDetail() {
                   </div>
                 )}
               </div>
+
+              <div className="sm:hidden space-y-3 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">退货人</span>
+                  <span>{returnOrder.receiverName} {returnOrder.receiverPhone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">收货仓</span>
+                  <span className="text-blue-600">{returnOrder.warehouse?.name}</span>
+                </div>
+                {(returnOrder.trackingNo || returnOrder.logisticsCompany) && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">快递</span>
+                    <span>{returnOrder.logisticsCompany} {returnOrder.trackingNo}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mb-6 mt-6">
+            <div className="mb-4 sm:mb-6 mt-4 sm:mt-6">
               <div className="text-sm text-gray-500 mb-1">退货原因</div>
-              <div className="text-base">{returnOrder.reason}</div>
+              <div className="text-sm sm:text-base">{returnOrder.reason}</div>
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">退货商品</h3>
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">包装</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">规格</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">退货数量</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">合格数量</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">拒收数量</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {returnOrder.items?.map((item: any) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
-                            {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
-                            {item.productName}
-                            {item.bundleId && item.bundle?.items?.length > 0 && (
-                              <button
-                                type="button"
-                                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                onMouseLeave={() => setTooltip(null)}
-                                onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
-                                className="hover:bg-gray-100 rounded ml-1"
-                              >
-                                <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
-                              </button>
-                            )}
-                          </span>
-                        </div>
-                        {item.bundleId ? (
-                          <>
-                            {item.bundleBatch?.batchNo && <div className="text-purple-500 text-xs">批:{item.bundleBatch.batchNo}</div>}
-                            {item.bundleBatch?.expiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.bundleBatch.expiryDate).toLocaleDateString()}</div>}
-                          </>
-                        ) : (
-                          <>
-                            {item.skuBatch?.batchNo && <div className="text-purple-500 text-xs">批:{item.skuBatch.batchNo}</div>}
-                            {item.skuBatch?.expiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.skuBatch.expiryDate).toLocaleDateString()}</div>}
-                          </>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-base text-gray-500 text-center">{item.packaging}</td>
-                      <td className="px-4 py-3 text-base text-gray-500 text-center">{item.spec}</td>
-                      <td className="px-4 py-3 text-base text-center">{item.quantity}</td>
-                      <td className="px-4 py-3 text-base text-green-600 text-center">{item.qualifiedQuantity !== undefined ? item.qualifiedQuantity : '-'}</td>
-                      <td className="px-4 py-3 text-base text-red-600 text-center">{item.rejectedQuantity !== undefined ? item.rejectedQuantity : '-'}</td>
+            <div className="border-t pt-4 sm:pt-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">退货商品</h3>
+              <div className="hidden sm:block">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">包装</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">规格</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">退货数量</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">合格数量</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">拒收数量</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {returnOrder.items?.map((item: any) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>
+                              {item.bundleId ? <span className="text-purple-500">[套装]</span> : <span className="text-blue-500">[商品]</span>}
+                              {item.productName}
+                              {item.bundleId && item.bundle?.items?.length > 0 && (
+                                <button
+                                  type="button"
+                                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                  onMouseLeave={() => setTooltip(null)}
+                                  onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                                  className="hover:bg-gray-100 rounded ml-1"
+                                >
+                                  <Info className="w-3 h-3 text-purple-500 cursor-help inline" />
+                                </button>
+                              )}
+                            </span>
+                          </div>
+                          {item.bundleId ? (
+                            <>
+                              {item.bundleBatch?.batchNo && <div className="text-purple-500 text-xs">批:{item.bundleBatch.batchNo}</div>}
+                              {item.bundleBatch?.expiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.bundleBatch.expiryDate).toLocaleDateString()}</div>}
+                            </>
+                          ) : (
+                            <>
+                              {item.skuBatch?.batchNo && <div className="text-purple-500 text-xs">批:{item.skuBatch.batchNo}</div>}
+                              {item.skuBatch?.expiryDate && <div className="text-orange-500 text-xs">效期:{new Date(item.skuBatch.expiryDate).toLocaleDateString()}</div>}
+                            </>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-base text-gray-500 text-center">{item.packaging}</td>
+                        <td className="px-4 py-3 text-base text-gray-500 text-center">{item.spec}</td>
+                        <td className="px-4 py-3 text-base text-center">{item.quantity}</td>
+                        <td className="px-4 py-3 text-base text-green-600 text-center">{item.qualifiedQuantity !== undefined ? item.qualifiedQuantity : '-'}</td>
+                        <td className="px-4 py-3 text-base text-red-600 text-center">{item.rejectedQuantity !== undefined ? item.rejectedQuantity : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="sm:hidden space-y-2">
+                {returnOrder.items?.map((item: any) => (
+                  <div key={item.id} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1">
+                        <span className={`text-[10px] px-1 py-0.5 rounded text-white ${item.bundleId ? 'bg-purple-500' : 'bg-blue-500'}`}>
+                          {item.bundleId ? '套装' : '商品'}
+                        </span>
+                        <span className="font-medium text-sm">{item.productName}</span>
+                      </div>
+                      <span className="text-gray-500 text-xs">x{item.quantity}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                      <span>{item.spec} · {item.packaging}</span>
+                      <div className="flex gap-2">
+                        {item.qualifiedQuantity !== undefined && <span className="text-green-600">合格:{item.qualifiedQuantity}</span>}
+                        {item.rejectedQuantity !== undefined && item.rejectedQuantity > 0 && <span className="text-red-600">拒收:{item.rejectedQuantity}</span>}
+                      </div>
+                    </div>
+                    {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
+                      <div className="text-xs text-purple-500">
+                        批:{item.skuBatch?.batchNo || item.bundleBatch?.batchNo}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
           {!['REFUNDED', 'CANCELLED'].includes(returnOrder.status) && (
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">操作</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">操作</h3>
+              <div className="space-y-2 sm:space-y-3">
                 {returnOrder.status === 'RETURN_REQUESTED' && (
                   <button
                     onClick={() => {
@@ -581,20 +634,20 @@ export default function ReturnDetail() {
                       setReturnTrackingNo('');
                       setReturnLogisticsCompany('');
                     }}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2"
+                    className="w-full px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                   >
                     <Pencil className="w-4 h-4" /> 填写快递单号
                   </button>
                 )}
                 {returnOrder.status === 'RETURN_SHIPPED' && (
-                  <button onClick={handleReceive} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2">
+                  <button onClick={handleReceive} className="w-full px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" /> 确认收到退货
                   </button>
                 )}
                 {returnOrder.status === 'RETURN_RECEIVING' && (
                   <button
                     onClick={() => openQualifyModal(returnOrder)}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg flex items-center justify-center gap-2"
+                    className="w-full px-3 sm:px-4 py-2 bg-green-600 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                   >
                     <CheckCircle className="w-4 h-4" /> 验收确认
                   </button>
@@ -602,7 +655,7 @@ export default function ReturnDetail() {
                 {(returnOrder.status === 'RETURN_QUALIFIED' || returnOrder.status === 'RETURN_PARTIAL_QUALIFIED') && (
                   <button
                     onClick={() => openStockInModal()}
-                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-2"
+                    className="w-full px-3 sm:px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                   >
                     <Warehouse className="w-4 h-4" /> 退货入库
                   </button>
@@ -616,7 +669,7 @@ export default function ReturnDetail() {
                         .reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.qualifiedQuantity ?? 0) * discount, 0);
                       setRefundModal({ show: true, refundAmount: totalRefund });
                     }}
-                    className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg flex items-center justify-center gap-2"
+                    className="w-full px-3 sm:px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg flex items-center justify-center gap-2"
                   >
                     <DollarSign className="w-4 h-4" /> 确认退款
                   </button>
@@ -625,20 +678,20 @@ export default function ReturnDetail() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-800">操作日志</h3>
+          <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800">操作日志</h3>
             </div>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-3 sm:space-y-4 max-h-64 sm:max-h-96 overflow-y-auto text-xs sm:text-sm">
               {returnOrder.logs?.map((log: any) => (
-                <div key={log.id} className="flex gap-3">
-                  <div className="w-16 text-xs text-gray-400 flex-shrink-0 pt-1">
+                <div key={log.id} className="flex gap-2 sm:gap-3">
+                  <div className="w-14 sm:w-16 text-[10px] sm:text-xs text-gray-400 flex-shrink-0 pt-1">
                     {new Date(log.createdAt).toLocaleDateString()}
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-gray-700 text-sm">{ACTION_LABELS[log.action] || log.action}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{log.remark}</div>
+                    <div className="font-medium text-gray-700 text-xs sm:text-sm">{ACTION_LABELS[log.action] || log.action}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">{log.remark}</div>
                   </div>
                 </div>
               ))}
@@ -665,10 +718,10 @@ export default function ReturnDetail() {
       )}
 
       {showQualifyModal && !['RETURN_REQUESTED', 'RETURN_SHIPPED', 'CANCELLED', 'REFUNDED'].includes(returnOrder.status) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-4">验收确认</h3>
-            <table className="w-full mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-xl p-3 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base sm:text-lg font-semibold mb-4">验收确认</h3>
+            <table className="w-full mb-4 hidden sm:table">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs">商品</th>
@@ -707,9 +760,47 @@ export default function ReturnDetail() {
                 ))}
               </tbody>
             </table>
+            <div className="sm:hidden space-y-3 mb-4">
+              {qualifyItems.map((item, idx) => (
+                <div key={item.stockOutId ? `${item.id}_${item.stockOutId}` : item.id} className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{item.productName}</span>
+                    <span className="text-xs text-gray-400">出库: {item.stockOutQuantity || item.quantity}</span>
+                  </div>
+                  {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
+                    <div className="text-xs text-purple-600 mb-2">
+                      批: {item.skuBatch?.batchNo || item.bundleBatch?.batchNo}
+                      {item.skuBatch?.expiryDate && ` · 效期: ${new Date(item.skuBatch.expiryDate).toLocaleDateString()}`}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500">合格数</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.stockOutQuantity || item.quantity}
+                        value={item.qualifiedQuantity}
+                        onChange={(e) => {
+                          const newItems = [...qualifyItems];
+                          newItems[idx].qualifiedQuantity = parseInt(e.target.value) || 0;
+                          newItems[idx].rejectedQuantity = (newItems[idx].stockOutQuantity || newItems[idx].quantity) - newItems[idx].qualifiedQuantity;
+                          setQualifyItems(newItems);
+                        }}
+                        className="w-full border rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <label className="text-xs text-gray-500">拒收</label>
+                      <div className="text-red-500 font-medium">{item.rejectedQuantity}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowQualifyModal(false)} className="px-4 py-2 border rounded-lg">取消</button>
-              <button onClick={handleQualify} className="px-4 py-2 bg-green-600 text-white rounded-lg">确认验收</button>
+              <button onClick={() => setShowQualifyModal(false)} className="px-4 py-2 border rounded-lg text-sm">取消</button>
+              <button onClick={handleQualify} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">确认验收</button>
             </div>
           </div>
         </div>

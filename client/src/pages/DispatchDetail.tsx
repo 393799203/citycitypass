@@ -192,11 +192,9 @@ export default function DispatchDetailPage() {
   }
 
   return (
-    <div className="p-2 space-y-6">
-      
-
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-6">
+    <div className="p-2 space-y-4 pb-20">
+      <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6">
+        <div className="hidden sm:flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
               <Truck className="w-6 h-6" />
@@ -207,17 +205,17 @@ export default function DispatchDetailPage() {
               {dispatch.vehicleSource === 'CARRIER' && (
                 <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
               )}
+              <span className={`px-3 py-1 text-sm rounded-full ${
+                dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+                dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
+                dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+                'bg-gray-600 text-white'
+              }`}>
+                {dispatchStatusMap[dispatch.status]}
+              </span>
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 text-sm rounded-full ${
-              dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
-              dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
-              dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
-              'bg-gray-600 text-white'
-            }`}>
-              {dispatchStatusMap[dispatch.status]}
-            </span>
             {dispatch.status === 'PENDING' && canWrite && (
               <button
                 onClick={() => handleStatusChange('IN_TRANSIT')}
@@ -234,7 +232,7 @@ export default function DispatchDetailPage() {
                 完成配送
               </button>
             )}
-            {(dispatch.status === 'PENDING' || dispatch.status === 'IN_TRANSIT') && canWrite && (
+            {dispatch.status === 'PENDING' && canWrite && (
               <button
                 onClick={() => handleStatusChange('CANCELLED')}
                 className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
@@ -245,30 +243,47 @@ export default function DispatchDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+        <div className="sm:hidden flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">{dispatch.dispatchNo}</span>
+            {dispatch.vehicleSource === 'CARRIER' && (
+              <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+            )}
+            <span className={`px-2 py-0.5 text-xs rounded-full ${
+              dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+              dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
+              dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+              'bg-gray-600 text-white'
+            }`}>
+              {dispatchStatusMap[dispatch.status]}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-6">
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+            <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
               <MapPin className="w-4 h-4" />
               发货地
             </h3>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">仓库:</span>
                 <span>{dispatch.warehouse?.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">地址:</span>
-                <span>{formatAddress(dispatch.warehouse?.province, dispatch.warehouse?.city, dispatch.warehouse?.address)}</span>
+                <span className="text-right max-w-[60%]">{formatAddress(dispatch.warehouse?.province, dispatch.warehouse?.city, dispatch.warehouse?.address)}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+            <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
               <MapPin className="w-4 h-4" />
               目的地
             </h3>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
               {dispatch.orders?.length > 0 ? (
                 <>
                   <div className="flex justify-between">
@@ -277,7 +292,7 @@ export default function DispatchDetailPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">终点:</span>
-                    <span>{formatAddress(
+                    <span className="text-right max-w-[60%]">{formatAddress(
                       dispatch.orders[dispatch.orders.length - 1]?.order?.province,
                       dispatch.orders[dispatch.orders.length - 1]?.order?.city,
                       dispatch.orders[dispatch.orders.length - 1]?.order?.address
@@ -292,7 +307,7 @@ export default function DispatchDetailPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">地址:</span>
-                    <span>{dispatch.plannedRoute?.destination?.address || '-'}</span>
+                    <span className="text-right max-w-[60%]">{dispatch.plannedRoute?.destination?.address || '-'}</span>
                   </div>
                 </>
               )}
@@ -300,67 +315,64 @@ export default function DispatchDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <User className="w-4 h-4" />
-              车辆信息
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
+            <div className="flex items-center gap-1 sm:gap-2 text-gray-500 text-xs sm:text-sm mb-1">
+              <User className="w-3 h-3 sm:w-4 sm:h-4" />
+              车辆
             </div>
-            <div className="flex items-center gap-2">
-              <div className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white text-sm font-medium rounded">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="inline-flex items-center justify-center px-1 sm:px-2 py-0.5 sm:py-1 bg-blue-600 text-white text-xs font-medium rounded">
                 {dispatch.vehicleSource === 'CARRIER'
                   ? dispatch.carrierVehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.carrierVehicle?.licensePlate?.slice(2)
                   : dispatch.vehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.vehicle?.licensePlate?.slice(2) || '-'}
               </div>
-              <span className="text-gray-600">
-                ({dispatch.vehicleSource === 'CARRIER' ? dispatch.carrierVehicle?.vehicleType : dispatch.vehicle?.vehicleType})
-              </span>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs text-gray-500 hidden sm:block">
               载重: {dispatch.vehicleSource === 'CARRIER' ? dispatch.carrierVehicle?.capacity : dispatch.vehicle?.capacity}件
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <User className="w-4 h-4" />
-              司机信息
+          <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
+            <div className="flex items-center gap-1 sm:gap-2 text-gray-500 text-xs sm:text-sm mb-1">
+              <User className="w-3 h-3 sm:w-4 sm:h-4" />
+              司机
             </div>
-            <div className="font-medium">
-              {dispatch.driver?.name}
+            <div className="font-medium text-sm sm:text-base">
+              {dispatch.driver?.name || '-'}
             </div>
-            <div className="text-sm text-gray-500">
-              电话: {formatPhone(dispatch.driver?.phone || '')}
+            <div className="text-xs text-gray-500">
+              {formatPhone(dispatch.driver?.phone || '')}
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <Package className="w-4 h-4" />
-              配送信息
+          <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
+            <div className="flex items-center gap-1 sm:gap-2 text-gray-500 text-xs sm:text-sm mb-1">
+              <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+              配送
             </div>
-            <div className="font-medium">
-              {dispatch.orderCount} 个订单 / {dispatch.totalWeight} 件
+            <div className="font-medium text-sm sm:text-base">
+              {dispatch.orderCount}单
             </div>
-            <div className="text-sm text-gray-500">
-              距离: {dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + ' km' : '-'}
+            <div className="text-xs text-gray-500">
+              {dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}
             </div>
           </div>
         </div>
 
         {dispatch.plannedRoute && (
-          <div className="mb-6">
-            <h3 className="font-medium text-gray-700 mb-3">路线规划</h3>
-            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-4 overflow-x-auto">
+          <div className="mb-4 sm:mb-6">
+            <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">路线规划</h3>
+            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 sm:p-4 overflow-x-auto text-xs sm:text-sm">
               <div className="flex-shrink-0">
-                <div className="text-sm text-gray-500">起点</div>
+                <div className="text-gray-500">起点</div>
                 <div className="font-medium">{dispatch.plannedRoute?.origin?.address}</div>
               </div>
               {dispatch.plannedRoute?.destinations?.map((dest: any, index: number) => (
                 <div key={index} className="flex items-center gap-2 flex-shrink-0">
                   <div className="text-gray-400">→</div>
                   <div className="flex-shrink-0">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-gray-500">
                       {index === (dispatch.plannedRoute?.destinations?.length || 0) - 1 ? '终点' : `途径${index + 1}`}
                     </div>
                     <div className="font-medium">{dest.address}</div>
@@ -368,13 +380,13 @@ export default function DispatchDetailPage() {
                 </div>
               ))}
             </div>
-            <div ref={mapRef} className="w-full h-96 rounded-lg mt-3" />
+            <div ref={mapRef} className="w-full h-48 sm:h-96 rounded-lg mt-3" />
           </div>
         )}
 
-        <div className="mb-6">
-          <h3 className="font-medium text-gray-700 mb-3">订单列表</h3>
-          <div className="overflow-x-auto">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">订单列表</h3>
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left text-gray-500 text-sm border-b">
@@ -428,8 +440,60 @@ export default function DispatchDetailPage() {
               </tbody>
             </table>
           </div>
+          <div className="sm:hidden space-y-2">
+            {dispatch.orders?.map((doItem: any, index: number) => {
+              const totalDests = dispatch.plannedRoute?.destinations?.length || dispatch.orders?.length || 0;
+              const isFinal = index === totalDests - 1;
+              return (
+                <div key={doItem.id} className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-primary-600">{doItem.order?.orderNo}</span>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${isFinal ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {isFinal ? '终点' : `途径${index + 1}`}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>{doItem.order?.receiver}</span>
+                      <span>{formatPhone(doItem.order?.phone || '')}</span>
+                    </div>
+                    <div className="text-gray-400 truncate">{formatAddress(doItem.order?.province, doItem.order?.city, doItem.order?.address)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {canWrite && dispatch.status === 'PENDING' && (
+        <div className="fixed bottom-14 left-0 right-0 bg-white border-t p-3 sm:hidden z-50">
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleStatusChange('IN_TRANSIT')}
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg"
+            >
+              发车
+            </button>
+            <button
+              onClick={() => handleStatusChange('CANCELLED')}
+              className="flex-1 py-2.5 border border-red-500 text-red-500 rounded-lg"
+            >
+              取消配送
+            </button>
+          </div>
+        </div>
+      )}
+      {canWrite && dispatch.status === 'IN_TRANSIT' && (
+        <div className="fixed bottom-14 left-0 right-0 bg-white border-t p-3 sm:hidden z-50">
+          <button
+            onClick={() => handleStatusChange('COMPLETED')}
+            className="w-full py-2.5 bg-green-600 text-white rounded-lg"
+          >
+            完成配送
+          </button>
+        </div>
+      )}
     </div>
   );
 }

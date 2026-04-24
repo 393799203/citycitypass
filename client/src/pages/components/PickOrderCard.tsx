@@ -21,8 +21,8 @@ const pickStatusMap: Record<string, string> = {
 
 export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundReview, onTooltip }: PickOrderCardProps) {
   return (
-    <div className="border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="border rounded-lg p-3 sm:p-4">
+      <div className="hidden sm:flex items-center justify-between mb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <span className="font-medium text-gray-900">{pickOrder.pickNo}</span>
           <span className="text-sm text-gray-500">
@@ -76,7 +76,22 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
           )}
         </div>
       </div>
-      <div className="overflow-x-visible bg-gray-50 rounded-lg p-3">
+
+      <div className="sm:hidden flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-900">{pickOrder.pickNo}</span>
+          <span className={`px-2 py-0.5 text-xs rounded-full ${
+            pickOrder.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+            pickOrder.status === 'PICKING' ? 'bg-blue-600 text-white' :
+            pickOrder.status === 'CANCELLED' ? 'bg-gray-500 text-white' :
+            'bg-green-600 text-white'
+          }`}>
+            {pickStatusMap[pickOrder.status]}
+          </span>
+        </div>
+        <span className="text-xs text-blue-600">{pickOrder.orders?.[0]?.warehouse?.name}</span>
+      </div>
+      <div className="hidden sm:block overflow-x-visible bg-gray-50 rounded-lg p-3">
         <table className="w-full table-fixed">
           <thead>
             <tr className="text-xs text-gray-500 text-center">
@@ -124,6 +139,29 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="sm:hidden space-y-2 mb-3">
+        {(pickOrder.items || []).map((item) => {
+          const loc = item.stockLock?.location || item.bundleStockLock?.location;
+          const locCode = loc ? `${loc.shelf?.zone?.code}-${loc.shelf?.code}-L${loc.level}` : (item.warehouseLocation || '-');
+          const batchNo = item.stockLock?.skuBatch?.batchNo || item.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo || item.bundleBatch?.batchNo;
+          return (
+            <div key={item.id} className="bg-gray-50 rounded-lg p-2 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
+                  <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
+                </div>
+                <span className="font-medium">x{item.quantity}</span>
+              </div>
+              <div className="flex items-center justify-between text-gray-500 mt-1">
+                <span>{item.packaging} · {item.spec}</span>
+                <span className="text-orange-500">{locCode}{batchNo ? ` (${batchNo})` : ''}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
       {pickOrder.orders && pickOrder.orders.length > 0 && (
         <div className="mt-2 space-y-2">
@@ -173,11 +211,44 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
         </div>
       )}
       {(pickOrder.picker || pickOrder.approver) && (
-        <div className="flex items-center gap-4 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 justify-end">
+        <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 justify-end">
           {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
           {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
         </div>
       )}
+
+      <div className="sm:hidden mt-3 pt-3 border-t border-gray-200">
+        {pickOrder.status === 'PICKING' && !pickOrder.orders?.some((o) => o.status === 'CANCELLED') && (
+          <button
+            onClick={() => onPickComplete(pickOrder.id)}
+            className="w-full py-2 bg-green-600 text-white text-sm rounded-lg"
+          >
+            拣货完成
+          </button>
+        )}
+        {pickOrder.status === 'PICKED' && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => onOutboundReview(pickOrder.id, true)}
+              className="flex-1 py-2 bg-green-600 text-white text-sm rounded-lg"
+            >
+              审核通过
+            </button>
+            <button
+              onClick={() => onOutboundReview(pickOrder.id, false)}
+              className="flex-1 py-2 bg-red-600 text-white text-sm rounded-lg"
+            >
+              不通过
+            </button>
+          </div>
+        )}
+        {(pickOrder.picker || pickOrder.approver) && (
+          <div className="flex items-center gap-4 text-xs text-gray-500 mt-2 justify-center">
+            {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
+            {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

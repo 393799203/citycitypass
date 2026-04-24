@@ -279,29 +279,29 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
   const isSameWarehouse = selectedWarehouseOrders.length === selectedOrderDetails.length;
 
   return (
-    <div className="p-2 space-y-6">
+    <div className="p-2 space-y-4">
       
       
       {aiRecommendOrders && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">AI推荐调度</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               关联订单：{aiRecommendOrders.orderIds.map(id => {
                 const order = orders.find((o: any) => o.id === id);
                 return order?.orderNo;
               }).filter(Boolean).join('、')}
             </p>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               {aiRecommendOrders.reason}
             </p>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               是否一键创建调度单？
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={() => setAiRecommendOrders(null)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="flex-1 py-2.5 sm:py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 取消
               </button>
@@ -329,7 +329,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                     toast.error('创建失败');
                   }
                 }}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="flex-1 py-2.5 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
                 确认创建
               </button>
@@ -338,7 +338,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="hidden sm:flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">
           运力调度
         </h1>
@@ -354,25 +354,27 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
         <div className="flex border-b">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-6 py-3 font-medium transition-colors ${
+            className={`flex-1 px-3 sm:px-6 py-3 font-medium transition-colors ${
               activeTab === 'pending'
                 ? 'text-primary-600 border-b-2 border-primary-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Package className="w-4 h-4 inline mr-2" />
-            运力调度中心(待调度订单)
+            <Package className="w-4 h-4 inline mr-1 sm:mr-2" />
+            <span className="sm:hidden">待调度</span>
+            <span className="hidden sm:inline">运力调度中心(待调度订单)</span>
           </button>
           <button
             onClick={() => setActiveTab('dispatches')}
-            className={`px-6 py-3 font-medium transition-colors ${
+            className={`flex-1 px-3 sm:px-6 py-3 font-medium transition-colors ${
               activeTab === 'dispatches'
                 ? 'text-primary-600 border-b-2 border-primary-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Truck className="w-4 h-4 inline mr-2" />
-            配送单管理
+            <Truck className="w-4 h-4 inline mr-1 sm:mr-2" />
+            <span className="sm:hidden">配送单</span>
+            <span className="hidden sm:inline">配送单管理</span>
           </button>
         </div>
 
@@ -381,35 +383,36 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
             <div className="text-center py-8 text-gray-500">加载中...</div>
           ) : activeTab === 'pending' ? (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">已选择 {selectedOrders.length} 个订单，共 {orders.length} 个订单</span>
-                <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <span className="text-gray-600 text-sm">已选 {selectedOrders.length}/{orders.length} 单</span>
+                <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     onClick={handleAICreateDispatch}
                     disabled={aiLoading || orders.length === 0 || !canDispatchWrite}
-                    title={!canDispatchWrite ? '无操作权限' : ''}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!canDispatchWrite ? '无操作权限' : 'AI运力调度'}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    AI运力调度
+                    <span className="sm:hidden">AI调度</span>
+                    <span className="hidden sm:inline">AI运力调度</span>
                   </button>
                   <button
                     onClick={() => setShowCreateModal(true)}
                     disabled={selectedOrders.length === 0 || !canDispatchWrite}
-                    title={!canDispatchWrite ? '无操作权限' : ''}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                    title={!canDispatchWrite ? '无操作权限' : '创建配送单'}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg ${
                       canDispatchWrite && selectedOrders.length > 0
                         ? 'bg-primary-600 text-white hover:bg-primary-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
                     <Plus className="w-4 h-4" />
-                    创建配送单
+                    <span>创建配送单</span>
                   </button>
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="text-center text-gray-500 text-sm border-b">
@@ -472,7 +475,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                     ))}
                     {orders.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-gray-500">
+                        <td colSpan={6} className="py-8 text-center text-gray-500">
                           暂无待调度订单
                         </td>
                       </tr>
@@ -480,135 +483,262 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   </tbody>
                 </table>
               </div>
+
+              <div className="sm:hidden space-y-2">
+                {orders.map(order => (
+                  <div
+                    key={order.id}
+                    className={`bg-white border rounded-lg p-3 ${selectedOrders.includes(order.id) ? 'border-primary-500 bg-primary-50' : ''}`}
+                    onClick={() => toggleOrderSelection(order.id)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <Link to={`/orders/${order.id}`} className="text-primary-600 font-medium" onClick={e => e.stopPropagation()}>
+                        {order.orderNo}
+                      </Link>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        order.status === 'DISPATCHING' ? 'bg-cyan-600 text-white' : 'bg-gray-600 text-white'
+                      }`}>
+                        {orderStatusMap[order.status]}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-blue-600">{order.warehouse?.city || '-'}</span>
+                        <ArrowRight className="w-3 h-3 text-gray-400" />
+                        <span className="text-purple-600">{order.city}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>{order.receiver}</span>
+                        <span className="text-gray-400 text-xs">{formatPhone(order.phone)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {orders.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">暂无待调度订单</div>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-center text-gray-500 text-sm border-b">
-                    <th className="pb-3">配送单号</th>
-                    <th className="pb-3">路线</th>
-                    <th className="pb-3">车辆</th>
-                    <th className="pb-3">司机</th>
-                    <th className="pb-3">订单数</th>
-                    <th className="pb-3">总重量</th>
-                    <th className="pb-3">距离</th>
-                    <th className="pb-3">状态</th>
-                    <th className="pb-3">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dispatches.map(dispatch => (
-                    <tr key={dispatch.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 font-medium text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Link to={`/dispatch/${dispatch.id}`} className="text-primary-600 hover:underline">
-                            {dispatch.dispatchNo}
-                          </Link>
-                          {dispatch.vehicleSource === 'CARRIER' && (
-                            <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+            <>
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-center text-gray-500 text-sm border-b">
+                      <th className="pb-3">配送单号</th>
+                      <th className="pb-3">路线</th>
+                      <th className="pb-3">车辆</th>
+                      <th className="pb-3">司机</th>
+                      <th className="pb-3">订单数</th>
+                      <th className="pb-3">总重量</th>
+                      <th className="pb-3">距离</th>
+                      <th className="pb-3">状态</th>
+                      <th className="pb-3">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dispatches.map(dispatch => (
+                      <tr key={dispatch.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 font-medium text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Link to={`/dispatch/${dispatch.id}`} className="text-primary-600 hover:underline">
+                              {dispatch.dispatchNo}
+                            </Link>
+                            {dispatch.vehicleSource === 'CARRIER' && (
+                              <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5 text-sm">
+                              <span className="text-blue-600 font-medium truncate max-w-[80px]">
+                                {dispatch.warehouse?.province || '-'}{dispatch.warehouse?.city || '-'}
+                              </span>
+                              <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="text-purple-600 font-medium truncate max-w-[80px]">
+                                {dispatch.orders?.[0]?.order?.province || '-'}{dispatch.orders?.[0]?.order?.city || '-'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 text-center">
+                            <div className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded">
+                              {dispatch.vehicleSource === 'CARRIER'
+                                ? dispatch.carrierVehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.carrierVehicle?.licensePlate?.slice(2)
+                                : dispatch.vehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.vehicle?.licensePlate?.slice(2) || '-'}
+                            </div>
+                          </td>
+                          <td className="py-3 text-sm text-center">
+                            <div className="font-medium">{dispatch.driver?.name || '-'}</div>
+                            <div className="text-gray-400 text-xs">{formatPhone(dispatch.driver?.phone || '')}</div>
+                          </td>
+                          <td className="py-3 text-center">{dispatch.orderCount}</td>
+                          <td className="py-3 text-center">{dispatch.totalWeight}吨</td>
+                          <td className="py-3 text-center">{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</td>
+                          <td className="py-3 text-center">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+                              dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
+                              dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+                              'bg-gray-600 text-white'
+                            }`}>
+                              {dispatchStatusMap[dispatch.status]}
+                            </span>
+                          </td>
+                          <td className="py-3 text-center">
+                            {dispatch.status === 'PENDING' && canDispatchWrite && (
+                            <>
+                              <button
+                                onClick={() => handleDispatchStatus(dispatch.id, 'IN_TRANSIT')}
+                                className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 mr-2"
+                              >
+                                发车
+                              </button>
+                              <button
+                                onClick={() => handleDispatchStatus(dispatch.id, 'CANCELLED')}
+                                className="px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
+                              >
+                                取消
+                              </button>
+                            </>
                           )}
-                        </div>
-                      </td>
-                      <td className="py-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5 text-sm">
-                            <span className="text-blue-600 font-medium truncate max-w-[80px]">
-                              {dispatch.warehouse?.province || '-'}{dispatch.warehouse?.city || '-'}
-                            </span>
-                            <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                            <span className="text-purple-600 font-medium truncate max-w-[80px]">
-                              {dispatch.orders?.[0]?.order?.province || '-'}{dispatch.orders?.[0]?.order?.city || '-'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-center">
-                          <div className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded">
-                            {dispatch.vehicleSource === 'CARRIER'
-                              ? dispatch.carrierVehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.carrierVehicle?.licensePlate?.slice(2)
-                              : dispatch.vehicle?.licensePlate?.slice(0, 2) + '·' + dispatch.vehicle?.licensePlate?.slice(2) || '-'}
-                          </div>
-                        </td>
-                        <td className="py-3 text-sm text-center">
-                          <div className="font-medium">{dispatch.driver?.name || '-'}</div>
-                          <div className="text-gray-400 text-xs">{formatPhone(dispatch.driver?.phone || '')}</div>
-                        </td>
-                        <td className="py-3 text-center">{dispatch.orderCount}</td>
-                        <td className="py-3 text-center">{dispatch.totalWeight}吨</td>
-                        <td className="py-3 text-center">{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</td>
-                        <td className="py-3 text-center">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
-                            dispatch.status === 'DISPATCHING' ? 'bg-blue-600 text-white' :
-                            dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
-                            'bg-gray-600 text-white'
-                          }`}>
-                            {dispatchStatusMap[dispatch.status]}
-                          </span>
-                        </td>
-                        <td className="py-3 text-center">
-                          {dispatch.status === 'PENDING' && canDispatchWrite && (
-                          <>
+                          {(dispatch.status === 'CANCELLED') && canDispatchWrite && (
                             <button
-                              onClick={() => handleDispatchStatus(dispatch.id, 'IN_TRANSIT')}
-                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 mr-2"
-                            >
-                              发车
-                            </button>
-                            <button
-                              onClick={() => handleDispatchStatus(dispatch.id, 'CANCELLED')}
-                              className="px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700"
-                            >
-                              取消
-                            </button>
-                          </>
-                        )}
-                        {(dispatch.status === 'CANCELLED') && canDispatchWrite && (
-                          <button
-                            onClick={async () => {
-                              const ok = await confirm({ message: '确定要删除此配送单吗？' });
-                              if (ok) {
-                                try {
-                                  await dispatchApi.delete(dispatch.id);
-                                  toast.success('删除成功');
-                                  fetchData();
-                                } catch (error: any) {
-                                  toast.error(error.response?.data?.message || '删除失败');
+                              onClick={async () => {
+                                const ok = await confirm({ message: '确定要删除此配送单吗？' });
+                                if (ok) {
+                                  try {
+                                    await dispatchApi.delete(dispatch.id);
+                                    toast.success('删除成功');
+                                    fetchData();
+                                  } catch (error: any) {
+                                    toast.error(error.response?.data?.message || '删除失败');
+                                  }
                                 }
-                              }
-                            }}
-                            className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
-                          >
-                            删除
-                          </button>
+                              }}
+                              className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                            >
+                              删除
+                            </button>
+                          )}
+                          {dispatch.status === 'IN_TRANSIT' && canDispatchWrite && (
+                            <button
+                              onClick={() => handleDispatchStatus(dispatch.id, 'COMPLETED')}
+                              className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                            >
+                              完成配送
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {dispatches.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="py-8 text-center text-gray-500">
+                          暂无配送单
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="sm:hidden space-y-2">
+                {dispatches.map(dispatch => (
+                  <div key={dispatch.id} className="bg-white border rounded-lg p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Link to={`/dispatch/${dispatch.id}`} className="text-primary-600 font-medium">
+                          {dispatch.dispatchNo}
+                        </Link>
+                        {dispatch.vehicleSource === 'CARRIER' && (
+                          <span className="px-1 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
                         )}
-                        {dispatch.status === 'IN_TRANSIT' && canDispatchWrite && (
-                          <button
-                            onClick={() => handleDispatchStatus(dispatch.id, 'COMPLETED')}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                          >
-                            完成配送
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {dispatches.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center text-gray-500">
-                        暂无配送单
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
+                        dispatch.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
+                        dispatch.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+                        'bg-gray-600 text-white'
+                      }`}>
+                        {dispatchStatusMap[dispatch.status]}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1 mb-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-blue-600">{dispatch.warehouse?.city || '-'}</span>
+                        <ArrowRight className="w-3 h-3 text-gray-400" />
+                        <span className="text-purple-600">{dispatch.orders?.[0]?.order?.city || '-'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+                          {dispatch.vehicleSource === 'CARRIER'
+                            ? dispatch.carrierVehicle?.licensePlate
+                            : dispatch.vehicle?.licensePlate || '-'}
+                        </span>
+                        <span>{dispatch.driver?.name || '-'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>{dispatch.orderCount}单 · {dispatch.totalWeight}吨</span>
+                        <span>{dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}</span>
+                      </div>
+                    </div>
+                    {dispatch.status === 'PENDING' && canDispatchWrite && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleDispatchStatus(dispatch.id, 'IN_TRANSIT')}
+                          className="flex-1 py-1.5 bg-blue-600 text-white text-sm rounded-lg"
+                        >
+                          发车
+                        </button>
+                        <button
+                          onClick={() => handleDispatchStatus(dispatch.id, 'CANCELLED')}
+                          className="flex-1 py-1.5 bg-gray-600 text-white text-sm rounded-lg"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    )}
+                    {dispatch.status === 'IN_TRANSIT' && canDispatchWrite && (
+                      <button
+                        onClick={() => handleDispatchStatus(dispatch.id, 'COMPLETED')}
+                        className="w-full py-1.5 bg-green-600 text-white text-sm rounded-lg"
+                      >
+                        完成配送
+                      </button>
+                    )}
+                    {dispatch.status === 'CANCELLED' && canDispatchWrite && (
+                      <button
+                        onClick={async () => {
+                          const ok = await confirm({ message: '确定要删除此配送单吗？' });
+                          if (ok) {
+                            try {
+                              await dispatchApi.delete(dispatch.id);
+                              toast.success('删除成功');
+                              fetchData();
+                            } catch (error: any) {
+                              toast.error(error.response?.data?.message || '删除失败');
+                            }
+                          }
+                        }}
+                        className="w-full py-1.5 bg-red-600 text-white text-sm rounded-lg"
+                      >
+                        删除
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {dispatches.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">暂无配送单</div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">创建配送单</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -693,16 +823,16 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex-1 py-2.5 sm:py-2 border rounded-lg hover:bg-gray-50"
               >
                 取消
               </button>
               <button
                 onClick={handleCreateDispatch}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="flex-1 py-2.5 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
                 确认
               </button>

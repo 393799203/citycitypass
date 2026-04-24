@@ -201,9 +201,8 @@ export default function Returns() {
   };
 
   return (
-    <div className="p-2 space-y-6">
-      
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-2 space-y-4">
+      <div className="hidden sm:flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-800">退货管理</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -233,6 +232,34 @@ export default function Returns() {
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      <div className="sm:hidden flex items-center gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+            className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+          >
+            <option value="">全部状态</option>
+            <option value="RETURN_REQUESTED">待发货</option>
+            <option value="RETURN_SHIPPED">已发货</option>
+            <option value="RETURN_RECEIVING">收货中</option>
+            <option value="RETURN_QUALIFIED">已验收</option>
+            <option value="RETURN_PARTIAL_QUALIFIED">部分验收</option>
+            <option value="RETURN_REJECTED">已拒收</option>
+            <option value="RETURN_STOCK_IN">已入库</option>
+            <option value="REFUNDED">已退款</option>
+            <option value="CANCELLED">已取消</option>
+          </select>
+        </div>
+        <button
+          onClick={() => fetchReturns()}
+          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
       {loading ? (

@@ -166,13 +166,13 @@ export default function ReturnDetail() {
   }
 
   return (
-    <div className="p-2 space-y-6">
+    <div className="p-2 space-y-4 sm:space-y-6 pb-20">
       
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="col-span-1 lg:col-span-2 space-y-4 lg:space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6">
+            <div className="hidden sm:flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">退货单详情</h1>
                 <div className="flex items-center gap-4 mt-1">
@@ -194,20 +194,39 @@ export default function ReturnDetail() {
               </div>
             </div>
 
+            <div className="sm:hidden flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">{returnOrder.returnNo}</span>
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  returnOrder.status === 'RETURN_REQUESTED' ? 'bg-yellow-50 text-yellow-600' :
+                  returnOrder.status === 'RETURN_SHIPPED' ? 'bg-blue-50 text-blue-600' :
+                  returnOrder.status === 'RETURN_RECEIVING' ? 'bg-purple-50 text-purple-600' :
+                  returnOrder.status === 'RETURN_QUALIFIED' ? 'bg-green-50 text-green-600' :
+                  returnOrder.status === 'RETURN_PARTIAL_QUALIFIED' ? 'bg-orange-50 text-orange-600' :
+                  returnOrder.status === 'RETURN_REJECTED' ? 'bg-red-50 text-red-600' :
+                  returnOrder.status === 'RETURN_STOCK_IN' ? 'bg-indigo-50 text-indigo-600' :
+                  returnOrder.status === 'REFUNDED' ? 'bg-pink-50 text-pink-600' :
+                  'bg-gray-50 text-gray-600'
+                }`}>
+                  {statusTexts[returnOrder.status] || returnOrder.status}
+                </span>
+              </div>
+            </div>
+
             <ReturnFlow status={returnOrder.status} items={returnOrder.items} />
 
             <ReturnInfo returnOrder={returnOrder} />
 
-            <div className="mb-6 mt-6">
+            <div className="mb-4 sm:mb-6 mt-4 sm:mt-6">
               <div className="text-sm text-gray-500 mb-1">退货原因</div>
-              <div className="text-base">{returnOrder.reason}</div>
+              <div className="text-sm sm:text-base">{returnOrder.reason}</div>
             </div>
 
             <ReturnItems items={returnOrder.items} />
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
           <ReturnActions 
             returnOrder={returnOrder}
             onOpenTrackingModal={handleOpenTrackingModal}
@@ -239,10 +258,10 @@ export default function ReturnDetail() {
       )}
 
       {showQualifyModal && !['RETURN_REQUESTED', 'RETURN_SHIPPED', 'CANCELLED', 'REFUNDED'].includes(returnOrder.status) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-4">验收确认</h3>
-            <table className="w-full mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-xl p-3 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base sm:text-lg font-semibold mb-4">验收确认</h3>
+            <table className="w-full mb-4 hidden sm:table">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs">商品</th>
@@ -281,9 +300,47 @@ export default function ReturnDetail() {
                 ))}
               </tbody>
             </table>
+            <div className="sm:hidden space-y-3 mb-4">
+              {qualifyItems.map((item, idx) => (
+                <div key={item.stockOutId ? `${item.id}_${item.stockOutId}` : item.id} className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{item.productName}</span>
+                    <span className="text-xs text-gray-400">出库: {item.stockOutQuantity || item.quantity}</span>
+                  </div>
+                  {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
+                    <div className="text-xs text-purple-600 mb-2">
+                      批: {item.skuBatch?.batchNo || item.bundleBatch?.batchNo}
+                      {item.skuBatch?.expiryDate && ` · 效期: ${new Date(item.skuBatch.expiryDate).toLocaleDateString()}`}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500">合格数</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.stockOutQuantity || item.quantity}
+                        value={item.qualifiedQuantity}
+                        onChange={(e) => {
+                          const newItems = [...qualifyItems];
+                          newItems[idx].qualifiedQuantity = parseInt(e.target.value) || 0;
+                          newItems[idx].rejectedQuantity = (newItems[idx].stockOutQuantity || newItems[idx].quantity) - newItems[idx].qualifiedQuantity;
+                          setQualifyItems(newItems);
+                        }}
+                        className="w-full border rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <label className="text-xs text-gray-500">拒收</label>
+                      <div className="text-red-500 font-medium">{item.rejectedQuantity}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowQualifyModal(false)} className="px-4 py-2 border rounded-lg">取消</button>
-              <button onClick={handleQualify} className="px-4 py-2 bg-green-600 text-white rounded-lg">确认验收</button>
+              <button onClick={() => setShowQualifyModal(false)} className="px-4 py-2 border rounded-lg text-sm">取消</button>
+              <button onClick={handleQualify} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">确认验收</button>
             </div>
           </div>
         </div>
@@ -316,13 +373,13 @@ export default function ReturnDetail() {
       )}
 
       {refundModal?.show && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">确认退款</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-xl p-3 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base sm:text-lg font-semibold mb-4">确认退款</h3>
             <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                 <div className="text-sm text-gray-500 mb-2">退款金额</div>
-                <div className="text-2xl font-bold text-green-600">¥{refundModal.refundAmount.toFixed(2)}</div>
+                <div className="text-xl sm:text-2xl font-bold text-green-600">¥{refundModal.refundAmount.toFixed(2)}</div>
               </div>
               <div className="text-sm text-gray-600">
                 仅退款通过验收的商品
@@ -342,8 +399,8 @@ export default function ReturnDetail() {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setRefundModal(null)} className="px-4 py-2 border rounded-lg">取消</button>
-              <button onClick={handleRefund} className="px-4 py-2 bg-yellow-600 text-white rounded-lg">确认退款</button>
+              <button onClick={() => setRefundModal(null)} className="px-4 py-2 border rounded-lg text-sm">取消</button>
+              <button onClick={handleRefund} className="px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm">确认退款</button>
             </div>
           </div>
         </div>

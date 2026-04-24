@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVER_IP="8.136.144.140"
+SERVER_IP="8.136.182.139"
 SERVER_USER="root"
 SERVER_PATH="/opt/ZLAI"
 

@@ -242,29 +242,27 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
   };
 
   return (
-    <div className="p-2 space-y-6">
-      
-      
+    <div className="p-2 space-y-4">
       {aiRecommendOrders && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">AI推荐拣货单</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               关联订单：{aiRecommendOrders.orderIds.map(orderNo => {
                 const order = pickOrders.find((o: PickOrder) => o.orders?.[0]?.orderNo === orderNo);
                 return order?.orders?.[0]?.orderNo;
               }).filter(Boolean).join('、')}
             </p>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               {aiRecommendOrders.reason}
             </p>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               是否一次性创建拣货单？
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={() => setAiRecommendOrders(null)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="flex-1 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 取消
               </button>
@@ -284,7 +282,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                     toast.error(error.response?.data?.message || '批量生成失败');
                   }
                 }}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="flex-1 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
                 确认创建
               </button>
@@ -293,7 +291,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="hidden sm:flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-800">发货管理</h1>
         </div>
@@ -310,46 +308,49 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
           <nav className="flex">
             <button
               onClick={() => setActiveTab('pending')}
-              className={`px-6 py-4 text-base font-medium border-b-2 transition-colors ${
+              className={`flex-1 px-2 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium border-b-2 transition-colors ${
                 activeTab === 'pending'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                拣货调度中心(待拣货订单)
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="sm:hidden">待拣货</span>
+                <span className="hidden sm:inline">拣货调度中心(待拣货订单)</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('pick')}
-              className={`px-6 py-4 text-base font-medium border-b-2 transition-colors ${
+              className={`flex-1 px-2 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium border-b-2 transition-colors ${
                 activeTab === 'pick'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-5 h-5" />
-                波次拣货单
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="sm:hidden">拣货单</span>
+                <span className="hidden sm:inline">波次拣货单</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('review')}
-              className={`px-6 py-4 text-base font-medium border-b-2 transition-colors ${
+              className={`flex-1 px-2 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium border-b-2 transition-colors ${
                 activeTab === 'review'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                出库审核
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="sm:hidden">出库</span>
+                <span className="hidden sm:inline">出库审核</span>
               </div>
             </button>
           </nav>
         </div>
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-primary-600" />

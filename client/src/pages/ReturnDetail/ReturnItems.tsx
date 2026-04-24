@@ -9,9 +9,9 @@ export default function ReturnItems({ items }: ReturnItemsProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
 
   return (
-    <div className="border-t pt-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">退货商品</h3>
-      <table className="w-full">
+    <div className="border-t pt-4 sm:pt-6">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">退货商品</h3>
+      <table className="w-full hidden sm:table">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品</th>
@@ -64,6 +64,33 @@ export default function ReturnItems({ items }: ReturnItemsProps) {
           ))}
         </tbody>
       </table>
+      <div className="sm:hidden space-y-2">
+        {items?.map((item: any) => (
+          <div key={item.id} className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1">
+                <span className={`text-[10px] px-1 py-0.5 rounded text-white ${item.bundleId ? 'bg-purple-500' : 'bg-blue-500'}`}>
+                  {item.bundleId ? '套装' : '商品'}
+                </span>
+                <span className="font-medium text-sm">{item.productName}</span>
+              </div>
+              <span className="text-gray-500 text-xs">x{item.quantity}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+              <span>{item.spec} · {item.packaging}</span>
+              <div className="flex gap-2">
+                {item.qualifiedQuantity !== undefined && <span className="text-green-600">合格:{item.qualifiedQuantity}</span>}
+                {item.rejectedQuantity !== undefined && item.rejectedQuantity > 0 && <span className="text-red-600">拒收:{item.rejectedQuantity}</span>}
+              </div>
+            </div>
+            {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
+              <div className="text-xs text-purple-500">
+                批:{item.skuBatch?.batchNo || item.bundleBatch?.batchNo}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
       {tooltip && (
         <div
           className="fixed z-50 bg-gray-800 text-white rounded-lg shadow-xl p-3 max-w-xs"

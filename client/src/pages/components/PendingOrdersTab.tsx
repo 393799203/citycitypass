@@ -31,27 +31,29 @@ export default function PendingOrdersTab({
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-gray-600">已选择 {selectedOrders.length} 个订单，共 {availableOrders.length} 个订单</span>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+        <span className="text-gray-600 text-sm">已选 {selectedOrders.length}/{availableOrders.length} 单</span>
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={onAICreatePickOrders}
             disabled={aiLoading || availableOrders.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            AI波次拣货单
+            <span className="sm:hidden">AI拣货</span>
+            <span className="hidden sm:inline">AI波次拣货单</span>
           </button>
           <button
             onClick={onCreateBatchPickOrders}
             disabled={selectedOrders.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
-            生成波次拣货单
+            <span className="sm:hidden">生成拣货单</span>
+            <span className="hidden sm:inline">生成波次拣货单</span>
           </button>
         </div>
       </div>
-      <div className="overflow-x-visible">
+      <div className="hidden sm:block overflow-x-visible">
         <table className="w-full">
           <thead>
             <tr className="text-center text-gray-500 text-sm border-b">
@@ -166,6 +168,31 @@ export default function PendingOrdersTab({
             )}
           </tbody>
         </table>
+      </div>
+      <div className="sm:hidden space-y-2">
+        {availableOrders.map(order => (
+          <div
+            key={order.id}
+            className={`bg-white border rounded-lg p-3 ${selectedOrders.includes(order.id) ? 'border-primary-500 bg-primary-50' : ''}`}
+            onClick={() => onSelectOrder(order.id, !selectedOrders.includes(order.id))}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <Link to={`/orders/${order.id}`} className="text-primary-600 font-medium" onClick={e => e.stopPropagation()}>
+                {order.orderNo}
+              </Link>
+              <span className="text-xs text-gray-400">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</span>
+            </div>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-blue-600">{order.warehouse?.name}</span>
+                <span>{order.items?.length || 0}件商品</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {availableOrders.length === 0 && (
+          <div className="text-center py-8 text-gray-500">暂无待拣货订单</div>
+        )}
       </div>
     </div>
   );

@@ -327,34 +327,32 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="p-2 space-y-6">
-      
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-gray-500 text-sm">有库存商品SKU</div>
-          <div className="text-2xl font-bold text-primary-600">{new Set(stocks.filter(s => s.type === 'product' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.skuId)).size}</div>
+    <div className="p-2 space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="text-gray-500 text-xs sm:text-sm">有库存商品SKU</div>
+          <div className="text-lg sm:text-2xl font-bold text-primary-600">{new Set(stocks.filter(s => s.type === 'product' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.skuId)).size}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-gray-500 text-sm">有库存套装SKU</div>
-          <div className="text-2xl font-bold text-purple-600">{new Set(stocks.filter(s => s.type === 'bundle' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.bundleId)).size}</div>
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="text-gray-500 text-xs sm:text-sm">有库存套装SKU</div>
+          <div className="text-lg sm:text-2xl font-bold text-purple-600">{new Set(stocks.filter(s => s.type === 'bundle' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.bundleId)).size}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-gray-500 text-sm">今日入库</div>
-          <div className="text-2xl font-bold text-green-600">{stockIns.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, i) => sum + i.quantity, 0)}</div>
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="text-gray-500 text-xs sm:text-sm">今日入库</div>
+          <div className="text-lg sm:text-2xl font-bold text-green-600">{stockIns.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, i) => sum + i.quantity, 0)}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-gray-500 text-sm">今日出库</div>
-          <div className="text-2xl font-bold text-orange-600">{stockOuts.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="text-gray-500 text-xs sm:text-sm">今日出库</div>
+          <div className="text-lg sm:text-2xl font-bold text-orange-600">{stockOuts.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-gray-500 text-sm">总库存(不含原料仓)</div>
-          <div className="text-2xl font-bold text-gray-700">{stocks.filter(s => s.warehouse?.type !== 'MATERIAL').reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4 col-span-2 sm:col-span-1">
+          <div className="text-gray-500 text-xs sm:text-sm">总库存(不含原料仓)</div>
+          <div className="text-lg sm:text-2xl font-bold text-gray-700">{stocks.filter(s => s.warehouse?.type !== 'MATERIAL').reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-6">
+        <div className="hidden sm:flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Package className="w-5 h-5" />
             库存列表
@@ -381,7 +379,28 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center flex-wrap">
+        <div className="sm:hidden flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            库存列表
+          </h2>
+          <div className="flex rounded-lg overflow-hidden border">
+            <button
+              onClick={() => { setInventoryType('sales'); }}
+              className={`px-2 py-1 text-xs ${inventoryType === 'sales' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700'}`}
+            >
+              销售
+            </button>
+            <button
+              onClick={() => { setInventoryType('all'); }}
+              className={`px-2 py-1 text-xs ${inventoryType === 'all' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700'}`}
+            >
+              全部
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden sm:flex justify-between items-center flex-wrap">
           <div className="flex gap-2 items-center">
             <button
               onClick={() => setShowStockInModal(true)}
@@ -495,6 +514,60 @@ export default function InventoryPage() {
             </div>
           </div>
         </div>
+
+        <div className="sm:hidden space-y-2 mb-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowStockInModal(true)}
+              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border border-gray-300 text-gray-700 rounded text-xs"
+            >
+              <Warehouse className="w-3 h-3" />
+              入库
+            </button>
+            <button
+              onClick={() => {
+                stockApi.stockOuts().then(res => {
+                  if (res.data.success) {
+                    setStockOuts(res.data.data);
+                    setShowStockOutModal(true);
+                  }
+                });
+              }}
+              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 border border-gray-300 text-gray-700 rounded text-xs"
+            >
+              <Package className="w-3 h-3" />
+              出库
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={filterWarehouse}
+              onChange={(e) => { setFilterWarehouse(e.target.value); setFilterZone(''); setFilterShelf(''); }}
+              className="flex-1 px-2 py-1.5 border rounded text-xs"
+            >
+              <option value="">全部仓库</option>
+              {warehouses.map(w => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
+            <select
+              value={filterType}
+              onChange={(e) => { setFilterType(e.target.value); setFilterProduct(''); setFilterBundle(''); }}
+              className="w-20 px-2 py-1.5 border rounded text-xs"
+            >
+              <option value="">全部</option>
+              <option value="product">商品</option>
+              <option value="bundle">套装</option>
+            </select>
+            <button
+              onClick={() => { setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); setFilterBatchNo(''); }}
+              className="px-2 py-1.5 border border-gray-300 text-gray-600 rounded text-xs"
+            >
+              重置
+            </button>
+          </div>
+        </div>
+
         {(() => {
           const filteredStocks = stocks.filter((stock: any) => {
             if (filterWarehouse && stock.warehouseId !== filterWarehouse) return false;
@@ -583,15 +656,15 @@ export default function InventoryPage() {
 
                 return (
                 <div key={warehouseName} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
-                  <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-3 border-b border-gray-100">
+                  <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                          <Warehouse className="w-4 h-4 text-primary-600" />
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="p-1 sm:p-1.5 bg-white rounded-lg shadow-sm">
+                          <Warehouse className="w-3 h-3 sm:w-4 sm:h-4 text-primary-600" />
                         </div>
-                        <h3 className="font-semibold text-gray-800">{warehouseName}</h3>
+                        <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{warehouseName}</h3>
                       </div>
-                      <div className="flex items-center gap-4 text-xs">
+                      <div className="hidden sm:flex items-center gap-4 text-xs">
                         <span className="flex items-center gap-1.5">
                           <Package className="w-3 h-3 text-blue-500" />
                           <span className="text-gray-600">商品</span>
@@ -607,12 +680,17 @@ export default function InventoryPage() {
                           <span className="text-purple-600 font-medium">{bundleTotal}件</span>
                         </span>
                       </div>
+                      <div className="sm:hidden flex items-center gap-2 text-xs">
+                        <span className="text-blue-600">{productTotal}件</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="text-purple-600">{bundleTotal}件</span>
+                      </div>
                     </div>
                   </div>
                   <div className="divide-y divide-gray-100">
                     {skuList.map((stock: any) => (
                       <div key={stock.id} className="hover:bg-gray-50/50 transition-colors">
-                        <div className="px-4 py-3 flex items-center gap-3">
+                        <div className="hidden sm:flex px-4 py-3 items-center gap-3">
                           <span
                             className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded cursor-help ${
                               stock.type === 'material'
@@ -732,6 +810,56 @@ export default function InventoryPage() {
                             </div>
                           </div>
                         </div>
+                        <div className="sm:hidden px-3 py-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1">
+                              <span className={`text-[10px] px-1 py-0.5 rounded text-white ${
+                                stock.type === 'material'
+                                  ? (stock.supplierMaterial?.category === 'OTHER' ? 'bg-orange-500' : 'bg-green-500')
+                                  : stock.type === 'bundle' ? 'bg-purple-500' : 'bg-blue-500'
+                              }`}>
+                                {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原料') : stock.type === 'bundle' ? '套装' : '商品'}
+                              </span>
+                              <span className="font-medium text-sm text-gray-800 truncate">
+                                {stock.type === 'bundle' ? stock.bundle?.name : stock.type === 'material' ? stock.supplierMaterial?.name : stock.sku?.product?.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="text-gray-500">总<span className="font-medium text-gray-700">{stock.totalQuantity}</span></span>
+                              {stock.lockedQuantity > 0 && (
+                                <span className="text-orange-500">冻<span className="font-medium">{stock.lockedQuantity}</span></span>
+                              )}
+                              <span className="text-green-600">可<span className="font-medium">{stock.availableQuantity}</span></span>
+                            </div>
+                          </div>
+                          {stock.type !== 'bundle' && stock.type !== 'material' && (
+                            <div className="text-xs text-gray-400 mb-2">
+                              {stock.sku?.spec} / {stock.sku?.packaging}
+                            </div>
+                          )}
+                          {stock.shelves.length > 0 && (
+                            <div className="space-y-1 border-t border-gray-100 pt-2">
+                              {stock.shelves.map((shelf: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1">
+                                  <div className="flex items-center gap-1 text-gray-500">
+                                    <MapPin className="w-3 h-3" />
+                                    <span className="font-mono">{shelf.code}</span>
+                                    {shelf.batchNo && (
+                                      <span className="text-purple-500 ml-1">批:{shelf.batchNo}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-600">库{shelf.total}</span>
+                                    {shelf.locked > 0 && (
+                                      <span className="text-orange-500">冻{shelf.locked}</span>
+                                    )}
+                                    <span className="text-green-600">可{shelf.available}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -746,16 +874,16 @@ export default function InventoryPage() {
 
 
       {showStockInModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">入库记录</h2>
+            <div className="flex justify-between items-center p-3 sm:p-6 border-b">
+              <h2 className="text-base sm:text-xl font-bold">入库记录</h2>
               <button onClick={() => setShowStockInModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="overflow-y-auto max-h-[60vh]">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr className="text-center">
                     <th className="px-3 py-2">仓库名</th>
@@ -833,22 +961,61 @@ export default function InventoryPage() {
                   )}
                 </tbody>
               </table>
+              <div className="sm:hidden space-y-2 p-2">
+                {(() => {
+                  const sortedStockIns = [...stockIns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                  if (sortedStockIns.length === 0 && !stockInLoading) {
+                    return <div className="text-center text-gray-500 py-8">暂无入库记录</div>;
+                  }
+                  if (stockInLoading) {
+                    return <div className="text-center text-gray-500 py-8">加载中...</div>;
+                  }
+                  return sortedStockIns.map((item: any) => (
+                    <div key={item.id} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-primary-600 font-medium text-sm">{item.warehouse?.name || '未知仓库'}</span>
+                        <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {item.type === 'bundle' ? '套装' : '商品'}
+                        </span>
+                      </div>
+                      <div className="text-sm font-medium mb-1">
+                        {item.type === 'bundle' ? item.bundle?.name : item.sku?.product?.name || item.skuId}
+                      </div>
+                      <div className="text-xs text-gray-500 mb-2">
+                        {item.type === 'bundle' ? `${item.bundle?.spec || ''} / ${item.bundle?.packaging || ''}` : `${item.sku?.spec || ''} / ${item.sku?.packaging || ''}`}
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-400">
+                          {item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}
+                          {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
+                            <span className="text-purple-600 ml-1">批:{item.skuBatch?.batchNo || item.bundleBatch?.batchNo}</span>
+                          )}
+                        </span>
+                        <span className="text-green-600 font-medium">+{item.quantity}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {showStockOutModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b shrink-0">
-              <h2 className="text-xl font-bold">出库记录</h2>
+            <div className="flex justify-between items-center p-3 sm:p-6 border-b shrink-0">
+              <h2 className="text-base sm:text-xl font-bold">出库记录</h2>
               <button onClick={() => setShowStockOutModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="overflow-auto flex-1">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm hidden sm:table">
                 <thead className="bg-gray-50">
                   <tr className="text-center">
                     <th className="px-3 py-2">仓库</th>
@@ -923,6 +1090,43 @@ export default function InventoryPage() {
                   )}
                 </tbody>
               </table>
+              <div className="sm:hidden space-y-2 p-2">
+                {stockOuts.length > 0 ? stockOuts.map((out: any) => (
+                  <div key={out.id} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-700 font-medium text-sm">{out.warehouse?.name || '-'}</span>
+                      <span className={`px-2 py-0.5 text-xs rounded ${out.skuId ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                        {out.skuId ? '商品' : '套装'}
+                      </span>
+                    </div>
+                    <div className="text-sm font-medium mb-1">
+                      {out.skuId ? out.sku?.product?.name : out.bundle?.name || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2">
+                      {out.skuId ? `${out.sku?.spec || ''} / ${out.sku?.packaging || ''}` : `${out.bundle?.spec || ''} / ${out.bundle?.packaging || ''}`}
+                    </div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-gray-400">
+                        {out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}
+                        {(out.skuBatch?.batchNo || out.bundleBatch?.batchNo) && (
+                          <span className="text-purple-600 ml-1">批:{out.skuBatch?.batchNo || out.bundleBatch?.batchNo}</span>
+                        )}
+                      </span>
+                      <span className="text-red-600 font-medium">-{out.quantity}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">{new Date(out.createdAt).toLocaleString()}</span>
+                      {out.order?.orderNo && (
+                        <Link to={`/orders/${out.orderId}`} className="text-primary-600">
+                          {out.order.orderNo}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center text-gray-500 py-8">暂无出库记录</div>
+                )}
+              </div>
             </div>
           </div>
         </div>

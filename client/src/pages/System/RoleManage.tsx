@@ -55,15 +55,15 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
   const isReadOnly = !canWrite || (role?.isDefault && !isAdmin);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
-          <h3 className="text-lg font-medium">{!canWrite || (role?.isDefault && !isAdmin) ? '查看角色' : (role ? '编辑角色' : '新建角色')}</h3>
+        <div className="px-3 sm:px-6 py-3 sm:py-4 border-b flex justify-between items-center flex-shrink-0">
+          <h3 className="text-base sm:text-lg font-medium">{!canWrite || (role?.isDefault && !isAdmin) ? '查看角色' : (role ? '编辑角色' : '新建角色')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6">
-          <div className="grid grid-cols-3 gap-4 mb-6">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-3 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 角色代码 <span className="text-red-500">*</span>
@@ -73,7 +73,7 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
                 value={formData.code}
                 onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
                 disabled={!!role || isReadOnly}
-                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100 text-sm"
                 required
                 placeholder="如：MANAGER"
               />
@@ -87,7 +87,7 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
                 value={formData.name}
                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 disabled={isReadOnly}
-                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100 text-sm"
                 required
                 placeholder="如：管理员"
               />
@@ -99,7 +99,7 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
                 value={formData.description || ''}
                 onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 disabled={isReadOnly}
-                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100 text-sm"
                 placeholder="可选"
               />
             </div>
@@ -107,19 +107,18 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">权限配置</label>
-            <div className="grid grid-cols-2 gap-6">
-              {/* 左侧 - 业务模块 */}
-              <div className="border rounded-lg p-4">
-                <div className="font-medium text-gray-800 mb-3">业务模块</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="border rounded-lg p-3 sm:p-4">
+                <div className="font-medium text-gray-800 mb-3 text-sm sm:text-base">业务模块</div>
                 <div className="space-y-2">
                   {Object.entries(PERMISSIONS.business).map(([action, info]) => (
                     <div key={action} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                      <span className="text-sm">{info.name}</span>
+                      <span className="text-xs sm:text-sm">{info.name}</span>
                       <select
                         value={formData.permissions['business']?.[action] || 'NONE'}
                         onChange={e => handlePermissionChange('business', action, e.target.value as PermissionValue)}
                         disabled={isReadOnly}
-                        className="text-sm border rounded px-2 py-1 disabled:bg-gray-200"
+                        className="text-xs sm:text-sm border rounded px-2 py-1 disabled:bg-gray-200"
                       >
                         <option value="WRITE">可操作</option>
                         <option value="READ">可查看</option>
@@ -130,19 +129,18 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
                 </div>
               </div>
 
-              {/* 右侧 - 配置模块和系统模块 */}
               <div className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <div className="font-medium text-gray-800 mb-3">配置模块</div>
+                <div className="border rounded-lg p-3 sm:p-4">
+                  <div className="font-medium text-gray-800 mb-3 text-sm sm:text-base">配置模块</div>
                   <div className="space-y-2">
                     {Object.entries(PERMISSIONS.config).map(([action, info]) => (
                       <div key={action} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                        <span className="text-sm">{info.name}</span>
+                        <span className="text-xs sm:text-sm">{info.name}</span>
                         <select
                           value={formData.permissions['config']?.[action] || 'NONE'}
                           onChange={e => handlePermissionChange('config', action, e.target.value as PermissionValue)}
                           disabled={isReadOnly}
-                          className="text-sm border rounded px-2 py-1 disabled:bg-gray-200"
+                          className="text-xs sm:text-sm border rounded px-2 py-1 disabled:bg-gray-200"
                         >
                           <option value="WRITE">可操作</option>
                           <option value="READ">可查看</option>
@@ -153,17 +151,17 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
                   </div>
                 </div>
 
-                <div className="border rounded-lg p-4">
-                  <div className="font-medium text-gray-800 mb-3">系统模块</div>
+                <div className="border rounded-lg p-3 sm:p-4">
+                  <div className="font-medium text-gray-800 mb-3 text-sm sm:text-base">系统模块</div>
                   <div className="space-y-2">
                     {Object.entries(PERMISSIONS.system).map(([action, info]) => (
                       <div key={action} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                        <span className="text-sm">{info.name}</span>
+                        <span className="text-xs sm:text-sm">{info.name}</span>
                         <select
                           value={formData.permissions['system']?.[action] || 'NONE'}
                           onChange={e => handlePermissionChange('system', action, e.target.value as PermissionValue)}
                           disabled={isReadOnly}
-                          className="text-sm border rounded px-2 py-1 disabled:bg-gray-200"
+                          className="text-xs sm:text-sm border rounded px-2 py-1 disabled:bg-gray-200"
                         >
                           <option value="WRITE">可操作</option>
                           <option value="READ">可查看</option>
@@ -181,14 +179,14 @@ export const RoleModal: React.FC<RoleModalProps> = ({ role, onSave, onClose, can
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm"
             >
               取消
             </button>
             {!isReadOnly && (
               <button
                 type="submit"
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
               >
                 保存
               </button>
@@ -211,7 +209,7 @@ interface RoleListProps {
 export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete, canWrite = false, isAdmin = false }) => {
   return (
     <div className="bg-white rounded-lg shadow">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色代码</th>
@@ -283,6 +281,72 @@ export const RoleList: React.FC<RoleListProps> = ({ roles, onEdit, onDelete, can
           ))}
         </tbody>
       </table>
+      <div className="sm:hidden space-y-2 p-2">
+        {roles.map(role => (
+          <div key={role.id} className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm text-gray-800">{role.name}</span>
+                {role.isDefault && (
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">默认</span>
+                )}
+              </div>
+              <span className="text-xs text-gray-400">{role.code}</span>
+            </div>
+            {role.description && (
+              <div className="text-xs text-gray-500 mb-2">{role.description}</div>
+            )}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              {isAdmin ? (
+                <>
+                  {role.code !== 'ADMIN' && (
+                    <>
+                      <button
+                        onClick={() => onEdit(role)}
+                        className="text-blue-600 text-xs"
+                      >
+                        编辑权限
+                      </button>
+                      {!role.isDefault && role.code !== 'ADMIN' && role.code !== 'OWNER' && (
+                        <button
+                          onClick={() => onDelete(role.id)}
+                          className="text-red-600 text-xs"
+                        >
+                          删除
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : canWrite && role.isDefault ? (
+                <button
+                  onClick={() => onEdit(role)}
+                  className="text-blue-600 text-xs"
+                >
+                  查看权限
+                </button>
+              ) : canWrite ? (
+                <button
+                  onClick={() => onEdit(role)}
+                  className="text-blue-600 text-xs"
+                >
+                  编辑权限
+                </button>
+              ) : (
+                <button
+                  onClick={() => onEdit(role)}
+                  className="text-blue-600 text-xs"
+                >
+                  查看权限
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {roles.length === 0 && (
+          <div className="text-center text-gray-500 py-8">暂无角色数据</div>
+        )}
+      </div>
     </div>
   );
 };

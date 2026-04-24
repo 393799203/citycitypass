@@ -55,6 +55,8 @@ export default function AddressInput({
       : `${value.province} / ${value.city || ''}`.replace(/\s*\/\s*$/g, '')
     : '';
 
+  const mobileDisplayValue = value.city || value.province || '';
+
   const handleOpen = () => {
     if (!open) {
       if (!showRegion) {
@@ -153,7 +155,8 @@ export default function AddressInput({
           >
             <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <span className={displayValue ? 'text-gray-900' : 'text-gray-400'}>
-              {displayValue || '选择省/市'}
+              <span className="sm:hidden">{mobileDisplayValue || '选择省/市'}</span>
+              <span className="hidden sm:inline">{displayValue || '选择省/市'}</span>
             </span>
             {displayValue && (
               <X className="w-4 h-4 text-gray-400 ml-auto" onClick={handleClear} />

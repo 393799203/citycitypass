@@ -113,27 +113,22 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
   };
 
   return (
-    <div className="mb-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-6">退货流程</h2>
-      <div className="relative">
-        {/* 节点 */}
-        {/* 连接线 */}
+    <div className="mb-4 sm:mb-6">
+      <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">退货流程</h2>
+      
+      {/* 桌面端显示 */}
+      <div className="hidden sm:block relative">
         <svg className="absolute top-4 left-0 w-full h-32 pointer-events-none" viewBox="0 0 100 32">
-          {/* 申请退货到买家发货 */}
           <line 
             x1="-28" y1="11" x2="-8" y2="11" 
             stroke={getReturnStepStatus('RETURN_SHIPPED') === 'completed' || getReturnStepStatus('RETURN_SHIPPED') === 'current' ? '#10B981' : '#E5E7EB'} 
             strokeWidth="0.5"
           />
-          
-          {/* 买家发货到仓库收货 */}
           <line 
             x1="6" y1="11" x2="26" y2="11" 
             stroke={getReturnStepStatus('RETURN_RECEIVING') === 'completed' || getReturnStepStatus('RETURN_RECEIVING') === 'current' ? '#10B981' : '#E5E7EB'} 
             strokeWidth="0.5"
           />
-          
-          {/* 仓库收货到验收全部 */}
           <line 
             x1="40" y1="11" x2="40" y2="0" 
             stroke={getReturnStepStatus('RETURN_QUALIFIED') === 'completed' || getReturnStepStatus('RETURN_QUALIFIED') === 'current' ? '#10B981' : '#E5E7EB'} 
@@ -144,8 +139,6 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
             stroke={getReturnStepStatus('RETURN_QUALIFIED') === 'completed' || getReturnStepStatus('RETURN_QUALIFIED') === 'current' ? '#10B981' : '#E5E7EB'} 
             strokeWidth="0.5"
           />
-          
-          {/* 仓库收货到验收部分 */}
           <line 
             x1="40" y1="11" x2="40" y2="22" 
             stroke={getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' || getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'current' ? '#10B981' : '#E5E7EB'} 
@@ -156,8 +149,6 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
             stroke={getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' || getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'current' ? '#10B981' : '#E5E7EB'} 
             strokeWidth="0.5"
           />
-          
-          {/* 验收全部到入库 */}
           <line 
             x1="74" y1="0" x2="94" y2="0" 
             stroke={(getReturnStepStatus('RETURN_QUALIFIED') === 'completed' && (getReturnStepStatus('RETURN_STOCK_IN') === 'completed' || getReturnStepStatus('RETURN_STOCK_IN') === 'current')) ? '#10B981' : '#E5E7EB'} 
@@ -168,8 +159,6 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
             stroke={(getReturnStepStatus('RETURN_QUALIFIED') === 'completed' && (getReturnStepStatus('RETURN_STOCK_IN') === 'completed' || getReturnStepStatus('RETURN_STOCK_IN') === 'current')) ? '#10B981' : '#E5E7EB'} 
             strokeWidth="0.5"
           />
-          
-          {/* 验收部分到入库 */}
           <line 
             x1="74" y1="22" x2="94" y2="22" 
             stroke={(getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' && (getReturnStepStatus('RETURN_STOCK_IN') === 'completed' || getReturnStepStatus('RETURN_STOCK_IN') === 'current')) ? '#10B981' : '#E5E7EB'} 
@@ -180,8 +169,6 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
             stroke={(getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' && (getReturnStepStatus('RETURN_STOCK_IN') === 'completed' || getReturnStepStatus('RETURN_STOCK_IN') === 'current')) ? '#10B981' : '#E5E7EB'} 
             strokeWidth="0.5"
           />
-          
-          {/* 入库到退款完成 */}
           <line 
             x1="108" y1="11" x2="128" y2="11" 
             stroke={getReturnStepStatus('REFUNDED') === 'completed' || getReturnStepStatus('REFUNDED') === 'current' ? '#10B981' : '#E5E7EB'} 
@@ -189,9 +176,7 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
           />
         </svg>
         
-        {/* 节点 */}
         <div className="flex items-center justify-between">
-          {/* 显示到仓库收货步骤 */}
           {returnStatusFlow.slice(0, 3).map((step, index) => {
             const stepStatus = getReturnStepStatus(step.key);
             return (
@@ -220,9 +205,7 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
             );
           })}
           
-          {/* 显示验收步骤（垂直排列） */}
           <div className="flex flex-col items-center w-1/5">
-            {/* 验收全部 */}
             <div className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 getReturnStepStatus('RETURN_QUALIFIED') === 'completed' ? 'bg-green-500 text-white' :
@@ -246,10 +229,8 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
               </div>
           </div>
           
-          {/* 垂直间距 */}
           <div className="h-8" />
           
-          {/* 验收部分 */}
           <div className="flex flex-col items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed' ? 'bg-green-500 text-white' :
@@ -274,7 +255,6 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
             </div>
           </div>
           
-          {/* 显示入库和退款完成步骤 */}
           {returnStatusFlow.slice(5).map((step, index) => {
             const stepStatus = getReturnStepStatus(step.key);
             return (
@@ -299,6 +279,43 @@ export default function ReturnFlow({ status, items }: ReturnFlowProps) {
                     {step.label}
                   </div>
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* 移动端显示 - 横向流程 */}
+      <div className="sm:hidden">
+        <div className="flex items-start justify-between">
+          {returnStatusFlow.map((step, index) => {
+            const stepStatus = getReturnStepStatus(step.key);
+            if (step.key === 'RETURN_PARTIAL_QUALIFIED' && getReturnStepStatus('RETURN_QUALIFIED') === 'completed') {
+              return null;
+            }
+            if (step.key === 'RETURN_QUALIFIED' && getReturnStepStatus('RETURN_PARTIAL_QUALIFIED') === 'completed') {
+              return null;
+            }
+            return (
+              <div key={step.key} className="flex flex-col items-center flex-1">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  stepStatus === 'completed' ? 'bg-green-500 text-white' :
+                  stepStatus === 'current' ? 'bg-orange-500 text-white' :
+                  'bg-gray-100 text-gray-400'
+                }`}>
+                  {stepStatus === 'completed' ? (
+                    <CheckCircle className="w-3 h-3" />
+                  ) : stepStatus === 'current' ? (
+                    <div className="w-3 h-3 border-2 border-white rounded-full animate-pulse" />
+                  ) : (
+                    <span className="text-[10px] font-medium">{index + 1}</span>
+                  )}
+                </div>
+                <span className={`text-[10px] font-medium mt-1 text-center ${
+                  stepStatus === 'completed' || stepStatus === 'current' ? 'text-gray-800' : 'text-gray-400'
+                }`}>
+                  {step.label}
+                </span>
               </div>
             );
           })}
