@@ -110,7 +110,7 @@ router.post('/', async (req: Request, res: Response) => {
         const address = `${order.province}${order.city}${order.address}`;
         const location = order.latitude && order.longitude 
           ? { latitude: order.latitude, longitude: order.longitude }
-          : await geocode(address, order.city);
+          : await geocode(address, order.city ?? undefined);
         return {
           order,
           address,

@@ -70,17 +70,17 @@ export default function ReturnTrackingModal({
             onTrackingNoChange={setTrackingNo}
           />
         </div>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
             取消
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !company.trim() || !trackingNo.trim()}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? '保存中...' : '保存'}
           </button>

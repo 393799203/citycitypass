@@ -78,6 +78,7 @@ interface StockItem {
   type: string;
   totalQuantity: number;
   availableQuantity: number;
+  lockedQuantity?: number;
   sku?: any;
   bundle?: any;
   skuBatch?: { id: string; batchNo: string };
@@ -110,9 +111,10 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
   };
 
   const getTotalQty = (items: StockItem[]) => {
-    const available = items.reduce((sum, i) => sum + i.availableQuantity, 0);
+    const transferable = items.reduce((sum, i) => sum + (i.totalQuantity - (i.lockedQuantity || 0)), 0);
     const total = items.reduce((sum, i) => sum + i.totalQuantity, 0);
-    return { available, total };
+    const locked = items.reduce((sum, i) => sum + (i.lockedQuantity || 0), 0);
+    return { transferable, total, locked };
   };
 
   return (
@@ -144,7 +146,7 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                 )}
               </div>
               <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                {items.length}库位 | 可用:{qty.available} | 总:{qty.total}
+                {items.length}库位 | 可移:{qty.transferable} | 总:{qty.total}{qty.locked > 0 && <span className="text-red-500"> | 锁:{qty.locked}</span>}
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -168,7 +170,7 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                     }`}
                   >
                     <span className="text-orange-600">{stock.locationFullCode}</span>
-                    <span className="ml-1 text-green-600">{stock.availableQuantity}件</span>
+                    <span className="ml-1 text-green-600">{stock.totalQuantity - (stock.lockedQuantity || 0)}件</span>
                     {(stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo) && <div className="ml-1 text-purple-600">批:{stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo}</div>}
                   </div>
                 );
@@ -195,9 +197,10 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
   });
 
   const getTotalQty = (items: StockItem[]) => {
-    const available = items.reduce((sum, i) => sum + i.availableQuantity, 0);
+    const transferable = items.reduce((sum, i) => sum + (i.totalQuantity - (i.lockedQuantity || 0)), 0);
     const total = items.reduce((sum, i) => sum + i.totalQuantity, 0);
-    return { available, total };
+    const locked = items.reduce((sum, i) => sum + (i.lockedQuantity || 0), 0);
+    return { transferable, total, locked };
   };
 
   return (
@@ -228,7 +231,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
                 )}
               </div>
               <div className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                {items.length}库位 | 可用:{qty.available} | 总:{qty.total}
+                {items.length}库位 | 可移:{qty.transferable} | 总:{qty.total}{qty.locked > 0 && <span className="text-red-500"> | 锁:{qty.locked}</span>}
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -252,7 +255,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
                     }`}
                   >
                     <span className="text-orange-600">{stock.locationFullCode}</span>
-                    <span className="ml-1 text-green-600">{stock.availableQuantity}件</span>
+                    <span className="ml-1 text-green-600">{stock.totalQuantity - (stock.lockedQuantity || 0)}件</span>
                   </div>
                 );
               })}
@@ -334,7 +337,7 @@ export default function StockTransfers() {
   }, [formWarehouseId]);
 
   useEffect(() => {
-    let stocks = allStocks.filter(s => s.availableQuantity > 0);
+    let stocks = allStocks.filter(s => s.totalQuantity > 0);
 
     if (hideSalesZone) {
       stocks = stocks.filter(s => s.zoneType !== 'STORAGE' && s.zoneType !== 'PICKING');
@@ -533,12 +536,9 @@ export default function StockTransfers() {
       toast.error('请选择商品、目标库位和数量');
       return;
     }
-    if (transferQty > selectedStock.availableQuantity) {
-      toast.error('移库数量不能超过可用数量');
-      return;
-    }
-    if (transferQty > selectedStock.totalQuantity) {
-      toast.error('移库数量不能超过总数量');
+    const maxTransferQty = selectedStock.totalQuantity - (selectedStock.lockedQuantity || 0);
+    if (transferQty > maxTransferQty) {
+      toast.error(`移库数量不能超过可移库数量 (${maxTransferQty})`);
       return;
     }
 
@@ -1031,7 +1031,7 @@ export default function StockTransfers() {
                             <input
                               type="number"
                               min="1"
-                              max={selectedStock.availableQuantity}
+                              max={selectedStock.totalQuantity - (selectedStock.lockedQuantity || 0)}
                               value={transferQty}
                               onChange={(e) => setTransferQty(parseInt(e.target.value) || 1)}
                               className="w-16 px-2 py-1 border rounded text-center text-xs"

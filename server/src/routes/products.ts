@@ -13,10 +13,12 @@ const skuSchema = z.object({
 
 const productSchema = z.object({
   name: z.string().min(1),
+  imageUrl: z.string().optional(),
   brandId: z.string().min(1),
   subCategoryId: z.string().min(1),
   ownerId: z.string().optional(),
   status: z.string().optional(),
+  isVisibleToCustomer: z.boolean().optional(),
   skus: skuSchema.array().optional(),
 });
 
@@ -564,6 +566,7 @@ router.post('/', async (req: Request, res: Response) => {
     const product = await prisma.product.create({
       data: {
         name: data.name,
+        imageUrl: data.imageUrl || null,
         brandId: data.brandId,
         subCategoryId: data.subCategoryId,
         ownerId: data.ownerId || null,
@@ -648,10 +651,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       where: { id },
       data: {
         name: data.name,
+        imageUrl: data.imageUrl || null,
         brandId: data.brandId,
         subCategoryId: data.subCategoryId,
         ownerId: data.ownerId || null,
         status: data.status,
+        isVisibleToCustomer: data.isVisibleToCustomer,
       },
       include: {
         subCategory: { include: { category: true } },

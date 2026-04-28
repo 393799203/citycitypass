@@ -31,6 +31,7 @@ const PurchaseDetail = lazy(() => import('./pages/PurchaseDetail/index'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 const SystemManage = lazy(() => import('./pages/System'));
 const Profile = lazy(() => import('./pages/Profile'));
+const QRCode = lazy(() => import('./pages/QRCode'));
 
 function PageLoader() {
   return (
@@ -86,6 +87,7 @@ function App() {
                 <Route path="knowledge-base" element={<KnowledgeBase />} />
                 <Route path="system" element={<SystemManage />} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="qrcode" element={<QRCode />} />
                 <Route path="*" element={<Navigate to="/orders" replace />} />
               </Route>
             </Route>

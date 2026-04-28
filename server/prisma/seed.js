@@ -85,6 +85,7 @@ const ROLES = [
 
 // 一级分类
 const CATEGORIES = [
+  { code: 'FRUIT', name: '水果', sortOrder: 0 },
   { code: 'WINE', name: '酒类', sortOrder: 1 },
   { code: 'BEVERAGE', name: '饮料', sortOrder: 2 },
   { code: 'FOOD', name: '食品', sortOrder: 3 },
@@ -93,6 +94,7 @@ const CATEGORIES = [
 
 // 二级分类
 const SUBCATEGORIES = [
+  { code: 'STRAWBERRY', name: '草莓', categoryCode: 'FRUIT' },
   { code: 'BAIJIU', name: '白酒', categoryCode: 'WINE' },
   { code: 'YELLOW_WINE', name: '黄酒', categoryCode: 'WINE' },
   { code: 'WINE_RED', name: '葡萄酒', categoryCode: 'WINE' },
@@ -118,6 +120,8 @@ const BRANDS = [
 
 // 规格 - 直接属于二级分类
 const SPECS = [
+  { code: 'SPEC_STRAWBERRY_5KG', name: '5斤', subCategoryCode: 'STRAWBERRY', sortOrder: 1 },
+  { code: 'SPEC_STRAWBERRY_10KG', name: '10斤', subCategoryCode: 'STRAWBERRY', sortOrder: 2 },
   { code: 'SPEC_BAIJIU_500ML', name: '500ml', subCategoryCode: 'BAIJIU', sortOrder: 1 },
   { code: 'SPEC_BAIJIU_1L', name: '1L', subCategoryCode: 'BAIJIU', sortOrder: 2 },
   { code: 'SPEC_BAIJIU_2_5L', name: '2.5L', subCategoryCode: 'BAIJIU', sortOrder: 3 },
@@ -131,6 +135,7 @@ const SPECS = [
 
 // 包装 - 直接属于二级分类
 const PACKAGINGS = [
+  { code: 'PKG_STRAWBERRY_BOX', name: '箱', subCategoryCode: 'STRAWBERRY', sortOrder: 1 },
   { code: 'PKG_BAIJIU_BOTTLE', name: '瓶', subCategoryCode: 'BAIJIU', sortOrder: 1 },
   { code: 'PKG_BAIJIU_BOX_6', name: '箱(6瓶)', subCategoryCode: 'BAIJIU', sortOrder: 2 },
   { code: 'PKG_BAIJIU_BOX_12', name: '箱(12瓶)', subCategoryCode: 'BAIJIU', sortOrder: 3 },

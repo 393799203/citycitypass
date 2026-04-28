@@ -11,9 +11,25 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const productImageDir = path.join(uploadDir, 'products');
+if (!fs.existsSync(productImageDir)) {
+  fs.mkdirSync(productImageDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `${uuidv4()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const productImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, productImageDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -42,6 +58,19 @@ const upload = multer({
   },
 });
 
+const productImageUpload = multer({
+  storage: productImageStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB限制
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('只支持 JPEG、PNG、WebP 格式的图片'));
+    }
+  },
+});
+
 router.post('/contract', upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
@@ -63,6 +92,28 @@ router.post('/contract', upload.single('file'), async (req: Request, res: Respon
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({ success: false, message: '上传失败' });
+  }
+});
+
+router.post('/product-image', productImageUpload.single('image'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: '请上传图片' });
+    }
+
+    const imageUrl = `/uploads/products/${req.file.filename}`;
+
+    res.json({
+      success: true,
+      data: {
+        url: imageUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+      },
+    });
+  } catch (error) {
+    console.error('Product image upload error:', error);
+    res.status(500).json({ success: false, message: '图片上传失败' });
   }
 });
 

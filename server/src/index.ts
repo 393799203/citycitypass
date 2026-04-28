@@ -32,8 +32,11 @@ import bundleBatchRoutes from './routes/bundleBatches';
 import purchaseOrderRoutes from './routes/purchaseOrders';
 import aiRoutes from './routes/ai';
 import permissionRoutes from './routes/permissions';
+import qrcodeRoutes from './routes/qrcode';
+import publicRoutes from './routes/public';
 import { ragService } from './services/rag';
 import { SearchMode } from './services/rag';
+import { PaymentTimeoutService } from './services/paymentTimeout';
 
 dotenv.config();
 
@@ -71,6 +74,8 @@ app.use('/api/bundle-batches', authMiddleware, ownerMiddleware, bundleBatchRoute
 app.use('/api/purchase-orders', authMiddleware, ownerMiddleware, purchaseOrderRoutes);
 app.use('/api/ai', authMiddleware, ownerMiddleware, aiRoutes);
 app.use('/api/permissions', authMiddleware, ownerMiddleware, permissionRoutes);
+app.use('/api/qrcode', authMiddleware, ownerMiddleware, qrcodeRoutes);
+app.use('/api/public', publicRoutes);
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
@@ -98,4 +103,6 @@ app.use(errorHandler);
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  
+  PaymentTimeoutService.start(1);
 });

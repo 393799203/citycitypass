@@ -171,8 +171,8 @@ export default function OrderDetail() {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setReturnModal(null)} className="px-4 py-2 border rounded-lg">取消</button>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setReturnModal(null)} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
               <button
                 onClick={async () => {
                   if (!returnReason.trim()) {
@@ -191,7 +191,7 @@ export default function OrderDetail() {
                     toast.error(error.response?.data?.message || '提交失败');
                   }
                 }}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg"
               >
                 提交
               </button>

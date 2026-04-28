@@ -23,11 +23,13 @@ interface Order {
   owner: { id: string; name: string };
   receiver: string;
   phone: string;
+  deliveryType?: 'PICKUP' | 'DELIVERY';
   province?: string;
   city?: string;
-  address: string;
+  address?: string;
   totalAmount: string;
   status: string;
+  source?: string;
   items: OrderItem[];
   createdAt: string;
   warehouse?: { id: string; name: string };
@@ -902,8 +904,8 @@ export default function OrdersPage() {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setReturnModal(null)} className="px-4 py-2 border rounded-lg">取消</button>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setReturnModal(null)} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
               <button
                 onClick={async () => {
                   if (!returnReason.trim()) {
@@ -919,7 +921,7 @@ export default function OrdersPage() {
                     toast.error(error.response?.data?.message || '创建失败');
                   }
                 }}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg"
               >
                 提交
               </button>
@@ -1036,21 +1038,30 @@ export default function OrdersPage() {
                     <Link to={`/orders/${order.id}`} className="text-primary-600 font-medium">
                       {order.orderNo}
                     </Link>
-                    <span className={`px-2 py-1 text-xs rounded border ${
-                      order.status === 'PENDING' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
-                      order.status === 'PICKING' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' :
-                      order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-50 border-purple-500 text-purple-700' :
-                      order.status === 'DISPATCHING' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
-                      order.status === 'DISPATCHED' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
-                      order.status === 'IN_TRANSIT' ? 'bg-purple-50 border-purple-500 text-purple-700' :
-                      order.status === 'DELIVERED' ? 'bg-green-50 border-green-500 text-green-700' :
-                      order.status === 'COMPLETED' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' :
-                      order.status === 'RETURNING' ? 'bg-orange-50 border-orange-500 text-orange-700' :
-                      order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
-                      'bg-gray-50 border-gray-500 text-gray-700'
-                    }`}>
-                      {statusMap[order.status]}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className={`px-2 py-1 text-xs rounded ${
+                        order.source === 'CUSTOMER' 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {order.source === 'CUSTOMER' ? '客户下单' : '系统创建'}
+                      </span>
+                      <span className={`px-2 py-1 text-xs rounded border ${
+                        order.status === 'PENDING' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
+                        order.status === 'PICKING' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' :
+                        order.status === 'OUTBOUND_REVIEW' ? 'bg-purple-50 border-purple-500 text-purple-700' :
+                        order.status === 'DISPATCHING' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
+                        order.status === 'DISPATCHED' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' :
+                        order.status === 'IN_TRANSIT' ? 'bg-purple-50 border-purple-500 text-purple-700' :
+                        order.status === 'DELIVERED' ? 'bg-green-50 border-green-500 text-green-700' :
+                        order.status === 'COMPLETED' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' :
+                        order.status === 'RETURNING' ? 'bg-orange-50 border-orange-500 text-orange-700' :
+                        order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
+                        'bg-gray-50 border-gray-500 text-gray-700'
+                      }`}>
+                        {statusMap[order.status]}
+                      </span>
+                    </div>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
                     <div className="flex items-center gap-2">
@@ -1214,6 +1225,7 @@ export default function OrdersPage() {
                 <tr>
                   <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
                   <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">主体</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">订单来源</th>
                   <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
                   <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
                   <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
@@ -1243,6 +1255,15 @@ export default function OrdersPage() {
                       <div className="truncate">{order.owner?.name}</div>
                       <div className="text-sm text-gray-400 truncate">{order.warehouse?.name}</div>
                     </td>
+                    <td className="px-2 py-4 whitespace-nowrap w-20 text-center">
+                      <span className={`px-2 py-1 text-xs rounded ${
+                        order.source === 'CUSTOMER' 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {order.source === 'CUSTOMER' ? '客户下单' : '系统创建'}
+                      </span>
+                    </td>
                     <td className="px-2 py-4 text-base w-32 text-center">
                       {(order as any).customerId && (order as any).customer ? (
                         <div className="flex flex-col items-center gap-1">
@@ -1270,9 +1291,11 @@ export default function OrdersPage() {
                       )}
                     </td>
                     <td className="px-2 py-4 text-base w-48 text-center">
-                      <div className="flex items-center justify-center gap-1 text-gray-500">
-                        <MapPin className="w-4 h-4 shrink-0 text-gray-400" />
-                        <span className="whitespace-normal">{formatAddress(order.province, order.city, order.address)}</span>
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                          <MapPin className="w-3 h-3 shrink-0 text-gray-400" />
+                          <span className="whitespace-normal">{formatAddress(order.province, order.city, order.address)}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-12 text-center">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>

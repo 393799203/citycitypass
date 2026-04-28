@@ -9,18 +9,11 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { warehouseId, skuId, bundleId, inventoryType, ownerId } = req.query;
 
-    let zoneTypeFilter: object;
-    if (inventoryType === 'sales') {
-      zoneTypeFilter = { type: { in: ['STORAGE', 'PICKING'] } };
-    } else {
-      zoneTypeFilter = {};
-    }
-
     const productStocks = await prisma.stock.findMany({
       where: {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
         ...(skuId ? { skuId: skuId as string } : {}),
-        ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
+        ...(inventoryType === 'sales' ? { availableQuantity: { gt: 0 } } : {}),
         ...(ownerId ? { warehouse: { ownerId: ownerId as string } } : {}),
       },
       include: {
@@ -46,7 +39,7 @@ router.get('/', async (req: Request, res: Response) => {
       where: {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
         ...(bundleId ? { bundleId: bundleId as string } : {}),
-        ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
+        ...(inventoryType === 'sales' ? { availableQuantity: { gt: 0 } } : {}),
         ...(ownerId ? { warehouse: { ownerId: ownerId as string } } : {}),
       },
       include: {
@@ -79,7 +72,7 @@ router.get('/', async (req: Request, res: Response) => {
     const materialStocks = await prisma.materialStock.findMany({
       where: {
         ...(warehouseId ? { warehouseId: warehouseId as string } : {}),
-        ...(inventoryType !== 'all' ? { location: { shelf: { zone: zoneTypeFilter } } } : {}),
+        ...(inventoryType === 'sales' ? { availableQuantity: { gt: 0 } } : {}),
         ...(ownerId ? { warehouse: { ownerId: ownerId as string } } : {}),
       },
       include: {
@@ -211,13 +204,7 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
     const stocks = await prisma.stock.findMany({
       where: {
         warehouseId: { in: warehouseIds },
-        location: {
-          shelf: {
-            zone: {
-              type: { in: ['STORAGE', 'PICKING'] }
-            }
-          }
-        }
+        availableQuantity: { gt: 0 }
       },
       include: {
         sku: {
@@ -234,13 +221,7 @@ router.get('/owner-stock-summary', async (req: Request, res: Response) => {
     const bundleStocks = await prisma.bundleStock.findMany({
       where: {
         warehouseId: { in: warehouseIds },
-        location: {
-          shelf: {
-            zone: {
-              type: { in: ['STORAGE', 'PICKING'] }
-            }
-          }
-        }
+        availableQuantity: { gt: 0 }
       },
       include: {
         bundle: {

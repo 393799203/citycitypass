@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { User as UserIcon, LogOut, Building2, Phone, Mail, ChevronDown, Check } from 'lucide-react';
+import { User as UserIcon, LogOut, Building2, Phone, Mail, ChevronDown, Check, QrCode, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth';
 import { useOwnerStore } from '../../stores/owner';
 import { useConfirm } from '../../components/ConfirmProvider';
 import SystemManage from '../System';
 import { formatPhone } from '../../utils/format';
 import { usePermission } from '../../hooks/usePermission';
+import { qrcodeApi } from '../../api';
+import { toast } from 'react-toastify';
 
 const Profile: React.FC = () => {
   const { user, logout, owners: authOwners } = useAuthStore();
@@ -13,6 +15,8 @@ const Profile: React.FC = () => {
   const { confirm } = useConfirm();
   const { canRead } = usePermission('system', 'system');
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [qrCodeData, setQRCodeData] = useState<{ qrCode: string; shoppingUrl: string } | null>(null);
 
   const handleLogout = async () => {
     const ok = await confirm({ message: '确定要退出登录吗？' });
@@ -21,6 +25,37 @@ const Profile: React.FC = () => {
       logoutOwner();
       window.location.href = '/login';
     }
+  };
+
+  const handleGenerateShopQRCode = async () => {
+    if (!currentOwnerId) {
+      toast.warning('请先选择主体');
+      return;
+    }
+    try {
+      const res = await qrcodeApi.getShoppingQRCode();
+      if (res.data.success) {
+        const { qrCode, shoppingUrl } = res.data.data;
+        setQRCodeData({ qrCode, shoppingUrl });
+        setShowQRCodeModal(true);
+      }
+    } catch (error: any) {
+      console.error('生成店铺二维码失败:', error);
+      toast.error(error.response?.data?.message || '生成店铺二维码失败');
+    }
+  };
+
+  const handleDownloadQRCode = () => {
+    if (!qrCodeData) return;
+    
+    const link = document.createElement('a');
+    link.href = qrCodeData.qrCode;
+    link.download = `店铺二维码_${currentOwnerName || 'shop'}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('二维码已下载');
   };
 
   const currentOwnerRole = authOwners.find(o => o.id === currentOwnerId);
@@ -124,6 +159,15 @@ const Profile: React.FC = () => {
                 )}
               </div>
             )}
+            {currentOwnerId && (
+              <button
+                onClick={handleGenerateShopQRCode}
+                className="px-3 py-2.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex-shrink-0"
+                title="生成店铺二维码"
+              >
+                <QrCode className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="px-4 py-2.5 border border-red-500 text-red-500 rounded-lg flex items-center justify-center gap-1 text-sm font-medium hover:bg-red-50 transition-colors flex-shrink-0"
@@ -139,6 +183,46 @@ const Profile: React.FC = () => {
       {canRead && (
         <div className="mt-2">
           <SystemManage />
+        </div>
+      )}
+      
+      {showQRCodeModal && qrCodeData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">店铺二维码</h3>
+              <button
+                onClick={() => {
+                  setShowQRCodeModal(false);
+                  setQRCodeData(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="text-center">
+              {currentOwnerName && (
+                <p className="text-sm text-gray-600 mb-3">{currentOwnerName}</p>
+              )}
+              <img
+                src={qrCodeData.qrCode}
+                alt="店铺二维码"
+                className="mx-auto mb-3"
+              />
+              <p className="text-xs text-gray-400 break-all mb-4">
+                扫描二维码访问店铺
+              </p>
+              
+              <button
+                onClick={handleDownloadQRCode}
+                className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                下载二维码
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

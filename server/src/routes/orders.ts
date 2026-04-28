@@ -404,14 +404,7 @@ router.post('/', async (req: Request, res: Response) => {
               where: {
                 skuId: item.skuId!,
                 warehouseId,
-                availableQuantity: { gt: 0 },
-                location: {
-                  shelf: {
-                    zone: {
-                      type: { in: ['STORAGE', 'PICKING'] }
-                    }
-                  }
-                }
+                availableQuantity: { gt: 0 }
               },
               include: isLastWarehouse ? {
                 location: {
@@ -450,14 +443,7 @@ router.post('/', async (req: Request, res: Response) => {
               where: {
                 bundleId: item.bundleId!,
                 warehouseId,
-                availableQuantity: { gt: 0 },
-                location: {
-                  shelf: {
-                    zone: {
-                      type: { in: ['STORAGE', 'PICKING'] }
-                    }
-                  }
-                }
+                availableQuantity: { gt: 0 }
               },
               include: isLastWarehouse ? {
                 location: {
@@ -511,14 +497,7 @@ async function allocateItemsToWarehouses(prisma: any, warehouses: any[], skuItem
   const stocks = await prisma.stock.findMany({
     where: {
       warehouseId: { in: warehouseIds },
-      availableQuantity: { gt: 0 },
-      location: {
-        shelf: {
-          zone: {
-            type: { in: ['STORAGE', 'PICKING'] }
-          }
-        }
-      }
+      availableQuantity: { gt: 0 }
     },
   });
 
@@ -533,14 +512,7 @@ async function allocateItemsToWarehouses(prisma: any, warehouses: any[], skuItem
   const bundleStocks = await prisma.bundleStock.findMany({
     where: {
       warehouseId: { in: warehouseIds },
-      availableQuantity: { gt: 0 },
-      location: {
-        shelf: {
-          zone: {
-            type: { in: ['STORAGE', 'PICKING'] }
-          }
-        }
-      }
+      availableQuantity: { gt: 0 }
     },
   });
 
@@ -720,14 +692,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
           where: {
             skuId: item.skuId!,
             warehouseId: warehouseId,
-            availableQuantity: { gt: 0 },
-            location: {
-              shelf: {
-                zone: {
-                  type: { in: ['STORAGE', 'PICKING'] }
-                }
-              }
-            }
+            availableQuantity: { gt: 0 }
           },
           include: {
             location: {
@@ -763,14 +728,7 @@ async function createSingleWarehouseOrder(prisma: any, data: any, totalAmount: n
           where: {
             bundleId: item.bundleId!,
             warehouseId: warehouseId,
-            availableQuantity: { gt: 0 },
-            location: {
-              shelf: {
-                zone: {
-                  type: { in: ['STORAGE', 'PICKING'] }
-                }
-              }
-            }
+            availableQuantity: { gt: 0 }
           },
           include: {
             location: {

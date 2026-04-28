@@ -59,9 +59,9 @@ export default function QualifyModal({
             ))}
           </tbody>
         </table>
-        <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 border rounded-lg">取消</button>
-          <button onClick={onSubmit} className="px-4 py-2 bg-green-600 text-white rounded-lg">确认验收</button>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
+          <button onClick={onSubmit} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg">确认验收</button>
         </div>
       </div>
     </div>

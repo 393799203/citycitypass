@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const CATEGORY_CODE_MAP: Record<string, string> = {
   'BAIJIU': 'BAIX',
@@ -110,7 +109,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, packaging, spec, price, items, status, ownerId } = req.body;
+    const { name, imageUrl, packaging, spec, price, items, status, ownerId, isVisibleToCustomer } = req.body;
 
     if (!name || !price) {
       return res.status(400).json({ success: false, message: '请填写必填字段' });
@@ -126,10 +125,12 @@ router.post('/', async (req: Request, res: Response) => {
       data: {
         name,
         skuCode,
+        imageUrl: imageUrl || null,
         packaging: packaging || '',
         spec: spec || '',
         price,
         status: status || 'ACTIVE',
+        isVisibleToCustomer: isVisibleToCustomer !== undefined ? isVisibleToCustomer : true,
         ownerId: ownerId || null,
         items: {
           create: items.map((item: any) => ({
@@ -161,7 +162,9 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, packaging, spec, price, items, status, ownerId } = req.body;
+    const { name, imageUrl, packaging, spec, price, items, status, ownerId, isVisibleToCustomer } = req.body;
+    
+    console.log('[Bundle Update] Request body:', { id, isVisibleToCustomer, body: req.body });
 
     const existing = await prisma.bundleSKU.findUnique({ where: { id } });
     if (!existing) {
@@ -174,10 +177,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       where: { id },
       data: {
         name,
+        imageUrl: imageUrl || null,
         packaging,
         spec,
         price,
         status,
+        isVisibleToCustomer: isVisibleToCustomer !== undefined ? isVisibleToCustomer : true,
         ownerId: ownerId || null,
         items: {
           create: items.map((item: any) => ({
@@ -198,6 +203,8 @@ router.put('/:id', async (req: Request, res: Response) => {
         }
       }
     });
+    
+    console.log('[Bundle Update] Updated bundle:', { id: bundle.id, isVisibleToCustomer: bundle.isVisibleToCustomer });
 
     res.json({ success: true, data: bundle });
   } catch (error) {

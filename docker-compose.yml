@@ -27,12 +27,13 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-zlai}:${POSTGRES_PASSWORD:-zlai123}@db:5432/${POSTGRES_DB:-zlai}
-      PORT: 3001
+      PORT: 3002
       JWT_SECRET: ${JWT_SECRET:-Yx9kP2mQ3nL5wB7vF8rT1hJ4sD6eR0gH}
       AMAP_KEY: ${AMAP_KEY:-b4a9ed33784ddcfb7265d1e1b988cc75}
       DEPLOY_MODE: ${DEPLOY_MODE:-normal}
+      SHOPPING_BASE_URL: ${SHOPPING_BASE_URL}
     ports:
-      - "3001:3001"
+      - "3002:3002"
     depends_on:
       db:
         condition: service_healthy
@@ -43,10 +44,25 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        - API_BASE_URL=${API_BASE_URL:-http://localhost:3002}
     container_name: zlai-client
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "3000:80"
+    depends_on:
+      - server
+
+  shop-client:
+    build:
+      context: ./shop-client
+      dockerfile: Dockerfile
+      args:
+        - API_BASE_URL=${API_BASE_URL:-http://localhost:3002}
+    container_name: zlai-shop-client
+    restart: unless-stopped
+    ports:
+      - "3001:80"
     depends_on:
       - server
 

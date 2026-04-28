@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { productApi, bundleApi, warehouseApi, stockApi } from '../api';
+import { productApi, bundleApi, warehouseApi, stockApi, qrcodeApi } from '../api';
+import api from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus, RefreshCw, Database } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Package, Warehouse, Minus, RefreshCw, Database, QrCode, Image as ImageIcon, Upload, Layers } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
 import OwnerStamp from '../components/OwnerStamp';
 import { useOwnerStore } from '../stores/owner';
@@ -12,6 +13,7 @@ import { usePermission } from '../hooks/usePermission';
 interface Product {
   id: string;
   name: string;
+  imageUrl?: string;
   brandId: string;
   brand: { id: string; name: string; code?: string };
   subCategoryId: string;
@@ -19,6 +21,7 @@ interface Product {
   ownerId?: string;
   owner?: { id: string; name: string };
   status: string;
+  isVisibleToCustomer?: boolean;
   skus: SKU[];
 }
 
@@ -35,11 +38,13 @@ interface Bundle {
   ownerId?: string;
   owner?: { id: string; name: string };
   name: string;
+  imageUrl?: string;
   skuCode?: string;
   packaging: string;
   spec: string;
   price: string;
   status: string;
+  isVisibleToCustomer?: boolean;
   items: BundleItem[];
 }
 
@@ -125,6 +130,8 @@ export default function ProductsPage() {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [bundleStocks, setBundleStocks] = useState<any[]>([]);
   const [productStocks, setProductStocks] = useState<any[]>([]);
   const [stockLoading, setStockLoading] = useState(false);
@@ -132,13 +139,17 @@ export default function ProductsPage() {
   const [stockZones, setStockZones] = useState<any[]>([]);
   const [stockShelves, setStockShelves] = useState<any[]>([]);
   const [stockLocations, setStockLocations] = useState<any[]>([]);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [qrCodeData, setQRCodeData] = useState<{ qrCode: string; shoppingUrl: string; productName?: string } | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
+    imageUrl: '',
     brandId: '',
     subCategoryId: '',
     ownerId: '',
     status: 'ACTIVE',
+    isVisibleToCustomer: true,
     skus: [{ packaging: '', spec: '', price: '' }],
   });
 
@@ -147,10 +158,12 @@ export default function ProductsPage() {
 
   const [bundleFormData, setBundleFormData] = useState({
     name: '',
+    imageUrl: '',
     packaging: '礼盒',
     spec: '组合',
     price: '',
     status: 'ACTIVE',
+    isVisibleToCustomer: true,
     ownerId: '',
     items: [] as { skuId: string; quantity: number }[],
   });
@@ -297,9 +310,11 @@ export default function ProductsPage() {
 
   const handleBundleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Bundle Submit] bundleFormData:', bundleFormData);
     try {
       if (editingId) {
-        await bundleApi.update(editingId, bundleFormData);
+        const res = await bundleApi.update(editingId, bundleFormData);
+        console.log('[Bundle Submit] Update response:', res.data);
         toast.success('更新成功');
       } else {
         await bundleApi.create(bundleFormData);
@@ -309,6 +324,7 @@ export default function ProductsPage() {
       resetBundleForm();
       fetchData();
     } catch (error: any) {
+      console.error('[Bundle Submit] Error:', error);
       toast.error(error.response?.data?.message || '操作失败');
     }
   };
@@ -340,10 +356,12 @@ export default function ProductsPage() {
     // 设置 formData（会触发 useEffect，但编辑模式下不应清空）
     setFormData({
       name: product.name,
+      imageUrl: product.imageUrl || '',
       brandId: product.brandId,
       subCategoryId: subCategoryId,
       ownerId: product.ownerId || '',
       status: product.status,
+      isVisibleToCustomer: product.isVisibleToCustomer ?? true,
       skus: product.skus.length > 0 ? product.skus : [{ packaging: '', spec: '', price: '' }],
     });
 
@@ -359,10 +377,12 @@ export default function ProductsPage() {
   const handleBundleEdit = (bundle: Bundle) => {
     setBundleFormData({
       name: bundle.name,
+      imageUrl: bundle.imageUrl || '',
       packaging: bundle.packaging || '礼盒',
       spec: bundle.spec || '组合',
       price: bundle.price,
       status: bundle.status,
+      isVisibleToCustomer: bundle.isVisibleToCustomer ?? true,
       ownerId: (bundle as any).ownerId || '',
       items: bundle.items.map(i => ({ skuId: i.skuId, quantity: i.quantity })),
     });
@@ -394,8 +414,35 @@ export default function ProductsPage() {
     }
   };
 
+  const handleGenerateQRCode = async (productId: string, productName?: string) => {
+    try {
+      const res = await qrcodeApi.getShoppingQRCode(productId);
+      if (res.data.success) {
+        const { qrCode, shoppingUrl } = res.data.data;
+        setQRCodeData({ qrCode, shoppingUrl, productName });
+        setShowQRCodeModal(true);
+      }
+    } catch (error: any) {
+      console.error('生成二维码失败:', error);
+      toast.error(error.response?.data?.message || '生成二维码失败');
+    }
+  };
+
+  const handleDownloadQRCode = () => {
+    if (!qrCodeData) return;
+    
+    const link = document.createElement('a');
+    link.href = qrCodeData.qrCode;
+    link.download = `商品二维码_${qrCodeData.productName || 'product'}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('二维码已下载');
+  };
+
   const resetForm = () => {
-    setFormData({ name: '', brandId: '', subCategoryId: '', ownerId: filterOwner, status: 'ACTIVE', skus: [{ packaging: '', spec: '', price: '' }] });
+    setFormData({ name: '', imageUrl: '', brandId: '', subCategoryId: '', ownerId: filterOwner, status: 'ACTIVE', isVisibleToCustomer: true, skus: [{ packaging: '', spec: '', price: '' }] });
     setFilteredBrands([]);
     setFilteredSubCategories([]);
     setFormCategoryId('');
@@ -403,8 +450,54 @@ export default function ProductsPage() {
   };
 
   const resetBundleForm = () => {
-    setBundleFormData({ name: '', packaging: '礼盒', spec: '组合', price: '', status: 'ACTIVE', ownerId: filterOwner, items: [] });
+    setBundleFormData({ name: '', imageUrl: '', packaging: '礼盒', spec: '组合', price: '', status: 'ACTIVE', isVisibleToCustomer: true, ownerId: filterOwner, items: [] });
     setEditingId(null);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('图片大小不能超过5MB');
+      return;
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+      toast.error('只支持 JPEG、PNG、WebP 格式的图片');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('image', file);
+
+      const response = await api.post('/upload/product-image', formDataObj, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        if (activeTab === 'product') {
+          setFormData({ ...formData, imageUrl: response.data.data.url });
+        } else {
+          setBundleFormData({ ...bundleFormData, imageUrl: response.data.data.url });
+        }
+        toast.success('图片上传成功');
+      } else {
+        toast.error(response.data.message || '图片上传失败');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('图片上传失败');
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
   };
 
   const handleSpecChange = async (newSpec: string) => {
@@ -606,35 +699,62 @@ export default function ProductsPage() {
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map(product => (
-              <div key={product.id} className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white relative overflow-hidden">
+              <div 
+                key={product.id} 
+                className="border border-blue-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white relative overflow-hidden"
+                style={product.imageUrl ? {
+                  backgroundImage: `linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)), url(${product.imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                } : {}}
+              >
                 {product.owner?.name && (
                   <OwnerStamp name={product.owner.name} />
                 )}
                 <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-5 h-5 text-blue-500" />
-                      <h3 className="font-bold text-lg">{product.name}</h3>
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 flex items-center justify-center border-2 border-white shadow-sm">
+                      {product.imageUrl ? (
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="w-6 h-6 text-blue-400" />
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      {product.brand?.name && (
-                        <span className="px-2 py-0.5 text-xs rounded-full border border-blue-300 bg-blue-100 text-blue-700">
-                          {product.brand.name}
-                        </span>
-                      )}
-                      {product.subCategory?.category?.name && (
-                        <span
-                          className="px-2 py-0.5 text-xs rounded-full border"
-                          style={getCategoryStyle(product.subCategory.category.name)}
-                        >
-                          {product.subCategory.category.name}
-                        </span>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-lg truncate">{product.name}</h3>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {product.brand?.name && (
+                          <span className="px-2 py-0.5 text-xs rounded-full border border-blue-300 bg-blue-100 text-blue-700">
+                            {product.brand.name}
+                          </span>
+                        )}
+                        {product.subCategory?.category?.name && (
+                          <span
+                            className="px-2 py-0.5 text-xs rounded-full border"
+                            style={getCategoryStyle(product.subCategory.category.name)}
+                          >
+                            {product.subCategory.category.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded font-medium ${product.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {product.status === 'ACTIVE' ? '在售' : '停售'}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`px-2 py-1 text-xs rounded font-medium ${product.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {product.status === 'ACTIVE' ? '在售' : '停售'}
+                    </span>
+                    {product.isVisibleToCustomer === false && (
+                      <span className="px-2 py-1 text-xs rounded font-medium bg-red-100 text-red-700 whitespace-nowrap">
+                        对客户隐藏
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f0f4f8' }}>
                   <div className="text-sm text-gray-600">
@@ -666,6 +786,13 @@ export default function ProductsPage() {
                     <Pencil className="w-4 h-4" />
                     编辑
                   </button>
+                  <button
+                    onClick={() => handleGenerateQRCode(product.id, product.name)}
+                    className="px-3 py-2 border border-blue-200 text-blue-600 rounded-lg text-sm hover:bg-blue-50"
+                    title="生成商品二维码"
+                  >
+                    <QrCode className="w-4 h-4" />
+                  </button>
                   {canWrite && (
                     <button
                       onClick={() => handleDelete(product.id)}
@@ -689,22 +816,49 @@ export default function ProductsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {bundles.map(bundle => (
-              <div key={bundle.id} className="border border-purple-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white relative">
+              <div 
+                key={bundle.id} 
+                className="border border-purple-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white relative overflow-hidden"
+                style={bundle.imageUrl ? {
+                  backgroundImage: `linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)), url(${bundle.imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                } : {}}
+              >
                 {bundle.owner?.name && (
                   <OwnerStamp name={bundle.owner.name} />
                 )}
                 <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-5 h-5 text-purple-500" />
-                      <h3 className="font-bold text-lg">{bundle.name}</h3>
-                      {bundle.skuCode && <span className="text-xs text-gray-400">({bundle.skuCode})</span>}
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 flex items-center justify-center border-2 border-white shadow-sm">
+                      {bundle.imageUrl ? (
+                        <img 
+                          src={bundle.imageUrl} 
+                          alt={bundle.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Layers className="w-6 h-6 text-purple-400" />
+                      )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">{bundle.packaging} · {bundle.spec}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-lg truncate">{bundle.name}</h3>
+                        {bundle.skuCode && <span className="text-xs text-gray-400">({bundle.skuCode})</span>}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{bundle.packaging} · {bundle.spec}</p>
+                    </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded font-medium ${bundle.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {bundle.status === 'ACTIVE' ? '在售' : '停售'}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`px-2 py-1 text-xs rounded font-medium ${bundle.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {bundle.status === 'ACTIVE' ? '在售' : '停售'}
+                    </span>
+                    {bundle.isVisibleToCustomer === false && (
+                      <span className="px-2 py-1 text-xs rounded font-medium bg-red-100 text-red-700 whitespace-nowrap">
+                        对客户隐藏
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-xl font-bold text-purple-600 mb-3">
                   <span>¥{Number(bundle.price).toFixed(2)}</span>
@@ -832,6 +986,67 @@ export default function ProductsPage() {
                       required
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">商品图片</label>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        {formData.imageUrl ? (
+                          <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                            <img 
+                              src={formData.imageUrl} 
+                              alt="商品图片" 
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => imageInputRef.current?.click()}
+                            className="w-32 h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-gray-50 transition-colors"
+                          >
+                            {uploadingImage ? (
+                              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                            ) : (
+                              <>
+                                <Upload className="w-8 h-8 text-gray-400" />
+                                <span className="text-xs text-gray-500 mt-1">上传图片</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <input
+                          ref={imageInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg,image/webp"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        <p>• 支持 JPEG、PNG、WebP 格式</p>
+                        <p>• 图片大小不超过 5MB</p>
+                        <p>• 建议尺寸 800x800px</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <input
+                      type="checkbox"
+                      id="isVisibleToCustomer"
+                      checked={formData.isVisibleToCustomer}
+                      onChange={e => setFormData({ ...formData, isVisibleToCustomer: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="isVisibleToCustomer" className="text-sm text-gray-700">
+                      对客户可见（在客户购物页面显示此商品）
+                    </label>
+                  </div>
                 </div>
 
                 <div className="bg-purple-50 rounded-lg p-4">
@@ -910,6 +1125,55 @@ export default function ProductsPage() {
                           className="flex-1 w-20 px-2 py-2 border rounded-lg text-sm"
                           required
                         />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">套装图片</label>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        {bundleFormData.imageUrl ? (
+                          <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                            <img 
+                              src={bundleFormData.imageUrl} 
+                              alt="套装图片" 
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setBundleFormData({ ...bundleFormData, imageUrl: '' })}
+                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => imageInputRef.current?.click()}
+                            className="w-32 h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                          >
+                            {uploadingImage ? (
+                              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                            ) : (
+                              <>
+                                <Upload className="w-8 h-8 text-gray-400" />
+                                <span className="text-xs text-gray-500 mt-1">上传图片</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <input
+                          ref={imageInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg,image/webp"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        <p>• 支持 JPEG、PNG、WebP 格式</p>
+                        <p>• 图片大小不超过 5MB</p>
+                        <p>• 建议尺寸 800x800px</p>
                       </div>
                     </div>
                   </div>
@@ -1028,6 +1292,18 @@ export default function ProductsPage() {
                     </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <input
+                    type="checkbox"
+                    id="bundleIsVisibleToCustomer"
+                    checked={bundleFormData.isVisibleToCustomer}
+                    onChange={e => setBundleFormData({ ...bundleFormData, isVisibleToCustomer: e.target.checked })}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label htmlFor="bundleIsVisibleToCustomer" className="text-sm text-gray-700">
+                    对客户可见（在客户购物页面显示此套装）
+                  </label>
+                </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button type="button" onClick={() => { setShowModal(false); resetBundleForm(); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50">取消</button>
                   <button type="submit" className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">保存</button>
@@ -1125,6 +1401,46 @@ export default function ProductsPage() {
                 ) : (
                 <div className="text-center py-8 text-gray-500">请选择一个商品或套装</div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {showQRCodeModal && qrCodeData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">商品二维码</h3>
+              <button
+                onClick={() => {
+                  setShowQRCodeModal(false);
+                  setQRCodeData(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="text-center">
+              {qrCodeData.productName && (
+                <p className="text-sm text-gray-600 mb-3">{qrCodeData.productName}</p>
+              )}
+              <img
+                src={qrCodeData.qrCode}
+                alt="商品二维码"
+                className="mx-auto mb-3"
+              />
+              <p className="text-xs text-gray-400 break-all mb-4">
+                扫描二维码访问商品页面
+              </p>
+              
+              <button
+                onClick={handleDownloadQRCode}
+                className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                下载二维码
+              </button>
             </div>
           </div>
         </div>

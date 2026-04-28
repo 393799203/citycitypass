@@ -60,11 +60,11 @@ export default function CreateReturnModal({
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex gap-3 mt-6">
           <button onClick={() => {
             onClose();
-          }} className="px-4 py-2 border rounded-lg">取消</button>
-          <button onClick={onSubmit} className="px-4 py-2 bg-primary-600 text-white rounded-lg">提交</button>
+          }} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
+          <button onClick={onSubmit} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg">提交</button>
         </div>
       </div>
     </div>

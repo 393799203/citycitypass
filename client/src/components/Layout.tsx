@@ -7,7 +7,6 @@ import { useAuthStore } from '../stores/auth';
 import { useOwnerStore } from '../stores/owner';
 import { ownerApi, authApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
-import { ROLE_NAMES } from '../pages/System/types';
 import { Loader2 } from 'lucide-react';
 import {
   Bot as LogoIcon,
@@ -37,6 +36,7 @@ import {
   PlayCircle,
   X,
   User,
+  QrCode,
 } from 'lucide-react';
 
 import { MENU_ITEMS } from '../constants/menus';
@@ -57,6 +57,7 @@ const MenuIconMap: Record<string, any> = {
   '/customers': Users,
   '/suppliers': Users,
   '/carriers': Factory,
+  '/qrcode': QrCode,
   '/system': Settings,
 };
 
@@ -160,7 +161,7 @@ export default function Layout() {
   );
 
   const configMenuItems = filteredMenuItems.filter(item =>
-    ['/warehouses', '/products', '/customers', '/suppliers', '/carriers'].includes(item.path)
+    ['/warehouses', '/products', '/customers', '/suppliers', '/carriers', '/qrcode'].includes(item.path)
   );
 
   const adminMenuItems = filteredMenuItems.filter(item =>
@@ -175,7 +176,7 @@ export default function Layout() {
 
   const canGoBack = !showOwnerGuard && !['/orders', '/inventory', '/outbound', '/inbound', '/stock-transfers', '/batch-trace',
       '/owners', '/warehouses', '/products', '/customers', '/suppliers', '/transport',
-      '/carriers', '/dispatch', '/returns', '/purchases', '/system', '/knowledge-base'].includes(location.pathname);
+      '/carriers', '/dispatch', '/returns', '/purchases', '/system', '/knowledge-base', '/qrcode'].includes(location.pathname);
 
   const handleLogout = () => {
     logout();

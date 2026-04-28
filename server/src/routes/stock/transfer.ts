@@ -3,6 +3,24 @@ import prisma from '../../lib/prisma';
 
 const router = Router();
 
+async function getLocationZoneType(tx: any, locationId: string): Promise<string | null> {
+  const location = await tx.location.findUnique({
+    where: { id: locationId },
+    include: {
+      shelf: {
+        include: {
+          zone: true
+        }
+      }
+    }
+  });
+  return location?.shelf?.zone?.type || null;
+}
+
+function isSalesZone(zoneType: string | null): boolean {
+  return zoneType === 'STORAGE' || zoneType === 'PICKING';
+}
+
 async function cleanupEmptyStockLocations(tx: any, locationId: string) {
   const stock = await tx.stock.findFirst({
     where: { locationId, totalQuantity: 0 },
@@ -162,10 +180,11 @@ router.post('/', async (req: Request, res: Response) => {
           },
         });
 
-        if (!stock || stock.availableQuantity < item.quantity) {
+        const maxTransferQty = stock ? stock.totalQuantity - (stock.lockedQuantity || 0) : 0;
+        if (!stock || maxTransferQty < item.quantity) {
           return res.status(400).json({
             success: false,
-            message: `商品库存不足或已被锁定，当前可移库数量：${stock?.availableQuantity || 0}`,
+            message: `商品库存不足或已被锁定，当前可移库数量：${maxTransferQty}`,
           });
         }
       } else if (item.itemType === 'BUNDLE' && item.bundleId && item.fromLocationId) {
@@ -185,10 +204,11 @@ router.post('/', async (req: Request, res: Response) => {
           },
         });
 
-        if (!bundleStock || bundleStock.availableQuantity < item.quantity) {
+        const maxTransferQty = bundleStock ? bundleStock.totalQuantity - (bundleStock.lockedQuantity || 0) : 0;
+        if (!bundleStock || maxTransferQty < item.quantity) {
           return res.status(400).json({
             success: false,
-            message: `套装库存不足或已被锁定，当前可移库数量：${bundleStock?.availableQuantity || 0}`,
+            message: `套装库存不足或已被锁定，当前可移库数量：${maxTransferQty}`,
           });
         }
       }
@@ -270,13 +290,16 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
             },
           });
 
-          if (!fromStock || fromStock.availableQuantity < item.quantity) {
-            const available = fromStock?.availableQuantity || 0;
-            throw new Error(`商品库存不足: ${item.skuId} 在 ${item.fromLocationId} 可用库存 ${available}，需要移出 ${item.quantity}`);
+          const maxTransferQty = fromStock ? fromStock.totalQuantity - (fromStock.lockedQuantity || 0) : 0;
+          if (!fromStock || maxTransferQty < item.quantity) {
+            throw new Error(`商品库存不足: ${item.skuId} 在 ${item.fromLocationId} 可移库数量 ${maxTransferQty}，需要移出 ${item.quantity}`);
           }
 
+          const fromZoneType = item.fromLocationId ? await getLocationZoneType(tx, item.fromLocationId) : null;
+          const fromAvailableDec = isSalesZone(fromZoneType) ? item.quantity : 0;
+
           const newTotal = fromStock.totalQuantity - item.quantity;
-          const newAvailable = fromStock.availableQuantity - item.quantity;
+          const newAvailable = fromStock.availableQuantity - fromAvailableDec;
           if (newTotal <= 0) {
             await tx.stock.delete({ where: { id: fromStock.id } });
             if (item.fromLocationId) {
@@ -287,10 +310,13 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               where: { id: fromStock.id },
               data: {
                 totalQuantity: newTotal,
-                availableQuantity: newAvailable,
+                availableQuantity: Math.max(0, newAvailable),
               },
             });
           }
+
+          const toZoneType = item.toLocationId ? await getLocationZoneType(tx, item.toLocationId) : null;
+          const toAvailableQty = isSalesZone(toZoneType) ? item.quantity : 0;
 
           let toStock = await tx.stock.findFirst({
             where: {
@@ -306,7 +332,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               where: { id: toStock.id },
               data: {
                 totalQuantity: { increment: item.quantity },
-                availableQuantity: { increment: item.quantity },
+                availableQuantity: { increment: toAvailableQty },
               },
             });
           } else {
@@ -317,7 +343,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
                 locationId: item.toLocationId || undefined,
                 skuBatchId: item.skuBatchId || '',
                 totalQuantity: item.quantity,
-                availableQuantity: item.quantity,
+                availableQuantity: toAvailableQty,
               },
             });
           }
@@ -331,14 +357,17 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
             },
           });
 
-          if (!fromBundleStock || fromBundleStock.availableQuantity < item.quantity) {
-            const available = fromBundleStock?.availableQuantity || 0;
-            throw new Error(`套装库存不足: ${item.bundleId} 在 ${item.fromLocationId} 可用库存 ${available}，需要移出 ${item.quantity}`);
+          const maxTransferQty = fromBundleStock ? fromBundleStock.totalQuantity - (fromBundleStock.lockedQuantity || 0) : 0;
+          if (!fromBundleStock || maxTransferQty < item.quantity) {
+            throw new Error(`套装库存不足: ${item.bundleId} 在 ${item.fromLocationId} 可移库数量 ${maxTransferQty}，需要移出 ${item.quantity}`);
           }
 
           if (fromBundleStock) {
+            const fromZoneType = item.fromLocationId ? await getLocationZoneType(tx, item.fromLocationId) : null;
+            const fromAvailableDec = isSalesZone(fromZoneType) ? item.quantity : 0;
+
             const newTotal = fromBundleStock.totalQuantity - item.quantity;
-            const newAvailable = fromBundleStock.availableQuantity - item.quantity;
+            const newAvailable = fromBundleStock.availableQuantity - fromAvailableDec;
             if (newTotal <= 0) {
               await tx.bundleStock.delete({ where: { id: fromBundleStock.id } });
               if (item.fromLocationId) {
@@ -349,11 +378,14 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
                 where: { id: fromBundleStock.id },
                 data: {
                   totalQuantity: newTotal,
-                  availableQuantity: newAvailable,
+                  availableQuantity: Math.max(0, newAvailable),
                 },
               });
             }
           }
+
+          const toZoneType = item.toLocationId ? await getLocationZoneType(tx, item.toLocationId) : null;
+          const toAvailableQty = isSalesZone(toZoneType) ? item.quantity : 0;
 
           let toBundleStock = await tx.bundleStock.findFirst({
             where: {
@@ -369,7 +401,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
               where: { id: toBundleStock.id },
               data: {
                 totalQuantity: { increment: item.quantity },
-                availableQuantity: { increment: item.quantity },
+                availableQuantity: { increment: toAvailableQty },
               },
             });
           } else {
@@ -380,7 +412,7 @@ router.put('/:id/execute', async (req: Request, res: Response) => {
                 locationId: item.toLocationId || undefined,
                 bundleBatchId: item.bundleBatchId || '',
                 totalQuantity: item.quantity,
-                availableQuantity: item.quantity,
+                availableQuantity: toAvailableQty,
               },
             });
           }
@@ -432,6 +464,9 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
 
         for (const item of transferWithItems!.items) {
           if (item.itemType === 'PRODUCT' && item.skuId) {
+            const toZoneType = item.toLocationId ? await getLocationZoneType(tx, item.toLocationId) : null;
+            const toAvailableQty = isSalesZone(toZoneType) ? item.quantity : 0;
+
             const toStock = await tx.stock.findFirst({
               where: {
                 skuId: item.skuId,
@@ -446,10 +481,13 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 where: { id: toStock.id },
                 data: {
                   totalQuantity: { decrement: item.quantity },
-                  availableQuantity: { decrement: item.quantity },
+                  availableQuantity: { decrement: toAvailableQty },
                 },
               });
             }
+
+            const fromZoneType = item.fromLocationId ? await getLocationZoneType(tx, item.fromLocationId) : null;
+            const fromAvailableQty = isSalesZone(fromZoneType) ? item.quantity : 0;
 
             const fromStock = await tx.stock.findFirst({
               where: {
@@ -465,7 +503,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 where: { id: fromStock.id },
                 data: {
                   totalQuantity: { increment: item.quantity },
-                  availableQuantity: { increment: item.quantity },
+                  availableQuantity: { increment: fromAvailableQty },
                 },
               });
             } else {
@@ -476,12 +514,15 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                   locationId: item.fromLocationId || undefined,
                   skuBatchId: item.skuBatchId || '',
                   totalQuantity: item.quantity,
-                  availableQuantity: item.quantity,
+                  availableQuantity: fromAvailableQty,
                   lockedQuantity: 0,
                 },
               });
             }
           } else if (item.itemType === 'BUNDLE' && item.bundleId) {
+            const toZoneType = item.toLocationId ? await getLocationZoneType(tx, item.toLocationId) : null;
+            const toAvailableQty = isSalesZone(toZoneType) ? item.quantity : 0;
+
             const toBundleStock = await tx.bundleStock.findFirst({
               where: {
                 bundleId: item.bundleId,
@@ -496,10 +537,13 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 where: { id: toBundleStock.id },
                 data: {
                   totalQuantity: { decrement: item.quantity },
-                  availableQuantity: { decrement: item.quantity },
+                  availableQuantity: { decrement: toAvailableQty },
                 },
               });
             }
+
+            const fromZoneType = item.fromLocationId ? await getLocationZoneType(tx, item.fromLocationId) : null;
+            const fromAvailableQty = isSalesZone(fromZoneType) ? item.quantity : 0;
 
             const fromBundleStock = await tx.bundleStock.findFirst({
               where: {
@@ -515,7 +559,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                 where: { id: fromBundleStock.id },
                 data: {
                   totalQuantity: { increment: item.quantity },
-                  availableQuantity: { increment: item.quantity },
+                  availableQuantity: { increment: fromAvailableQty },
                 },
               });
             } else {
@@ -526,7 +570,7 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
                   locationId: item.fromLocationId || undefined,
                   bundleBatchId: item.bundleBatchId || '',
                   totalQuantity: item.quantity,
-                  availableQuantity: item.quantity,
+                  availableQuantity: fromAvailableQty,
                   lockedQuantity: 0,
                 },
               });

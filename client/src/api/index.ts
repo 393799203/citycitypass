@@ -396,3 +396,9 @@ export const supplierMaterialApi = {
   update: (id: string, data: any) => api.put(`/supplier-materials/${id}`, data),
   delete: (id: string) => api.delete(`/supplier-materials/${id}`),
 };
+
+export const qrcodeApi = {
+  getShoppingQRCode: (productId?: string) => api.get('/qrcode/shopping', {
+    params: productId ? { productId } : undefined
+  }),
+};

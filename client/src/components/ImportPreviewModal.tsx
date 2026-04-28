@@ -450,22 +450,22 @@ ${rawRows}
           )}
         </div>
 
-        <div className="flex items-center justify-between p-4 border-t bg-gray-50">
-          <button onClick={onCancel} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg">
-            取消
-          </button>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">
-              将导入 {validCount} 条有效订单
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-t bg-gray-50">
+          <div className="flex gap-3 sm:order-2">
+            <button onClick={onCancel} className="flex-1 sm:flex-initial px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg">
+              取消
+            </button>
             <button
               onClick={handleConfirm}
               disabled={validCount === 0}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-initial px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               确认导入
             </button>
           </div>
+          <span className="text-sm text-gray-500 sm:order-1">
+            将导入 {validCount} 条有效订单
+          </span>
         </div>
       </div>
     </div>

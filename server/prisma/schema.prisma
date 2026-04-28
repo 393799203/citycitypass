@@ -168,6 +168,29 @@ enum OrderStatus {
   CANCELLED     // 已取消
 }
 
+enum OrderSource {
+  SYSTEM    // 系统创建
+  CUSTOMER  // 客户下单
+}
+
+enum DeliveryType {
+  PICKUP    // 自取
+  DELIVERY  // 配送
+}
+
+enum PaymentMethod {
+  WECHAT    // 微信支付
+  ALIPAY    // 支付宝
+}
+
+enum PaymentStatus {
+  PENDING     // 待支付
+  SUCCESS     // 支付成功
+  FAILED      // 支付失败
+  TIMEOUT     // 支付超时
+  CANCELLED   // 已取消
+}
+
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
@@ -489,12 +512,15 @@ model Product {
   ownerId        String?
   owner          Owner?   @relation(fields: [ownerId], references: [id])
   name           String
+  imageUrl       String?  // 商品主图URL
   brandId        String
   brand          ProductBrand @relation(fields: [brandId], references: [id])
   subCategoryId  String
   subCategory    ProductSubCategory @relation(fields: [subCategoryId], references: [id])
   status         String   @default("ACTIVE")
+  isVisibleToCustomer Boolean @default(true)  // 是否对客户可见
   skus           ProductSKU[]
+  carts          Cart[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -525,6 +551,7 @@ model ProductSKU {
   skuBatches  SKUBatch[]
   purchaseOrderItems PurchaseOrderItem[]
   supplierProducts SupplierProduct[]
+  carts       Cart[]
 }
 
 model BundleSKU {
@@ -536,8 +563,9 @@ model BundleSKU {
   packaging   String
   spec        String
   price       Decimal  @db.Decimal(10, 2)
-  image       String?
+  imageUrl    String?  // 套装主图URL
   status      String   @default("ACTIVE")
+  isVisibleToCustomer Boolean @default(true)  // 是否对客户可见
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   items       BundleSKUItem[]
@@ -551,6 +579,7 @@ model BundleSKU {
   bundleBatches BundleBatch[]
   supplierProducts SupplierProduct[]
   purchaseOrderItems PurchaseOrderItem[]
+  carts       Cart[]
 }
 
 model BundleSKUItem {
@@ -648,14 +677,24 @@ model Order {
   customer    Customer?   @relation(fields: [customerId], references: [id])
   receiver    String
   phone       String
-  province    String
-  city        String
-  address     String
+  deliveryType DeliveryType @default(PICKUP)  // 配送方式：PICKUP-自取，DELIVERY-配送
+  province    String?
+  city        String?
+  address     String?
   latitude    Float?      // 纬度
   longitude   Float?      // 经度
   totalAmount Decimal     @db.Decimal(12, 2)
   contractDiscount Float?  // 客户协议折扣，如 0.8 表示 8折
+  source      OrderSource @default(SYSTEM)  // 订单来源
   status      OrderStatus @default(PENDING)
+  
+  // 支付相关字段
+  paymentMethod   PaymentMethod?   // 支付方式
+  paymentStatus   PaymentStatus?   // 支付状态
+  paymentId       String?          // 第三方支付ID
+  paidAt          DateTime?        // 支付时间
+  paymentTimeoutAt DateTime?       // 支付超时时间
+  
   items       OrderItem[]
   stockLocks StockLock[]
   bundleStockLocks BundleStockLock[]
@@ -663,6 +702,9 @@ model Order {
   returnOrders ReturnOrder[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+
+  @@index([paymentStatus])
+  @@index([paymentTimeoutAt])
 }
 
 model OrderItem {
@@ -680,6 +722,25 @@ model OrderItem {
   quantity   Int
   subtotal   Decimal  @db.Decimal(12, 2)
   createdAt  DateTime @default(now())
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  sessionId String   // 会话ID
+  productId String?  // 商品ID
+  product   Product? @relation(fields: [productId], references: [id])
+  skuId     String?  // SKU ID
+  sku       ProductSKU? @relation(fields: [skuId], references: [id])
+  bundleId  String?  // 套装ID
+  bundle    BundleSKU? @relation(fields: [bundleId], references: [id])
+  quantity  Int      // 数量
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([productId])
+  @@index([skuId])
+  @@index([bundleId])
 }
 
 enum PickStatus {

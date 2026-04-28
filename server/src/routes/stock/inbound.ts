@@ -5,6 +5,24 @@ import { findOrCreateSkuBatch, findOrCreateBundleBatch, findOrCreateMaterialBatc
 
 const router = Router();
 
+async function getLocationZoneType(tx: any, locationId: string): Promise<string | null> {
+  const location = await tx.location.findUnique({
+    where: { id: locationId },
+    include: {
+      shelf: {
+        include: {
+          zone: true
+        }
+      }
+    }
+  });
+  return location?.shelf?.zone?.type || null;
+}
+
+function isSalesZone(zoneType: string | null): boolean {
+  return zoneType === 'STORAGE' || zoneType === 'PICKING';
+}
+
 // GET /stock-in
 router.get('/stock-in', async (req: Request, res: Response) => {
   try {
@@ -327,7 +345,10 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
             if (item.type === 'PRODUCT' && item.skuId && item.locationId) {
               const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
                 ? item.receivedQuantity
-                : (item.expectedQuantity || 0);
+                : (item.expectedQuantity || item.quantity || 0);
+
+              const zoneType = await getLocationZoneType(tx, item.locationId);
+              const availableQty = isSalesZone(zoneType) ? quantity : 0;
 
               let skuBatchId = item.skuBatchId;
               if (!skuBatchId) {
@@ -358,7 +379,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                   where: { id: stock.id },
                   data: {
                     totalQuantity: { increment: quantity },
-                    availableQuantity: { increment: quantity },
+                    availableQuantity: { increment: availableQty },
                   },
                 });
               } else {
@@ -369,7 +390,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                     locationId: item.locationId || undefined,
                     skuBatchId,
                     totalQuantity: quantity,
-                    availableQuantity: quantity,
+                    availableQuantity: availableQty,
                   },
                 });
               }
@@ -387,7 +408,10 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
             } else if (item.type === 'BUNDLE' && item.bundleId && item.locationId) {
               const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
                 ? item.receivedQuantity
-                : (item.expectedQuantity || 0);
+                : (item.expectedQuantity || item.quantity || 0);
+
+              const zoneType = await getLocationZoneType(tx, item.locationId);
+              const availableQty = isSalesZone(zoneType) ? quantity : 0;
 
               let bundleBatchId = item.bundleBatchId;
               if (!bundleBatchId) {
@@ -418,7 +442,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                   where: { id: bundleStock.id },
                   data: {
                     totalQuantity: { increment: quantity },
-                    availableQuantity: { increment: quantity },
+                    availableQuantity: { increment: availableQty },
                   },
                 });
               } else {
@@ -429,7 +453,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                     locationId: item.locationId || undefined,
                     bundleBatchId,
                     totalQuantity: quantity,
-                    availableQuantity: quantity,
+                    availableQuantity: availableQty,
                   },
                 });
               }
@@ -447,7 +471,10 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
             } else if ((item.type === 'MATERIAL' || item.type === 'OTHER') && item.supplierMaterialId && item.locationId) {
               const quantity = item.receivedQuantity !== null && item.receivedQuantity !== undefined
                 ? item.receivedQuantity
-                : (item.expectedQuantity || 0);
+                : (item.expectedQuantity || item.quantity || 0);
+
+              const zoneType = await getLocationZoneType(tx, item.locationId);
+              const availableQty = isSalesZone(zoneType) ? quantity : 0;
 
               let materialBatchId = item.materialBatchId;
               if (!materialBatchId) {
@@ -478,7 +505,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                   where: { id: materialStock.id },
                   data: {
                     totalQuantity: { increment: quantity },
-                    availableQuantity: { increment: quantity },
+                    availableQuantity: { increment: availableQty },
                   },
                 });
               } else {
@@ -489,7 +516,7 @@ router.put('/inbound-order/:id', async (req: Request, res: Response) => {
                     locationId: item.locationId || undefined,
                     materialBatchId,
                     totalQuantity: quantity,
-                    availableQuantity: quantity,
+                    availableQuantity: availableQty,
                   },
                 });
               }
@@ -610,6 +637,8 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
           ? item.receivedQuantity
           : (item.expectedQuantity || item.quantity);
 
+        const availableQty = isSalesZone(zoneType) ? quantity : 0;
+
         if (item.type === 'PRODUCT' && item.skuId) {
           const batchId = item.skuBatchId || '';
           let stock = await tx.stock.findFirst({
@@ -626,7 +655,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
               where: { id: stock.id },
               data: {
                 totalQuantity: { increment: quantity },
-                availableQuantity: { increment: quantity },
+                availableQuantity: { increment: availableQty },
               },
             });
           } else {
@@ -637,7 +666,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
                 locationId: item.locationId,
                 skuBatchId: item.skuBatchId || '',
                 totalQuantity: quantity,
-                availableQuantity: quantity,
+                availableQuantity: availableQty,
               },
             });
           }
@@ -667,7 +696,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
               where: { id: bundleStock.id },
               data: {
                 totalQuantity: { increment: quantity },
-                availableQuantity: { increment: quantity },
+                availableQuantity: { increment: availableQty },
               },
             });
           } else {
@@ -678,7 +707,7 @@ router.put('/inbound-order/:id/execute', async (req: Request, res: Response) => 
                 locationId: item.locationId,
                 bundleBatchId: item.bundleBatchId || '',
                 totalQuantity: quantity,
-                availableQuantity: quantity,
+                availableQuantity: availableQty,
               },
             });
           }

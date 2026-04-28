@@ -184,14 +184,14 @@ export default function ReturnStockInModal({
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50">
-          <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-100">
+        <div className="flex gap-3 p-4 border-t bg-gray-50">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-100">
             取消
           </button>
           <button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {confirming ? '入库中...' : '确认入库'}
           </button>

@@ -858,9 +858,9 @@ export default function ReturnDetail() {
                   ))}
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setRefundModal(null)} className="px-4 py-2 border rounded-lg">取消</button>
-              <button onClick={handleRefund} className="px-4 py-2 bg-yellow-600 text-white rounded-lg">确认退款</button>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setRefundModal(null)} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
+              <button onClick={handleRefund} className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg">确认退款</button>
             </div>
           </div>
         </div>
