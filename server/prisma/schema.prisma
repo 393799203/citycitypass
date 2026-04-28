@@ -41,6 +41,7 @@ model Customer {
   // 关联
   contracts    Contract[]
   orders       Order[]
+  shopUsers    ShopUser[]  // 关联的商城用户
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -56,6 +57,70 @@ enum CustomerStatus {
   ACTIVE
   INACTIVE
   BLACKLISTED
+}
+
+model ShopUser {
+  id           String   @id @default(uuid())
+  
+  // 登录方式
+  openId       String?  @unique  // 微信openId
+  unionId      String?  @unique  // 微信unionId
+  alipayUserId String?  @unique  // 支付宝userId
+  phone        String?  @unique  // 手机号登录
+  
+  // 基本信息
+  nickname     String?
+  avatar       String?
+  name         String?
+  
+  // 关联企业客户（关键！）
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  
+  // 默认收货地址
+  defaultAddressId String?
+  
+  // 购物车
+  carts        Cart[]
+  
+  // 订单
+  orders       Order[]
+  
+  // 地址列表
+  addresses    ShopUserAddress[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([openId])
+  @@index([phone])
+}
+
+model ShopUserAddress {
+  id           String   @id @default(uuid())
+  userId       String
+  user         ShopUser @relation(fields: [userId], references: [id])
+  
+  // 收货人信息
+  receiver     String
+  phone        String
+  
+  // 地址信息
+  province     String
+  city         String
+  district     String?
+  address      String
+  latitude     Float?
+  longitude    Float?
+  
+  // 标签
+  label        String?  // 家、公司等
+  isDefault    Boolean  @default(false)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([userId])
 }
 
 model Contract {
@@ -673,8 +738,19 @@ model Order {
   owner       Owner       @relation(fields: [ownerId], references: [id])
   warehouseId String
   warehouse   Warehouse   @relation(fields: [warehouseId], references: [id])
-  customerId  String?
-  customer    Customer?   @relation(fields: [customerId], references: [id])
+  
+  // 关联用户（二选一）
+  customerId  String?   // B端客户下单
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  shopUserId  String?   // C端用户下单
+  shopUser    ShopUser? @relation(fields: [shopUserId], references: [id])
+  
+  // 折扣信息
+  customerLevel    String?   // 客户等级
+  discountRate     Decimal?  @db.Decimal(5, 2)  // 折扣率（如0.85表示85折）
+  originalAmount   Decimal?  @db.Decimal(12, 2) // 原价
+  discountAmount   Decimal?  @db.Decimal(12, 2) // 折扣金额
+  
   receiver    String
   phone       String
   deliveryType DeliveryType @default(PICKUP)  // 配送方式：PICKUP-自取，DELIVERY-配送
@@ -705,6 +781,7 @@ model Order {
 
   @@index([paymentStatus])
   @@index([paymentTimeoutAt])
+  @@index([shopUserId])
 }
 
 model OrderItem {
@@ -726,7 +803,9 @@ model OrderItem {
 
 model Cart {
   id        String   @id @default(uuid())
-  sessionId String   // 会话ID
+  sessionId String?  // 会话ID（游客购物车）
+  shopUserId String? // 商城用户ID（登录用户购物车）
+  shopUser   ShopUser? @relation(fields: [shopUserId], references: [id])
   productId String?  // 商品ID
   product   Product? @relation(fields: [productId], references: [id])
   skuId     String?  // SKU ID
@@ -738,6 +817,7 @@ model Cart {
   updatedAt DateTime @updatedAt
 
   @@index([sessionId])
+  @@index([shopUserId])
   @@index([productId])
   @@index([skuId])
   @@index([bundleId])

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Minus, Plus, Package, Layers, ShoppingCart as CartIcon } from 'lucide-react';
-import { shopApi, getSessionId } from '@/api/shop';
+import { ArrowLeft, Trash2, Minus, Plus, Package, Layers, ShoppingCart as CartIcon, Gift } from 'lucide-react';
+import { shopApi, getSessionId, getShopUser } from '@/api/shop';
 import { toast } from 'react-toastify';
 import Checkout from './Checkout';
 import Payment from './Payment';
@@ -51,6 +51,7 @@ export default function ShoppingCartPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderNo, setOrderNo] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [discountRate, setDiscountRate] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCart();
@@ -60,7 +61,20 @@ export default function ShoppingCartPage() {
     setLoading(true);
     try {
       const sessionId = getSessionId();
-      const res = await shopApi.getCart(sessionId);
+      const user = getShopUser();
+      
+      if (user?.userId) {
+        try {
+          const userRes = await shopApi.getUserInfo();
+          if (userRes.data.success) {
+            setDiscountRate(userRes.data.data.discountRate);
+          }
+        } catch (error) {
+          console.error('Failed to fetch user info:', error);
+        }
+      }
+      
+      const res = await shopApi.getCart(sessionId, user?.userId);
       if (res.data.success) {
         setCartItems(res.data.data || []);
       }
@@ -132,6 +146,15 @@ export default function ShoppingCartPage() {
   };
 
   const totalPrice = cartItems.reduce((sum, item) => sum + getItemPrice(item), 0);
+  
+  const getDiscountAmount = () => {
+    if (!discountRate || discountRate >= 1) return 0;
+    return totalPrice * (1 - discountRate);
+  };
+  
+  const getFinalAmount = () => {
+    return totalPrice - getDiscountAmount();
+  };
 
   if (loading) {
     return (
@@ -284,13 +307,28 @@ export default function ShoppingCartPage() {
       {cartItems.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
           <div className="max-w-4xl mx-auto px-4 py-3">
+            {discountRate && discountRate < 1 && (
+              <div className="flex items-center gap-2 mb-3 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
+                <Gift className="w-4 h-4" />
+                <span>企业客户折扣: {(discountRate * 100).toFixed(0)}折</span>
+                <span className="text-gray-500 line-through ml-auto">¥{totalPrice.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3">
               <span className="text-gray-600">合计</span>
-              <span className="text-2xl font-bold text-blue-600">¥{totalPrice.toFixed(2)}</span>
+              {discountRate && discountRate < 1 ? (
+                <span className="text-2xl font-bold text-green-600">¥{getFinalAmount().toFixed(2)}</span>
+              ) : (
+                <span className="text-2xl font-bold text-blue-600">¥{totalPrice.toFixed(2)}</span>
+              )}
             </div>
             <button
               onClick={handleCheckout}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className={`w-full py-3 rounded-lg font-medium transition-colors ${
+                discountRate && discountRate < 1
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               去结算
             </button>

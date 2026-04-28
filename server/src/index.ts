@@ -5,6 +5,7 @@ import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { ownerMiddleware } from './middleware/owner';
 import { authMiddleware } from './middleware/auth';
+import { shopAuthMiddleware } from './middleware/shopAuth';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import ownerRoutes from './routes/owners';
@@ -34,6 +35,7 @@ import aiRoutes from './routes/ai';
 import permissionRoutes from './routes/permissions';
 import qrcodeRoutes from './routes/qrcode';
 import publicRoutes from './routes/public';
+import shopUserRoutes from './routes/shopUser';
 import { ragService } from './services/rag';
 import { SearchMode } from './services/rag';
 import { PaymentTimeoutService } from './services/paymentTimeout';
@@ -76,6 +78,7 @@ app.use('/api/ai', authMiddleware, ownerMiddleware, aiRoutes);
 app.use('/api/permissions', authMiddleware, ownerMiddleware, permissionRoutes);
 app.use('/api/qrcode', authMiddleware, ownerMiddleware, qrcodeRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/shop/user', shopUserRoutes);  // 商城用户路由（登录接口无需认证，其他接口在路由内部认证）
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

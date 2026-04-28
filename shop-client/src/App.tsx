@@ -6,7 +6,8 @@ import ShoppingCartPage from './pages/ShoppingCartPage';
 import OrderDetail from './pages/OrderDetail';
 import Checkout from './pages/Checkout';
 import Payment from './pages/Payment';
-import { shopApi, getSessionId } from './api/shop';
+import UserCenter from './pages/UserCenter';
+import { shopApi, getSessionId, getShopUser } from './api/shop';
 
 export default function App() {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,7 @@ export default function App() {
   const [cartCount, setCartCount] = useState(0);
   const [orderNo, setOrderNo] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [showUserCenter, setShowUserCenter] = useState(false);
 
   useEffect(() => {
     updateCartCount();
@@ -24,7 +26,8 @@ export default function App() {
   const updateCartCount = async () => {
     try {
       const sessionId = getSessionId();
-      const res = await shopApi.getCart(sessionId);
+      const user = getShopUser();
+      const res = await shopApi.getCart(sessionId, user?.userId);
       if (res.data.success) {
         const items = res.data.data || [];
         setCartCount(items.length);
@@ -36,6 +39,11 @@ export default function App() {
 
   const handleViewCart = () => {
     navigate(`/shop/cart?ownerId=${ownerId || ''}`);
+  };
+  
+  const handleViewUserCenter = () => {
+    console.log('App handleViewUserCenter called, showUserCenter:', showUserCenter);
+    setShowUserCenter(true);
   };
 
   const handleOrderSuccess = (newOrderNo: string) => {
@@ -66,6 +74,7 @@ export default function App() {
               <ProductList
                 ownerId={ownerId}
                 onViewCart={handleViewCart}
+                onViewUserCenter={handleViewUserCenter}
                 cartCount={cartCount}
               />
               <Checkout
@@ -79,6 +88,9 @@ export default function App() {
                   onClose={handleClosePayment}
                   onGoToOrder={handleGoToOrder}
                 />
+              )}
+              {showUserCenter && (
+                <UserCenter onClose={() => setShowUserCenter(false)} />
               )}
             </>
           }

@@ -88,6 +88,7 @@ export const customerApi = {
   create: (data: any) => api.post('/customers', data),
   update: (id: string, data: any) => api.put(`/customers/${id}`, data),
   delete: (id: string) => api.delete(`/customers/${id}`),
+  unbindShopUser: (customerId: string, shopUserId: string) => api.delete(`/customers/${customerId}/shop-users/${shopUserId}`),
 };
 
 export const contractApi = {

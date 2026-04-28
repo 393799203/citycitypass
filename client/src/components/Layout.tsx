@@ -105,12 +105,24 @@ export default function Layout() {
             setAuth(token, freshUser, freshPermissions, userOwners);
             // 设置主体列表 - 只显示当前用户拥有的主体
             if (userOwners && userOwners.length > 0) {
-              // 非ADMIN用户默认选中第一个主体（如果没有选中的主体）
-              if (!freshUser.isAdmin && !currentOwnerId) {
-                // 先清除可能存在的旧的主体信息
+              // 检查当前选中主体是否仍然有效
+              const ownerIds = userOwners.map((o: any) => o.id);
+              const isValidOwner = currentOwnerId && ownerIds.includes(currentOwnerId);
+              
+              if (!freshUser.isAdmin) {
+                if (!isValidOwner) {
+                  // 当前主体无效或不存在，清空并选中第一个
+                  localStorage.removeItem('currentOwnerId');
+                  localStorage.removeItem('currentOwnerName');
+                  setCurrentOwner(userOwners[0].id, userOwners[0].name);
+                }
+              }
+            } else {
+              // 没有主体了，清空选择
+              if (currentOwnerId) {
                 localStorage.removeItem('currentOwnerId');
                 localStorage.removeItem('currentOwnerName');
-                setCurrentOwner(userOwners[0].id, userOwners[0].name);
+                setCurrentOwner(null, null);
               }
             }
           }

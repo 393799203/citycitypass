@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, ShoppingCart, Search, Layers } from 'lucide-react';
-import { shopApi } from '@/api/shop';
+import { Package, ShoppingCart, Search, Layers, User } from 'lucide-react';
+import { shopApi, getShopUser } from '@/api/shop';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -42,10 +42,11 @@ interface Product {
 interface ProductListProps {
   ownerId: string | null;
   onViewCart: () => void;
+  onViewUserCenter: () => void;
   cartCount: number;
 }
 
-export default function ProductList({ ownerId, onViewCart, cartCount }: ProductListProps) {
+export default function ProductList({ ownerId, onViewCart, onViewUserCenter, cartCount }: ProductListProps) {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +103,12 @@ export default function ProductList({ ownerId, onViewCart, cartCount }: ProductL
     return colors[hash % colors.length];
   };
 
+  const handleViewUserCenter = () => {
+    onViewUserCenter();
+  };
+  
   const floatingCartRef = useRef<HTMLDivElement>(null);
+  const user = getShopUser();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -123,6 +129,24 @@ export default function ProductList({ ownerId, onViewCart, cartCount }: ProductL
         </div>
         <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
           购物车
+        </div>
+      </div>
+      
+      <div
+        onClick={handleViewUserCenter}
+        className="fixed right-4 bottom-40 z-50 cursor-pointer group"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <div className="relative">
+          <div className="w-14 h-14 bg-green-600 rounded-full flex items-center justify-center shadow-lg group-hover:bg-green-700 transition-colors">
+            <User className="w-6 h-6 text-white" />
+          </div>
+          {user && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></span>
+          )}
+        </div>
+        <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          {user ? '用户中心' : '登录'}
         </div>
       </div>
 

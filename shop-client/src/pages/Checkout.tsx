@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, MapPin, User, Package, Loader2 } from 'lucide-react';
-import { shopApi, getSessionId } from '@/api/shop';
+import { shopApi, getSessionId, getShopUser } from '@/api/shop';
 import { toast } from 'react-toastify';
 import PhoneInput from '@/components/PhoneInput';
 import RegionPicker from '@/components/RegionPicker';
@@ -42,6 +42,10 @@ export default function Checkout({ isOpen, onClose, onSuccess }: CheckoutProps) 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [discountRate, setDiscountRate] = useState<number | null>(null);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [formData, setFormData] = useState({
     receiver: '',
     phone: '',
@@ -60,7 +64,36 @@ export default function Checkout({ isOpen, onClose, onSuccess }: CheckoutProps) 
     setLoading(true);
     try {
       const sessionId = getSessionId();
-      const res = await shopApi.getCart(sessionId);
+      const user = getShopUser();
+      
+      if (user?.userId) {
+        try {
+          const userRes = await shopApi.getUserInfo();
+          if (userRes.data.success) {
+            setCurrentUser(userRes.data.data);
+            setDiscountRate(userRes.data.data.discountRate);
+            const userAddresses = userRes.data.data.addresses || [];
+            setAddresses(userAddresses);
+            
+            // 如果有默认地址或第一个地址，自动填充
+            const defaultAddr = userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr.id);
+              setFormData({
+                receiver: defaultAddr.receiver || '',
+                phone: defaultAddr.phone || '',
+                province: defaultAddr.province || '',
+                city: defaultAddr.city || '',
+                address: defaultAddr.address || '',
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch user info:', error);
+        }
+      }
+      
+      const res = await shopApi.getCart(sessionId, user?.userId);
       if (res.data.success) {
         const items = res.data.data || [];
         const validItems = items.filter((item: CartItem) => item.displayInfo.availableStock > 0);
@@ -78,6 +111,15 @@ export default function Checkout({ isOpen, onClose, onSuccess }: CheckoutProps) 
     return cartItems.reduce((sum, item) => {
       return sum + Number(item.displayInfo.price) * item.quantity;
     }, 0);
+  };
+
+  const getDiscountAmount = () => {
+    if (!discountRate || discountRate >= 1) return 0;
+    return getTotalAmount() * (1 - discountRate);
+  };
+
+  const getFinalAmount = () => {
+    return getTotalAmount() - getDiscountAmount();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,6 +173,7 @@ export default function Checkout({ isOpen, onClose, onSuccess }: CheckoutProps) 
 
       const orderData: any = {
         sessionId,
+        shopUserId: currentUser?.id,
         ownerId,
         warehouseId,
         receiver: formData.receiver,
@@ -189,6 +232,45 @@ export default function Checkout({ isOpen, onClose, onSuccess }: CheckoutProps) 
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <div className="bg-blue-50 rounded-lg p-3">
                 <h3 className="text-sm font-medium text-blue-800 mb-3">收货人信息</h3>
+                
+                {addresses.length > 0 && (
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-600 mb-1">选择地址</label>
+                    <select
+                      value={selectedAddressId}
+                      onChange={(e) => {
+                        const addr = addresses.find((a: any) => a.id === e.target.value);
+                        setSelectedAddressId(e.target.value);
+                        if (addr) {
+                          setFormData({
+                            receiver: addr.receiver || '',
+                            phone: addr.phone || '',
+                            province: addr.province || '',
+                            city: addr.city || '',
+                            address: addr.address || '',
+                          });
+                        } else {
+                          setFormData({
+                            receiver: '',
+                            phone: '',
+                            province: '',
+                            city: '',
+                            address: '',
+                          });
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">手动填写</option>
+                      {addresses.map((addr: any) => (
+                        <option key={addr.id} value={addr.id}>
+                          {addr.receiver} - {addr.province}{addr.city}{addr.address} {addr.isDefault ? '[默认]' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
                 <div className="space-y-3">
                   <div className="flex gap-3">
                     <div className="flex-1">
@@ -267,16 +349,32 @@ export default function Checkout({ isOpen, onClose, onSuccess }: CheckoutProps) 
               </div>
 
               <div className="border-t pt-3">
+                {discountRate && discountRate < 1 && (
+                  <div className="flex items-center justify-between mb-3 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
+                    <span>企业客户折扣: {(discountRate * 100).toFixed(0)}折</span>
+                    <span className="text-gray-500 line-through">原价 ¥{getTotalAmount().toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-gray-600">应付金额</span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    ¥{getTotalAmount().toFixed(2)}
-                  </span>
+                  {discountRate && discountRate < 1 ? (
+                    <span className="text-2xl font-bold text-green-600">
+                      ¥{getFinalAmount().toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-2xl font-bold text-blue-600">
+                      ¥{getTotalAmount().toFixed(2)}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="submit"
                   disabled={submitting || cartItems.length === 0}
-                  className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className={`w-full py-3 rounded-lg font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                    discountRate && discountRate < 1
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 >
                   {submitting ? (
                     <>

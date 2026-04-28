@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, ShoppingCart as CartIcon, Trash2, Package } from 'lucide-react';
-import { shopApi, getSessionId } from '@/api/shop';
+import { X, ShoppingCart as CartIcon, Trash2, Package, Gift } from 'lucide-react';
+import { shopApi, getSessionId, getShopUser } from '@/api/shop';
 import { toast } from 'react-toastify';
 
 interface CartItem {
@@ -46,6 +46,7 @@ interface ShoppingCartProps {
 export default function ShoppingCart({ isOpen, onClose, onCheckout, onCartUpdate }: ShoppingCartProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [discountRate, setDiscountRate] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,7 +58,20 @@ export default function ShoppingCart({ isOpen, onClose, onCheckout, onCartUpdate
     setLoading(true);
     try {
       const sessionId = getSessionId();
-      const res = await shopApi.getCart(sessionId);
+      const user = getShopUser();
+      
+      if (user?.userId) {
+        try {
+          const userRes = await shopApi.getUserInfo();
+          if (userRes.data.success) {
+            setDiscountRate(userRes.data.data.discountRate);
+          }
+        } catch (error) {
+          console.error('Failed to fetch user info:', error);
+        }
+      }
+      
+      const res = await shopApi.getCart(sessionId, user?.userId);
       if (res.data.success) {
         console.log('购物车数据:', res.data.data);
         setCartItems(res.data.data || []);
@@ -87,6 +101,15 @@ export default function ShoppingCart({ isOpen, onClose, onCheckout, onCartUpdate
     return cartItems.reduce((sum, item) => {
       return sum + (item.displayInfo ? Number(item.displayInfo.price) * item.quantity : 0);
     }, 0);
+  };
+
+  const getDiscountAmount = () => {
+    if (!discountRate || discountRate >= 1) return 0;
+    return getTotalAmount() * (1 - discountRate);
+  };
+
+  const getFinalAmount = () => {
+    return getTotalAmount() - getDiscountAmount();
   };
 
   const getTotalQuantity = () => {
@@ -194,20 +217,42 @@ export default function ShoppingCart({ isOpen, onClose, onCheckout, onCartUpdate
 
         {cartItems.length > 0 && (
           <div className="sticky bottom-0 bg-white border-t px-4 py-3">
+            {discountRate && discountRate < 1 && (
+              <div className="flex items-center gap-2 mb-3 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
+                <Gift className="w-4 h-4" />
+                <span>企业客户折扣: {(discountRate * 100).toFixed(0)}折</span>
+                <span className="text-gray-500 line-through ml-auto">¥{getTotalAmount().toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm text-gray-600">
                 共 {getTotalQuantity()} 件商品
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">合计：</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  ¥{getTotalAmount().toFixed(2)}
-                </span>
+                {discountRate && discountRate < 1 ? (
+                  <>
+                    <span className="text-sm text-gray-600">折后：</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      ¥{getFinalAmount().toFixed(2)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm text-gray-600">合计：</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      ¥{getTotalAmount().toFixed(2)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             <button
               onClick={onCheckout}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className={`w-full py-3 rounded-lg font-medium transition-colors ${
+                discountRate && discountRate < 1
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               去结算
             </button>

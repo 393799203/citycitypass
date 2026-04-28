@@ -38,6 +38,7 @@ router.get('/', async (req: Request, res: Response) => {
           contracts: {
             where: { status: 'ACTIVE' },
           },
+          shopUsers: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -192,6 +193,22 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '客户不存在' });
     }
     res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.delete('/:customerId/shop-users/:shopUserId', async (req: Request, res: Response) => {
+  try {
+    const { customerId, shopUserId } = req.params;
+
+    await prisma.shopUser.update({
+      where: { id: shopUserId },
+      data: { customerId: null },
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Unbind shop user error:', error);
+    res.status(500).json({ success: false, message: '解除绑定失败' });
   }
 });
 

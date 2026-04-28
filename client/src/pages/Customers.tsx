@@ -37,6 +37,16 @@ interface Customer {
   status: 'ACTIVE' | 'INACTIVE' | 'BLACKLISTED';
   remark: string;
   contracts: Contract[];
+  shopUsers?: ShopUser[];
+}
+
+interface ShopUser {
+  id: string;
+  nickname?: string;
+  phone?: string;
+  name?: string;
+  avatar?: string;
+  createdAt: string;
 }
 
 interface Contract {
@@ -324,6 +334,18 @@ export default function CustomersPage() {
     }
   };
 
+  const handleUnbindShopUser = async (customerId: string, shopUserId: string) => {
+    const ok = await confirm({ message: '确定要解除该用户的关联吗？' });
+    if (!ok) return;
+    try {
+      await customerApi.unbindShopUser(customerId, shopUserId);
+      toast.success('解除成功');
+      fetchCustomers();
+    } catch (error) {
+      toast.error('解除失败');
+    }
+  };
+
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'VIP': return 'bg-purple-100 text-purple-700';
@@ -456,7 +478,7 @@ export default function CustomersPage() {
                     onClick={() => { setSelectedCustomer(customer); setShowContractModal(true); setContractForm({ ...contractForm, customerId: customer.id }); }}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-green-200 text-green-600 rounded text-sm hover:bg-green-50"
                   >
-                    <FileText className="w-4 h-4" /> 合同
+                    <FileText className="w-4 h-4" /> 合同及用户
                   </button>
                   {canWrite && (
                     <button
@@ -671,7 +693,7 @@ export default function CustomersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold">合同管理 - {selectedCustomer.name}</h2>
+              <h2 className="text-lg font-bold">合同及用户 - {selectedCustomer.name}</h2>
               <button onClick={() => { setShowContractModal(false); setContractView('list'); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', discount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
                 <X className="w-5 h-5" />
               </button>
@@ -727,6 +749,42 @@ export default function CustomersPage() {
                     ))
                   ) : (
                     <div className="text-center text-gray-500 py-8">暂无合同</div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-medium">关联用户</h3>
+                  </div>
+                  {selectedCustomer.shopUsers && selectedCustomer.shopUsers.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedCustomer.shopUsers.map(user => (
+                        <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {user.avatar ? (
+                              <img src={user.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <span className="text-blue-600 font-medium">{(user.nickname || user.name || 'U').charAt(0).toUpperCase()}</span>
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium">{user.nickname || user.name || '未命名用户'}</div>
+                              <div className="text-sm text-gray-500">
+                                {user.phone ? <span>手机: {user.phone}</span> : <span>ID: {user.id}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          {canWrite && (
+                            <button onClick={() => handleUnbindShopUser(selectedCustomer.id, user.id)} className="text-red-600 hover:bg-red-50 p-2 rounded">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">暂无关联用户</div>
                   )}
                 </div>
               </div>

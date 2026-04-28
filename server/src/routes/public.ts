@@ -527,7 +527,8 @@ const publicOrderItemSchema = z.object({
 });
 
 const publicOrderSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().optional(),
+  shopUserId: z.string().optional(),  // 商城用户ID
   ownerId: z.string().min(1),
   warehouseId: z.string().min(1),
   receiver: z.string().min(1),
@@ -539,6 +540,8 @@ const publicOrderSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   items: z.array(publicOrderItemSchema).min(1),
+}).refine(data => data.sessionId || data.shopUserId, {
+  message: 'sessionId 或 shopUserId 必须提供一个',
 });
 
 router.post('/orders', async (req: Request, res: Response) => {
@@ -689,12 +692,63 @@ router.post('/orders', async (req: Request, res: Response) => {
 
     const totalAmount = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
 
+    // 计算折扣
+    let discountRate: number | null = null;
+    let discountAmount = 0;
+    let customerLevel: string | null = null;
+    let customerId: string | null = null;
+    let shopUserId: string | null = data.shopUserId || null;
+
+    // 如果有商城用户ID，查询用户关联的客户和折扣
+    if (data.shopUserId) {
+      const shopUser = await prisma.shopUser.findUnique({
+        where: { id: data.shopUserId },
+        include: {
+          customer: {
+            include: {
+              contracts: {
+                where: {
+                  status: 'ACTIVE',
+                  startDate: { lte: new Date() },
+                  endDate: { gte: new Date() }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (shopUser && shopUser.customer) {
+        customerId = shopUser.customerId;
+        customerLevel = shopUser.customer.level;
+
+        // 如果有有效合同，应用折扣
+        if (shopUser.customer.contracts.length > 0) {
+          const contract = shopUser.customer.contracts[0];
+          discountRate = contract.discount ? Number(contract.discount) : null;
+          
+          if (discountRate && discountRate < 1) {
+            discountAmount = totalAmount * (1 - discountRate);
+          }
+        }
+      }
+    }
+
+    const finalAmount = totalAmount - discountAmount;
+
     const order = await prisma.$transaction(async (tx: any) => {
       const newOrder = await tx.order.create({
         data: {
           orderNo: generateOrderNo(),
           ownerId: data.ownerId,
           warehouseId: data.warehouseId,
+          customerId,
+          shopUserId,
+          customerLevel,
+          discountRate,
+          originalAmount: totalAmount,
+          discountAmount,
+          contractDiscount: discountRate,
           receiver: data.receiver,
           phone: data.phone,
           deliveryType: data.deliveryType || 'PICKUP',
@@ -703,7 +757,7 @@ router.post('/orders', async (req: Request, res: Response) => {
           address: data.address,
           latitude: data.latitude,
           longitude: data.longitude,
-          totalAmount,
+          totalAmount: finalAmount,
           source: 'CUSTOMER',
           status: 'PENDING',
           items: {
