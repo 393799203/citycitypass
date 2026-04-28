@@ -341,6 +341,19 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 
 注意: ownerId由系统自动获取，无需AI提供` : '';
 
+      // 检查是否有主体
+      if (!currentOwnerId) {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: '❌ 未获取到主体信息，请在上方导航选择具体主体后再进行操作',
+          type: 'ai',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setLoading(false);
+        return;
+      }
+
       const fullPrompt = `${systemPrompt}${toolInstructions}\n\n【用户问题】\n${input}`;
 
       const history = messages.filter(m => m.type !== 'system').slice(-2)
