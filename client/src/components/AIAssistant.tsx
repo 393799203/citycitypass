@@ -314,27 +314,30 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
 ${context.length > 0 ? context.join('\n') : '暂无'}
 
 【要求】
-1. 创建订单/采购单/入库单前必须先调用匹配工具获取ID
-2. 日期格式YYYY-MM-DD，采用今天的日期
-3. packaging不要编造，用户说了才传入`;
+1. 只能调用【工具】中列出的工具，不能调用其他工具
+2. 创建订单/采购单/入库单前必须先调用匹配工具获取ID
+3. 日期格式YYYY-MM-DD，采用今天的日期
+4. packaging不要编造，用户说了才传入`;
 
       const hasImages = imagesToSend.length > 0;
       const enableTools = !hasImages;
       const toolInstructions = enableTools ? `
 
-【工具】
-- match_sku(productName, spec?, packaging?) → 匹配商品SKU
-- match_supplier(supplierName) → 匹配供应商
-- match_warehouse(warehouseName) → 匹配仓库
-- query_inventory(productName, spec?, packaging?) → 查库存
-- query_owner_stock_summary() → 主体库存汇总
+【可用工具】（只能调用这些，不要调用其他工具）
+- match_sku(productName, spec?, packaging?) → 匹配商品SKU，返回skuId
+- match_supplier(supplierName) → 匹配供应商，返回supplierId
+- match_warehouse(warehouseName) → 匹配仓库，返回warehouseId
+- query_inventory(productName, spec?, packaging?) → 查询库存
+- query_owner_stock_summary() → 查询主体库存汇总
 - query_batch_trace(batchNo) → 批次追溯
 
-【流程】
-1. 销售订单: match_sku → 返回JSON
-2. 采购订单: match_supplier → match_sku → 返回JSON  
-3. 入库单: match_warehouse → match_sku → 返回JSON
-4. 库存查询: 调用工具后，返回 {"intent":"query","type":"工具返回的type","data":工具返回的数据}
+【工作流程】
+1. 销售订单: match_sku获取skuId → 返回JSON（intent: create_order）
+2. 采购订单: match_supplier获取supplierId → match_sku获取skuId → 返回JSON（intent: create_purchase_order）
+3. 入库单: match_warehouse获取warehouseId → match_sku获取skuId → 返回JSON（intent: create_inbound）
+4. 库存查询: 调用query工具 → 返回JSON（intent: query）
+
+【重要】返回的JSON格式中不要包含tool字段，intent不是工具名称！
 
 注意: ownerId由系统自动获取，无需AI提供` : '';
 
