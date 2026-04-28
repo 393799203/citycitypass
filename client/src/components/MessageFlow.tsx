@@ -197,8 +197,7 @@ function SkuSelectCard({ message }: { message: Message }) {
   const data = structuredData.data || {};
   const type = structuredData.type;
   const productName = data.productName || data.options?.[0]?.productName || '';
-  const hasSpecInOptions = data.options?.some((opt: any) => opt.spec);
-  const spec = hasSpecInOptions ? (data.spec || data.options?.[0]?.spec || '') : '';
+  const spec = data.spec || '';
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
       <div className="flex items-center gap-2 text-blue-700 text-xs">
