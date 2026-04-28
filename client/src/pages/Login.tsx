@@ -67,133 +67,32 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       
-      
-      {/* 左侧视频/动画区域 */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900">
-        {/* 动态背景 */}
-        <div className="absolute inset-0">
-          {/* 网格背景 */}
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-            animation: 'gridMove 20s linear infinite'
-          }} />
+      {/* 左侧品牌区域 */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary-900 to-primary-700">
+        <div className="relative z-10 flex flex-col justify-center items-center w-full text-white p-12">
+          <Bot className="w-20 h-20 mb-6" />
+          <h1 className="text-4xl font-bold mb-3">智链云AI</h1>
+          <p className="text-lg text-primary-200">进销存AI智能体</p>
           
-          {/* 浮动元素动画 */}
-          <div className="absolute top-1/4 left-1/4 animate-float opacity-30">
-            <Warehouse className="w-32 h-32 text-white" />
-          </div>
-          <div className="absolute top-1/3 right-1/4 animate-float-delayed opacity-30">
-            <Package className="w-24 h-24 text-white" />
-          </div>
-          <div className="absolute bottom-1/3 left-1/3 animate-float opacity-30">
-            <Truck className="w-28 h-28 text-white" />
-          </div>
-          <div className="absolute bottom-1/4 right-1/3 animate-float-delayed opacity-30">
-            <Route className="w-20 h-20 text-white" />
-          </div>
-          
-          {/* 光晕效果 */}
-          <div className="absolute top-0 left-0 w-96 h-96 bg-primary-500/30 rounded-full blur-3xl animate-pulse-slow" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse-slow-delayed" />
-        </div>
-
-        {/* 内容 */}
-        <div className="relative z-10 flex flex-col justify-center items-center w-full px-12 text-white">
-          <div className="mb-8 animate-bounce-slow">
-            <Bot className="w-24 h-24" />
-          </div>
-          <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            智链云AI
-          </h1>
-          <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
-            进销存AI智能体
-          </p>
-          
-          {/* 特性列表 */}
-          <div className="grid grid-cols-2 gap-6 w-full max-w-md">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up">
+          <div className="grid grid-cols-2 gap-4 w-full max-w-md mt-10">
+            <div className="bg-white/10 rounded-xl p-4 text-center">
               <Warehouse className="w-8 h-8 mx-auto mb-2 text-primary-300" />
               <span className="text-sm">智能仓储</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up-delayed">
+            <div className="bg-white/10 rounded-xl p-4 text-center">
               <Truck className="w-8 h-8 mx-auto mb-2 text-primary-300" />
               <span className="text-sm">高效运输</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up-delayed-2">
+            <div className="bg-white/10 rounded-xl p-4 text-center">
               <Package className="w-8 h-8 mx-auto mb-2 text-primary-300" />
               <span className="text-sm">精准库存</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up-delayed-3">
+            <div className="bg-white/10 rounded-xl p-4 text-center">
               <Route className="w-8 h-8 mx-auto mb-2 text-primary-300" />
               <span className="text-sm">全程追踪</span>
             </div>
           </div>
         </div>
-
-        {/* CSS动画 */}
-        <style>{`
-          @keyframes gridMove {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-          }
-          @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(5deg); }
-          }
-          @keyframes float-delayed {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(-5deg); }
-          }
-          @keyframes pulse-slow {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.1); }
-          }
-          @keyframes pulse-slow-delayed {
-            0%, 100% { opacity: 0.2; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.1); }
-          }
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-          }
-          @keyframes fade-in {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes fade-in-delayed {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes slide-up {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes slide-up-delayed {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes slide-up-delayed-2 {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes slide-up-delayed-3 {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          .animate-float { animation: float 6s ease-in-out infinite; }
-          .animate-float-delayed { animation: float-delayed 7s ease-in-out infinite; }
-          .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
-          .animate-pulse-slow-delayed { animation: pulse-slow-delayed 10s ease-in-out infinite; }
-          .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-          .animate-fade-in { animation: fade-in 0.8s ease-out forwards; animation-delay: 0.2s; opacity: 0; }
-          .animate-fade-in-delayed { animation: fade-in-delayed 0.8s ease-out forwards; animation-delay: 0.5s; opacity: 0; }
-          .animate-slide-up { animation: slide-up 0.6s ease-out forwards; animation-delay: 0.8s; opacity: 0; }
-          .animate-slide-up-delayed { animation: slide-up-delayed 0.6s ease-out forwards; animation-delay: 1s; opacity: 0; }
-          .animate-slide-up-delayed-2 { animation: slide-up-delayed-2 0.6s ease-out forwards; animation-delay: 1.2s; opacity: 0; }
-          .animate-slide-up-delayed-3 { animation: slide-up-delayed-3 0.6s ease-out forwards; animation-delay: 1.4s; opacity: 0; }
-        `}</style>
       </div>
 
       {/* 右侧登录表单 */}

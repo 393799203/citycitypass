@@ -60,6 +60,13 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const data = req.body;
 
+    const existingCount = await prisma.contract.count({
+      where: { customerId: data.customerId }
+    });
+    if (existingCount >= 1) {
+      return res.status(400).json({ success: false, message: '该客户已存在合同，最多只能创建1份' });
+    }
+
     const contractNo = `C${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
     const contract = await prisma.contract.create({

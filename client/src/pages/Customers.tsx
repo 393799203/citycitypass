@@ -489,11 +489,6 @@ export default function CustomersPage() {
                     </button>
                   )}
                 </div>
-                {customer.contracts && customer.contracts.length > 0 && (
-                  <div className="text-xs text-purple-600 pt-2 border-t">
-                    有效合同: {customer.contracts.length}份
-                  </div>
-                )}
               </div>
             </div>
           ))}
@@ -702,8 +697,8 @@ export default function CustomersPage() {
             {contractView === 'list' ? (
               <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">合同列表</h3>
-                  {canWrite && (
+                  <h3 className="font-medium">合同列表 {selectedCustomer.contracts?.length || 0}/1</h3>
+                  {canWrite && (!selectedCustomer.contracts || selectedCustomer.contracts.length === 0) && (
                     <button
                       onClick={() => { setContractForm({ ...contractForm, customerId: selectedCustomer.id }); setContractView('form'); }}
                       className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"

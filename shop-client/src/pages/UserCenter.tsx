@@ -339,7 +339,7 @@ export default function UserCenter({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-gray-50 overflow-y-auto">
-      <div className="max-w-2xl mx-auto p-4">
+      <div className="min-h-screen max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm mb-4">
           <div className="p-4 border-b flex justify-between items-center">
             <h2 className="text-lg font-bold text-gray-800">用户中心</h2>
@@ -639,7 +639,7 @@ function OrderListModal({ onClose }: OrderListModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110]">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[110]">
       <div className="bg-white w-full max-w-lg max-h-[80vh] rounded-lg overflow-hidden flex flex-col">
         <div className="flex justify-between items-center p-4 border-b bg-white">
           <h3 className="font-bold text-lg">我的订单</h3>
@@ -752,7 +752,7 @@ interface AddressListModalProps {
 
 function AddressListModal({ addresses, onEdit, onDelete, onAdd, onClose }: AddressListModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110]">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[110]">
       <div className="bg-white w-full max-w-lg max-h-[80vh] rounded-lg overflow-hidden flex flex-col">
         <div className="flex justify-between items-center p-4 border-b bg-white">
           <h3 className="font-bold text-lg">收货地址</h3>
