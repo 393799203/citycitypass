@@ -317,7 +317,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 1. 只能调用【工具】中列出的工具，不能调用其他工具
 2. 创建订单/采购单/入库单前必须先调用匹配工具获取ID
 3. 日期格式YYYY-MM-DD，采用今天的日期
-4. packaging不要编造，用户说了才传入`;
+4. spec，packaging不要编造，用户说了才传入`;
 
       const hasImages = imagesToSend.length > 0;
       const enableTools = !hasImages;

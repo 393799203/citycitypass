@@ -197,12 +197,13 @@ function SkuSelectCard({ message }: { message: Message }) {
   const data = structuredData.data || {};
   const type = structuredData.type;
   const productName = data.productName || data.options?.[0]?.productName || '';
-  const spec = data.spec || data.options?.[0]?.spec || '';
+  const hasSpecInOptions = data.options?.some((opt: any) => opt.spec);
+  const spec = hasSpecInOptions ? (data.spec || data.options?.[0]?.spec || '') : '';
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
       <div className="flex items-center gap-2 text-blue-700 text-xs">
         <Package className="w-3 h-3" />
-        <span className="font-medium">{productName} {spec} - 找到 {data.options?.length || 0} 种SKU</span>
+        <span className="font-medium">{productName}{spec ? ` ${spec}` : ''} - 找到 {data.options?.length || 0} 种SKU</span>
       </div>
       {type === 'create' && data.quantity && (
         <div className="text-xs text-gray-600">
