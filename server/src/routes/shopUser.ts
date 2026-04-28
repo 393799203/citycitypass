@@ -568,6 +568,7 @@ router.put('/orders/:orderId/cancel', shopAuthMiddleware, async (req: Request, r
 
     const order = await prisma.order.findFirst({
       where: { id: orderId, shopUserId: shopUser.userId },
+      include: { items: true },
     });
 
     if (!order) {
@@ -576,6 +577,73 @@ router.put('/orders/:orderId/cancel', shopAuthMiddleware, async (req: Request, r
 
     if (!['PENDING', 'PICKING', 'OUTBOUND_REVIEW'].includes(order.status)) {
       return res.status(400).json({ success: false, message: '当前状态无法取消' });
+    }
+
+    for (const item of order.items) {
+      if (item.skuId) {
+        const stockLocks = await prisma.stockLock.findMany({
+          where: { orderId: orderId, skuId: item.skuId },
+        });
+        for (const lock of stockLocks) {
+          if (lock.locationId) {
+            const stock = await prisma.stock.findFirst({
+              where: {
+                warehouseId: lock.warehouseId,
+                locationId: lock.locationId,
+                skuBatchId: lock.skuBatchId,
+              },
+            });
+            if (stock && stock.lockedQuantity > 0) {
+              await prisma.stock.update({
+                where: { id: stock.id },
+                data: {
+                  lockedQuantity: { decrement: Math.min(lock.quantity, stock.lockedQuantity) },
+                  availableQuantity: { increment: Math.min(lock.quantity, stock.lockedQuantity) },
+                },
+              });
+            }
+          } else {
+            const stocks = await prisma.stock.findMany({
+              where: {
+                skuId: lock.skuId,
+                warehouseId: lock.warehouseId,
+                locationId: null,
+                skuBatchId: lock.skuBatchId,
+              },
+            });
+            for (const stock of stocks) {
+              if (stock.lockedQuantity > 0) {
+                await prisma.stock.update({
+                  where: { id: stock.id },
+                  data: {
+                    lockedQuantity: { decrement: Math.min(lock.quantity, stock.lockedQuantity) },
+                    availableQuantity: { increment: Math.min(lock.quantity, stock.lockedQuantity) },
+                  },
+                });
+              }
+            }
+          }
+          await prisma.stockLock.delete({ where: { id: lock.id } });
+        }
+      }
+
+      if (item.bundleId) {
+        const bundleStocks = await prisma.bundleStock.findMany({
+          where: { bundleId: item.bundleId, warehouseId: order.warehouseId },
+        });
+        for (const stock of bundleStocks) {
+          if (stock.lockedQuantity > 0) {
+            const releaseQty = Math.min(stock.lockedQuantity, item.quantity);
+            await prisma.bundleStock.update({
+              where: { id: stock.id },
+              data: {
+                lockedQuantity: { decrement: releaseQty },
+                availableQuantity: { increment: releaseQty },
+              },
+            });
+          }
+        }
+      }
     }
 
     await prisma.order.update({

@@ -898,6 +898,13 @@ export default function ProductsPage() {
                     <Pencil className="w-4 h-4" />
                     编辑
                   </button>
+                  <button
+                    onClick={() => handleGenerateQRCode(bundle.id, bundle.name)}
+                    className="px-3 py-2 border border-blue-200 text-blue-600 rounded-lg text-sm hover:bg-blue-50"
+                    title="生成套装二维码"
+                  >
+                    <QrCode className="w-4 h-4" />
+                  </button>
                   {canWrite && (
                     <button
                       onClick={() => handleBundleDelete(bundle.id)}

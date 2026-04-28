@@ -48,7 +48,7 @@ export default function AIAssistant({ onDocumentCreate, onUnload }: AIAssistantP
   const initialMessages: Message[] = [
     {
       id: '1',
-      content: '您好！我是AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮老丁购买飞天茅台一瓶，杭州市余杭区复地上城，13222223333"\n🛒 采购订单 - "向贵州茅台集团采购3箱6瓶装的飞天茅台，期望到货4月30日"\n📦 入库操作 - "将10瓶茅台入库到XXXXX仓库"\n🔍 查询库存 - "查询飞天茅台500ml的库存"\n📊 我的库存 - "查询下我的库存汇总"\n🔎 批次查询 - "查询批次号XXXXXX的库存"\n\n直接说出您的需求，我会帮您生成单据或查询数据！',
+      content: '您好！我是草莓园AI业务助手，可以帮您处理多种业务操作：\n\n📋 创建订单 - "帮张老板订购5箱女皇草莓，送到杭州西湖区文三路88号，13800138000"\n🛒 采购订单 - "向泰湖草莓园采购20箱10斤装女皇草莓，预计4月30日到货"\n📦 入库操作 - "将30箱女皇草莓入库到阳一点草莓仓"\n🔍 查询库存 - "查询女皇草莓的当前库存"\n📊 库存汇总 - "查询下我的库存汇总"\n🔎 批次查询 - "查询批次号20260428ZBKR的库存"\n\n直接说出您的需求，我会帮您生成单据或查询数据！',
       type: 'system',
       timestamp: new Date()
     }
@@ -315,7 +315,7 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
 
 【要求】
 1. 创建订单/采购单/入库单前必须先调用匹配工具获取ID
-2. 日期格式YYYY-MM-DD，今天2026-04-22
+2. 日期格式YYYY-MM-DD，采用今天的日期
 3. packaging不要编造，用户说了才传入`;
 
       const hasImages = imagesToSend.length > 0;
@@ -380,6 +380,14 @@ ${context.length > 0 ? context.join('\n') : '暂无'}
             packaging: structuredData.data.packaging
           });
           setInventoryOptions(structuredData.data.options);
+        } else if (structuredData?.intent === 'match_sku' && (structuredData as any)?.success === false) {
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            content: `❌ ${(structuredData as any).message || '未找到匹配的商品或套装'}`,
+            type: 'ai',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, aiMessage]);
         }
       } else if (chatResponse.error) {
         const aiMessage: Message = {

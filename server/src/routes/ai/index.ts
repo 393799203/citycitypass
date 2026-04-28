@@ -127,6 +127,15 @@ router.post('/chat', async (req: Request, res: Response) => {
         console.log(`[AI Chat] Tool call: ${name}`, args);
 
         const toolResult = await executeTool(name, args);
+        
+        if (toolResult && toolResult.success === false) {
+          const errorMsg = toolResult.message || '操作失败';
+          return res.json({
+            success: true,
+            data: { content: `❌ ${errorMsg}` }
+          });
+        }
+        
         toolResults.push({
           role: 'tool',
           tool_call_id: id,
