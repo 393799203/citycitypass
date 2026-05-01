@@ -9,10 +9,12 @@ import { usePermission } from '../../hooks/usePermission';
 import { useConfirm } from '../../components/ConfirmProvider';
 import { formatPhone } from '../../utils/format';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'users' | 'roles' | 'members';
 
 export const SystemManage: React.FC = () => {
+  const { t } = useTranslation();
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [ownerMembers, setOwnerMembers] = useState<any[]>([]);
@@ -81,36 +83,36 @@ export const SystemManage: React.FC = () => {
       }
 
       if (res.data.success) {
-        toast.success('角色已保存');
+        toast.success(t('system.roleSaved'));
         setShowRoleModal(false);
         setEditingRole(undefined);
         loadData();
         await refreshPermissions();
       } else {
-        toast.error(res.data.message || '保存失败');
+        toast.error(res.data.message || t('system.saveFailed'));
       }
     } catch (error) {
-      console.error('保存角色失败:', error);
-      toast.error('保存失败');
+      console.error('Failed to save role:', error);
+      toast.error(t('system.saveFailed'));
     }
   };
 
   const handleDeleteRole = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该角色吗？', danger: true });
+    const ok = await confirm({ message: t('system.deleteRoleConfirm'), danger: true });
     if (!ok) return;
     try {
       const res = await permissionApi.deleteRole(id);
 
       if (res.data.success) {
-        toast.success('角色已删除');
+        toast.success(t('system.roleDeleted'));
         loadData();
         await refreshPermissions();
       } else {
-        toast.error(res.data.message || '删除失败');
+        toast.error(res.data.message || t('system.deleteFailed'));
       }
     } catch (error) {
-      console.error('删除角色失败:', error);
-      toast.error('删除失败');
+      console.error('Failed to delete role:', error);
+      toast.error(t('system.deleteFailed'));
     }
   };
 
@@ -124,63 +126,63 @@ export const SystemManage: React.FC = () => {
       }
 
       if (res.data.success) {
-        toast.success(editingUser ? '用户已更新' : '用户已创建');
+        toast.success(editingUser ? t('system.userUpdated') : t('system.userCreated'));
         setShowUserModal(false);
         setEditingUser(undefined);
         loadData();
         await refreshPermissions();
       } else {
-        toast.error(res.data.message || '保存失败');
+        toast.error(res.data.message || t('system.saveFailed'));
       }
     } catch (error) {
-      console.error('保存用户失败:', error);
-      toast.error('保存失败');
+      console.error('Failed to save user:', error);
+      toast.error(t('system.saveFailed'));
     }
   };
 
   const handleDeleteUser = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该用户吗？', danger: true });
+    const ok = await confirm({ message: t('system.deleteConfirm'), danger: true });
     if (!ok) return;
     try {
       const res = await userApi.delete(id);
 
       if (res.data.success) {
-        toast.success('用户已删除');
+        toast.success(t('system.userDeleted'));
         loadData();
         await refreshPermissions();
       } else {
-        toast.error(res.data.message || '删除失败');
+        toast.error(res.data.message || t('system.deleteFailed'));
       }
     } catch (error) {
-      console.error('删除用户失败:', error);
-      toast.error('删除失败');
+      console.error('Failed to delete user:', error);
+      toast.error(t('system.deleteFailed'));
     }
   };
 
   const handleRemoveOwner = async (userId: string, ownerId: string) => {
-    const ok = await confirm({ message: '确定要解除该成员与当前主体的关联吗？', danger: true });
+    const ok = await confirm({ message: t('system.removeOwnerConfirm'), danger: true });
     if (!ok) return;
     try {
       const res = await userApi.removeOwner(userId, ownerId);
 
       if (res.data.success) {
-        toast.success('已解除关联');
+        toast.success(t('system.ownerRemoved'));
         loadData();
         await refreshPermissions();
       } else {
-        toast.error(res.data.message || '解除关联失败');
+        toast.error(res.data.message || t('system.removeOwnerFailed'));
       }
     } catch (error) {
-      console.error('解除关联失败:', error);
-      toast.error('解除关联失败');
+      console.error('Failed to remove owner:', error);
+      toast.error(t('system.removeOwnerFailed'));
     }
   };
 
   return (
     <div className="p-2 space-y-4">
       <div className="hidden sm:block mb-0 sm:mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">系统管理</h1>
-        <p className="text-gray-600 mt-1">管理系统用户和角色权限</p>
+        <h1 className="text-2xl font-bold text-gray-800">{t('system.title')}</h1>
+        <p className="text-gray-600 mt-1">{t('system.subtitle')}</p>
       </div>
 
       <div className="mb-4 border-b border-gray-200 !mt-0">
@@ -194,7 +196,7 @@ export const SystemManage: React.FC = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              成员管理
+              {t('system.memberManagement')}
             </button>
           )}
           {isAdminView && (
@@ -202,11 +204,11 @@ export const SystemManage: React.FC = () => {
               onClick={() => setActiveTab('users')}
               className={`flex-1 py-3 sm:py-4 sm:px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'users'
-                  ? 'border-blue-500 text-blue-600'
+                ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              用户管理
+              {t('system.userManagement')}
             </button>
           )}
           <button
@@ -217,7 +219,7 @@ export const SystemManage: React.FC = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            角色管理
+            {t('system.roleManagement')}
           </button>
         </nav>
       </div>
@@ -236,7 +238,7 @@ export const SystemManage: React.FC = () => {
             }}
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
           >
-            {activeTab === 'roles' ? '新建角色' : '注册新用户'}
+            {activeTab === 'roles' ? t('system.newRole') : t('system.newUser')}
           </button>
         )}
       </div>
@@ -255,7 +257,7 @@ export const SystemManage: React.FC = () => {
             }}
             className="w-full py-2 bg-blue-600 text-white text-sm rounded-md"
           >
-            {activeTab === 'roles' ? '新建角色' : '注册新用户'}
+            {activeTab === 'roles' ? t('system.newRole') : t('system.newUser')}
           </button>
         )}
         {activeTab === 'members' && canWrite && (
@@ -266,17 +268,17 @@ export const SystemManage: React.FC = () => {
             }}
             className="w-full py-2 bg-blue-600 text-white text-sm rounded-md"
           >
-            注册并加入主体
+            {t('system.registerAndJoin')}
           </button>
         )}
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">加载中...</div>
+        <div className="text-center py-12 text-gray-500">{t('system.loading')}</div>
       ) : activeTab === 'members' ? (
         <div>
           <div className="hidden sm:flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">当前主体成员</h3>
+            <h3 className="text-lg font-medium">{t('system.currentOwnerMembers')}</h3>
             {canWrite && (
               <div className="flex gap-2">
                 <button
@@ -286,7 +288,7 @@ export const SystemManage: React.FC = () => {
                   }}
                   className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
                 >
-                  注册并加入主体
+                  {t('system.registerAndJoin')}
                 </button>
                 
               </div>
@@ -294,7 +296,7 @@ export const SystemManage: React.FC = () => {
           </div>
 
           <div className="sm:hidden mb-3">
-            <h3 className="text-base font-medium mb-2">当前主体成员</h3>
+            <h3 className="text-base font-medium mb-2">{t('system.currentOwnerMembers')}</h3>
           </div>
           
           {ownerMembers.length > 0 ? (
@@ -303,12 +305,12 @@ export const SystemManage: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">手机</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">主体角色</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">加入时间</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.nameLabel')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.usernameLabel')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.phoneLabel')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.ownerRole')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.joinTime')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -345,13 +347,13 @@ export const SystemManage: React.FC = () => {
                                 }}
                                 className="text-blue-600 hover:text-blue-800 mr-3"
                               >
-                                编辑
+                                {t('system.editBtn')}
                               </button>
                               <button
                                 onClick={() => handleRemoveOwner(member.id, currentOwnerId!)}
                                 className="text-red-600 hover:text-red-800"
                               >
-                                解除关联
+                                {t('system.removeRelation')}
                               </button>
                             </>
                           )}
@@ -386,7 +388,7 @@ export const SystemManage: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-500 space-y-1 mb-2">
                       <div className="flex justify-between">
-                        <span>用户名: {member.username}</span>
+                        <span>{t('system.usernameLabel')}: {member.username}</span>
                         <span>{formatPhone(member.phone)}</span>
                       </div>
                     </div>
@@ -399,13 +401,13 @@ export const SystemManage: React.FC = () => {
                           }}
                           className="flex-1 py-1.5 text-blue-600 text-xs border border-blue-600 rounded"
                         >
-                          编辑
+                          {t('system.editBtn')}
                         </button>
                         <button
                           onClick={() => handleRemoveOwner(member.id, currentOwnerId!)}
                           className="flex-1 py-1.5 text-red-600 text-xs border border-red-600 rounded"
                         >
-                          解除关联
+                          {t('system.removeRelation')}
                         </button>
                       </div>
                     )}
@@ -414,7 +416,7 @@ export const SystemManage: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="text-center py-12 text-gray-500">暂无成员</div>
+            <div className="text-center py-12 text-gray-500">{t('system.noMembers')}</div>
           )}
         </div>
       ) : activeTab === 'users' ? (

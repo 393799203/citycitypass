@@ -12,8 +12,10 @@ import VehicleDriverForm from './VehicleDriverForm';
 import LocationModal from './LocationModal';
 import { usePermission } from '../../hooks/usePermission';
 import { useOwnerStore } from '../../stores/owner';
+import { useTranslation } from 'react-i18next';
 
 export default function TransportPage() {
+  const { t } = useTranslation();
   const { confirm } = useConfirm();
   const { canWrite: canTransportWrite } = usePermission('business', 'transport');
   const { currentOwnerId } = useOwnerStore();
@@ -31,7 +33,7 @@ export default function TransportPage() {
     warehouseId: '',
     warehouse: null,
     licensePlate: '',
-    vehicleType: '小型货车',
+    vehicleType: t('transport.smallTruck'),
     brand: '',
     model: '',
     capacity: 50,
@@ -80,24 +82,24 @@ export default function TransportPage() {
     try {
       if (activeTab === 'vehicle') {
         if (!(editingItem && 'sourceType' in editingItem && editingItem.sourceType === 'CARRIER') && !formData.warehouseId) {
-          toast.error('请选择仓库');
+          toast.error(t('transport.selectWarehouse'));
           return;
         }
         if (!formData.licensePlate) {
-          toast.error('请输入车牌号');
+          toast.error(t('transport.inputLicensePlate'));
           return;
         }
         if (!formData.vehicleType) {
-          toast.error('请选择车型');
+          toast.error(t('transport.vehicleType'));
           return;
         }
         if (!formData.licenseNo) {
-          toast.error('请输入行驶证号(VIN)');
+          toast.error(t('transport.vinLabel'));
           return;
         }
         const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/;
         if (!vinRegex.test(formData.licenseNo)) {
-          toast.error('行驶证号格式不正确，应为17位');
+          toast.error(t('transport.vinLabel'));
           return;
         }
         const vehicleData = {
@@ -120,31 +122,31 @@ export default function TransportPage() {
           } else {
             await vehicleApi.update(editingItem.id, vehicleData);
           }
-          toast.success('车辆更新成功');
+          toast.success(t('transport.vehicleUpdated'));
         } else {
           await vehicleApi.create(vehicleData);
-          toast.success('车辆添加成功');
+          toast.success(t('transport.vehicleAdded'));
         }
       } else {
         if (!formData.warehouseId) {
-          toast.error('请选择仓库');
+          toast.error(t('transport.selectWarehouse'));
           return;
         }
         if (!formData.name) {
-          toast.error('请输入姓名');
+          toast.error(t('transport.nameLabel'));
           return;
         }
         if (!formData.phone) {
-          toast.error('请输入电话');
+          toast.error(t('transport.phoneLabel'));
           return;
         }
         const phoneRegex = /^1[3-9]\d{9}$/;
         if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-          toast.error('请输入正确的11位手机号');
+          toast.error(t('system.phoneInvalid'));
           return;
         }
         if (!formData.licenseNo) {
-          toast.error('请输入驾驶证号');
+          toast.error(t('transport.driverLicenseLabel'));
           return;
         }
         const driverData = {
@@ -159,22 +161,22 @@ export default function TransportPage() {
         };
         if (editingItem && 'licenseTypes' in editingItem) {
           await driverApi.update(editingItem.id, driverData);
-          toast.success('司机更新成功');
+          toast.success(t('transport.driverUpdated'));
         } else {
           await driverApi.create(driverData);
-          toast.success('司机添加成功');
+          toast.success(t('transport.driverAdded'));
         }
       }
       setShowModal(false);
       setEditingItem(null);
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('transport.operationFailed'));
     }
   };
 
   const handleDelete = async (id: string, item?: Vehicle) => {
-    const ok = await confirm({ message: '确定要删除吗？' });
+    const ok = await confirm({ message: t('transport.deleteConfirm') });
     if (!ok) return;
     try {
       if (activeTab === 'vehicle' && item && 'sourceType' in item) {
@@ -183,14 +185,14 @@ export default function TransportPage() {
         } else {
           await vehicleApi.delete(id);
         }
-        toast.success('车辆删除成功');
+        toast.success(t('transport.vehicleDeleted'));
       } else if (activeTab === 'driver') {
         await driverApi.delete(id);
-        toast.success('司机删除成功');
+        toast.success(t('transport.driverDeleted'));
       }
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('transport.deleteFailed'));
     }
   };
 
@@ -207,7 +209,7 @@ export default function TransportPage() {
 
   const handleUpdateLocation = async () => {
     if (!locationForm.address && !locationForm.latitude) {
-      toast.error('请输入地址或经纬度');
+      toast.error(t('transport.inputAddressOrCoords'));
       return;
     }
     try {
@@ -220,10 +222,10 @@ export default function TransportPage() {
             longitude: res.data.data.longitude.toString(),
             location: res.data.data.location,
           });
-          toast.success('已获取经纬度，请确认后保存');
+          toast.success(t('transport.coordsObtained'));
           return;
         } else {
-          toast.error(res.data.message || '地址解析失败');
+          toast.error(res.data.message || t('transport.geocodeFailed'));
           return;
         }
       }
@@ -241,15 +243,15 @@ export default function TransportPage() {
         } else {
           await vehicleApi.update(locationItem.id, updateData);
         }
-        toast.success('车辆位置更新成功');
+        toast.success(t('transport.vehicleLocationUpdated'));
       } else if (activeTab === 'driver' && locationItem && 'licenseTypes' in locationItem) {
         await driverApi.update(locationItem.id, updateData);
-        toast.success('司机位置更新成功');
+        toast.success(t('transport.driverLocationUpdated'));
       }
       setShowLocationModal(false);
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '位置更新失败');
+      toast.error(error.response?.data?.message || t('transport.locationUpdateFailed'));
     }
   };
 
@@ -282,7 +284,7 @@ export default function TransportPage() {
         warehouseId: item.warehouseId || '',
         warehouse: item.warehouse || null,
         licensePlate: '',
-        vehicleType: '小型货车',
+        vehicleType: t('transport.smallTruck'),
         brand: '',
         model: '',
         capacity: 50,
@@ -309,7 +311,7 @@ export default function TransportPage() {
       warehouseId: '',
       warehouse: null,
       licensePlate: '',
-      vehicleType: '小型货车',
+      vehicleType: t('transport.smallTruck'),
       brand: '',
       model: '',
       capacity: 50,
@@ -361,7 +363,7 @@ export default function TransportPage() {
       
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">
-          运力看板
+          {t('transport.title')}
         </h1>
       </div>
 
@@ -376,7 +378,7 @@ export default function TransportPage() {
             }`}
           >
             <Car className="w-4 h-4 inline mr-2" />
-            车辆管理
+            {t('transport.vehicleManagement')}
           </button>
           <button
             onClick={() => setActiveTab('driver')}
@@ -387,7 +389,7 @@ export default function TransportPage() {
             }`}
           >
             <User className="w-4 h-4 inline mr-2" />
-            司机管理
+            {t('transport.driverManagement')}
           </button>
         </div>
 
@@ -396,7 +398,7 @@ export default function TransportPage() {
             <button
               onClick={openAddModal}
               disabled={!currentOwnerId || !canTransportWrite}
-              title={!currentOwnerId ? '请先选择主体' : !canTransportWrite ? '无操作权限' : ''}
+              title={!currentOwnerId ? t('transport.pleaseSelectOwner') : !canTransportWrite ? t('transport.noPermission') : ''}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
                 currentOwnerId && canTransportWrite
                   ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -404,12 +406,12 @@ export default function TransportPage() {
               }`}
             >
               <Plus className="w-4 h-4" />
-              添加{activeTab === 'vehicle' ? '自有车辆' : '司机'}
+              {activeTab === 'vehicle' ? t('transport.addOwnVehicle') : t('transport.addDriverBtn')}
             </button>
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500">加载中...</div>
+            <div className="text-center py-8 text-gray-500">{t('transport.loading')}</div>
           ) : activeTab === 'vehicle' ? (
             <VehicleTable
               vehicles={vehicles}

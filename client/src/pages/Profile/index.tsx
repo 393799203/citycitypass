@@ -165,7 +165,7 @@ const Profile: React.FC = () => {
               <button
                 onClick={handleGenerateShopQRCode}
                 className="px-3 py-2.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex-shrink-0"
-                title="生成店铺二维码"
+                title={t('profile.generateShopQRCode')}
               >
                 <QrCode className="w-4 h-4" />
               </button>
@@ -210,7 +210,7 @@ const Profile: React.FC = () => {
               )}
               <img
                 src={qrCodeData.qrCode}
-                alt="店铺二维码"
+                alt={t('profile.shopQRCode')}
                 className="mx-auto mb-3"
               />
               <p className="text-xs text-gray-400 break-all mb-4">

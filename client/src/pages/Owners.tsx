@@ -81,11 +81,11 @@ export default function OwnersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) {
-      toast.error('请输入主体名');
+      toast.error(t('owners.inputOwnerName'));
       return;
     }
     if (!formData.province || !formData.city || !formData.address) {
-      toast.error('请填写完整地址');
+      toast.error(t('owners.inputCompleteAddress'));
       return;
     }
 
@@ -97,10 +97,10 @@ export default function OwnersPage() {
       };
       if (editingId) {
         await ownerApi.update(editingId, data);
-        toast.success('主体更新成功');
+        toast.success(t('owners.ownerUpdated'));
       } else {
         const res = await ownerApi.create(data);
-        toast.success('主体创建成功');
+        toast.success(t('owners.ownerCreated'));
         if (res.data?.data) {
           setCurrentOwner(res.data.data.id, res.data.data.name);
         }
@@ -109,7 +109,7 @@ export default function OwnersPage() {
       resetForm();
       fetchOwners();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('owners.operationFailed'));
     }
   };
 
@@ -132,28 +132,28 @@ export default function OwnersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该主体吗？' });
+    const ok = await confirm({ message: t('owners.deleteConfirm') });
     if (!ok) return;
     try {
       await ownerApi.delete(id);
-      toast.success('主体已删除');
+      toast.success(t('owners.ownerDeleted'));
       fetchOwners();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('owners.deleteFailed'));
     }
   };
 
   const handleToggleStatus = async (owner: Owner) => {
     const newStatus = owner.status === 'SERVING' ? 'STOPPED' : 'SERVING';
-    const action = newStatus === 'STOPPED' ? '停止服务' : '开启服务';
-    const ok = await confirm({ message: `确定要${action}该主体吗？` });
+    const action = newStatus === 'STOPPED' ? t('owners.stopService') : t('owners.startService');
+    const ok = await confirm({ message: t('owners.confirmAction', { action }) });
     if (!ok) return;
     try {
       await ownerApi.update(owner.id, { status: newStatus });
-      toast.success(`${action}成功`);
+      toast.success(t('owners.actionSuccess', { action }));
       fetchOwners();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('owners.operationFailed'));
     }
   };
 
@@ -193,21 +193,21 @@ export default function OwnersPage() {
       
 
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">主体管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t('owners.title')}</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Filter className="w-5 h-5" />
-            筛选
+            {t('owners.filter')}
           </button>
           <button
             onClick={openModal}
             className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
           >
             <UserPlus className="w-5 h-5" />
-            新增主体
+            {t('owners.newOwner')}
           </button>
         </div>
       </div>
@@ -216,48 +216,48 @@ export default function OwnersPage() {
         <div className="bg-white p-4 rounded-xl shadow-sm border">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">主体名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.ownerName')}</label>
               <input
                 type="text"
                 value={filters.name}
                 onChange={(e) => setFilters({ ...filters, name: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg"
-                placeholder="请输入主体名"
+                placeholder={t('owners.inputOwnerName')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">所在省份</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.province')}</label>
               <select
                 value={filters.province}
                 onChange={(e) => setFilters({ ...filters, province: e.target.value, city: '' })}
                 className="w-full px-3 py-2 border rounded-lg"
               >
-                <option value="">全部</option>
+                <option value="">{t('owners.all')}</option>
                 {provinces.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">所在城市</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.city')}</label>
               <select
                 value={filters.city}
                 onChange={(e) => setFilters({ ...filters, city: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg"
                 disabled={!filters.province}
               >
-                <option value="">全部</option>
+                <option value="">{t('owners.all')}</option>
                 {filters.province && provinceCities[filters.province]?.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.status')}</label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg"
               >
-                <option value="">全部</option>
-                <option value="SERVING">服务中</option>
-                <option value="STOPPED">停止服务</option>
+                <option value="">{t('owners.all')}</option>
+                <option value="SERVING">{t('owners.serving')}</option>
+                <option value="STOPPED">{t('owners.stopped')}</option>
               </select>
             </div>
             <div className="flex items-end gap-2">
@@ -265,13 +265,13 @@ export default function OwnersPage() {
                 onClick={handleSearch}
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                查询
+                {t('owners.search')}
               </button>
               <button
                 onClick={() => { setFilters({ name: '', province: '', city: '', status: '' }); fetchOwners(); }}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
               >
-                重置
+                {t('owners.reset')}
               </button>
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function OwnersPage() {
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       ) : owners.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-white rounded-xl">暂无数据</div>
+        <div className="text-center py-12 text-gray-500 bg-white rounded-xl">{t('owners.noData')}</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {owners.map((owner) => (
@@ -307,7 +307,7 @@ export default function OwnersPage() {
                     ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-700'
                 }`}>
-                  {owner.status === 'SERVING' ? '服务中' : '停止服务'}
+                  {owner.status === 'SERVING' ? t('owners.serving') : t('owners.stopped')}
                 </span>
               </div>
 
@@ -341,7 +341,7 @@ export default function OwnersPage() {
                   onClick={() => handleEdit(owner)}
                   className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
                 >
-                  <Pencil className="w-4 h-4" /> 编辑
+                  <Pencil className="w-4 h-4" /> {t('owners.edit')}
                 </button>
                 <button
                   onClick={() => handleToggleStatus(owner)}
@@ -350,7 +350,7 @@ export default function OwnersPage() {
                       ? 'border border-orange-200 text-orange-600 hover:bg-orange-50'
                       : 'border border-green-200 text-green-600 hover:bg-green-50'
                   }`}
-                  title={owner.status === 'SERVING' ? '停止服务' : '开启服务'}
+                  title={owner.status === 'SERVING' ? t('owners.stopService') : t('owners.startService')}
                 >
                   {owner.status === 'SERVING' ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                 </button>
@@ -370,7 +370,7 @@ export default function OwnersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">{editingId ? '编辑主体' : '新增主体'}</h2>
+              <h2 className="text-xl font-bold">{editingId ? t('owners.editOwner') : t('owners.newOwner')}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -379,14 +379,14 @@ export default function OwnersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    主体名 <span className="text-red-500">*</span>
+                    {t('owners.ownerName')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入主体名"
+                    placeholder={t('owners.inputOwnerName')}
                   />
                 </div>
                 <div className="flex items-center pt-6">
@@ -397,23 +397,23 @@ export default function OwnersPage() {
                     onChange={(e) => setFormData({ ...formData, isSelfOperated: e.target.checked })}
                     className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
-                  <label htmlFor="isSelfOperated" className="ml-2 text-sm text-gray-700">是否自营</label>
+                  <label htmlFor="isSelfOperated" className="ml-2 text-sm text-gray-700">{t('owners.isSelfOperated')}</label>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">负责人</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.contact')}</label>
                   <input
                     type="text"
                     value={formData.contact}
                     onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入负责人"
+                    placeholder={t('owners.inputContact')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">负责人电话</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.contactPhone')}</label>
                   <PhoneInput
                     value={formData.phone}
                     onChange={(val) => setFormData({ ...formData, phone: val })}
@@ -423,7 +423,7 @@ export default function OwnersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">货物名称（标签）</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('owners.productTags')}</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {defaultProductTags.map(tag => (
                     <button
@@ -444,7 +444,7 @@ export default function OwnersPage() {
                     onClick={() => setShowCustomTagInput(true)}
                     className="px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors"
                   >
-                    + 自定义
+                    {t('owners.customTag')}
                   </button>
                 </div>
                 {showCustomTagInput && (
@@ -468,7 +468,7 @@ export default function OwnersPage() {
                         }
                       }}
                       className="flex-1 px-3 py-2 border rounded-lg"
-                      placeholder="输入标签名称后按回车"
+                      placeholder={t('owners.inputCustomTag')}
                       autoFocus
                     />
                     <button
@@ -486,7 +486,7 @@ export default function OwnersPage() {
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      添加
+                      {t('owners.add')}
                     </button>
                     <button
                       type="button"
@@ -496,7 +496,7 @@ export default function OwnersPage() {
                       }}
                       className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                     >
-                      取消
+                      {t('owners.cancel')}
                     </button>
                   </div>
                 )}
@@ -541,14 +541,14 @@ export default function OwnersPage() {
                   type="submit"
                   className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  {editingId ? '保存' : '创建'}
+                  {editingId ? t('owners.save') : t('owners.create')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); resetForm(); }}
                   className="flex-1 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  取消
+                  {t('owners.cancel')}
                 </button>
               </div>
             </form>

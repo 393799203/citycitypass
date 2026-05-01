@@ -3,6 +3,7 @@ import { MapPin, Edit2, Trash2 } from 'lucide-react';
 import { Vehicle } from '../../types/dispatch';
 import { formatPhone } from '../../utils/format';
 import LicensePlateBadge from '../../components/LicensePlateBadge';
+import { useTranslation } from 'react-i18next';
 
 interface VehicleTableProps {
   vehicles: Vehicle[];
@@ -12,12 +13,12 @@ interface VehicleTableProps {
   canWrite?: boolean;
 }
 
-const vehicleStatusMap: Record<string, string> = {
-  AVAILABLE: '空闲',
-  IN_TRANSIT: '配送中',
-  MAINTENANCE: '维修',
-  DISABLED: '停用',
-};
+const getVehicleStatusMap = (t: any): Record<string, string> => ({
+  AVAILABLE: t('transport.available'),
+  IN_TRANSIT: t('transport.inTransit'),
+  MAINTENANCE: t('transport.maintenance'),
+  DISABLED: t('transport.disabled'),
+});
 
 const vehicleTypeColors: Record<string, { bg: string; text: string; border: string }> = {
   '小型货车': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
@@ -29,21 +30,24 @@ const vehicleTypeColors: Record<string, { bg: string; text: string; border: stri
 };
 
 export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDelete, canWrite = false }: VehicleTableProps) {
+  const { t } = useTranslation();
+  const vehicleStatusMap = getVehicleStatusMap(t);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="text-center text-gray-500 text-sm border-b">
-            <th className="pb-3">仓库</th>
-            <th className="pb-3">车牌号</th>
-            <th className="pb-3">车型</th>
-            <th className="pb-3">品牌-型号</th>
-            <th className="pb-3">载重/容积</th>
-            <th className="pb-3">证照信息</th>
-            <th className="pb-3">当前位置</th>
-            <th className="pb-3">当前司机</th>
-            <th className="pb-3">状态</th>
-            <th className="pb-3">操作</th>
+            <th className="pb-3">{t('transport.warehouseColumn')}</th>
+            <th className="pb-3">{t('transport.plateNoColumn')}</th>
+            <th className="pb-3">{t('transport.vehicleTypeColumn')}</th>
+            <th className="pb-3">{t('transport.brandModelColumn')}</th>
+            <th className="pb-3">{t('transport.capacityVolumeColumn')}</th>
+            <th className="pb-3">{t('transport.licenseInfoColumn')}</th>
+            <th className="pb-3">{t('transport.currentLocationColumn')}</th>
+            <th className="pb-3">{t('transport.currentDriverColumn')}</th>
+            <th className="pb-3">{t('transport.statusColumn')}</th>
+            <th className="pb-3">{t('transport.actionsColumn')}</th>
           </tr>
         </thead>
         <tbody>
@@ -51,13 +55,13 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
             const warehouseVehicles = vehicles.filter((v) => v.sourceType === 'WAREHOUSE');
             const carrierVehicles = vehicles.filter((v) => v.sourceType === 'CARRIER');
             const groupedWarehouse = warehouseVehicles.reduce((acc: any, v) => {
-              const key = v.warehouse?.name || '未知仓库';
+              const key = v.warehouse?.name || t('transport.unknownWarehouse');
               if (!acc[key]) acc[key] = [];
               acc[key].push(v);
               return acc;
             }, {});
             const groupedCarrier = carrierVehicles.reduce((acc: any, v) => {
-              const key = v.warehouse?.name + ' (承运商)' || '未知承运商';
+              const key = v.warehouse?.name + ' (' + t('transport.carrierTag') + ')' || t('transport.unknownWarehouse');
               if (!acc[key]) acc[key] = [];
               acc[key].push(v);
               return acc;
@@ -70,8 +74,8 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
                 {list.map((vehicle: Vehicle, idx: number) => (
                   <tr key={vehicle.id} className="border-b hover:bg-gray-50">
                     {idx === 0 && <td rowSpan={list.length} className="py-3 align-middle text-center">
-                      <span className="text-primary-600 font-medium">{groupName.replace(' (承运商)', '')}</span>
-                      {groupName.includes('承运商') && <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded">承运商</span>}
+                      <span className="text-primary-600 font-medium">{groupName.replace(' (' + t('transport.carrierTag') + ')', '')}</span>
+                      {groupName.includes(t('transport.carrierTag')) && <span className="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded">{t('transport.carrierTag')}</span>}
                     </td>}
                     <td className="py-3 text-center">
                       <LicensePlateBadge plate={vehicle.licensePlate} />
@@ -87,12 +91,12 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
                       {vehicle.brand || vehicle.model ? `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() : '-'}
                     </td>
                     <td className="py-3 text-sm text-center">
-                      <div>载重: {vehicle.capacity}吨</div>
-                      <div>容积: {vehicle.volume || '-'}m³</div>
+                      <div>{t('transport.loadLabel')}: {vehicle.capacity}{t('transport.ton')}</div>
+                      <div>{t('transport.volumeLabel')}: {vehicle.volume || '-'}m³</div>
                     </td>
                     <td className="py-3 text-sm text-gray-500 text-center">
-                      <div>证:{vehicle.licenseNo || '-'}</div>
-                      <div>险:{vehicle.insuranceNo || '-'}</div>
+                      <div>{t('transport.licenseLabel')}:{vehicle.licenseNo || '-'}</div>
+                      <div>{t('transport.insuranceLabel')}:{vehicle.insuranceNo || '-'}</div>
                     </td>
                     <td className="py-3 text-gray-500 text-sm text-center">
                       <div>{vehicle.location || '-'}</div>
@@ -127,7 +131,7 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
                           <button
                             onClick={() => onUpdateLocation(vehicle)}
                             className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
-                            title="更新位置"
+                            title={t('transport.updateLocation')}
                           >
                             <MapPin className="w-4 h-4" />
                           </button>
@@ -163,7 +167,7 @@ export default function VehicleTable({ vehicles, onUpdateLocation, onEdit, onDel
           {vehicles.length === 0 && (
             <tr>
               <td colSpan={10} className="py-8 text-center text-gray-500">
-                暂无车辆数据
+                {t('transport.noVehicleData')}
               </td>
             </tr>
           )}

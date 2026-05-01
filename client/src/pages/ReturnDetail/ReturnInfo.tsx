@@ -1,97 +1,79 @@
 import React from 'react';
-import { Phone } from 'lucide-react';
-import { formatPhone } from '../../utils/format';
+import { useTranslation } from 'react-i18next';
 
 interface ReturnInfoProps {
-  returnOrder: any;
+  order: any;
 }
 
-export default function ReturnInfo({ returnOrder }: ReturnInfoProps) {
+export default function ReturnInfo({ order }: ReturnInfoProps) {
+  const { t } = useTranslation();
+
+  const getStatusLabel = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'RETURN_REQUESTED': t('return.statusRequested'),
+      'RETURN_SHIPPED': t('return.statusShipped'),
+      'RETURN_RECEIVING': t('return.statusReceiving'),
+      'RETURN_QUALIFIED': t('return.statusQualified'),
+      'RETURN_PARTIAL_QUALIFIED': t('return.statusPartialQualified'),
+      'RETURN_REJECTED': t('return.statusRejected'),
+      'RETURN_STOCK_IN': t('return.statusStockIn'),
+      'REFUNDED': t('return.statusRefunded'),
+      'CANCELLED': t('return.statusCancelled'),
+    };
+    return statusMap[status] || status;
+  };
+
+  const getStatusColor = (status: string): string => {
+    const colorMap: Record<string, string> = {
+      'RETURN_REQUESTED': 'bg-yellow-100 text-yellow-700',
+      'RETURN_SHIPPED': 'bg-blue-100 text-blue-700',
+      'RETURN_RECEIVING': 'bg-purple-100 text-purple-700',
+      'RETURN_QUALIFIED': 'bg-green-100 text-green-700',
+      'RETURN_PARTIAL_QUALIFIED': 'bg-orange-100 text-orange-700',
+      'RETURN_REJECTED': 'bg-red-100 text-red-700',
+      'RETURN_STOCK_IN': 'bg-indigo-100 text-indigo-700',
+      'REFUNDED': 'bg-gray-100 text-gray-700',
+      'CANCELLED': 'bg-gray-100 text-gray-500',
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-700';
+  };
+
   return (
-    <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-      <div className={`hidden sm:grid ${(returnOrder.trackingNo || returnOrder.logisticsCompany) ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}>
-        <div>
-          <div className="text-sm text-gray-500 mb-1">退货人</div>
-          <div className="flex items-center gap-2">
-            <div className="text-base">{returnOrder.receiverName}</div>
-            <div className="flex items-center gap-1 text-gray-500 text-sm">
-              <Phone className="w-4 h-4" />
-              {returnOrder.receiverPhone ? formatPhone(returnOrder.receiverPhone) : '-'}
-            </div>
-          </div>
-          <div className="text-sm text-gray-500 mt-2 mb-1">退货人地址</div>
-          <div className="text-base">{returnOrder.receiverAddress}</div>
-        </div>
-        <div>
-          <div className="text-sm text-gray-500 mb-1">收货仓</div>
-          <div className="text-base">{returnOrder.warehouse?.name}</div>
-          <div className="text-sm text-gray-500 mt-2 mb-1">收货仓地址</div>
-          <div className="text-base">{returnOrder.warehouse?.address}</div>
-        </div>
-        {(returnOrder.trackingNo || returnOrder.logisticsCompany) && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">退货快递</div>
-            <div className="text-base">{returnOrder.logisticsCompany || '-'}</div>
-            <div className="text-sm text-gray-500 mt-2 mb-1">快递单号</div>
-            <div className="flex items-center gap-2">
-              <span className="text-base text-gray-600">{returnOrder.trackingNo || '-'}</span>
-              {returnOrder.trackingNo && returnOrder.logisticsCompany && (
-                <a
-                  href={`https://www.kuaidi100.com/chaxun?com=${encodeURIComponent(returnOrder.logisticsCompany)}&nu=${returnOrder.trackingNo}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  查询
-                </a>
-              )}
-            </div>
-          </div>
-        )}
+    <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-800">{t('return.returnInfo')}</h3>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+          {getStatusLabel(order.status)}
+        </span>
       </div>
 
-      <div className="sm:hidden space-y-3 text-xs">
-        <div className="flex justify-between">
-          <span className="text-gray-400">退货人</span>
-          <span>{returnOrder.receiverName} {returnOrder.receiverPhone ? formatPhone(returnOrder.receiverPhone) : '-'}</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div>
+          <span className="text-xs text-gray-500">{t('return.returnNo')}</span>
+          <div className="text-sm font-medium text-gray-800">{order.returnNo}</div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-400">退货人地址</span>
-          <span className="text-right max-w-[60%]">{returnOrder.receiverAddress}</span>
+        <div>
+          <span className="text-xs text-gray-500">{t('return.orderNo')}</span>
+          <div className="text-sm font-medium text-gray-800">{order.order?.orderNo || '-'}</div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-400">收货仓</span>
-          <span className="text-blue-600">{returnOrder.warehouse?.name}</span>
+        <div>
+          <span className="text-xs text-gray-500">{t('return.returnReason')}</span>
+          <div className="text-sm font-medium text-gray-800">{order.reason || '-'}</div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-400">收货仓地址</span>
-          <span className="text-right max-w-[60%]">{returnOrder.warehouse?.address}</span>
+        <div>
+          <span className="text-xs text-gray-500">{t('return.createdAt')}</span>
+          <div className="text-sm font-medium text-gray-800">
+            {new Date(order.createdAt).toLocaleDateString()}
+          </div>
         </div>
-        {(returnOrder.trackingNo || returnOrder.logisticsCompany) && (
-          <>
-            <div className="flex justify-between">
-              <span className="text-gray-400">快递公司</span>
-              <span>{returnOrder.logisticsCompany || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">快递单号</span>
-              <div className="flex items-center gap-1">
-                <span>{returnOrder.trackingNo || '-'}</span>
-                {returnOrder.trackingNo && returnOrder.logisticsCompany && (
-                  <a
-                    href={`https://www.kuaidi100.com/chaxun?com=${encodeURIComponent(returnOrder.logisticsCompany)}&nu=${returnOrder.trackingNo}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600"
-                  >
-                    查询
-                  </a>
-                )}
-              </div>
-            </div>
-          </>
-        )}
       </div>
+
+      {order.remark && (
+        <div className="mt-4 pt-4 border-t">
+          <span className="text-xs text-gray-500">{t('return.remark')}</span>
+          <div className="text-sm text-gray-700 mt-1">{order.remark}</div>
+        </div>
+      )}
     </div>
   );
 }

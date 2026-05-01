@@ -4,22 +4,25 @@ import { purchaseOrderApi } from '../api';
 import { Loader2, Printer, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import InboundOrderModal from '../components/InboundOrderModal';
+import { useTranslation } from 'react-i18next';
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  PENDING: { label: '待确认', color: 'bg-yellow-100 text-yellow-700' },
-  CONFIRMED: { label: '已确认', color: 'bg-blue-100 text-blue-700' },
-  PARTIAL: { label: '部分到货', color: 'bg-orange-100 text-orange-700' },
-  ARRIVED: { label: '已到货', color: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消', color: 'bg-gray-100 text-gray-500' },
-  COMPLETED: { label: '已完成', color: 'bg-purple-100 text-purple-700' },
-};
+const getStatusMap = (t: any): Record<string, { label: string; color: string }> => ({
+  PENDING: { label: t('purchase.statusPending'), color: 'bg-yellow-100 text-yellow-700' },
+  CONFIRMED: { label: t('purchase.statusConfirmed'), color: 'bg-blue-100 text-blue-700' },
+  PARTIAL: { label: t('purchase.statusPartial'), color: 'bg-orange-100 text-orange-700' },
+  ARRIVED: { label: t('purchase.statusArrived'), color: 'bg-green-100 text-green-700' },
+  CANCELLED: { label: t('purchase.statusCancelled'), color: 'bg-gray-100 text-gray-500' },
+  COMPLETED: { label: t('purchase.statusCompleted'), color: 'bg-purple-100 text-purple-700' },
+});
 
 export default function PurchaseDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showInboundModal, setShowInboundModal] = useState(false);
+  const STATUS_MAP = getStatusMap(t);
 
   useEffect(() => {
     if (id) {
@@ -52,12 +55,12 @@ export default function PurchaseDetail() {
   if (!viewingOrder) {
     return (
       <div className="text-center py-8 text-gray-400">
-        <p>订单不存在</p>
+        <p>{t('purchase.orderNotExist')}</p>
         <button
           onClick={() => navigate('/purchases')}
           className="mt-4 px-4 py-2 text-blue-600 hover:underline"
         >
-          返回列表
+          {t('purchase.backToList')}
         </button>
       </div>
     );
@@ -73,22 +76,22 @@ export default function PurchaseDetail() {
                 <Truck className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">采购单</h2>
-                <p className="text-blue-100 text-sm">订单号：{viewingOrder.orderNo}</p>
+                <h2 className="text-2xl font-bold text-white">{t('purchase.title')}</h2>
+                <p className="text-blue-100 text-sm">{t('purchase.purchaseOrderNo')}：{viewingOrder.orderNo}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               {viewingOrder.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') ? (
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg">
-                  <span className="text-sm font-medium">已关联入库单</span>
-                  <span className="text-xs">入库单号：{viewingOrder.inboundOrders.find((io: any) => io.status !== 'CANCELLED').inboundNo}</span>
+                  <span className="text-sm font-medium">{t('purchase.relatedInbound')}</span>
+                  <span className="text-xs">{t('purchase.inboundNo')}：{viewingOrder.inboundOrders.find((io: any) => io.status !== 'CANCELLED').inboundNo}</span>
                 </div>
               ) : viewingOrder.status === 'CONFIRMED' && (
                 <button
                   onClick={() => setShowInboundModal(true)}
                   className="px-3 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 text-sm font-medium"
                 >
-                  创建入库单
+                  {t('purchase.createInbound')}
                 </button>
               )}
               <button
@@ -96,7 +99,7 @@ export default function PurchaseDetail() {
                 className="flex items-center gap-1 px-3 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 text-sm font-medium"
               >
                 <Printer className="w-4 h-4" />
-                打印
+                {t('purchase.printBtn')}
               </button>
               <span className={`px-4 py-1.5 text-sm font-medium rounded-full bg-white ${
                 viewingOrder.status === 'PENDING' ? 'text-yellow-600' :
@@ -114,19 +117,19 @@ export default function PurchaseDetail() {
         <div className="px-8 py-6 border-b border-gray-100">
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">供应商</p>
+              <p className="text-xs text-gray-500 mb-1">{t('purchase.supplierLabel')}</p>
               <p className="font-semibold text-gray-800">{viewingOrder.supplier?.name || '-'}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">下单日期</p>
+              <p className="text-xs text-gray-500 mb-1">{t('purchase.orderDateLabel')}</p>
               <p className="font-semibold text-gray-800">{format(new Date(viewingOrder.orderDate), 'yyyy-MM-dd')}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">期望到货</p>
+              <p className="text-xs text-gray-500 mb-1">{t('purchase.expectedDateLabel')}</p>
               <p className="font-semibold text-gray-800">{viewingOrder.expectedDate ? format(new Date(viewingOrder.expectedDate), 'yyyy-MM-dd') : '-'}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">制单人</p>
+              <p className="text-xs text-gray-500 mb-1">{t('purchase.creatorLabel')}</p>
               <p className="font-semibold text-gray-800">{viewingOrder.owner?.name || '-'}</p>
             </div>
           </div>
@@ -137,11 +140,11 @@ export default function PurchaseDetail() {
             <table className="min-w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">商品</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">规格/单位</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-24">数量</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-32">单价</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-32">金额</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">{t('purchase.productLabel')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">{t('purchase.specUnitLabel')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-24">{t('purchase.quantityLabel')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-32">{t('purchase.priceLabel')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-32">{t('purchase.amountLabel')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -155,7 +158,7 @@ export default function PurchaseDetail() {
                           item.itemType === 'OTHER' ? 'bg-orange-100 text-orange-700' :
                           'bg-blue-100 text-blue-700'
                         }`}>
-                          {item.itemType === 'BUNDLE' ? '套装' : item.itemType === 'MATERIAL' ? '原材料' : item.itemType === 'OTHER' ? '其他' : '商品'}
+                          {item.itemType === 'BUNDLE' ? t('purchase.productTypeBundle') : item.itemType === 'MATERIAL' ? t('purchase.productTypeMaterial') : item.itemType === 'OTHER' ? t('purchase.productTypeOther') : t('purchase.productTypeProduct')}
                         </span>
                         <span className="font-medium text-gray-800">
                           {item.itemType === 'BUNDLE' ? item.bundle?.name :
@@ -177,7 +180,7 @@ export default function PurchaseDetail() {
               </tbody>
               <tfoot className="bg-gray-50">
                 <tr>
-                  <td colSpan={4} className="px-4 py-4 text-right font-semibold text-gray-700 text-lg">合计金额</td>
+                  <td colSpan={4} className="px-4 py-4 text-right font-semibold text-gray-700 text-lg">{t('purchase.totalAmountLabel')}</td>
                   <td className="px-4 py-4 text-right font-bold text-xl text-blue-600">¥{Number(viewingOrder.totalAmount || 0).toFixed(2)}</td>
                 </tr>
               </tfoot>
@@ -186,7 +189,7 @@ export default function PurchaseDetail() {
 
           {viewingOrder.remark && (
             <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg">
-              <p className="text-sm font-medium text-amber-800">备注：{viewingOrder.remark}</p>
+              <p className="text-sm font-medium text-amber-800">{t('purchase.remarkLabel')}：{viewingOrder.remark}</p>
             </div>
           )}
         </div>

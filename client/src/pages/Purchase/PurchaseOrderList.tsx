@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PurchaseOrder } from '../../types/purchase';
+import { useTranslation } from 'react-i18next';
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  PENDING: { label: '待确认', color: 'bg-yellow-100 text-yellow-700' },
-  CONFIRMED: { label: '已确认', color: 'bg-blue-100 text-blue-700' },
-  PARTIAL: { label: '部分到货', color: 'bg-orange-100 text-orange-700' },
-  ARRIVED: { label: '已到货', color: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消', color: 'bg-gray-100 text-gray-500' },
-};
+const getStatusMap = (t: any): Record<string, { label: string; color: string }> => ({
+  PENDING: { label: t('purchase.statusPending'), color: 'bg-yellow-100 text-yellow-700' },
+  CONFIRMED: { label: t('purchase.statusConfirmed'), color: 'bg-blue-100 text-blue-700' },
+  PARTIAL: { label: t('purchase.statusPartial'), color: 'bg-orange-100 text-orange-700' },
+  ARRIVED: { label: t('purchase.statusArrived'), color: 'bg-green-100 text-green-700' },
+  CANCELLED: { label: t('purchase.statusCancelled'), color: 'bg-gray-100 text-gray-500' },
+});
 
 interface PurchaseOrderListProps {
   orders: PurchaseOrder[];
@@ -43,7 +44,9 @@ export default function PurchaseOrderList({
   onPurchaseInbound,
   canWrite = false,
 }: PurchaseOrderListProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const STATUS_MAP = getStatusMap(t);
 
   const filteredOrders = orders.filter(order =>
     order.orderNo.toLowerCase().includes(listKeyword.toLowerCase()) ||
@@ -56,14 +59,14 @@ export default function PurchaseOrderList({
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr className="text-center">
-              <th className="px-4 py-3 text-base font-medium text-gray-500">采购单号</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">供应商</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">SKU数</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">总金额</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">下单日期</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">期望到货</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">状态</th>
-              <th className="px-4 py-3 text-base font-medium text-gray-500">操作</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('purchase.purchaseOrderNo')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('purchase.supplierLabel')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">SKU{t('common.count')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('purchase.totalAmountLabel')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('purchase.orderDateLabel')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('purchase.expectedDateLabel')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('common.status')}</th>
+              <th className="px-4 py-3 text-base font-medium text-gray-500">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -76,7 +79,7 @@ export default function PurchaseOrderList({
             ) : filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
-                  暂无采购记录
+                  {t('common.noData')}
                 </td>
               </tr>
             ) : (
@@ -108,19 +111,19 @@ export default function PurchaseOrderList({
                             onClick={() => onEdit(order)}
                             className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
                           >
-                            编辑
+                            {t('common.edit')}
                           </button>
                           <button
                             onClick={() => onConfirm(order.id)}
                             className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                           >
-                            确认
+                            {t('common.confirm')}
                           </button>
                           <button
                             onClick={() => onDelete(order.id)}
                             className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                           >
-                            删除
+                            {t('common.delete')}
                           </button>
                         </>
                       )}
@@ -128,7 +131,7 @@ export default function PurchaseOrderList({
                         <>
                           {order.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') ? (
                             <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                              已关联入库单
+                              {t('purchase.relatedInbound')}
                             </span>
                           ) : (
                             <>
@@ -136,13 +139,13 @@ export default function PurchaseOrderList({
                                 onClick={() => onPurchaseInbound(order)}
                                 className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                               >
-                                采购入库
+                                {t('purchase.createInbound')}
                               </button>
                               <button
                                 onClick={() => onCancel(order.id)}
                                 className="px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700"
                               >
-                                取消
+                                {t('common.cancel')}
                               </button>
                             </>
                           )}
@@ -150,7 +153,7 @@ export default function PurchaseOrderList({
                       )}
                       {(order.status === 'PARTIAL' || order.status === 'ARRIVED') && order.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') && (
                         <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                          已关联入库单
+                          {t('purchase.relatedInbound')}
                         </span>
                       )}
                     </div>
@@ -169,17 +172,17 @@ export default function PurchaseOrderList({
             disabled={page === 1}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
-            上一页
+            {t('common.prevPage')}
           </button>
           <span className="text-sm text-gray-500">
-            第 {page} / {totalPages} 页
+            {t('common.pageInfo', { page, totalPages })}
           </span>
           <button
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
-            下一页
+            {t('common.nextPage')}
           </button>
         </div>
       )}

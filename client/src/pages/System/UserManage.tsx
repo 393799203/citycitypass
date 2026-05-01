@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/auth';
 import PhoneInput from '../../components/PhoneInput';
 import EmailInput from '../../components/EmailInput';
 import { formatPhone } from '../../utils/format';
+import { useTranslation } from 'react-i18next';
 
 const ALL_ROLES = ['OWNER', 'MANAGER', 'WAREHOUSE_MANAGER', 'TRANSPORT_MANAGER', 'AFTER_SALES_MANAGER', 'GUEST'];
 
@@ -38,6 +39,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   currentOwnerName,
   canWrite = false
 }) => {
+  const { t } = useTranslation();
   const { user: currentUser } = useAuthStore();
 
   const getInitialOwnerRoles = (): OwnerRole[] => {
@@ -79,21 +81,21 @@ export const UserModal: React.FC<UserModalProps> = ({
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      alert('请输入姓名');
+      alert(t('system.nameRequired'));
       return;
     }
     if (!user && !formData.username.trim()) {
-      alert('请输入用户名');
+      alert(t('system.usernameRequired'));
       return;
     }
     if (!user && formData.password.length < 6) {
-      alert('密码至少6位');
+      alert(t('system.passwordMinLength'));
       return;
     }
     if (formData.phone) {
       const phoneRegex = /^1[3-9]\d{9}$/;
       if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-        alert('请输入正确的11位手机号');
+        alert(t('system.phoneInvalid'));
         return;
       }
     }
@@ -128,7 +130,7 @@ export const UserModal: React.FC<UserModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
-          <h3 className="text-lg font-medium">{user ? '编辑用户' : '新建用户'}</h3>
+          <h3 className="text-lg font-medium">{user ? t('system.editUser') : t('system.createUser')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </div>
 
@@ -138,7 +140,7 @@ export const UserModal: React.FC<UserModalProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    用户名 <span className="text-red-500">*</span>
+                    {t('system.usernameLabel')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -151,7 +153,7 @@ export const UserModal: React.FC<UserModalProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    密码 <span className="text-red-500">*</span>
+                    {t('system.passwordLabel')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -160,7 +162,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                     className="w-full px-3 py-2 border rounded-lg"
                     required={!user}
                     minLength={6}
-                    placeholder="至少6位"
+                    placeholder={t('system.passwordMinLength')}
                   />
                 </div>
               </div>
@@ -169,7 +171,7 @@ export const UserModal: React.FC<UserModalProps> = ({
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  姓名 <span className="text-red-500">*</span>
+                  {t('system.nameLabel')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -181,7 +183,7 @@ export const UserModal: React.FC<UserModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('system.phoneLabel')}</label>
                 <PhoneInput
                   value={formData.phone}
                   onChange={phone => setFormData(prev => ({ ...prev, phone }))}
@@ -190,7 +192,7 @@ export const UserModal: React.FC<UserModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('system.emailLabel')}</label>
                 <EmailInput
                   value={formData.email}
                   onChange={email => setFormData(prev => ({ ...prev, email }))}
@@ -209,9 +211,9 @@ export const UserModal: React.FC<UserModalProps> = ({
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <label htmlFor="isAdmin" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  系统管理员
+                  {t('system.isAdminLabel')}
                 </label>
-                <span className="text-xs text-gray-500">（可访问所有数据，无需选择主体）</span>
+                <span className="text-xs text-gray-500">{t('system.isAdminHint')}</span>
               </div>
             )}
 
@@ -219,10 +221,10 @@ export const UserModal: React.FC<UserModalProps> = ({
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    关联主体 {isMemberMode && <span className="text-gray-400 text-xs">（不可更改）</span>}
+                    {t('system.relatedOwners')} {isMemberMode && <span className="text-gray-400 text-xs">{t('system.ownerCannotChange')}</span>}
                   </label>
                   {ownerRoles.length === 0 ? (
-                    <p className="text-sm text-gray-500 border rounded-md p-3">暂无关联主体</p>
+                    <p className="text-sm text-gray-500 border rounded-md p-3">{t('system.noRelatedOwners')}</p>
                   ) : (
                     <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-2">
                       {ownerRoles.map(or => (
@@ -245,7 +247,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                               onClick={() => removeOwnerRole(or.ownerId)}
                               className="text-red-500 hover:text-red-700 text-sm"
                             >
-                              解除关联
+                              {t('system.removeRelation')}
                             </button>
                           )}
                         </div>
@@ -256,7 +258,7 @@ export const UserModal: React.FC<UserModalProps> = ({
 
                 {!isMemberMode && availableOwners.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">添加主体</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('system.addOwner')}</label>
                     <div className="border rounded-md max-h-32 overflow-y-auto p-2 space-y-1">
                       {availableOwners.map(owner => (
                         <label
@@ -291,13 +293,13 @@ export const UserModal: React.FC<UserModalProps> = ({
               onClick={onClose}
               className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
             >
-              取消
+              {t('system.cancelBtn')}
             </button>
             <button
               type="submit"
               className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
-              保存
+              {t('system.saveBtn')}
             </button>
           </div>
         </form>
@@ -314,16 +316,17 @@ interface UserListProps {
 }
 
 export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, canWrite = false }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200 hidden sm:table">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">手机</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">关联主体</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.usernameLabel')}</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.nameLabel')}</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.phoneLabel')}</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('system.relatedOwners')}</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.actions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -339,7 +342,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                     <span>{user.name}</span>
                     {user.isAdmin && (
                       <span className={`px-2 py-0.5 rounded-full text-xs ${ROLE_COLORS['ADMIN']?.bg || 'bg-gray-100'} ${ROLE_COLORS['ADMIN']?.text || 'text-gray-800'}`}>
-                        系统管理员
+                        {t('system.isAdminLabel')}
                       </span>
                     )}
                   </div>
@@ -347,7 +350,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPhone(user.phone || '')}</td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {user.isAdmin ? (
-                    <span className="text-gray-500">所有主体</span>
+                    <span className="text-gray-500">{t('system.allOwners')}</span>
                   ) : (ownerCount > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {user.owners!.map(o => (
@@ -367,14 +370,14 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                         onClick={() => onEdit(user)}
                         className="text-blue-600 hover:text-blue-800 mr-3"
                       >
-                        编辑
+                        {t('system.editBtn')}
                       </button>
                       {!user.isAdmin && (
                         <button
                           onClick={() => onDelete(user.id)}
                           className="text-red-600 hover:text-red-800"
                         >
-                          删除
+                          {t('system.deleteBtn')}
                         </button>
                       )}
                     </>
@@ -397,29 +400,29 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                     <span className="font-medium text-sm text-gray-800 truncate">{user.name}</span>
                     <span className="text-xs text-gray-400 flex-shrink-0">{user.username}</span>
                     {user.isAdmin && (
-                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] flex-shrink-0">管理员</span>
+                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] flex-shrink-0">{t('system.isAdminLabel')}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    {canWrite && (
-                      <>
-                        <button
-                          onClick={() => onEdit(user)}
-                          className="text-blue-600 text-xs"
-                        >
-                          编辑
-                        </button>
-                        {!user.isAdmin && (
+                      {canWrite && (
+                        <>
                           <button
-                            onClick={() => onDelete(user.id)}
-                            className="text-red-600 text-xs"
+                            onClick={() => onEdit(user)}
+                            className="text-blue-600 text-xs"
                           >
-                            删除
+                            {t('system.editBtn')}
                           </button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                          {!user.isAdmin && (
+                            <button
+                              onClick={() => onDelete(user.id)}
+                              className="text-red-600 text-xs"
+                            >
+                              {t('system.deleteBtn')}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                   {user.phone && <span>{formatPhone(user.phone)}</span>}
@@ -434,13 +437,13 @@ export const UserList: React.FC<UserListProps> = ({ users, onEdit, onDelete, can
                   </div>
                 )}
                 {user.isAdmin && (
-                  <div className="mt-1 text-xs text-gray-500">所有主体</div>
+                  <div className="mt-1 text-xs text-gray-500">{t('system.allOwners')}</div>
                 )}
               </div>
             );
           })}
         {users.length === 0 && (
-          <div className="text-center text-gray-500 py-8">暂无用户数据</div>
+          <div className="text-center text-gray-500 py-8">{t('system.noUsers')}</div>
         )}
       </div>
     </div>

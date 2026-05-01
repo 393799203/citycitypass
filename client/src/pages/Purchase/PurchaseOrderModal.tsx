@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Search, Trash2 } from 'lucide-react';
 import { PurchaseItem, SupplierProduct, CustomItem } from '../../types/purchase';
+import { useTranslation } from 'react-i18next';
 
 interface PurchaseOrderModalProps {
   isOpen: boolean;
@@ -52,6 +53,8 @@ export default function PurchaseOrderModal({
   onUpdateItemQuantity,
   onSubmit
 }: PurchaseOrderModalProps) {
+  const { t } = useTranslation();
+  
   if (!isOpen) return null;
 
   const filteredProducts = products.filter((p: any) => {
@@ -82,7 +85,7 @@ export default function PurchaseOrderModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">{editingId ? '编辑采购单' : '新建采购单'}</h2>
+          <h2 className="text-xl font-bold">{editingId ? t('purchase.editPurchase') : t('purchase.newPurchase')}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
@@ -93,7 +96,7 @@ export default function PurchaseOrderModal({
             <div className="p-4 border-b bg-gray-50">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1 px-1">供应商</label>
+                  <label className="block text-xs text-gray-500 mb-1 px-1">{t('purchase.supplierLabel')}</label>
                   <select
                     value={formData.supplierId}
                     onChange={(e) => onFormDataChange({ ...formData, supplierId: e.target.value })}
@@ -101,14 +104,14 @@ export default function PurchaseOrderModal({
                     required
                     disabled={!!editingId}
                   >
-                    <option value="">选择供应商</option>
+                    <option value="">{t('purchase.selectSupplier')}</option>
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1 px-1">期望到货日期</label>
+                  <label className="block text-xs text-gray-500 mb-1 px-1">{t('purchase.expectedDateLabel')}</label>
                   <input
                     type="date"
                     value={formData.expectedDate}
@@ -128,7 +131,7 @@ export default function PurchaseOrderModal({
                     productType === 'SKU' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
                   }`}
                 >
-                  商品
+                  {t('purchase.productTypeProduct')}
                 </button>
               )}
               {bundles.length > 0 && (
@@ -139,7 +142,7 @@ export default function PurchaseOrderModal({
                     productType === 'BUNDLE' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
                   }`}
                 >
-                  套装
+                  {t('purchase.productTypeBundle')}
                 </button>
               )}
               {customItems.filter(c => c.type === 'MATERIAL').length > 0 && (
@@ -150,7 +153,7 @@ export default function PurchaseOrderModal({
                     productType === 'MATERIAL' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500'
                   }`}
                 >
-                  原材料
+                  {t('purchase.productTypeMaterial')}
                 </button>
               )}
               {customItems.filter(c => c.type === 'OTHER').length > 0 && (
@@ -161,7 +164,7 @@ export default function PurchaseOrderModal({
                     productType === 'OTHER' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500'
                   }`}
                 >
-                  其他
+                  {t('purchase.productTypeOther')}
                 </button>
               )}
             </div>
@@ -170,7 +173,7 @@ export default function PurchaseOrderModal({
               <Search className="w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder={productType === 'SKU' ? "搜索商品..." : productType === 'BUNDLE' ? "搜索套装..." : "搜索..."}
+                placeholder={productType === 'SKU' ? t('common.searchProduct') : productType === 'BUNDLE' ? t('common.searchBundle') : t('common.search')}
                 value={searchKeyword}
                 onChange={(e) => onSearchKeywordChange(e.target.value)}
                 className="flex-1 px-3 py-2 border rounded-lg text-sm"
@@ -182,7 +185,7 @@ export default function PurchaseOrderModal({
                 <>
                   {Object.entries(productGroups).length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
-                      {formData.supplierId ? '暂无商品' : '请先选择供应商'}
+                      {formData.supplierId ? t('common.noData') : t('purchase.selectSupplier')}
                     </div>
                   ) : (
                     Object.entries(productGroups).map(([productName, skus]) => (
@@ -231,7 +234,7 @@ export default function PurchaseOrderModal({
                 <>
                   {filteredBundles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
-                      {formData.supplierId ? '暂无套装' : '请先选择供应商'}
+                      {formData.supplierId ? t('common.noData') : t('purchase.selectSupplier')}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-1.5">
@@ -276,7 +279,7 @@ export default function PurchaseOrderModal({
                 <>
                   {customItems.filter(c => c.type === productType && (!searchKeyword || c.name.toLowerCase().includes(searchKeyword.toLowerCase()))).length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
-                      {searchKeyword ? '无匹配结果' : '暂无可选项目'}
+                      {searchKeyword ? t('common.noResults') : t('common.noData')}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-1.5">
@@ -311,7 +314,7 @@ export default function PurchaseOrderModal({
                               {item.unit && <div className="text-gray-400 text-xs">({item.unit})</div>}
                             </div>
                             {item.price && (
-                              <div className="text-green-600 font-medium ml-1 shrink-0">¥{item.price}/{item.unit || '单位'}</div>
+                              <div className="text-green-600 font-medium ml-1 shrink-0">¥{item.price}/{item.unit || t('common.unit')}</div>
                             )}
                           </div>
                         </div>
@@ -326,9 +329,9 @@ export default function PurchaseOrderModal({
           <div className="w-1/2 flex flex-col max-h-[70vh]">
             <div className="p-4 border-b bg-gray-50">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">采购清单</span>
+                <span className="text-sm font-medium text-gray-700">{t('purchase.purchaseList')}</span>
                 <span className="text-xs text-gray-500">
-                  {formItems.length} 个商品
+                  {formItems.length} {t('common.items')}
                 </span>
               </div>
             </div>
@@ -336,7 +339,7 @@ export default function PurchaseOrderModal({
             <div className="flex-1 overflow-y-auto p-4">
               {formItems.length === 0 ? (
                 <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
-                  暂无商品，请从左侧添加
+                  {t('purchase.addProducts')}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -350,7 +353,7 @@ export default function PurchaseOrderModal({
                             item.itemType === 'OTHER' ? 'bg-orange-100 text-orange-600' :
                             'bg-blue-100 text-blue-600'
                           }`}>
-                            {item.itemType === 'BUNDLE' ? '套装' : item.itemType === 'MATERIAL' ? '原材料' : item.itemType === 'OTHER' ? '其他' : '商品'}
+                            {item.itemType === 'BUNDLE' ? t('purchase.productTypeBundle') : item.itemType === 'MATERIAL' ? t('purchase.productTypeMaterial') : item.itemType === 'OTHER' ? t('purchase.productTypeOther') : t('purchase.productTypeProduct')}
                           </span>
                           <span className="font-medium truncate max-w-32">
                             {item.itemType === 'BUNDLE' ? item.bundleName :
@@ -408,7 +411,7 @@ export default function PurchaseOrderModal({
 
             <div className="p-4 border-t bg-gray-50">
               <div className="flex justify-between items-center mb-3">
-                <span className="font-medium">总计</span>
+                <span className="font-medium">{t('common.total')}</span>
                 <span className="text-lg text-green-600 font-bold">
                   ¥{formItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0).toFixed(2)}
                 </span>
@@ -418,7 +421,7 @@ export default function PurchaseOrderModal({
                 onChange={(e) => onFormDataChange({ ...formData, remark: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg text-sm"
                 rows={2}
-                placeholder="添加备注..."
+                placeholder={t('purchase.remarkPlaceholder')}
               />
             </div>
           </div>
@@ -429,14 +432,14 @@ export default function PurchaseOrderModal({
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={onSubmit}
             disabled={saving || formItems.length === 0}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
           >
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </div>

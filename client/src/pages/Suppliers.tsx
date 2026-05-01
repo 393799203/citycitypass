@@ -12,7 +12,7 @@ import { useOwnerStore } from '../stores/owner';
 import { formatPhone } from '../utils/format';
 import { usePermission } from '../hooks/usePermission';
 
-const defaultProductTags = ['白酒', '啤酒', '葡萄酒', '洋酒', '黄酒', '饮料', '食品'];
+const defaultProductTags: string[] = [];
 
 interface Supplier {
   id: string;
@@ -261,11 +261,11 @@ export default function SuppliersPage() {
 
   const getContractStatusText = (status: string) => {
     switch (status) {
-      case 'ACTIVE': return '生效中';
-      case 'DRAFT': return '草稿';
-      case 'PENDING': return '待生效';
-      case 'EXPIRED': return '已过期';
-      case 'TERMINATED': return '已终止';
+      case 'ACTIVE': return t('supplier.contractActive');
+      case 'DRAFT': return t('supplier.contractDraft');
+      case 'PENDING': return t('supplier.contractPending');
+      case 'EXPIRED': return t('supplier.contractExpired');
+      case 'TERMINATED': return t('supplier.contractTerminated');
       default: return status;
     }
   };
@@ -338,19 +338,19 @@ export default function SuppliersPage() {
     e.preventDefault();
     
     if (!contractForm.name.trim()) {
-      toast.error('请输入合同名称');
+      toast.error(t('supplier.inputContractName'));
       return;
     }
     if (!contractForm.startDate) {
-      toast.error('请选择开始日期');
+      toast.error(t('supplier.selectStartDate'));
       return;
     }
     if (!contractForm.endDate) {
-      toast.error('请选择结束日期');
+      toast.error(t('supplier.selectEndDate'));
       return;
     }
     if (contractForm.startDate > contractForm.endDate) {
-      toast.error('结束日期不能早于开始日期');
+      toast.error(t('supplier.endDateBeforeStart'));
       return;
     }
     
@@ -362,10 +362,10 @@ export default function SuppliersPage() {
       };
       if (editingContractId) {
         await supplierContractApi.update(editingContractId, submitData);
-        toast.success('更新成功');
+        toast.success(t('supplier.contractUpdateSuccess'));
       } else {
         await supplierContractApi.create(submitData);
-        toast.success('创建成功');
+        toast.success(t('supplier.contractCreateSuccess'));
       }
       setShowContractModal(false);
       setContractForm(defaultContractForm);
@@ -374,7 +374,7 @@ export default function SuppliersPage() {
         fetchSupplierContracts(selectedSupplier.id);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('supplier.operationFailed'));
     }
   };
 
@@ -390,16 +390,16 @@ export default function SuppliersPage() {
   };
 
   const handleDeleteContract = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该合同吗？' });
+    const ok = await confirm({ message: t('supplier.contractDeleteConfirm') });
     if (!ok) return;
     try {
       await supplierContractApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('supplier.contractDeleteSuccess'));
       if (selectedSupplier) {
         fetchSupplierContracts(selectedSupplier.id);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('supplier.contractDeleteFailed'));
     }
   };
 
@@ -413,22 +413,22 @@ export default function SuppliersPage() {
       
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">供应商管理</h1>
+        <h1 className="text-2xl font-bold">{t('supplier.title')}</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">
-            供应商: {filteredSuppliers.length}
+            {t('supplier.supplierCount')}: {filteredSuppliers.length}
           </span>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
             disabled={!filterOwner || !canWrite}
-            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!filterOwner ? t('supplier.pleaseSelectOwner') : !canWrite ? t('supplier.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            <Plus className="w-4 h-4" /> 新建供应商
+            <Plus className="w-4 h-4" /> {t('supplier.newSupplier')}
           </button>
         </div>
       </div>
@@ -436,7 +436,7 @@ export default function SuppliersPage() {
       <div className="mb-4 flex gap-2 flex-wrap">
         <input
           type="text"
-          placeholder="搜索供应商名称/编码/联系人"
+          placeholder={t('supplier.searchPlaceholder')}
           value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           className="px-3 py-2 border rounded-lg text-sm w-48"
@@ -446,9 +446,9 @@ export default function SuppliersPage() {
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           className="px-3 py-2 border rounded-lg text-sm"
         >
-          <option value="">全部状态</option>
-          <option value="ACTIVE">启用</option>
-          <option value="INACTIVE">停用</option>
+          <option value="">{t('supplier.allStatus')}</option>
+          <option value="ACTIVE">{t('supplier.statusActive')}</option>
+          <option value="INACTIVE">{t('supplier.statusInactive')}</option>
         </select>
       </div>
 
@@ -459,7 +459,7 @@ export default function SuppliersPage() {
       ) : filteredSuppliers.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p>暂无供应商数据</p>
+          <p>{t('supplier.noSupplier')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -479,7 +479,7 @@ export default function SuppliersPage() {
                   </div>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded font-medium ${supplier.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {supplier.status === 'ACTIVE' ? '启用' : '停用'}
+                  {supplier.status === 'ACTIVE' ? t('supplier.statusActive') : t('supplier.statusInactive')}
                 </span>
               </div>
 
@@ -489,7 +489,7 @@ export default function SuppliersPage() {
                     <Phone className="w-4 h-4" />
                     {supplier.contact || '-'} · {formatPhone(supplier.phone)}
                   </div>
-                  <span className="text-xs text-gray-500">合同: {supplier.contractCount || 0}</span>
+                  <span className="text-xs text-gray-500">{t('supplier.contract')}: {supplier.contractCount || 0}</span>
                 </div>
                 <div className="flex items-start gap-2 text-gray-600">
                   <MapPin className="w-4 h-4 mt-0.5" />
@@ -516,13 +516,13 @@ export default function SuppliersPage() {
                   onClick={() => { setSelectedSupplier(supplier); setActiveTab('overview'); }}
                   className="flex-1 px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
                 >
-                  查看详情
+                  {t('supplier.viewDetail')}
                 </button>
                 <button
                   onClick={() => { handleOpenProductModal(supplier); }}
                   className="px-3 py-1.5 border border-purple-200 text-purple-600 rounded text-sm hover:bg-purple-50"
                 >
-                  供应商品
+                  {t('supplier.supplyProducts')}
                 </button>
                 {canWrite && (
                   <>
@@ -564,13 +564,13 @@ export default function SuppliersPage() {
                 onClick={() => setActiveTab('overview')}
                 className={`px-6 py-3 text-sm font-medium ${activeTab === 'overview' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-500'}`}
               >
-                基本信息
+                {t('supplier.basicInfo')}
               </button>
               <button
                 onClick={() => { setActiveTab('contracts'); fetchSupplierContracts(selectedSupplier.id); }}
                 className={`px-6 py-3 text-sm font-medium ${activeTab === 'contracts' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-500'}`}
               >
-                合同管理
+                {t('supplier.contractManagement')}
               </button>
             </div>
 
@@ -705,7 +705,7 @@ export default function SuppliersPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">暂无合同</div>
+                    <div className="text-center py-8 text-gray-500">{t('supplier.noContract')}</div>
                   )}
                 </div>
               )}
@@ -718,13 +718,13 @@ export default function SuppliersPage() {
                     onClick={() => handleEdit(selectedSupplier)}
                     className="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50"
                   >
-                    编辑
+                    {t('supplier.edit')}
                   </button>
                   <button
                     onClick={() => handleDelete(selectedSupplier.id)}
                     className="px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
                   >
-                    删除
+                    {t('supplier.delete')}
                   </button>
                 </>
               )}
@@ -737,7 +737,7 @@ export default function SuppliersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold">{editingId ? '编辑供应商' : '新建供应商'}</h2>
+              <h2 className="text-lg font-bold">{editingId ? t('supplier.editSupplierTitle') : t('supplier.createSupplierTitle')}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }}>
                 <X className="w-5 h-5" />
               </button>
@@ -746,44 +746,44 @@ export default function SuppliersPage() {
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    供应商名称 <span className="text-red-500">*</span>
+                    {t('supplier.supplierName')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入供应商名称"
+                    placeholder={t('supplier.inputSupplierName')}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">状态</label>
+                  <label className="block text-sm font-medium mb-1">{t('supplier.status')}</label>
                   <select
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="ACTIVE">启用</option>
-                    <option value="INACTIVE">停用</option>
+                    <option value="ACTIVE">{t('supplier.statusActive')}</option>
+                    <option value="INACTIVE">{t('supplier.statusInactive')}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    联系人 <span className="text-red-500">*</span>
+                    {t('supplier.contactRequired')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.contact}
                     onChange={e => setFormData({ ...formData, contact: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入联系人姓名"
+                    placeholder={t('supplier.inputContactName')}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    联系电话 <span className="text-red-500">*</span>
+                    {t('supplier.phoneRequired')} <span className="text-red-500">*</span>
                   </label>
                   <PhoneInput
                     value={formData.phone}
@@ -796,7 +796,7 @@ export default function SuppliersPage() {
 
               <div className="mt-4">
                 <label className="block text-sm font-medium mb-1">
-                  所在地区 <span className="text-red-500">*</span>
+                  {t('supplier.addressRequired')} <span className="text-red-500">*</span>
                 </label>
                 <AddressInput
                   value={{
@@ -819,7 +819,7 @@ export default function SuppliersPage() {
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">商品标签</label>
+                <label className="block text-sm font-medium mb-1">{t('supplier.productTags')}</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {defaultProductTags.map(tag => (
                     <button
@@ -840,7 +840,7 @@ export default function SuppliersPage() {
                     onClick={() => setShowCustomTagInput(true)}
                     className="px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors"
                   >
-                    + 自定义
+                    {t('supplier.customTag')}
                   </button>
                 </div>
                 {showCustomTagInput && (
@@ -863,7 +863,7 @@ export default function SuppliersPage() {
                           setShowCustomTagInput(false);
                         }
                       }}
-                      placeholder="输入自定义标签后按回车"
+                      placeholder={t('supplier.inputCustomTag')}
                       className="flex-1 px-3 py-1 border rounded"
                       autoFocus
                     />
@@ -882,20 +882,20 @@ export default function SuppliersPage() {
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">备注</label>
+                <label className="block text-sm font-medium mb-1">{t('supplier.remark')}</label>
                 <textarea
                   value={formData.remark}
                   onChange={e => setFormData({ ...formData, remark: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                   rows={2}
-                  placeholder="请输入备注信息"
+                  placeholder={t('supplier.inputRemark')}
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
-                <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg">取消</button>
+                <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg">{t('supplier.cancel')}</button>
                 <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
-                  {saving ? '保存中...' : '保存'}
+                  {saving ? '...' : t('supplier.save')}
                 </button>
               </div>
             </form>
@@ -907,7 +907,7 @@ export default function SuppliersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold">供应商合同 {selectedSupplier && `- ${selectedSupplier.name}`}</h2>
+              <h2 className="text-lg font-bold">{t('supplier.contract')} {selectedSupplier && `- ${selectedSupplier.name}`}</h2>
               <button onClick={() => { setShowContractModal(false); setSelectedSupplier(null); resetContractForm(); }}>
                 <X className="w-5 h-5" />
               </button>
@@ -1184,19 +1184,19 @@ export default function SuppliersPage() {
                       <div className="flex items-center gap-2 mb-3">
                         <input
                           type="text"
-                          placeholder="名称"
+                          placeholder={t('supplier.name')}
                           id="materialName"
                           className="flex-1 px-2 py-1.5 border rounded text-sm"
                         />
                         <input
                           type="text"
-                          placeholder="单位"
+                          placeholder={t('supplier.unit')}
                           id="materialUnit"
                           className="w-16 px-2 py-1.5 border rounded text-sm"
                         />
                         <input
                           type="number"
-                          placeholder="单价"
+                          placeholder={t('supplier.price')}
                           id="materialPrice"
                           className="w-20 px-2 py-1.5 border rounded text-sm"
                         />
@@ -1223,7 +1223,7 @@ export default function SuppliersPage() {
                           }}
                           className="px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600"
                         >
-                          添加
+                          {t('supplier.add')}
                         </button>
                       </div>
                       {supplierMaterials.filter(m => m.category === productType).length > 0 && (

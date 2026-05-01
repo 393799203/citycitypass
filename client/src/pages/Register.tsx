@@ -52,13 +52,13 @@ export default function Register() {
         email: formData.email || undefined,
       });
       if (res.data.success) {
-        toast.success('注册成功，请登录');
+        toast.success(t('register.registerSuccess'));
         setTimeout(() => navigate(`/login?username=${encodeURIComponent(formData.username)}`), 1500);
       } else {
-        toast.error(res.data.message || '注册失败');
+        toast.error(res.data.message || t('register.registerFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '注册失败');
+      toast.error(error.response?.data?.message || t('register.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -105,29 +105,29 @@ export default function Register() {
             <Bot className="w-24 h-24" />
           </div>
           <h1 className="text-5xl font-bold mb-4 tracking-wider animate-fade-in">
-            智链云AI
+            {t('register.appName')}
           </h1>
           <p className="text-xl text-primary-200 mb-12 animate-fade-in-delayed">
-            智慧物流管理系统
+            {t('register.appSlogan')}
           </p>
           
           {/* 特性列表 */}
           <div className="grid grid-cols-2 gap-6 w-full max-w-md">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up">
               <Warehouse className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">智能仓储</span>
+              <span className="text-sm">{t('register.featureWarehouse')}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up-delayed">
               <Truck className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">高效运输</span>
+              <span className="text-sm">{t('register.featureTransport')}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up-delayed-2">
               <Package className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">精准库存</span>
+              <span className="text-sm">{t('register.featureInventory')}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center animate-slide-up-delayed-3">
               <Route className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">全程追踪</span>
+              <span className="text-sm">{t('register.featureTracking')}</span>
             </div>
           </div>
         </div>
@@ -202,26 +202,26 @@ export default function Register() {
           {/* 返回登录 */}
           <Link to="/login" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-600 mb-8 transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            <span>返回登录</span>
+            <span>{t('register.backToLogin')}</span>
           </Link>
 
           {/* 移动端Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
             <Bot className="w-10 h-10 text-primary-600" />
-            <span className="text-3xl font-bold text-primary-600">智链云AI</span>
+            <span className="text-3xl font-bold text-primary-600">{t('register.appName')}</span>
           </div>
 
           {/* 欢迎文字 */}
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">创建账号</h2>
-            <p className="text-gray-500">加入智链云AI，开启智能管理之旅</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('register.createAccount')}</h2>
+            <p className="text-gray-500">{t('register.joinMessage')}</p>
           </div>
 
           {/* 注册表单 */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* 用户名 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">用户名 <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('register.username')} <span className="text-red-500">*</span></label>
               <div className={`relative transition-all duration-300 ${focused === 'username' ? 'transform scale-105' : ''}`}>
                 <input
                   type="text"
@@ -234,7 +234,7 @@ export default function Register() {
                     ${focused === 'username' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入用户名"
+                  placeholder={t('register.inputUsername')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'username' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -247,7 +247,7 @@ export default function Register() {
 
             {/* 姓名 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">姓名 <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('register.name')} <span className="text-red-500">*</span></label>
               <div className={`relative transition-all duration-300 ${focused === 'name' ? 'transform scale-105' : ''}`}>
                 <input
                   type="text"
@@ -260,7 +260,7 @@ export default function Register() {
                     ${focused === 'name' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入姓名"
+                  placeholder={t('register.inputName')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'name' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -273,7 +273,7 @@ export default function Register() {
 
             {/* 手机 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">手机</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('register.phone')}</label>
               <div className={`relative transition-all duration-300 ${focused === 'phone' ? 'transform scale-105' : ''}`}>
                 <input
                   type="tel"
@@ -286,7 +286,7 @@ export default function Register() {
                     ${focused === 'phone' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入手机号"
+                  placeholder={t('register.inputPhone')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'phone' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -299,7 +299,7 @@ export default function Register() {
 
             {/* 邮箱 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('register.email')}</label>
               <div className={`relative transition-all duration-300 ${focused === 'email' ? 'transform scale-105' : ''}`}>
                 <input
                   type="email"
@@ -312,7 +312,7 @@ export default function Register() {
                     ${focused === 'email' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入邮箱"
+                  placeholder={t('register.inputEmail')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'email' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -325,7 +325,7 @@ export default function Register() {
 
             {/* 密码 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">密码 <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('register.password')} <span className="text-red-500">*</span></label>
               <div className={`relative transition-all duration-300 ${focused === 'password' ? 'transform scale-105' : ''}`}>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -338,7 +338,7 @@ export default function Register() {
                     ${focused === 'password' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入密码（至少6位）"
+                  placeholder={t('register.inputPassword')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'password' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -358,7 +358,7 @@ export default function Register() {
 
             {/* 确认密码 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">确认密码 <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('register.confirmPassword')} <span className="text-red-500">*</span></label>
               <div className={`relative transition-all duration-300 ${focused === 'confirmPassword' ? 'transform scale-105' : ''}`}>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -371,7 +371,7 @@ export default function Register() {
                     ${focused === 'confirmPassword' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请再次输入密码"
+                  placeholder={t('register.inputConfirmPassword')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'confirmPassword' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -394,17 +394,17 @@ export default function Register() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>注册中...</span>
+                  <span>{t('register.registering')}</span>
                 </>
               ) : (
-                <span>立即注册</span>
+                <span>{t('register.registerNow')}</span>
               )}
             </button>
           </form>
 
           {/* 已有账号 */}
           <div className="mt-8 text-center text-sm text-gray-500">
-            已有账号？ <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">立即登录</Link>
+            {t('register.hasAccount')} <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">{t('register.loginNow')}</Link>
           </div>
         </div>
       </div>

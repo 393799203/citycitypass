@@ -655,18 +655,18 @@ export default function StockTransfers() {
   };
 
   const handleExecuteStockIn = async (id: string, type: string) => {
-    const ok = await confirm({ message: '确认执行入库？' });
+    const ok = await confirm({ message: t('transfer.confirmExecuteStockIn') });
     if (!ok) return;
     try {
       const res = await stockApi.executeStockIn(id, type);
       if (res.data.success) {
-        toast.success('入库执行成功');
+        toast.success(t('transfer.executeStockInSuccess'));
         loadTransfers();
       } else {
-        toast.error(res.data.message || '执行失败');
+        toast.error(res.data.message || t('transfer.executeFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '执行失败');
+      toast.error(error.response?.data?.message || t('transfer.executeFailed'));
     }
   };
 
@@ -697,7 +697,7 @@ export default function StockTransfers() {
         (s.skuId === item.skuId || s.bundleId === item.bundleId) &&
         s.locationId === item.fromLocationId
     );
-    if (!stock) return '(商品)';
+    if (!stock) return `(${t('transfer.productType')})`;
     return stock.type === 'product' ? stock.productName : stock.bundleName;
   };
 
@@ -717,7 +717,7 @@ export default function StockTransfers() {
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">
-            移库管理
+            {t('transfer.title')}
           </h1>
         <div className="flex items-center gap-3">
           <select
@@ -725,7 +725,7 @@ export default function StockTransfers() {
             onChange={(e) => { setFilterWarehouseId(e.target.value); loadTransfers(e.target.value, filterStatus); }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">全部仓库</option>
+            <option value="">{t('transfer.allWarehouses')}</option>
             {warehouses.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name}
@@ -737,10 +737,10 @@ export default function StockTransfers() {
             onChange={(e) => { setFilterStatus(e.target.value); loadTransfers(filterWarehouseId, e.target.value); }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">全部状态</option>
-            <option value="PENDING">待移库</option>
-            <option value="COMPLETED">已完成</option>
-            <option value="CANCELLED">已取消</option>
+            <option value="">{t('transfer.allStatus')}</option>
+            <option value="PENDING">{t('transfer.statusPending')}</option>
+            <option value="COMPLETED">{t('transfer.statusCompleted')}</option>
+            <option value="CANCELLED">{t('transfer.statusCancelled')}</option>
           </select>
           <button
             onClick={() => { loadWarehouses(); loadTransfers(); }}
@@ -757,7 +757,7 @@ export default function StockTransfers() {
               setShowModal(true);
             }}
             disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!currentOwnerId ? t('transfer.pleaseSelectOwner') : !canWrite ? t('transfer.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               currentOwnerId && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -765,7 +765,7 @@ export default function StockTransfers() {
             }`}
           >
             <Plus className="w-4 h-4" />
-            新建移库单
+            {t('transfer.createTransfer')}
           </button>
         </div>
       </div>
@@ -775,28 +775,28 @@ export default function StockTransfers() {
           <thead className="bg-gray-50">
             <tr className="text-center">
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                移库单号
+                {t('transfer.transferNo')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                仓库
+                {t('transfer.warehouse')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                商品
+                {t('transfer.product')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                源库位→目的库位
+                {t('transfer.sourceToTarget')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                数量
+                {t('transfer.quantity')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                状态
+                {t('transfer.status')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                创建/执行时间
+                {t('transfer.createExecuteTime')}
               </th>
               <th className="px-4 py-3 text-sm font-medium text-gray-500">
-                操作
+                {t('transfer.actions')}
               </th>
             </tr>
           </thead>
@@ -807,12 +807,12 @@ export default function StockTransfers() {
                   colSpan={9}
                   className="px-4 py-8 text-center text-gray-400"
                 >
-                  暂无记录
+                  {t('transfer.noRecords')}
                 </td>
               </tr>
             ) : (
-              transfers.map((t: any) => {
-                const rows = t.items?.map((item: any, idx: number) => {
+              transfers.map((transfer: any) => {
+                const rows = transfer.items?.map((item: any, idx: number) => {
                     const itemType = item.bundle ? 'bundle' : 'product';
                     const itemName = item.sku?.product?.name || item.bundle?.name || '-';
                     const itemSpec = item.sku?.spec || item.bundle?.spec;
@@ -829,16 +829,16 @@ export default function StockTransfers() {
                   }) || [];
 
                 return rows.map((row: any, rowIdx: number) => (
-                  <tr key={`${t.id}-${row.idx}`} className="hover:bg-gray-50">
+                  <tr key={`${transfer.id}-${row.idx}`} className="hover:bg-gray-50">
                     {rowIdx === 0 && (
                       <>
                         <td className="px-4 py-3 text-sm font-mono text-center" rowSpan={rows.length}>
-                          {t.transferNo}
+                          {transfer.transferNo}
                         </td>
                         <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
-                          <div>{t.warehouse?.name}</div>
-                          {t.warehouse?.owner?.name && (
-                            <div className="text-xs text-gray-400">{t.warehouse.owner.name}</div>
+                          <div>{transfer.warehouse?.name}</div>
+                          {transfer.warehouse?.owner?.name && (
+                            <div className="text-xs text-gray-400">{transfer.warehouse.owner.name}</div>
                           )}
                         </td>
                       </>
@@ -848,15 +848,15 @@ export default function StockTransfers() {
                         <span className={`px-1.5 py-0.5 text-xs rounded ${
                           row.itemType === 'bundle' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                         }`}>
-                          {row.itemType === 'bundle' ? '套装' : '商品'}
+                          {row.itemType === 'bundle' ? t('transfer.bundle') : t('transfer.productType')}
                         </span>
                         <span className="font-medium">{row.itemName}</span>
                         {row.itemType === 'bundle' && row.items && row.items.length > 0 && (
                           <button
                             type="button"
-                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('transfer.bundleContains')}:</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                             onMouseLeave={() => setTooltip(null)}
-                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('transfer.bundleContains')}:</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                             className="p-0.5 hover:bg-gray-100 rounded"
                           >
                             <Info className="w-4 h-4 text-purple-500 cursor-help" />
@@ -878,34 +878,34 @@ export default function StockTransfers() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-center text-blue-600 font-medium">
-                      {row.quantity}件
+                      {row.quantity}{t('transfer.pieces')}
                     </td>
                     {rowIdx === 0 && (
                       <>
                         <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            STATUS_COLORS[t.status] || 'bg-gray-100 text-gray-800'
+                            STATUS_COLORS[transfer.status] || 'bg-gray-100 text-gray-800'
                           }`}>
-                            {STATUS_NAMES[t.status] || t.status}
+                            {STATUS_NAMES[transfer.status] || transfer.status}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-center" rowSpan={rows.length}>
-                          {t.executedAt && (
-                            <div className="text-xs text-green-600">执行: {new Date(t.executedAt).toLocaleString()}</div>
+                          {transfer.executedAt && (
+                            <div className="text-xs text-green-600">{t('transfer.executed')}: {new Date(transfer.executedAt).toLocaleString()}</div>
                           )}
-                          <div className="text-xs text-gray-500">创建: {new Date(t.createdAt).toLocaleString()}</div>
+                          <div className="text-xs text-gray-500">{t('transfer.created')}: {new Date(transfer.createdAt).toLocaleString()}</div>
                         </td>
                         <td className="px-4 py-3 text-sm" rowSpan={rows.length}>
-                          {t.status === 'PENDING' && canWrite && (
+                          {transfer.status === 'PENDING' && canWrite && (
                             <>
                               <button
-                                onClick={() => handleExecuteTransfer(t.id)}
+                                onClick={() => handleExecuteTransfer(transfer.id)}
                                 className="text-white px-2 py-1 rounded text-xs bg-blue-600 hover:bg-blue-700 mr-2"
                               >
                                 执行
                               </button>
                               <button
-                                onClick={() => handleCancelTransfer(t.id)}
+                                onClick={() => handleCancelTransfer(transfer.id)}
                                 className="text-white px-2 py-1 rounded text-xs bg-red-600 hover:bg-red-700"
                               >
                                 取消
@@ -927,7 +927,7 @@ export default function StockTransfers() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">新建移库单</h2>
+              <h2 className="text-xl font-bold">{t('transfer.newTransfer')}</h2>
               <button
                 onClick={() => {
                   setShowModal(false);
@@ -943,7 +943,7 @@ export default function StockTransfers() {
               <div className="w-1/2 border-r flex flex-col max-h-[70vh]">
                 <div className="p-4 border-b bg-gray-50">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-700">移库单信息</span>
+                    <span className="text-sm font-medium text-gray-700">{t('transfer.transferInfo')}</span>
                   </div>
                   <select
                     value={formWarehouseId}
@@ -964,7 +964,7 @@ export default function StockTransfers() {
                     }}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   >
-                    <option value="">选择仓库</option>
+                    <option value="">{t('transfer.selectWarehouse')}</option>
                     {warehouses.map(w => (
                       <option key={w.id} value={w.id}>{w.name} {w.owner ? `(${w.owner.name})` : ''}</option>
                     ))}
@@ -993,9 +993,9 @@ export default function StockTransfers() {
 
                   <div className="flex-1 overflow-y-auto p-2">
                     {loadingStocks ? (
-                      <div className="text-center text-gray-400 py-10">加载中...</div>
+                      <div className="text-center text-gray-400 py-10">{t('transfer.loading')}</div>
                     ) : filteredStocks.length === 0 ? (
-                      <div className="text-center text-gray-400 py-10">暂无库存</div>
+                      <div className="text-center text-gray-400 py-10">{t('transfer.noStock')}</div>
                     ) : (
                       <StockGroupList
                         stocks={filteredStocks}
@@ -1008,7 +1008,7 @@ export default function StockTransfers() {
 
                 <div className="w-1/2 flex flex-col">
                   <div className="p-4 border-b bg-gray-50">
-                    <div className="text-sm font-medium text-gray-700 mb-3">添加移库明细</div>
+                    <div className="text-sm font-medium text-gray-700 mb-3">{t('transfer.addTransferItems')}</div>
                     {selectedStock ? (
                       <div className="border rounded-lg p-3 bg-blue-50">
                         <div className="flex items-center justify-between mb-2">
@@ -1017,7 +1017,7 @@ export default function StockTransfers() {
                               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                                 selectedStock.type === 'bundle' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                               }`}>
-                                {selectedStock.type === 'bundle' ? '套装' : '商品'}
+                                {selectedStock.type === 'bundle' ? t('transfer.bundle') : t('transfer.productType')}
                               </span>
                               <span className={`font-medium text-sm truncate ${selectedStock.type === 'bundle' ? 'text-purple-600' : 'text-blue-600'}`}>
                                 {getStockDisplayName(selectedStock)}
@@ -1027,9 +1027,9 @@ export default function StockTransfers() {
                               )}
                             </div>
                             {selectedStock.type === 'product' ? selectedStock.skuBatch?.batchNo && (
-                              <div className="text-xs text-purple-500 px-1.5" >批号: {selectedStock.skuBatch?.batchNo}</div>
+                              <div className="text-xs text-purple-500 px-1.5" >{t('transfer.batchNo')}: {selectedStock.skuBatch?.batchNo}</div>
                             ) : selectedStock.bundleBatch?.batchNo && (
-                              <div className="text-xs text-purple-500 px-1.5" >批号: {selectedStock.bundleBatch?.batchNo}</div>
+                              <div className="text-xs text-purple-500 px-1.5" >{t('transfer.batchNo')}: {selectedStock.bundleBatch?.batchNo}</div>
                             )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -1060,7 +1060,7 @@ export default function StockTransfers() {
                             className="px-2 py-1 border rounded text-xs"
                             disabled={!formWarehouseId}
                           >
-                            <option value="">选库区</option>
+                            <option value="">{t('transfer.selectZone')}</option>
                             {uniqueZones.map(z => (
                               <option key={z.id} value={z.id}>{z.name}({z.code})</option>
                             ))}
@@ -1071,7 +1071,7 @@ export default function StockTransfers() {
                               onChange={(e) => { setToShelfId(e.target.value); setToLocationId(''); }}
                               className="px-2 py-1 border rounded text-xs"
                             >
-                              <option value="">选货架</option>
+                              <option value="">{t('transfer.selectShelf')}</option>
                               {zoneShelves.map(s => (
                                 <option key={s.id} value={s.id}>{s.name || s.code}({s.code})</option>
                               ))}
@@ -1083,7 +1083,7 @@ export default function StockTransfers() {
                               onChange={(e) => setToLocationId(e.target.value)}
                               className="px-2 py-1 border rounded text-xs"
                             >
-                              <option value="">选库位</option>
+                              <option value="">{t('transfer.selectLocation')}</option>
                               {shelfLocations.map(l => (
                                 <option key={l.id} value={l.id}>L{l.level}</option>
                               ))}
@@ -1093,16 +1093,16 @@ export default function StockTransfers() {
                       </div>
                     ) : (
                       <div className="border rounded-lg p-8 text-center text-gray-400">
-                        请从左侧选择商品
+                        {t('transfer.selectProductFromLeft')}
                       </div>
                     )}
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4">
-                    <div className="text-sm font-medium text-gray-700 mb-2">移库清单 ({formItems.length})</div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">{t('transfer.transferList')} ({formItems.length})</div>
                     {formItems.length === 0 ? (
                       <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
-                        暂无商品，请从左侧添加
+                        {t('transfer.noProductHint')}
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -1113,7 +1113,7 @@ export default function StockTransfers() {
                                 <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                                   item.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                                 }`}>
-                                  {item.itemType === 'BUNDLE' ? '套装' : '商品'}
+                                  {item.itemType === 'BUNDLE' ? t('transfer.bundle') : t('transfer.productType')}
                                 </span>
                                 <span className={`truncate font-medium text-sm ${
                                   item.itemType === 'BUNDLE' ? 'text-purple-600' : 'text-blue-600'
@@ -1127,16 +1127,16 @@ export default function StockTransfers() {
                               <div className="text-xs text-gray-500 pl-12">
                                 {[item.spec, item.packaging].filter(Boolean).join(' | ')}
                                 {item.itemType === 'PRODUCT' && item.skuBatch?.batchNo && (
-                                  <span className="ml-2 text-purple-500"> 批号: {item.skuBatch?.batchNo}</span>
+                                  <span className="ml-2 text-purple-500"> {t('transfer.batchNo')}: {item.skuBatch?.batchNo}</span>
                                 )}
                                 {item.itemType === 'BUNDLE' && item.bundleBatch?.batchNo && (
-                                  <span className="ml-2 text-purple-500"> 批号: {item.bundleBatch?.batchNo}</span>
+                                  <span className="ml-2 text-purple-500"> {t('transfer.batchNo')}: {item.bundleBatch?.batchNo}</span>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
                               <span className="text-blue-600 font-bold">
-                                {item.quantity}件
+                                {item.quantity}{t('transfer.pieces')}
                               </span>
                               <button
                                 onClick={() => handleRemoveItem(index)}

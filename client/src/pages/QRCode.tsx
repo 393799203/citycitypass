@@ -4,15 +4,17 @@ import 'react-toastify/dist/ReactToastify.css';
 import { QrCode, Download, RefreshCw, Loader2, ShoppingCart } from 'lucide-react';
 import api from '../api';
 import { useOwnerStore } from '../stores/owner';
+import { useTranslation } from 'react-i18next';
 
 export default function QRCodePage() {
+  const { t } = useTranslation();
   const { currentOwnerId, currentOwnerName } = useOwnerStore();
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const generateQRCode = async () => {
     if (!currentOwnerId) {
-      toast.error('请先选择主体');
+      toast.error(t('qrcode.pleaseSelectOwner'));
       return;
     }
 
@@ -22,13 +24,13 @@ export default function QRCodePage() {
       
       if (response.data.success && response.data.data.qrCode) {
         setQrCodeUrl(response.data.data.qrCode);
-        toast.success('二维码生成成功');
+        toast.success(t('qrcode.generateSuccess'));
       } else {
-        throw new Error('二维码数据格式错误');
+        throw new Error('QR code data format error');
       }
     } catch (error: any) {
-      console.error('生成二维码失败:', error);
-      toast.error(error.response?.data?.message || '生成二维码失败');
+      console.error('Failed to generate QR code:', error);
+      toast.error(error.response?.data?.message || t('qrcode.generateFailed'));
     } finally {
       setLoading(false);
     }
@@ -39,11 +41,11 @@ export default function QRCodePage() {
 
     const link = document.createElement('a');
     link.href = qrCodeUrl;
-    link.download = `购物二维码_${currentOwnerName || '未知主体'}_${new Date().toISOString().split('T')[0]}.png`;
+    link.download = `shopping_qrcode_${currentOwnerName || 'unknown'}_${new Date().toISOString().split('T')[0]}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('二维码已下载');
+    toast.success(t('qrcode.downloadSuccess'));
   };
 
   const printQRCode = () => {
@@ -51,7 +53,7 @@ export default function QRCodePage() {
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      toast.error('无法打开打印窗口');
+      toast.error(t('qrcode.printFailed'));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function QRCodePage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>打印二维码 - ${currentOwnerName || '购物二维码'}</title>
+          <title>Print QR Code - ${currentOwnerName || t('qrcode.shoppingQRCode')}</title>
           <style>
             body {
               display: flex;
@@ -100,10 +102,10 @@ export default function QRCodePage() {
         </head>
         <body>
           <div class="container">
-            <div class="title">${currentOwnerName || '购物二维码'}</div>
-            <div class="subtitle">扫码下单，便捷购物</div>
-            <img src="${qrCodeUrl}" class="qrcode" alt="购物二维码" />
-            <div class="footer">生成时间: ${new Date().toLocaleString()}</div>
+            <div class="title">${currentOwnerName || t('qrcode.shoppingQRCode')}</div>
+            <div class="subtitle">${t('qrcode.scanToOrder')}</div>
+            <img src="${qrCodeUrl}" class="qrcode" alt="${t('qrcode.shoppingQRCode')}" />
+            <div class="footer">${t('qrcode.generatedAt')}: ${new Date().toLocaleString()}</div>
           </div>
           <script>
             window.onload = function() {
@@ -122,22 +124,22 @@ export default function QRCodePage() {
   return (
     <div className="p-4 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">二维码管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t('qrcode.title')}</h1>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex flex-col items-center space-y-6">
           <div className="text-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">购物二维码</h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">{t('qrcode.shoppingQRCode')}</h2>
             <p className="text-sm text-gray-500">
-              生成购物二维码，客户扫码即可进入购物页面下单
+              {t('qrcode.instruction3')}
             </p>
           </div>
 
           {!currentOwnerId && (
             <div className="w-full max-w-md p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-700 text-center">
-                请先在顶部选择一个主体，才能生成该主体的购物二维码
+                {t('qrcode.pleaseSelectOwner')}
               </p>
             </div>
           )}
@@ -157,7 +159,7 @@ export default function QRCodePage() {
               ) : (
                 <QrCode className="w-5 h-5" />
               )}
-              {loading ? '生成中...' : '生成购物二维码'}
+              {loading ? t('qrcode.generating') : t('qrcode.generateShoppingQR')}
             </button>
 
             {qrCodeUrl && (
@@ -167,14 +169,14 @@ export default function QRCodePage() {
                   className="flex items-center gap-2 px-6 py-3 border border-primary-600 text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition-colors"
                 >
                   <Download className="w-5 h-5" />
-                  下载二维码
+                  {t('qrcode.downloadQR')}
                 </button>
                 <button
                   onClick={printQRCode}
                   className="flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  打印二维码
+                  {t('qrcode.printQR')}
                 </button>
               </>
             )}
@@ -183,18 +185,18 @@ export default function QRCodePage() {
           {qrCodeUrl && (
             <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
               <div className="text-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">{currentOwnerName || '购物二维码'}</h3>
-                <p className="text-sm text-gray-500 mt-1">扫码下单，便捷购物</p>
+                <h3 className="text-lg font-semibold text-gray-800">{currentOwnerName || t('qrcode.shoppingQRCode')}</h3>
+                <p className="text-sm text-gray-500 mt-1">{t('qrcode.scanToOrder')}</p>
               </div>
               <div className="flex justify-center">
                 <img
                   src={qrCodeUrl}
-                  alt="购物二维码"
+                  alt={t('qrcode.shoppingQRCode')}
                   className="w-64 h-64 rounded-lg shadow-md"
                 />
               </div>
               <div className="text-center mt-4 text-xs text-gray-400">
-                生成时间: {new Date().toLocaleString()}
+                {t('qrcode.generatedAt')}: {new Date().toLocaleString()}
               </div>
             </div>
           )}
@@ -203,7 +205,7 @@ export default function QRCodePage() {
             <div className="mt-8 p-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
               <div className="text-center">
                 <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">点击上方按钮生成购物二维码</p>
+                <p className="text-gray-500">{t('qrcode.clickToGenerate')}</p>
               </div>
             </div>
           )}
@@ -211,23 +213,23 @@ export default function QRCodePage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">使用说明</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('qrcode.instructions')}</h3>
         <div className="space-y-3 text-sm text-gray-600">
           <div className="flex items-start gap-3">
             <span className="flex-shrink-0 w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-            <p>选择主体后，点击"生成购物二维码"按钮</p>
+            <p>{t('qrcode.instruction1')}</p>
           </div>
           <div className="flex items-start gap-3">
             <span className="flex-shrink-0 w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-            <p>下载或打印二维码，分发给客户</p>
+            <p>{t('qrcode.instruction2')}</p>
           </div>
           <div className="flex items-start gap-3">
             <span className="flex-shrink-0 w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-            <p>客户使用微信或支付宝扫码，即可进入购物页面</p>
+            <p>{t('qrcode.instruction3')}</p>
           </div>
           <div className="flex items-start gap-3">
             <span className="flex-shrink-0 w-6 h-6 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-xs font-bold">4</span>
-            <p>客户在购物页面选择商品并下单，订单将自动创建</p>
+            <p>{t('qrcode.instruction4')}</p>
           </div>
         </div>
       </div>

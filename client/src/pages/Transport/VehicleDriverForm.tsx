@@ -5,6 +5,7 @@ import PhoneInput from '../../components/PhoneInput';
 import LicenseNoInput from '../../components/LicenseNoInput';
 import VinInput from '../../components/VinInput';
 import { Vehicle, Driver, FormData, Warehouse } from '../../types/dispatch';
+import { useTranslation } from 'react-i18next';
 
 interface VehicleDriverFormProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export default function VehicleDriverForm({
   onWarehouseChange,
   onLicenseTypeToggle
 }: VehicleDriverFormProps) {
+  const { t } = useTranslation();
+  
   if (!isOpen) return null;
 
   return (
@@ -40,7 +43,7 @@ export default function VehicleDriverForm({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <h3 className="text-lg font-semibold">
-            {isEditing ? '编辑' : '添加'}{activeTab === 'vehicle' ? '车辆' : '司机'}
+            {isEditing ? t('transport.editTitle') : t('transport.addTitle')}{activeTab === 'vehicle' ? t('transport.vehicleTitle') : t('transport.driverTitle')}
           </h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
@@ -53,7 +56,7 @@ export default function VehicleDriverForm({
               <div className="grid grid-cols-3 gap-4">
                 {editingItem && 'sourceType' in editingItem && editingItem.sourceType === 'CARRIER' ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">承运商</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.carrierTag')}</label>
                     <input
                       type="text"
                       value={formData.warehouse?.name || ''}
@@ -63,7 +66,7 @@ export default function VehicleDriverForm({
                   </div>
                 ) : editingItem ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">仓库</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.warehouseColumn')}</label>
                     <input
                       type="text"
                       value={warehouses.find(w => w.id === formData.warehouseId)?.name || ''}
@@ -74,7 +77,7 @@ export default function VehicleDriverForm({
                 ) : (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      仓库 <span className="text-red-500">*</span>
+                      {t('transport.warehouseColumn')} <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={formData.warehouseId}
@@ -82,7 +85,7 @@ export default function VehicleDriverForm({
                       className="w-full px-3 py-2 border rounded-lg"
                       required
                     >
-                      <option value="">请选择仓库</option>
+                      <option value="">{t('transport.pleaseSelectWarehouse')}</option>
                       {warehouses.map(w => (
                         <option key={w.id} value={w.id}>{w.name}</option>
                       ))}
@@ -91,7 +94,7 @@ export default function VehicleDriverForm({
                 )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    车牌号 <span className="text-red-500">*</span>
+                    {t('transport.plateNoLabel')} <span className="text-red-500">*</span>
                   </label>
                   <LicensePlateInput
                     value={formData.licensePlate}
@@ -103,7 +106,7 @@ export default function VehicleDriverForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    车型 <span className="text-red-500">*</span>
+                    {t('transport.vehicleTypeLabel')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.vehicleType}
@@ -111,18 +114,18 @@ export default function VehicleDriverForm({
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   >
-                    <option value="小型货车">小型货车</option>
-                    <option value="中型货车">中型货车</option>
-                    <option value="大型货车">大型货车</option>
-                    <option value="平板车">平板车</option>
-                    <option value="厢式货车">厢式货车</option>
-                    <option value="冷藏车">冷藏车</option>
+                    <option value="小型货车">{t('transport.smallTruck')}</option>
+                    <option value="中型货车">{t('transport.mediumTruck')}</option>
+                    <option value="大型货车">{t('transport.largeTruck')}</option>
+                    <option value="平板车">{t('transport.flatbed')}</option>
+                    <option value="厢式货车">{t('transport.van')}</option>
+                    <option value="冷藏车">{t('transport.refrigerated')}</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">品牌</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.brandLabel')}</label>
                   <input
                     type="text"
                     value={formData.brand}
@@ -131,7 +134,7 @@ export default function VehicleDriverForm({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.modelLabel')}</label>
                   <input
                     type="text"
                     value={formData.model}
@@ -140,7 +143,7 @@ export default function VehicleDriverForm({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">载重(吨)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.capacityLabel')}</label>
                   <input
                     type="number"
                     value={formData.capacity}
@@ -149,7 +152,7 @@ export default function VehicleDriverForm({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">容积(m³)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.volumeLabel')}</label>
                   <input
                     type="number"
                     value={formData.volume}
@@ -161,7 +164,7 @@ export default function VehicleDriverForm({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    行驶证号(VIN) <span className="text-red-500">*</span>
+                    {t('transport.vinLabel')} <span className="text-red-500">*</span>
                   </label>
                   <VinInput
                     value={formData.licenseNo}
@@ -171,7 +174,7 @@ export default function VehicleDriverForm({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">保险单号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.insuranceLabelInput')}</label>
                   <input
                     type="text"
                     value={formData.insuranceNo}
@@ -186,7 +189,7 @@ export default function VehicleDriverForm({
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    仓库 <span className="text-red-500">*</span>
+                    {t('transport.warehouseColumn')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.warehouseId}
@@ -194,7 +197,7 @@ export default function VehicleDriverForm({
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   >
-                    <option value="">请选择仓库</option>
+                    <option value="">{t('transport.pleaseSelectWarehouse')}</option>
                     {warehouses.map(w => (
                       <option key={w.id} value={w.id}>{w.name}</option>
                     ))}
@@ -202,7 +205,7 @@ export default function VehicleDriverForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    姓名 <span className="text-red-500">*</span>
+                    {t('transport.nameLabel')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -214,7 +217,7 @@ export default function VehicleDriverForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    电话 <span className="text-red-500">*</span>
+                    {t('transport.phoneLabel')} <span className="text-red-500">*</span>
                   </label>
                   <PhoneInput
                     value={formData.phone}
@@ -227,7 +230,7 @@ export default function VehicleDriverForm({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    驾驶证号 <span className="text-red-500">*</span>
+                    {t('transport.driverLicenseLabel')} <span className="text-red-500">*</span>
                   </label>
                   <LicenseNoInput
                     value={formData.licenseNo}
@@ -237,7 +240,7 @@ export default function VehicleDriverForm({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">准驾车型</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('transport.licenseTypesLabel')}</label>
                   <div className="flex flex-wrap gap-1.5">
                     {['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'].map(type => {
                       const isSelected = formData.licenseTypes.includes(type);
@@ -262,7 +265,7 @@ export default function VehicleDriverForm({
               </div>
               {formData.latitude && formData.longitude && (
                 <p className="text-xs text-green-600 mt-1">
-                  已设置位置: {formData.latitude}, {formData.longitude} {formData.location && `(${formData.location})`}
+                  {t('transport.locationSet')}: {formData.latitude}, {formData.longitude} {formData.location && `(${formData.location})`}
                 </p>
               )}
             </>
@@ -274,13 +277,13 @@ export default function VehicleDriverForm({
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
-            取消
+            {t('transport.cancel')}
           </button>
           <button
             onClick={onSubmit}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
-            确定
+            {t('transport.confirmBtn')}
           </button>
         </div>
       </div>

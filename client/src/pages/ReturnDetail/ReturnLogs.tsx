@@ -1,27 +1,32 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ReturnLogsProps {
   logs: any[];
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  CREATE: '创建退货',
-  SHIPPED: '客户发货',
-  RECEIVE: '仓库收货',
-  QUALIFY: '验收合格',
-  REJECT: '验收拒收',
-  STOCK_IN: '退货入库',
-  REFUND: '退款完成',
-  CANCEL: '取消',
-};
-
 export default function ReturnLogs({ logs }: ReturnLogsProps) {
+  const { t } = useTranslation();
+
+  const getActionLabels = (t: any): Record<string, string> => ({
+    CREATE: t('return.logCreate'),
+    SHIPPED: t('return.logShipped'),
+    RECEIVE: t('return.logReceive'),
+    QUALIFY: t('return.logQualify'),
+    REJECT: t('return.logReject'),
+    STOCK_IN: t('return.logStockIn'),
+    REFUND: t('return.logRefund'),
+    CANCEL: t('return.logCancel'),
+  });
+
+  const ACTION_LABELS = getActionLabels(t);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6">
       <div className="flex items-center gap-2 mb-4">
         <Clock className="w-5 h-5 text-gray-600" />
-        <h3 className="text-lg font-semibold text-gray-800">操作日志</h3>
+        <h3 className="text-lg font-semibold text-gray-800">{t('return.operationLog')}</h3>
       </div>
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {logs?.map((log: any) => (

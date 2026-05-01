@@ -820,7 +820,7 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                   onChange={e => setCreateForm({ ...createForm, remark: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                   rows={2}
-                  placeholder="可选"
+                  placeholder={t('common.optional')}
                 />
               </div>
             </div>
@@ -830,13 +830,13 @@ ${orderList.map(o => `订单ID: ${o.id}, 仓库: ${o.warehouseName || '未知'},
                 onClick={() => setShowCreateModal(false)}
                 className="flex-1 py-2.5 sm:py-2 border rounded-lg hover:bg-gray-50"
               >
-                取消
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleCreateDispatch}
                 className="flex-1 py-2.5 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
-                确认
+                {t('common.confirm')}
               </button>
             </div>
           </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin, Edit2, Trash2 } from 'lucide-react';
 import { Driver } from '../types';
 import { formatPhone } from '../../utils/format';
+import { useTranslation } from 'react-i18next';
 
 interface DriverTableProps {
   drivers: Driver[];
@@ -10,12 +11,12 @@ interface DriverTableProps {
   onDelete: (id: string) => void;
 }
 
-const driverStatusMap: Record<string, string> = {
-  AVAILABLE: '空闲',
-  IN_TRANSIT: '配送中',
-  RESTING: '休息',
-  DISABLED: '停用',
-};
+const getDriverStatusMap = (t: any): Record<string, string> => ({
+  AVAILABLE: t('transport.available'),
+  IN_TRANSIT: t('transport.inTransit'),
+  RESTING: t('transport.resting'),
+  DISABLED: t('transport.disabled'),
+});
 
 const licenseTypeColors: Record<string, { bg: string; text: string; border: string }> = {
   '小型货车': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
@@ -27,25 +28,28 @@ const licenseTypeColors: Record<string, { bg: string; text: string; border: stri
 };
 
 export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelete }: DriverTableProps) {
+  const { t } = useTranslation();
+  const driverStatusMap = getDriverStatusMap(t);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="text-center text-gray-500 text-sm border-b">
-            <th className="pb-3">仓库</th>
-            <th className="pb-3">司机/电话</th>
-            <th className="pb-3">驾驶证号</th>
-            <th className="pb-3">准驾车型</th>
-            <th className="pb-3">当前位置</th>
-            <th className="pb-3">当前车辆</th>
-            <th className="pb-3">状态</th>
-            <th className="pb-3">操作</th>
+            <th className="pb-3">{t('transport.warehouseColumn')}</th>
+            <th className="pb-3">{t('transport.driverPhoneColumn')}</th>
+            <th className="pb-3">{t('transport.licenseNoColumn')}</th>
+            <th className="pb-3">{t('transport.licenseTypesColumn')}</th>
+            <th className="pb-3">{t('transport.currentLocationColumn')}</th>
+            <th className="pb-3">{t('transport.currentVehicleColumn')}</th>
+            <th className="pb-3">{t('transport.statusColumn')}</th>
+            <th className="pb-3">{t('transport.actionsColumn')}</th>
           </tr>
         </thead>
         <tbody>
           {(() => {
             const groupedDrivers = drivers.reduce((acc: any, d) => {
-              const key = d.warehouse?.name || '未知仓库';
+              const key = d.warehouse?.name || t('transport.unknownWarehouse');
               if (!acc[key]) acc[key] = [];
               acc[key].push(d);
               return acc;
@@ -97,7 +101,7 @@ export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelet
                       <button
                         onClick={() => onUpdateLocation(driver)}
                         className="p-1.5 text-green-600 hover:bg-green-50 rounded mr-2"
-                        title="更新位置"
+                        title={t('transport.updateLocation')}
                       >
                         <MapPin className="w-4 h-4" />
                       </button>
@@ -127,7 +131,7 @@ export default function DriverTable({ drivers, onUpdateLocation, onEdit, onDelet
           {drivers.length === 0 && (
             <tr>
               <td colSpan={8} className="py-8 text-center text-gray-500">
-                暂无司机数据
+                {t('transport.noDriverData')}
               </td>
             </tr>
           )}

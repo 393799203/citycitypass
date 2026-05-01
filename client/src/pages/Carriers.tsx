@@ -76,8 +76,6 @@ interface CarrierVehicle {
   remark?: string;
 }
 
-const serviceTypeOptions = ['长途运输', '短途配送', '冷链运输', '危险品运输', '大件运输', '快递服务'];
-const vehicleTypeOptions = ['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'];
 const levelOptions = [
   { value: 'A', label: 'A - 优质', color: 'bg-green-100 text-green-700' },
   { value: 'B', label: 'B - 良好', color: 'bg-blue-100 text-blue-700' },
@@ -89,6 +87,34 @@ export default function CarriersPage() {
   const { currentOwnerId } = useOwnerStore();
   const { canWrite } = usePermission('config', 'carriers');
   const { confirm } = useConfirm();
+
+  const serviceTypeOptions = ['长途运输', '短途配送', '冷链运输', '危险品运输', '大件运输', '快递服务'];
+  const vehicleTypeOptions = ['小型货车', '中型货车', '大型货车', '平板车', '厢式货车', '冷藏车'];
+
+  const getServiceTypeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      '长途运输': t('carrier.longDistance'),
+      '短途配送': t('carrier.shortDistance'),
+      '冷链运输': t('carrier.coldChain'),
+      '危险品运输': t('carrier.dangerousGoods'),
+      '大件运输': t('carrier.oversized'),
+      '快递服务': t('carrier.express')
+    };
+    return map[type] || type;
+  };
+
+  const getVehicleTypeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      '小型货车': t('carrier.smallTruck'),
+      '中型货车': t('carrier.mediumTruck'),
+      '大型货车': t('carrier.largeTruck'),
+      '平板车': t('carrier.flatbed'),
+      '厢式货车': t('carrier.van'),
+      '冷藏车': t('carrier.refrigerated')
+    };
+    return map[type] || type;
+  };
+
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -445,13 +471,13 @@ export default function CarriersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">待审核</span>;
+        return <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">{t('carrier.statusPending')}</span>;
       case 'APPROVED':
-        return <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">已通过</span>;
+        return <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">{t('carrier.statusApproved')}</span>;
       case 'REJECTED':
-        return <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">已拒绝</span>;
+        return <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">{t('carrier.statusRejected')}</span>;
       case 'SUSPENDED':
-        return <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">已暂停</span>;
+        return <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">{t('carrier.statusSuspended')}</span>;
       default:
         return <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">{status}</span>;
     }
@@ -465,32 +491,32 @@ export default function CarriersPage() {
   return (
     <div className="p-2 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">承运商管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t('carrier.title')}</h1>
         <div className="flex gap-2">
           <select
             value={carrierFilters.status}
             onChange={(e) => setCarrierFilters({ ...carrierFilters, status: e.target.value })}
             className="px-3 py-2 border rounded-lg"
           >
-            <option value="">全部状态</option>
-            <option value="PENDING">待审核</option>
-            <option value="APPROVED">已通过</option>
-            <option value="REJECTED">已拒绝</option>
-            <option value="SUSPENDED">已暂停</option>
+            <option value="">{t('carrier.allStatus')}</option>
+            <option value="PENDING">{t('carrier.statusPending')}</option>
+            <option value="APPROVED">{t('carrier.statusApproved')}</option>
+            <option value="REJECTED">{t('carrier.statusRejected')}</option>
+            <option value="SUSPENDED">{t('carrier.statusSuspended')}</option>
           </select>
           <select
             value={carrierFilters.level}
             onChange={(e) => setCarrierFilters({ ...carrierFilters, level: e.target.value })}
             className="px-3 py-2 border rounded-lg"
           >
-            <option value="">全部等级</option>
-            <option value="A">A - 优质</option>
-            <option value="B">B - 良好</option>
-            <option value="C">C - 合格</option>
+            <option value="">{t('carrier.allLevels')}</option>
+            <option value="A">{t('carrier.levelA')}</option>
+            <option value="B">{t('carrier.levelB')}</option>
+            <option value="C">{t('carrier.levelC')}</option>
           </select>
           <input
             type="text"
-            placeholder="搜索承运商"
+            placeholder={t('carrier.searchPlaceholder')}
             value={carrierFilters.search}
             onChange={(e) => setCarrierFilters({ ...carrierFilters, search: e.target.value })}
             className="px-3 py-2 border rounded-lg text-sm w-48"
@@ -498,7 +524,7 @@ export default function CarriersPage() {
           <button
             onClick={openModal}
             disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!currentOwnerId ? t('carrier.pleaseSelectOwner') : !canWrite ? t('carrier.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               currentOwnerId && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -506,7 +532,7 @@ export default function CarriersPage() {
             }`}
           >
             <Plus className="w-5 h-5" />
-            新增承运商
+            {t('carrier.createCarrier')}
           </button>
         </div>
       </div>
@@ -621,7 +647,7 @@ export default function CarriersPage() {
             <div className="flex justify-between items-center p-4 border-b">
               <div>
                 <h2 className="text-xl font-bold">{selectedCarrier.name}</h2>
-                <p className="text-sm text-gray-500">{selectedCarrier.code} · {selectedCarrier.type === 'INDIVIDUAL' ? '个体' : '企业'}</p>
+                <p className="text-sm text-gray-500">{selectedCarrier.code} · {selectedCarrier.type === 'INDIVIDUAL' ? t('carrier.typeIndividual') : t('carrier.typeCompany')}</p>
               </div>
               <button onClick={() => setSelectedCarrier(null)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
@@ -662,7 +688,7 @@ export default function CarriersPage() {
                     <h3 className="font-medium text-gray-700 mt-4">服务能力</h3>
                     <div className="text-sm space-y-2">
                       <div>
-                        <span className="text-gray-500">服务类型:</span>
+                        <span className="text-gray-500">{t('carrier.serviceTypes')}:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selectedCarrier.serviceTypes?.map((t, i) => (
                             <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{t}</span>
@@ -670,7 +696,7 @@ export default function CarriersPage() {
                         </div>
                       </div>
                       <div>
-                        <span className="text-gray-500">可用车型:</span>
+                        <span className="text-gray-500">{t('carrier.vehicleTypes')}:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selectedCarrier.vehicleTypes?.map((t, i) => (
                             <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">{t}</span>
@@ -684,11 +710,11 @@ export default function CarriersPage() {
                     <h3 className="font-medium text-gray-700">联系信息</h3>
                     <div className="text-sm space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">联系人:</span>
+                        <span className="text-gray-500">{t('carrier.contactRequired')}:</span>
                         <span>{selectedCarrier.contact || '-'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">电话:</span>
+                        <span className="text-gray-500">{t('carrier.phoneRequired')}:</span>
                         <span>{selectedCarrier.phone || '-'}</span>
                       </div>
                       <div className="flex justify-between">
@@ -794,7 +820,7 @@ export default function CarriersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">{editingId ? '编辑承运商' : '新增承运商'}</h2>
+              <h2 className="text-xl font-bold">{editingId ? t('carrier.editCarrierTitle') : t('carrier.createCarrierTitle')}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -803,31 +829,31 @@ export default function CarriersPage() {
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    承运商名称 <span className="text-red-500">*</span>
+                    {t('carrier.carrierName')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="请输入承运商名称"
+                    placeholder={t('carrier.inputCarrierName')}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">类型</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('carrier.carrierType')}</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as 'INDIVIDUAL' | 'COMPANY' })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="INDIVIDUAL">个体</option>
-                    <option value="COMPANY">企业</option>
+                    <option value="INDIVIDUAL">{t('carrier.typeIndividual')}</option>
+                    <option value="COMPANY">{t('carrier.typeCompany')}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    联系人 <span className="text-red-500">*</span>
+                    {t('carrier.contactRequired')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -839,7 +865,7 @@ export default function CarriersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    电话 <span className="text-red-500">*</span>
+                    {t('carrier.phoneRequired')} <span className="text-red-500">*</span>
                   </label>
                   <PhoneInput
                     value={formData.phone}
@@ -852,19 +878,19 @@ export default function CarriersPage() {
 
               <div className="flex gap-4">
                 <div className="w-1/4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">等级</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('carrier.level')}</label>
                   <select
                     value={formData.level}
                     onChange={(e) => setFormData({ ...formData, level: e.target.value as 'A' | 'B' | 'C' })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="A">A - 优质</option>
-                    <option value="B">B - 良好</option>
-                    <option value="C">C - 合格</option>
+                    <option value="A">{t('carrier.levelA')}</option>
+                    <option value="B">{t('carrier.levelB')}</option>
+                    <option value="C">{t('carrier.levelC')}</option>
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">营业执照号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('carrier.businessLicenseNo')}</label>
                   <BusinessLicenseInput
                     value={formData.businessLicenseNo}
                     onChange={(val) => setFormData({ ...formData, businessLicenseNo: val })}
@@ -872,7 +898,7 @@ export default function CarriersPage() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">运输许可证号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('carrier.transportLicenseNo')}</label>
                   <input
                     type="text"
                     value={formData.transportLicenseNo}
@@ -883,7 +909,7 @@ export default function CarriersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">服务类型</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('carrier.serviceTypes')}</label>
                 <div className="flex flex-wrap gap-2">
                   {serviceTypeOptions.map((type) => (
                     <button
@@ -903,14 +929,14 @@ export default function CarriersPage() {
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      {type}
+                      {getServiceTypeLabel(type)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">可用车型</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('carrier.vehicleTypes')}</label>
                 <div className="flex flex-wrap gap-2">
                   {vehicleTypeOptions.map((type) => (
                     <button
@@ -930,14 +956,14 @@ export default function CarriersPage() {
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      {type}
+                      {getVehicleTypeLabel(type)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.remark')}</label>
                 <textarea
                   value={formData.remark}
                   onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
@@ -951,14 +977,14 @@ export default function CarriersPage() {
                   type="submit"
                   className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
-                  {editingId ? '保存' : '创建'}
+                  {editingId ? t('common.save') : t('common.confirm')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); resetForm(); }}
                   className="flex-1 py-2 border rounded-lg hover:bg-gray-50"
                 >
-                  取消
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -1218,8 +1244,8 @@ export default function CarriersPage() {
                     required
                   >
                     <option value="">选择车型</option>
-                    {vehicleTypeOptions.map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                    {vehicleTypeOptions.map((type) => (
+                      <option key={type} value={type}>{getVehicleTypeLabel(type)}</option>
                     ))}
                   </select>
                 </div>

@@ -13,8 +13,10 @@ import PurchaseOrderFilter from './PurchaseOrderFilter';
 import PurchaseOrderModal from './PurchaseOrderModal';
 import { PurchaseOrder, PurchaseItem, SupplierProduct, CustomItem } from '../../types/purchase';
 import { usePermission } from '../../hooks/usePermission';
+import { useTranslation } from 'react-i18next';
 
 export default function PurchaseOrders() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const { currentOwnerId } = useOwnerStore();
@@ -269,11 +271,11 @@ export default function PurchaseOrders() {
 
   const handleSubmit = async () => {
     if (!formData.supplierId) {
-      toast.error('请选择供应商');
+      toast.error(t('purchase.selectSupplier'));
       return;
     }
     if (formItems.length === 0) {
-      toast.error('请添加采购商品');
+      toast.error(t('purchase.addProducts'));
       return;
     }
 
@@ -293,53 +295,53 @@ export default function PurchaseOrders() {
 
       if (editingId) {
         await purchaseOrderApi.update(editingId, payload);
-        toast.success('采购单已更新');
+        toast.success(t('purchase.orderUpdated'));
       } else {
         await purchaseOrderApi.create(payload);
-        toast.success('采购单已创建');
+        toast.success(t('purchase.orderCreated'));
       }
       handleCloseModal();
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleConfirm = async (id: string) => {
-    const ok = await confirm({ message: '确定要确认此采购单吗？' });
+    const ok = await confirm({ message: t('purchase.confirmMessage') });
     if (!ok) return;
     try {
       await purchaseOrderApi.confirm(id);
-      toast.success('采购单已确认');
+      toast.success(t('purchase.orderConfirmed'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     }
   };
 
   const handleCancel = async (id: string) => {
-    const ok = await confirm({ message: '确定要取消此采购单吗？' });
+    const ok = await confirm({ message: t('purchase.cancelMessage') });
     if (!ok) return;
     try {
       await purchaseOrderApi.cancel(id);
-      toast.success('采购单已取消');
+      toast.success(t('purchase.orderCancelled'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除此采购单吗？' });
+    const ok = await confirm({ message: t('purchase.deleteMessage') });
     if (!ok) return;
     try {
       await purchaseOrderApi.delete(id);
-      toast.success('采购单已删除');
+      toast.success(t('purchase.orderDeleted'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     }
   };
 
@@ -351,7 +353,7 @@ export default function PurchaseOrders() {
         setShowInboundModal(true);
       }
     } catch (error) {
-      toast.error('加载采购单详情失败');
+      toast.error(t('purchase.loadDetailFailed'));
     }
   };
 
@@ -361,7 +363,7 @@ export default function PurchaseOrders() {
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">
-          采购单{id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
+          {t('purchase.title')}{id ? `- ${viewingOrder?.orderNo || t('system.loading')}` : ''}
         </h1>
         {!id && (
           <div className="flex items-center gap-3">
@@ -380,7 +382,7 @@ export default function PurchaseOrders() {
             <button
               onClick={() => handleOpenModal()}
               disabled={!currentOwnerId || !canWrite}
-              title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+              title={!currentOwnerId ? t('purchase.pleaseSelectOwner') : !canWrite ? t('purchase.noPermission') : ''}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                 currentOwnerId && canWrite
                   ? 'bg-green-600 text-white hover:bg-green-700'
@@ -388,7 +390,7 @@ export default function PurchaseOrders() {
               }`}
             >
               <Plus className="w-4 h-4" />
-              新建采购单
+              {t('purchase.newPurchase')}
             </button>
           </div>
         )}
