@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, Plus, Pencil, Trash2, X, Loader2, CheckCircle, XCircle, Car, Phone, MapPin, FileText, Edit } from 'lucide-react';
@@ -84,6 +85,7 @@ const levelOptions = [
 ];
 
 export default function CarriersPage() {
+  const { t } = useTranslation();
   const { currentOwnerId } = useOwnerStore();
   const { canWrite } = usePermission('config', 'carriers');
   const { confirm } = useConfirm();
@@ -195,13 +197,13 @@ export default function CarriersPage() {
         toast.success('更新成功');
       } else {
         await carrierApi.create(data);
-        toast.success('创建成功');
+        toast.success(t('carrier.createSuccess'));
       }
       setShowModal(false);
       resetForm();
       fetchCarriers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('carrier.operationFailed'));
     }
   };
 
@@ -227,22 +229,22 @@ export default function CarriersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该承运商吗？' });
+    const ok = await confirm({ message: t('carrier.deleteConfirm') });
     if (!ok) return;
     try {
       await carrierApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('carrier.deleteSuccess'));
       fetchCarriers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('carrier.deleteFailed'));
     }
   };
 
   const handleApprove = async (carrier: Carrier, action: 'approve' | 'reject' | 'suspend') => {
     let message = '';
-    if (action === 'approve') message = '确定要审核通过该承运商吗？';
-    else if (action === 'reject') message = '确定要拒绝该承运商吗？';
-    else message = '确定要暂停该承运商吗？';
+    if (action === 'approve') message = t('carrier.approveConfirm');
+    else if (action === 'reject') message = t('carrier.rejectConfirm');
+    else message = t('carrier.suspendConfirm');
 
     const ok = await confirm({ message });
     if (!ok) return;

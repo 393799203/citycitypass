@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { stockApi } from '../../api';
 import { RefreshCw, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -9,6 +10,7 @@ import BatchFlowChart from './BatchFlowChart';
 import BatchRecordCards from './BatchRecordCards';
 
 export default function BatchTracePage() {
+  const { t } = useTranslation();
   const { batchNo } = useParams<{ batchNo: string }>();
   const navigate = useNavigate();
   const [inputBatchNo, setInputBatchNo] = useState('');
@@ -97,7 +99,7 @@ export default function BatchTracePage() {
 
   const loadTraceData = async (batch: string) => {
     if (!batch.trim()) {
-      toast.error('请输入批次号');
+      toast.error(t('batchTrace.searchPlaceholder'));
       return;
     }
     setLoading(true);
@@ -106,11 +108,11 @@ export default function BatchTracePage() {
       if (res.data.success) {
         setTraceData(res.data.data);
       } else {
-        toast.error(res.data.message || '加载失败');
+        toast.error(res.data.message || t('batchTrace.noData'));
         setTraceData(null);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '加载失败');
+      toast.error(error.response?.data?.message || t('batchTrace.noData'));
       setTraceData(null);
     } finally {
       setLoading(false);
@@ -151,10 +153,10 @@ export default function BatchTracePage() {
     return (
       <div className="p-2 space-y-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">批次列表</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{t('batchTrace.batchList')}</h1>
           <div className="flex items-center gap-3">
             <div className="text-sm text-gray-500">
-              共 <span className="font-medium text-gray-700">{filteredBatchList.length}</span> 个批次
+              {t('batchTrace.totalBatches', { count: filteredBatchList.length })}
             </div>
             <button
               onClick={() => loadBatchList()}
@@ -165,9 +167,6 @@ export default function BatchTracePage() {
           </div>
         </div>
 
-        {/* 筛选按钮 */}
-        
-        {/* 筛选组件 - 点击展开 */}
         {isFilterExpanded && (
           <div className="bg-white rounded-xl shadow-sm p-3 mb-4">
             <div className="flex flex-wrap items-end gap-3">
@@ -176,7 +175,7 @@ export default function BatchTracePage() {
                   type="text"
                   value={filters.batchNo}
                   onChange={(e) => setFilters({ ...filters, batchNo: e.target.value })}
-                  placeholder="批次号"
+                  placeholder={t('batchTrace.batchNo')}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
@@ -186,7 +185,7 @@ export default function BatchTracePage() {
                   onChange={(e) => setFilters({ ...filters, supplier: e.target.value })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">全部供应商</option>
+                  <option value="">{t('batchTrace.allSuppliers')}</option>
                   {suppliers.map((supplier) => (
                     <option key={supplier} value={supplier}>
                       {supplier}
@@ -200,9 +199,9 @@ export default function BatchTracePage() {
                   onChange={(e) => setFilters({ ...filters, type: e.target.value, product: '' })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">全部类型</option>
-                  <option value="PRODUCT">商品</option>
-                  <option value="BUNDLE">套装</option>
+                  <option value="">{t('batchTrace.allTypes')}</option>
+                  <option value="PRODUCT">{t('batchTrace.product')}</option>
+                  <option value="BUNDLE">{t('batchTrace.bundle')}</option>
                 </select>
               </div>
               <div className="flex-1 min-w-[150px]">
@@ -211,7 +210,7 @@ export default function BatchTracePage() {
                   onChange={(e) => setFilters({ ...filters, product: e.target.value })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">全部商品</option>
+                  <option value="">{t('batchTrace.allProducts')}</option>
                   {filteredProducts.map((product) => (
                     <option key={product} value={product}>
                       {product}
@@ -224,7 +223,7 @@ export default function BatchTracePage() {
                   onClick={() => setFilters({ batchNo: '', supplier: '', product: '', type: '' })}
                   className="px-3 py-1.5 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  重置
+                  {t('common.reset')}
                 </button>
               </div>
             </div>
@@ -241,7 +240,7 @@ export default function BatchTracePage() {
       <div className="p-6 flex items-center justify-center h-64">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-500" />
-          <p className="mt-2 text-gray-600">加载中...</p>
+          <p className="mt-2 text-gray-600">{t('batchTrace.loading')}</p>
         </div>
       </div>
     );
@@ -252,12 +251,12 @@ export default function BatchTracePage() {
       <div className="p-6">
         <div className="max-w-xl mx-auto mt-20">
           <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <p className="text-red-600 mb-4">未找到该批次的数据</p>
+            <p className="text-red-600 mb-4">{t('batchTrace.notFound')}</p>
             <button
               onClick={() => navigate('/batch-trace')}
               className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
             >
-              返回查询
+              {t('batchTrace.backToSearch')}
             </button>
           </div>
         </div>
@@ -275,13 +274,13 @@ export default function BatchTracePage() {
     <div className="p-2 space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">批次追踪</h1>
-          <p className="text-sm text-gray-500 mt-1">批次号: <span className="font-mono text-blue-600">{batchNo}</span></p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('batchTrace.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('batchTrace.batchNo')}: <span className="font-mono text-blue-600">{batchNo}</span></p>
         </div>
         <button
           onClick={() => loadTraceData(batchNo)}
           className="p-2 hover:bg-gray-100 rounded-lg ml-auto"
-          title="刷新"
+          title={t('common.refresh')}
         >
           <RefreshCw className="w-5 h-5 text-gray-600" />
         </button>

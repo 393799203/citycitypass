@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { CreateReturnForm } from '../types';
 
@@ -19,15 +20,17 @@ export default function CreateReturnModal({
   onSubmit,
   onFormChange
 }: CreateReturnModalProps) {
+  const { t } = useTranslation();
+  
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-md p-6">
-        <h2 className="text-lg font-bold mb-4">申请退货</h2>
+        <h2 className="text-lg font-bold mb-4">{t('returns.applyReturn')}</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">订单</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('returns.order')}</label>
             {form.orderId ? (
               <div className="w-full border rounded-lg px-3 py-2 bg-gray-50">
                 {orders.find(o => o.id === form.orderId)?.orderNo} -{' '}
@@ -40,7 +43,7 @@ export default function CreateReturnModal({
                 onChange={e => onFormChange('orderId', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2"
               >
-                <option value="">请选择已完成订单</option>
+                <option value="">{t('returns.selectOrder')}</option>
                 {orders.map(o => (
                   <option key={o.id} value={o.id}>
                     {o.orderNo} - {o.receiver} - ¥{o.totalAmount}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Truck, MapPin, Package, User } from 'lucide-react';
@@ -7,16 +8,18 @@ import { dispatchApi } from '../api';
 import { formatPhone, formatAddress } from '../utils/format';
 import { usePermission } from '../hooks/usePermission';
 
-const dispatchStatusMap: Record<string, string> = {
-  PENDING: '待发运',
-  IN_TRANSIT: '配送中',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-};
+const getDispatchStatusMap = (t: any): Record<string, string> => ({
+  PENDING: t('dispatch.dispatchStatusPending'),
+  IN_TRANSIT: t('dispatch.dispatchStatusInTransit'),
+  COMPLETED: t('dispatch.dispatchStatusCompleted'),
+  CANCELLED: t('dispatch.dispatchStatusCancelled'),
+});
 
 export default function DispatchDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const { canWrite } = usePermission('business', 'dispatch');
+  const dispatchStatusMap = getDispatchStatusMap(t);
   const [dispatch, setDispatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -168,17 +171,17 @@ export default function DispatchDetailPage() {
   const handleStatusChange = async (status: string) => {
     try {
       await dispatchApi.updateStatus(id!, status);
-      toast.success('状态更新成功');
+      toast.success(t('dispatch.statusUpdated'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('dispatch.dispatchFailed'));
     }
   };
 
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">{t('dispatch.loading')}</div>
       </div>
     );
   }
@@ -186,7 +189,7 @@ export default function DispatchDetailPage() {
   if (!dispatch) {
     return (
       <div className="p-6 flex items-center justify-center">
-        <div className="text-gray-500">配送单不存在</div>
+        <div className="text-gray-500">{t('dispatch.dispatchNotExist')}</div>
       </div>
     );
   }
@@ -198,12 +201,12 @@ export default function DispatchDetailPage() {
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
               <Truck className="w-6 h-6" />
-              配送单详情
+              {t('dispatch.dispatchDetail')}
             </h1>
             <p className="text-gray-500 mt-1 flex items-center gap-2">
-              配送单号: {dispatch.dispatchNo}
+              {t('dispatch.dispatchNo')}: {dispatch.dispatchNo}
               {dispatch.vehicleSource === 'CARRIER' && (
-                <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+                <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">{t('dispatch.carrier')}</span>
               )}
               <span className={`px-3 py-1 text-sm rounded-full ${
                 dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
@@ -221,7 +224,7 @@ export default function DispatchDetailPage() {
                 onClick={() => handleStatusChange('IN_TRANSIT')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                发车
+                {t('dispatch.startVehicle')}
               </button>
             )}
             {dispatch.status === 'IN_TRANSIT' && canWrite && (
@@ -229,7 +232,7 @@ export default function DispatchDetailPage() {
                 onClick={() => handleStatusChange('COMPLETED')}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
-                完成配送
+                {t('dispatch.completeDelivery')}
               </button>
             )}
             {dispatch.status === 'PENDING' && canWrite && (
@@ -237,7 +240,7 @@ export default function DispatchDetailPage() {
                 onClick={() => handleStatusChange('CANCELLED')}
                 className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
               >
-                取消配送
+                {t('dispatch.cancelDelivery')}
               </button>
             )}
           </div>
@@ -247,7 +250,7 @@ export default function DispatchDetailPage() {
           <div className="flex items-center gap-2">
             <span className="font-semibold">{dispatch.dispatchNo}</span>
             {dispatch.vehicleSource === 'CARRIER' && (
-              <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+              <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">{t('dispatch.carrier')}</span>
             )}
             <span className={`px-2 py-0.5 text-xs rounded-full ${
               dispatch.status === 'PENDING' ? 'bg-yellow-600 text-white' :
@@ -264,15 +267,15 @@ export default function DispatchDetailPage() {
           <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
             <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
               <MapPin className="w-4 h-4" />
-              发货地
+              {t('dispatch.origin')}
             </h3>
             <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">仓库:</span>
+                <span className="text-gray-500">{t('dispatch.warehouse')}:</span>
                 <span>{dispatch.warehouse?.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">地址:</span>
+                <span className="text-gray-500">{t('dispatch.address')}:</span>
                 <span className="text-right max-w-[60%]">{formatAddress(dispatch.warehouse?.province, dispatch.warehouse?.city, dispatch.warehouse?.address)}</span>
               </div>
             </div>
@@ -281,17 +284,17 @@ export default function DispatchDetailPage() {
           <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
             <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
               <MapPin className="w-4 h-4" />
-              目的地
+              {t('dispatch.destination')}
             </h3>
             <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
               {dispatch.orders?.length > 0 ? (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">城市:</span>
+                    <span className="text-gray-500">{t('dispatch.city')}:</span>
                     <span>{dispatch.orders[0]?.order?.city || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">终点:</span>
+                    <span className="text-gray-500">{t('dispatch.endpoint')}:</span>
                     <span className="text-right max-w-[60%]">{formatAddress(
                       dispatch.orders[dispatch.orders.length - 1]?.order?.province,
                       dispatch.orders[dispatch.orders.length - 1]?.order?.city,
@@ -302,11 +305,11 @@ export default function DispatchDetailPage() {
               ) : (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">城市:</span>
+                    <span className="text-gray-500">{t('dispatch.city')}:</span>
                     <span>{dispatch.plannedRoute?.destination?.agentName || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">地址:</span>
+                    <span className="text-gray-500">{t('dispatch.address')}:</span>
                     <span className="text-right max-w-[60%]">{dispatch.plannedRoute?.destination?.address || '-'}</span>
                   </div>
                 </>
@@ -319,7 +322,7 @@ export default function DispatchDetailPage() {
           <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
             <div className="flex items-center gap-1 sm:gap-2 text-gray-500 text-xs sm:text-sm mb-1">
               <User className="w-3 h-3 sm:w-4 sm:h-4" />
-              车辆
+              {t('dispatch.vehicle')}
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="inline-flex items-center justify-center px-1 sm:px-2 py-0.5 sm:py-1 bg-blue-600 text-white text-xs font-medium rounded">
@@ -329,14 +332,14 @@ export default function DispatchDetailPage() {
               </div>
             </div>
             <div className="text-xs text-gray-500 hidden sm:block">
-              载重: {dispatch.vehicleSource === 'CARRIER' ? dispatch.carrierVehicle?.capacity : dispatch.vehicle?.capacity}件
+              {t('dispatch.capacity')}: {dispatch.vehicleSource === 'CARRIER' ? dispatch.carrierVehicle?.capacity : dispatch.vehicle?.capacity}{t('dispatch.items')}
             </div>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
             <div className="flex items-center gap-1 sm:gap-2 text-gray-500 text-xs sm:text-sm mb-1">
               <User className="w-3 h-3 sm:w-4 sm:h-4" />
-              司机
+              {t('dispatch.driver')}
             </div>
             <div className="font-medium text-sm sm:text-base">
               {dispatch.driver?.name || '-'}
@@ -349,10 +352,10 @@ export default function DispatchDetailPage() {
           <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
             <div className="flex items-center gap-1 sm:gap-2 text-gray-500 text-xs sm:text-sm mb-1">
               <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-              配送
+              {t('dispatch.dispatch')}
             </div>
             <div className="font-medium text-sm sm:text-base">
-              {dispatch.orderCount}单
+              {dispatch.orderCount}{t('dispatch.ordersUnit')}
             </div>
             <div className="text-xs text-gray-500">
               {dispatch.totalDistance ? dispatch.totalDistance.toFixed(1) + 'km' : '-'}
@@ -362,10 +365,10 @@ export default function DispatchDetailPage() {
 
         {dispatch.plannedRoute && (
           <div className="mb-4 sm:mb-6">
-            <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">路线规划</h3>
+            <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">{t('dispatch.routeInfo')}</h3>
             <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 sm:p-4 overflow-x-auto text-xs sm:text-sm">
               <div className="flex-shrink-0">
-                <div className="text-gray-500">起点</div>
+                <div className="text-gray-500">{t('dispatch.origin')}</div>
                 <div className="font-medium">{dispatch.plannedRoute?.origin?.address}</div>
               </div>
               {dispatch.plannedRoute?.destinations?.map((dest: any, index: number) => (
@@ -373,7 +376,7 @@ export default function DispatchDetailPage() {
                   <div className="text-gray-400">→</div>
                   <div className="flex-shrink-0">
                     <div className="text-gray-500">
-                      {index === (dispatch.plannedRoute?.destinations?.length || 0) - 1 ? '终点' : `途径${index + 1}`}
+                      {index === (dispatch.plannedRoute?.destinations?.length || 0) - 1 ? t('dispatch.endpoint') : `${t('dispatch.via')}${index + 1}`}
                     </div>
                     <div className="font-medium">{dest.address}</div>
                   </div>
@@ -385,17 +388,17 @@ export default function DispatchDetailPage() {
         )}
 
         <div className="mb-4 sm:mb-6">
-          <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">订单列表</h3>
+          <h3 className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">{t('dispatch.orderList')}</h3>
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left text-gray-500 text-sm border-b">
-                  <th className="pb-2">顺序</th>
-                  <th className="pb-2">订单号</th>
-                  <th className="pb-2">收货人</th>
-                  <th className="pb-2">联系电话</th>
-                  <th className="pb-2">收货地址</th>
-                  <th className="pb-2">状态</th>
+                  <th className="pb-2">{t('dispatch.sequence')}</th>
+                  <th className="pb-2">{t('dispatch.orderNo')}</th>
+                  <th className="pb-2">{t('dispatch.receiver')}</th>
+                  <th className="pb-2">{t('dispatch.contactPhone')}</th>
+                  <th className="pb-2">{t('dispatch.deliveryAddress')}</th>
+                  <th className="pb-2">{t('dispatch.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,7 +409,7 @@ export default function DispatchDetailPage() {
                   <tr key={doItem.id} className="border-b">
                     <td className="py-3">
                       <span className={`px-2 py-1 text-xs rounded-full ${isFinal ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                        {isFinal ? '终点' : `途径${index + 1}`}
+                        {isFinal ? t('dispatch.endpoint') : `${t('dispatch.via')}${index + 1}`}
                       </span>
                     </td>
                     <td className="py-3 font-medium">{doItem.order?.orderNo}</td>
@@ -422,15 +425,15 @@ export default function DispatchDetailPage() {
                         doItem.order?.status === 'CANCELLED' ? 'bg-red-600 text-white' :
                         'bg-gray-600 text-white'
                       }`}>
-                        {doItem.order?.status === 'PENDING' ? '待确认' :
-                         doItem.order?.status === 'APPROVED' ? '已通过' :
-                         doItem.order?.status === 'PICKING' ? '拣货中' :
-                         doItem.order?.status === 'OUTBOUND_REVIEW' ? '待出库' :
-                         doItem.order?.status === 'DISPATCHING' ? '待调度' :
-                         doItem.order?.status === 'DISPATCHED' ? '已调度' :
-                         doItem.order?.status === 'IN_TRANSIT' ? '配送中' :
-                         doItem.order?.status === 'DELIVERED' ? '已送达' :
-                         doItem.order?.status === 'CANCELLED' ? '已取消' :
+                        {doItem.order?.status === 'PENDING' ? t('dispatch.statusPending') :
+                         doItem.order?.status === 'APPROVED' ? t('dispatch.statusApproved') :
+                         doItem.order?.status === 'PICKING' ? t('dispatch.statusPicking') :
+                         doItem.order?.status === 'OUTBOUND_REVIEW' ? t('dispatch.statusOutboundReview') :
+                         doItem.order?.status === 'DISPATCHING' ? t('dispatch.statusDispatching') :
+                         doItem.order?.status === 'DISPATCHED' ? t('dispatch.statusDispatched') :
+                         doItem.order?.status === 'IN_TRANSIT' ? t('dispatch.statusInTransit') :
+                         doItem.order?.status === 'DELIVERED' ? t('dispatch.statusDelivered') :
+                         doItem.order?.status === 'CANCELLED' ? t('dispatch.statusCancelled') :
                          doItem.order?.status || '-'}
                       </span>
                     </td>
@@ -449,7 +452,7 @@ export default function DispatchDetailPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-primary-600">{doItem.order?.orderNo}</span>
                     <span className={`px-2 py-0.5 text-xs rounded-full ${isFinal ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {isFinal ? '终点' : `途径${index + 1}`}
+                      {isFinal ? t('dispatch.endpoint') : `${t('dispatch.via')}${index + 1}`}
                     </span>
                   </div>
                   <div className="text-xs text-gray-600 space-y-1">
@@ -473,13 +476,13 @@ export default function DispatchDetailPage() {
               onClick={() => handleStatusChange('IN_TRANSIT')}
               className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg"
             >
-              发车
+              {t('dispatch.startVehicle')}
             </button>
             <button
               onClick={() => handleStatusChange('CANCELLED')}
               className="flex-1 py-2.5 border border-red-500 text-red-500 rounded-lg"
             >
-              取消配送
+              {t('dispatch.cancelDelivery')}
             </button>
           </div>
         </div>

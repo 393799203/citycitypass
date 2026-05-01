@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { purchaseOrderApi } from '../../api';
 import { Loader2 } from 'lucide-react';
 import InboundOrderModal from '../../components/InboundOrderModal';
@@ -8,6 +9,7 @@ import PurchaseInfo from './PurchaseInfo';
 import PurchaseItems from './PurchaseItems';
 
 export default function PurchaseDetail(): React.ReactNode {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [viewingOrder, setViewingOrder] = useState<any>(null);

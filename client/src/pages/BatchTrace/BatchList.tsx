@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 import { BatchInfo } from '../../types/batchTrace';
 
@@ -9,6 +10,7 @@ interface BatchListProps {
 }
 
 export default function BatchList({ batchList, loading }: BatchListProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   if (loading) {
@@ -22,7 +24,7 @@ export default function BatchList({ batchList, loading }: BatchListProps) {
   if (batchList.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-        <p className="text-gray-500">暂无批次数据</p>
+        <p className="text-gray-500">{t('batchTrace.noData')}</p>
       </div>
     );
   }
@@ -33,12 +35,12 @@ export default function BatchList({ batchList, loading }: BatchListProps) {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">批次号</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">类别/商品</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">供应商</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">有效期</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">剩余库存</th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">操作</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t('batchTrace.batchNo')}</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t('batchTrace.type')}/{t('batchTrace.productName')}</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">{t('batchTrace.supplier')}</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">{t('batchTrace.expiryDate')}</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">{t('inventory.remainingStock')}</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">{t('common.action')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -50,7 +52,7 @@ export default function BatchList({ batchList, loading }: BatchListProps) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${batch.type === 'PRODUCT' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                      {batch.type === 'PRODUCT' ? '商品' : '套装'}
+                      {batch.type === 'PRODUCT' ? t('batchTrace.product') : t('batchTrace.bundle')}
                     </span>
                     <span className="font-medium text-gray-800">{batch.productName || batch.sku?.product?.name || '-'}</span>
                   </div>
@@ -88,7 +90,7 @@ export default function BatchList({ batchList, loading }: BatchListProps) {
                     onClick={() => navigate(`/batch-trace/${batch.batchNo}`)}
                     className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors duration-150"
                   >
-                    追踪
+                    {t('batchTrace.search')}
                   </button>
                 </td>
               </tr>

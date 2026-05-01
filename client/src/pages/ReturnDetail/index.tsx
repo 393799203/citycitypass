@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { returnApi } from '../../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -13,23 +14,26 @@ import ReturnActions from './ReturnActions';
 import ReturnLogs from './ReturnLogs';
 
 export default function ReturnDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
   const [returnOrder, setReturnOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const statusTexts: Record<string, string> = {
-    RETURN_REQUESTED: '待发货',
-    RETURN_SHIPPED: '已发货',
-    RETURN_RECEIVING: '收货中',
-    RETURN_QUALIFIED: '已验收(全合格)',
-    RETURN_PARTIAL_QUALIFIED: '已验收(部分)',
-    RETURN_REJECTED: '已拒收',
-    RETURN_STOCK_IN: '已入库',
-    REFUNDED: '已退款',
-    CANCELLED: '已取消'
-  };
+  const getStatusTexts = (t: any): Record<string, string> => ({
+    RETURN_REQUESTED: t('returns.statusRequested'),
+    RETURN_SHIPPED: t('returns.statusShipped'),
+    RETURN_RECEIVING: t('returns.statusReceiving'),
+    RETURN_QUALIFIED: t('returns.statusQualified'),
+    RETURN_PARTIAL_QUALIFIED: t('returns.statusPartialQualified'),
+    RETURN_REJECTED: t('returns.statusRejected'),
+    RETURN_STOCK_IN: t('returns.statusStockIn'),
+    REFUNDED: t('returns.statusRefunded'),
+    CANCELLED: t('returns.statusCancelled')
+  });
+
+  const statusTexts = getStatusTexts(t);
 
   const [returnTrackingModal, setReturnTrackingModal] = useState<{ show: boolean; returnId: string; returnNo: string } | null>(null);
   const [returnTrackingNo, setReturnTrackingNo] = useState('');

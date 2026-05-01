@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { warehouseApi, ownerApi } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,23 +13,26 @@ import { useOwnerStore } from '../stores/owner';
 import OwnerStamp from '../components/OwnerStamp';
 import { usePermission } from '../hooks/usePermission';
 
-const typeMap: Record<string, string> = {
-  NORMAL: '普通仓',
-  COLD: '冷链仓',
-  MATERIAL: '原料仓',
-};
+const getTypeMap = (t: any): Record<string, string> => ({
+  NORMAL: t('warehouse.normalWarehouse'),
+  COLD: t('warehouse.coldWarehouse'),
+  MATERIAL: t('warehouse.materialWarehouse'),
+});
 
-const statusMap: Record<string, string> = {
-  ACTIVE: '启用',
-  INACTIVE: '停用',
-  MAINTENANCE: '维护中',
-};
+const getStatusMap = (t: any): Record<string, string> => ({
+  ACTIVE: t('warehouse.active'),
+  INACTIVE: t('warehouse.inactive'),
+  MAINTENANCE: t('warehouse.maintenance'),
+});
 
 export default function WarehousesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
   const { currentOwnerId, owners } = useOwnerStore();
   const { canWrite } = usePermission('config', 'warehouses');
+  const typeMap = getTypeMap(t);
+  const statusMap = getStatusMap(t);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [filterOwner, setFilterOwner] = useState(currentOwnerId || '');
   const [loading, setLoading] = useState(true);
@@ -73,15 +77,15 @@ export default function WarehousesPage() {
     e.preventDefault();
     
     if (!formData.code.trim()) {
-      toast.error('请输入仓库编码');
+      toast.error(t('warehouse.inputWarehouseCode'));
       return;
     }
     if (!formData.name.trim()) {
-      toast.error('请输入仓库名称');
+      toast.error(t('warehouse.inputWarehouseName'));
       return;
     }
     if (!formData.province || !formData.city || !formData.address.trim()) {
-      toast.error('请填写完整地址');
+      toast.error(t('warehouse.inputCompleteAddress'));
       return;
     }
     
@@ -95,39 +99,39 @@ export default function WarehousesPage() {
       
       if (editingId) {
         await warehouseApi.update(editingId, data);
-        toast.success('仓库已更新');
+        toast.success(t('warehouse.warehouseUpdated'));
       } else {
         await warehouseApi.create(data);
-        toast.success('仓库已创建');
+        toast.success(t('warehouse.warehouseCreated'));
       }
       setShowModal(false);
       resetForm();
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('warehouse.operationFailed'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该仓库吗？' });
+    const ok = await confirm({ message: t('warehouse.deleteConfirm') });
     if (!ok) return;
     try {
       await warehouseApi.delete(id);
-      toast.success('仓库已删除');
+      toast.success(t('warehouse.warehouseDeleted'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('warehouse.operationFailed'));
     }
   };
 
   const handleQuickCreate = async () => {
     if (!formData.code || !formData.name) {
-      toast.error('请填写仓库编码和名称');
+      toast.error(t('warehouse.inputWarehouseCodeAndName'));
       return;
     }
 
     const ok = await confirm({
-      message: `确认创建仓库 "${formData.name}" 及其默认库区和货架？\n\n将创建：\n- 入库区（IN）\n- 存储区（ST）\n- 拣货区（PK）\n- 退货区（RT）\n- 报废区（DM）\n\n每个库区包含 1 个默认货架 R001`,
+      message: t('warehouse.quickCreateConfirm', { name: formData.name }),
     });
     if (!ok) return;
 
@@ -139,12 +143,12 @@ export default function WarehousesPage() {
         longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       };
       await warehouseApi.quickCreate(data);
-      toast.success('仓库及默认配置创建成功！');
+      toast.success(t('warehouse.quickCreateSuccess'));
       setShowModal(false);
       resetForm();
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '创建失败');
+      toast.error(error.response?.data?.message || t('warehouse.quickCreateFailed'));
     }
   };
 
@@ -180,7 +184,7 @@ export default function WarehousesPage() {
           ownerData = res.data.data;
         }
       } catch (error) {
-        console.error('获取主体信息失败:', error);
+        console.error(t('warehouse.fetchOwnerFailed'), error);
       }
     }
 
@@ -206,10 +210,10 @@ export default function WarehousesPage() {
     <div className="p-2 space-y-6">
       
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">仓库管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t('warehouse.title')}</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">
-            仓库: {warehouses.length}
+            {t('warehouse.warehouseCount')}: {warehouses.length}
           </span>
           <button
             onClick={() => {
@@ -217,7 +221,7 @@ export default function WarehousesPage() {
               setShowModal(true);
             }}
             disabled={!filterOwner || !canWrite}
-            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!filterOwner ? t('warehouse.pleaseSelectOwner') : !canWrite ? t('warehouse.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -225,7 +229,7 @@ export default function WarehousesPage() {
             }`}
           >
             <Plus className="w-4 h-4" />
-            创建仓库
+            {t('warehouse.createWarehouseBtn')}
           </button>
         </div>
       </div>
@@ -237,7 +241,7 @@ export default function WarehousesPage() {
       ) : warehouses.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <Warehouse className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p>暂无仓库，请创建</p>
+          <p>{t('warehouse.noWarehouse')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -278,7 +282,7 @@ export default function WarehousesPage() {
               
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">类型</span>
+                  <span className="text-gray-500">{t('warehouse.type')}</span>
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     warehouse.type === 'COLD' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
                   }`}>
@@ -286,7 +290,7 @@ export default function WarehousesPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">状态</span>
+                  <span className="text-gray-500">{t('warehouse.status')}</span>
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     warehouse.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 
                     warehouse.status === 'INACTIVE' ? 'bg-red-100 text-red-700' :
@@ -297,7 +301,7 @@ export default function WarehousesPage() {
                 </div>
                 {(warehouse.manager || warehouse.managerPhone) && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">管理员</span>
+                    <span className="text-gray-500">{t('warehouse.manager')}</span>
                     <div className="flex items-center gap-1 text-gray-700">
                       <Phone className="w-3 h-3" />
                       {warehouse.manager} {warehouse.managerPhone && formatPhone(warehouse.managerPhone)}
@@ -306,7 +310,7 @@ export default function WarehousesPage() {
                 )}
                 {(warehouse.businessStartTime || warehouse.businessEndTime) && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">营业时间</span>
+                    <span className="text-gray-500">{t('warehouse.businessHours')}</span>
                     <div className="flex items-center gap-1 text-gray-700">
                       <Clock className="w-3 h-3" />
                       {warehouse.businessStartTime || '--'} - {warehouse.businessEndTime || '--'}
@@ -314,10 +318,10 @@ export default function WarehousesPage() {
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">货架数</span>
+                  <span className="text-gray-500">{t('warehouse.shelfCount')}</span>
                   <span className="text-gray-700 flex items-center gap-1">
                     <Package className="w-3 h-3" />
-                    {warehouse.zones?.length || 0} 个库区 / {warehouse.shelves?.length || 0} 个货架
+                    {warehouse.zones?.length || 0} {t('warehouse.zones')} / {warehouse.shelves?.length || 0} {t('warehouse.shelves')}
                   </span>
                 </div>
                 {(warehouse.province || warehouse.city || warehouse.address) && (
@@ -332,10 +336,10 @@ export default function WarehousesPage() {
                       </span>
                     </div>
                     <div className="text-xs text-gray-600">
-                      <div className="text-blue-600">商品库存: {warehouse.totalStock || 0} 件 / {warehouse.skuCount || 0} SKU</div>
+                      <div className="text-blue-600">{t('warehouse.productStock')}: {warehouse.totalStock || 0} {t('warehouse.skuCount')} / {warehouse.skuCount || 0} SKU</div>
                       {(warehouse.totalBundleStock > 0 || warehouse.bundleCount > 0) && (
                         <div className="text-purple-600 mt-1">
-                          套装库存: {warehouse.totalBundleStock || 0} 件 / {warehouse.bundleCount || 0} 款
+                          {t('warehouse.bundleStock')}: {warehouse.totalBundleStock || 0} {t('warehouse.skuCount')} / {warehouse.bundleCount || 0} {t('warehouse.bundleCount')}
                         </div>
                       )}
                     </div>
@@ -351,7 +355,7 @@ export default function WarehousesPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-semibold">{editingId ? '编辑仓库' : '创建仓库'}</h2>
+              <h2 className="text-lg font-semibold">{editingId ? t('warehouse.editWarehouseTitle') : t('warehouse.createWarehouseTitle')}</h2>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
                 <X className="w-5 h-5" />
               </button>
@@ -360,7 +364,7 @@ export default function WarehousesPage() {
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    仓库编码 <span className="text-red-500">*</span>
+                    {t('warehouse.warehouseCodeRequired')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -372,7 +376,7 @@ export default function WarehousesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    仓库名称 <span className="text-red-500">*</span>
+                    {t('warehouse.warehouseNameRequired')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -383,44 +387,44 @@ export default function WarehousesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">类型</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.type')}</label>
                   <select
                     value={formData.type}
                     onChange={e => setFormData({ ...formData, type: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="NORMAL">普通仓</option>
-                    <option value="COLD">冷链仓</option>
-                    <option value="MATERIAL">原料仓</option>
+                    <option value="NORMAL">{t('warehouse.normalWarehouse')}</option>
+                    <option value="COLD">{t('warehouse.coldWarehouse')}</option>
+                    <option value="MATERIAL">{t('warehouse.materialWarehouse')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.status')}</label>
                   <select
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="ACTIVE">启用</option>
-                    <option value="INACTIVE">停用</option>
-                    <option value="MAINTENANCE">维护中</option>
+                    <option value="ACTIVE">{t('warehouse.active')}</option>
+                    <option value="INACTIVE">{t('warehouse.inactive')}</option>
+                    <option value="MAINTENANCE">{t('warehouse.maintenance')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">管理员</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.managerName')}</label>
                   <input
                     type="text"
                     value={formData.manager}
                     onChange={e => setFormData({ ...formData, manager: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="管理员姓名"
+                    placeholder={t('warehouse.managerName')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">管理员电话</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.managerPhone')}</label>
                   <PhoneInput
                     value={formData.managerPhone}
                     onChange={(val) => setFormData({ ...formData, managerPhone: val })}
@@ -428,7 +432,7 @@ export default function WarehousesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">营业时间</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.businessHours')}</label>
                   <div className="flex gap-2">
                     <input
                       type="time"
@@ -449,7 +453,7 @@ export default function WarehousesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  地址 <span className="text-red-500">*</span>
+                  {t('warehouse.addressRequired')} <span className="text-red-500">*</span>
                 </label>
                 <AddressInput
                   value={{
@@ -477,7 +481,7 @@ export default function WarehousesPage() {
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                 >
-                  取消
+                  {t('warehouse.cancel')}
                 </button>
                 {!editingId && (
                   <button
@@ -486,14 +490,14 @@ export default function WarehousesPage() {
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                   >
                     <Zap className="w-4 h-4 inline mr-1" />
-                    一键创建
+                    {t('warehouse.quickCreate')}
                   </button>
                 )}
                 <button
                   type="submit"
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
-                  {editingId ? '保存' : '创建'}
+                  {editingId ? t('warehouse.save') : t('warehouse.create')}
                 </button>
               </div>
             </form>

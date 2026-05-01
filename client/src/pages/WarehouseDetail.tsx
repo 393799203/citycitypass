@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { warehouseApi } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -7,25 +8,28 @@ import { ArrowLeft, Plus, Trash2, Loader2, Building2, MapPin, Package, X, Phone,
 import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 
-const typeMap: Record<string, string> = {
-  INBOUND: '入库区',
-  STORAGE: '存储区',
-  PICKING: '拣货区',
-  SHIPPING: '发货区',
-  RETURNING: '退货区',
-  DAMAGED: '残次品区',
-};
+const getTypeMap = (t: any): Record<string, string> => ({
+  INBOUND: t('warehouse.inboundZone'),
+  STORAGE: t('warehouse.storageZone'),
+  PICKING: t('warehouse.pickingZone'),
+  SHIPPING: t('warehouse.shippingZone'),
+  RETURNING: t('warehouse.returningZone'),
+  DAMAGED: t('warehouse.damagedZone'),
+});
 
-const statusMap: Record<string, string> = {
-  ACTIVE: '启用',
-  INACTIVE: '停用',
-  MAINTENANCE: '维护中',
-};
+const getStatusMap = (t: any): Record<string, string> => ({
+  ACTIVE: t('warehouse.active'),
+  INACTIVE: t('warehouse.inactive'),
+  MAINTENANCE: t('warehouse.maintenance'),
+});
 
 export default function WarehouseDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const typeMap = getTypeMap(t);
+  const statusMap = getStatusMap(t);
   const [warehouse, setWarehouse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showShelfModal, setShowShelfModal] = useState(false);
@@ -184,7 +188,7 @@ export default function WarehouseDetailPage() {
     if (!editingShelf) return;
     try {
       await warehouseApi.updateShelf(editingShelf.id, shelfFormData);
-      toast.success('货架已更新');
+      toast.success(t('warehouse.shelfUpdated'));
       setShowShelfModal(false);
       setEditingShelf(null);
       setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' });
@@ -207,7 +211,7 @@ export default function WarehouseDetailPage() {
         setZones(mergedZones);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('warehouse.operationFailed'));
     }
   };
 
@@ -226,7 +230,7 @@ export default function WarehouseDetailPage() {
     if (!editingZone) return;
     try {
       await warehouseApi.updateZone(editingZone.id, zoneFormData);
-      toast.success('库区已更新');
+      toast.success(t('warehouse.zoneUpdated'));
       setShowZoneModal(false);
       setEditingZone(null);
       setZoneFormData({ code: '', name: '', type: 'STORAGE' });
@@ -249,19 +253,19 @@ export default function WarehouseDetailPage() {
         setZones(mergedZones);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('warehouse.operationFailed'));
     }
   };
 
   const handleCreateZone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!warehouse?.id) {
-      toast.error('仓库不存在');
+      toast.error(t('warehouse.warehouseNotExist'));
       return;
     }
     try {
       await warehouseApi.createZone(warehouse.id, zoneFormData);
-      toast.success('库区已创建');
+      toast.success(t('warehouse.zoneCreated'));
       setShowZoneModal(false);
       setZoneFormData({ code: '', name: '', type: 'STORAGE' });
       const res = await warehouseApi.get(id!);
@@ -270,16 +274,16 @@ export default function WarehouseDetailPage() {
         setZones(res.data.data.zones || []);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('warehouse.operationFailed'));
     }
   };
 
   const handleDeleteZone = async (zoneId: string) => {
-    const ok = await confirm({ message: '确定要删除该库区吗？' });
+    const ok = await confirm({ message: t('warehouse.deleteZoneConfirm') });
     if (!ok) return;
     try {
       await warehouseApi.deleteZone(zoneId);
-      toast.success('库区已删除');
+      toast.success(t('warehouse.zoneDeleted'));
       const res = await warehouseApi.get(id!);
       if (res.data.success) {
         setWarehouse(res.data.data);
@@ -287,7 +291,7 @@ export default function WarehouseDetailPage() {
       }
       if (selectedZoneId === zoneId) setSelectedZoneId(null);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('warehouse.operationFailed'));
     }
   };
 
@@ -313,9 +317,9 @@ export default function WarehouseDetailPage() {
   if (!warehouse) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-500">仓库不存在</div>
+        <div className="text-gray-500">{t('warehouse.warehouseNotExist')}</div>
         <Link to="/warehouses" className="text-primary-600 hover:underline mt-2 inline-block">
-          返回仓库列表
+          {t('warehouse.backToList')}
         </Link>
       </div>
     );
@@ -345,11 +349,11 @@ export default function WarehouseDetailPage() {
                   className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1.5 text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  添加库区
+                  {t('warehouse.addZone')}
                 </button>
                 {selectedZoneId && (
                   <button onClick={() => setSelectedZoneId(null)} className="text-sm text-primary-600 hover:underline">
-                    查看全部
+                    {t('warehouse.viewAll')}
                   </button>
                 )}
               </div>
@@ -372,13 +376,13 @@ export default function WarehouseDetailPage() {
                   {zone.code} {zone.name}
                 </button>
               ))}
-              {zones.length === 0 && <span className="text-gray-400 text-sm">暂无库区</span>}
+              {zones.length === 0 && <span className="text-gray-400 text-sm">{t('warehouse.noZones')}</span>}
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="text-lg font-semibold">货架列表</h2>
+              <h2 className="text-lg font-semibold">{t('warehouse.shelfList')}</h2>
               <div className="flex gap-2">
                 {selectedZoneId && (
                   <button
@@ -386,7 +390,7 @@ export default function WarehouseDetailPage() {
                     className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm flex items-center gap-1"
                   >
                     <Plus className="w-4 h-4" />
-                    添加货架
+                    {t('warehouse.addShelf')}
                   </button>
                 )}
               </div>
@@ -395,21 +399,21 @@ export default function WarehouseDetailPage() {
             {filteredZones.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
                 <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <div>暂无库区</div>
-                <div className="text-sm mt-1">请先添加库区</div>
+                <div>{t('warehouse.noZones')}</div>
+                <div className="text-sm mt-1">{t('warehouse.addZoneFirst')}</div>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货架编码</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货架名称</th>
-                      {!selectedZoneId && <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">库区</th>}
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">类型</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">状态</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">货物</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">操作</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('warehouse.shelfCode')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('warehouse.shelfName')}</th>
+                      {!selectedZoneId && <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('warehouse.zone')}</th>}
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('warehouse.shelfType')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('warehouse.status')}</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">{t('warehouse.goods')}</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">{t('warehouse.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -418,7 +422,7 @@ export default function WarehouseDetailPage() {
                         <tr key={shelf.id} className={`hover:bg-gray-50 cursor-pointer ${selectedShelfId === shelf.id ? 'bg-primary-50' : ''}`} onClick={() => handleShelfClick(shelf.id)}>
                           <td className="px-3 py-2">
                             <div className="text-sm font-medium text-primary-600">{zone.code}-{shelf.code}</div>
-                            <div className="text-xs text-gray-400">库位: {shelf.locations?.length || 0}</div>
+                            <div className="text-xs text-gray-400">{t('warehouse.locations')}: {shelf.locations?.length || 0}</div>
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-700">
                             {shelf.name || '-'}
@@ -443,14 +447,14 @@ export default function WarehouseDetailPage() {
                               shelf.type === 'FLOW' ? 'bg-blue-100 text-blue-700' :
                               'bg-green-100 text-green-700'
                             }`}>
-                              {shelf.type === 'HEAVY' ? '重型' : shelf.type === 'FLOW' ? '流利架' : '轻型'}
+                              {shelf.type === 'HEAVY' ? t('warehouse.heavyShelf') : shelf.type === 'FLOW' ? t('warehouse.flowShelf') : t('warehouse.lightShelfTag')}
                             </span>
                           </td>
                           <td className="px-3 py-2">
                             <span className={`px-1.5 py-0.5 text-xs rounded-full ${
                               shelf.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                             }`}>
-                              {shelf.status === 'ACTIVE' ? '启用' : '禁用'}
+                              {shelf.status === 'ACTIVE' ? t('warehouse.enabled') : t('warehouse.disabled')}
                             </span>
                           </td>
                           <td className="px-3 py-2">
@@ -462,18 +466,18 @@ export default function WarehouseDetailPage() {
                                     <div
                                       key={s.id}
                                       className={isReturnZone ? 'text-gray-400' : ''}
-                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">商品信息</div><div className="text-gray-200 py-1">库位：{s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '无'}</div><div className="text-gray-200 py-1">批次号：{s.skuBatch?.batchNo || '无'}</div>{s.skuBatch?.expiryDate && <div className="text-gray-200 py-1">有效期：{new Date(s.skuBatch?.expiryDate).toLocaleDateString()}</div>}</div> })}
+                                      onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('warehouse.productInfo')}</div><div className="text-gray-200 py-1">{t('warehouse.locationLabel')}：{s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : t('warehouse.none')}</div><div className="text-gray-200 py-1">{t('warehouse.batchNoLabel')}：{s.skuBatch?.batchNo || t('warehouse.none')}</div>{s.skuBatch?.expiryDate && <div className="text-gray-200 py-1">{t('warehouse.expiryDateLabel')}：{new Date(s.skuBatch?.expiryDate).toLocaleDateString()}</div>}</div> })}
                                       onMouseLeave={() => setTooltip(null)}
-                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">商品信息</div><div className="text-gray-200 py-1">库位：{s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : '无'}</div><div className="text-gray-200 py-1">批次号：{s.skuBatch?.batchNo || '无'}</div>{s.skuBatch?.expiryDate && <div className="text-gray-200 py-1">有效期：{new Date(s.skuBatch?.expiryDate).toLocaleDateString()}</div>}</div> })}
+                                      onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('warehouse.productInfo')}</div><div className="text-gray-200 py-1">{t('warehouse.locationLabel')}：{s.location ? `${s.location.shelf?.zone?.code || ''}-${s.location.shelf?.code || ''}-L${s.location.level}` : t('warehouse.none')}</div><div className="text-gray-200 py-1">{t('warehouse.batchNoLabel')}：{s.skuBatch?.batchNo || t('warehouse.none')}</div>{s.skuBatch?.expiryDate && <div className="text-gray-200 py-1">{t('warehouse.expiryDateLabel')}：{new Date(s.skuBatch?.expiryDate).toLocaleDateString()}</div>}</div> })}
                                     >
-                                      <span className={isReturnZone ? 'text-gray-500' : 'text-blue-600'}>{isReturnZone ? '[退] ' : '[商品] '}{s.sku?.product?.name}</span>
+                                      <span className={isReturnZone ? 'text-gray-500' : 'text-blue-600'}>{isReturnZone ? t('warehouse.returnTag') : `[${t('warehouse.productTag')}] `}{s.sku?.product?.name}</span>
                                       <span className="text-gray-400 mx-1">/</span>
                                       <span className="text-gray-500">{s.sku?.spec}</span>
                                       <span className="text-gray-400 mx-1">/</span>
                                       <span className="text-gray-500">{s.sku?.packaging}</span>
                                       <span className="text-gray-400 mx-1">×</span>
                                       <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{s.totalQuantity || 0}</span>
-                                      <span className="text-gray-400">件</span>
+                                      <span className="text-gray-400">{t('warehouse.pieces')}</span>
                                     </div>
                                   );
                                 })}
@@ -481,12 +485,12 @@ export default function WarehouseDetailPage() {
                                   const isReturnZone = b.location?.shelf?.zone?.type === 'RETURNING';
                                   return (
                                     <div key={b.id} className={`flex items-center gap-1 ${isReturnZone ? 'text-gray-400' : ''}`}>
-                                      <span className={isReturnZone ? 'text-gray-500' : 'text-purple-700'}>{isReturnZone ? '[退] ' : '[套装] '}{b.bundle?.name}</span>
+                                      <span className={isReturnZone ? 'text-gray-500' : 'text-purple-700'}>{isReturnZone ? t('warehouse.returnTag') : `[${t('warehouse.bundleTag')}] `}{b.bundle?.name}</span>
                                       {b.bundle?.items && (
                                         <button
-                                          onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}<div className="border-t border-gray-600 mt-2 pt-2"><div className="text-gray-200 py-1">库位：{b.location ? `${b.location.shelf?.zone?.code || ''}-${b.location.shelf?.code || ''}-L${b.location.level}` : '无'}</div><div className="text-gray-200 py-1">批次号：{b.bundleBatch?.batchNo || '无'}</div></div></div> })}
+                                          onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('warehouse.bundleContains')}:</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}<div className="border-t border-gray-600 mt-2 pt-2"><div className="text-gray-200 py-1">{t('warehouse.locationLabel')}：{b.location ? `${b.location.shelf?.zone?.code || ''}-${b.location.shelf?.code || ''}-L${b.location.level}` : t('warehouse.none')}</div><div className="text-gray-200 py-1">{t('warehouse.batchNoLabel')}：{b.bundleBatch?.batchNo || t('warehouse.none')}</div></div></div> })}
                                           onMouseLeave={() => setTooltip(null)}
-                                          onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}<div className="border-t border-gray-600 mt-2 pt-2"><div className="text-gray-200 py-1">库位：{b.location ? `${b.location.shelf?.zone?.code || ''}-${b.location.shelf?.code || ''}-L${b.location.level}` : '无'}</div><div className="text-gray-200 py-1">批次号：{b.bundleBatch?.batchNo || '无'}</div></div></div> })}
+                                          onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('warehouse.bundleContains')}:</div>{b.bundle.items.map((bi: any, idx: number) => (<div key={idx} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}<div className="border-t border-gray-600 mt-2 pt-2"><div className="text-gray-200 py-1">{t('warehouse.locationLabel')}：{b.location ? `${b.location.shelf?.zone?.code || ''}-${b.location.shelf?.code || ''}-L${b.location.level}` : t('warehouse.none')}</div><div className="text-gray-200 py-1">{t('warehouse.batchNoLabel')}：{b.bundleBatch?.batchNo || t('warehouse.none')}</div></div></div> })}
                                           className="p-0.5 hover:bg-gray-100 rounded"
                                         >
                                           <Info className={`w-3 h-3 ${isReturnZone ? 'text-gray-400' : 'text-purple-500'} cursor-help`} />
@@ -494,17 +498,17 @@ export default function WarehouseDetailPage() {
                                       )}
                                       <span className="text-gray-400 mx-1">×</span>
                                       <span className={isReturnZone ? 'text-yellow-500 font-medium' : 'text-green-600 font-medium'}>{b.totalQuantity || 0}</span>
-                                      <span className="text-gray-400">套</span>
+                                      <span className="text-gray-400">{t('warehouse.sets')}</span>
                                     </div>
                                   );
                                 })}
                                 {shelf.materialStocks?.filter((m: any) => (m.totalQuantity || 0) > 0).map((m: any) => {
                                   return (
                                     <div key={m.id} className="flex items-center gap-1 text-green-600">
-                                      <span>[原料] {m.supplierMaterial?.name || '未知'}</span>
+                                      <span>{t('warehouse.materialTag')} {m.supplierMaterial?.name || t('warehouse.unknown')}</span>
                                       <span className="text-gray-400 mx-1">×</span>
                                       <span className="font-medium">{m.totalQuantity || 0}</span>
-                                      <span className="text-gray-400">{m.supplierMaterial?.unit || '件'}</span>
+                                      <span className="text-gray-400">{m.supplierMaterial?.unit || t('warehouse.pieces')}</span>
                                     </div>
                                   );
                                 })}
@@ -541,20 +545,20 @@ export default function WarehouseDetailPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border p-4">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">仓库信息</h2>
+              <h2 className="text-lg font-semibold">{t('warehouse.warehouseInfo')}</h2>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">仓库编码</span>
+                <span className="text-gray-500">{t('warehouse.warehouseCode')}</span>
                 <span className="font-medium">{warehouse.code}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">仓库类型</span>
-                <span className="font-medium">{warehouse.type === 'NORMAL' ? '普通仓' : warehouse.type === 'COLD' ? '冷链仓' : warehouse.type === 'MATERIAL' ? '原料仓' : warehouse.type}</span>
+                <span className="text-gray-500">{t('warehouse.warehouseType')}</span>
+                <span className="font-medium">{warehouse.type === 'NORMAL' ? t('warehouse.normalWarehouse') : warehouse.type === 'COLD' ? t('warehouse.coldWarehouse') : warehouse.type === 'MATERIAL' ? t('warehouse.materialWarehouse') : warehouse.type}</span>
               </div>
               {formatAddress(warehouse.province, warehouse.city, warehouse.address, warehouse.district) !== '-' && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">仓库地址</span>
+                  <span className="text-gray-500">{t('warehouse.warehouseAddress')}</span>
                   <span className="font-medium text-right max-w-[200px] truncate">
                     {formatAddress(warehouse.province, warehouse.city, warehouse.address, warehouse.district)}
                   </span>
@@ -562,7 +566,7 @@ export default function WarehouseDetailPage() {
               )}
               {(warehouse.manager || warehouse.managerPhone) && (
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">联系方式</span>
+                  <span className="text-gray-500">{t('warehouse.contactInfo')}</span>
                   <div className="flex items-center gap-2">
                     {warehouse.manager && <span className="font-medium">{warehouse.manager}</span>}
                     {warehouse.manager && warehouse.managerPhone && <span className="text-gray-300">|</span>}
@@ -572,22 +576,22 @@ export default function WarehouseDetailPage() {
               )}
               {(warehouse.businessStartTime || warehouse.businessEndTime) && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">营业时间</span>
+                  <span className="text-gray-500">{t('warehouse.businessHours')}</span>
                   <span className="font-medium">
                     {warehouse.businessStartTime || ''}{warehouse.businessStartTime && warehouse.businessEndTime ? ' - ' : ''}{warehouse.businessEndTime || ''}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-500">库区数量</span>
+                <span className="text-gray-500">{t('warehouse.zoneCount')}</span>
                 <span className="font-medium">{(warehouse.zones || []).length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">货架数量</span>
+                <span className="text-gray-500">{t('warehouse.shelfCount')}</span>
                 <span className="font-medium">{(warehouse.zones || []).reduce((sum: number, z: any) => sum + (z.shelves?.length || 0), 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">创建时间</span>
+                <span className="text-gray-500">{t('warehouse.createdAt')}</span>
                 <span className="font-medium">{new Date(warehouse.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
@@ -595,7 +599,7 @@ export default function WarehouseDetailPage() {
 
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="text-lg font-semibold">库区管理</h2>
+              <h2 className="text-lg font-semibold">{t('warehouse.zoneManagement')}</h2>
             </div>
             <div className="divide-y">
               {zones.map(zone => (
@@ -622,13 +626,13 @@ export default function WarehouseDetailPage() {
                     </div>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {typeMap[zone.type] || zone.type} · {zone.shelves?.length || 0} 个货架
+                    {typeMap[zone.type] || zone.type} · {zone.shelves?.length || 0} {t('warehouse.shelves')}
                   </div>
                 </div>
               ))}
               {zones.length === 0 && (
                 <div className="p-4 text-center text-gray-500 text-sm">
-                  暂无库区
+                  {t('warehouse.noZones')}
                 </div>
               )}
             </div>
@@ -640,56 +644,56 @@ export default function WarehouseDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">{editingZone ? '编辑库区' : '添加库区'}</h3>
+              <h3 className="text-lg font-bold">{editingZone ? t('warehouse.editZone') : t('warehouse.addZone')}</h3>
               <button onClick={() => { setShowZoneModal(false); setEditingZone(null); setZoneFormData({ code: '', name: '', type: 'STORAGE' }); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={editingZone ? handleUpdateZone : handleCreateZone} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">库区编码</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.zoneCode')}</label>
                 <input
                   type="text"
                   value={zoneFormData.code}
                   onChange={(e) => setZoneFormData({ ...zoneFormData, code: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如 A"
+                  placeholder={t('warehouse.exampleA')}
                   disabled={!!editingZone}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">库区名称</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.zoneName')}</label>
                 <input
                   type="text"
                   value={zoneFormData.name}
                   onChange={(e) => setZoneFormData({ ...zoneFormData, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如 收货区"
+                  placeholder={t('warehouse.exampleReceiving')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">库区类型</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.zoneType')}</label>
                 <select
                   value={zoneFormData.type}
                   onChange={(e) => setZoneFormData({ ...zoneFormData, type: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                   disabled={!!editingZone}
                 >
-                  <option value="INBOUND">入库区</option>
-                  <option value="STORAGE">存储区</option>
-                  <option value="PICKING">拣货区</option>
-                  <option value="SHIPPING">发货区</option>
-                  <option value="RETURNING">退货区</option>
-                  <option value="DAMAGED">残次品区</option>
+                  <option value="INBOUND">{t('warehouse.inboundZone')}</option>
+                  <option value="STORAGE">{t('warehouse.storageZone')}</option>
+                  <option value="PICKING">{t('warehouse.pickingZone')}</option>
+                  <option value="SHIPPING">{t('warehouse.shippingZone')}</option>
+                  <option value="RETURNING">{t('warehouse.returningZone')}</option>
+                  <option value="DAMAGED">{t('warehouse.damagedZone')}</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setShowZoneModal(false); setEditingZone(null); setZoneFormData({ code: '', name: '', type: 'STORAGE' }); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
-                  取消
+                  {t('warehouse.cancel')}
                 </button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                  {editingZone ? '更新' : '创建'}
+                  {editingZone ? t('warehouse.update') : t('warehouse.create')}
                 </button>
               </div>
             </form>
@@ -701,44 +705,44 @@ export default function WarehouseDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">{editingShelf ? '编辑货架' : '添加货架'}</h3>
+              <h3 className="text-lg font-bold">{editingShelf ? t('warehouse.editShelf') : t('warehouse.addShelf')}</h3>
               <button onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' }); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={editingShelf ? handleUpdateShelf : handleCreateShelf} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">货架编码</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.shelfCode')}</label>
                 <input
                   type="text"
                   value={shelfFormData.code}
                   onChange={(e) => setShelfFormData({ ...shelfFormData, code: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如 R001"
+                  placeholder={t('warehouse.exampleR001')}
                   disabled={!!editingShelf}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">货架名称</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.shelfName')}</label>
                 <input
                   type="text"
                   value={shelfFormData.name}
                   onChange={(e) => setShelfFormData({ ...shelfFormData, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="如 重型货架A"
+                  placeholder={t('warehouse.exampleHeavyShelfA')}
                 />
               </div>
               {!editingShelf && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">所属库区</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.zone')}</label>
                   <select
                     value={shelfFormData.zoneId}
                     onChange={(e) => setShelfFormData({ ...shelfFormData, zoneId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   >
-                    <option value="">选择库区</option>
+                    <option value="">{t('warehouse.selectZonePlaceholder')}</option>
                     {zones.map(z => (
                       <option key={z.id} value={z.id}>{z.code} - {z.name}</option>
                     ))}
@@ -746,30 +750,30 @@ export default function WarehouseDetailPage() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">货架类型</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.shelfType')}</label>
                 <select
                   value={shelfFormData.type}
                   onChange={(e) => setShelfFormData({ ...shelfFormData, type: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="LIGHT">轻型货架</option>
-                  <option value="HEAVY">重型货架</option>
-                  <option value="FLOW">流利架</option>
+                  <option value="LIGHT">{t('warehouse.lightShelfOption')}</option>
+                  <option value="HEAVY">{t('warehouse.heavyShelfOption')}</option>
+                  <option value="FLOW">{t('warehouse.flowShelfOption')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.status')}</label>
                 <select
                   value={shelfFormData.status}
                   onChange={(e) => setShelfFormData({ ...shelfFormData, status: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="ACTIVE">启用</option>
-                  <option value="INACTIVE">停用</option>
+                  <option value="ACTIVE">{t('warehouse.enabled')}</option>
+                  <option value="INACTIVE">{t('warehouse.disabled')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">库位层数</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('warehouse.shelfLevels')}</label>
                 <input
                   type="number"
                   min="1"
@@ -783,10 +787,10 @@ export default function WarehouseDetailPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setShowShelfModal(false); setEditingShelf(null); setShelfFormData({ code: '', name: '', type: 'LIGHT', status: 'ACTIVE', levels: 6, zoneId: '' }); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
-                  取消
+                  {t('warehouse.cancel')}
                 </button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                  {editingShelf ? '更新' : '创建'}
+                  {editingShelf ? t('warehouse.update') : t('warehouse.create')}
                 </button>
               </div>
             </form>

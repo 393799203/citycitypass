@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ArrowRight, MapPin, ShoppingCart } from 'lucide-react';
 import { TraceData } from '../../types/batchTrace';
@@ -8,6 +9,7 @@ interface BatchRecordCardsProps {
 }
 
 export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
+  const { t } = useTranslation();
   const allStockIns = traceData.stockIns || [];
 
   return (
@@ -15,10 +17,10 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <ArrowRight className="w-5 h-5 text-green-500" />
-          入库记录
+          {t('batchTrace.stockInRecords')}
         </h3>
         {allStockIns.length === 0 ? (
-          <p className="text-gray-400 text-center py-4">暂无入库记录</p>
+          <p className="text-gray-400 text-center py-4">{t('batchTrace.noInboundRecords')}</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {allStockIns.map((item, idx) => (
@@ -28,21 +30,21 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
                     <span className={`px-2 py-0.5 text-xs rounded ${
                       item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                     }`}>
-                      {item.type === 'BUNDLE' ? '套装' : '商品'}
+                      {item.type === 'BUNDLE' ? t('batchTrace.bundle') : t('batchTrace.product')}
                     </span>
                     <span className="font-medium">
                       {item.productName || item.bundleName}
                     </span>
                     {item.spec && <span className="text-gray-500">{item.spec}</span>}
                     {item.packaging && <span className="text-gray-500">{item.packaging}</span>}
-                    {item.inboundNo && <span className="text-green-600 font-mono text-xs">入库单: {item.inboundNo}</span>}
+                    {item.inboundNo && <span className="text-green-600 font-mono text-xs">{t('batchTrace.inboundNo')}: {item.inboundNo}</span>}
                   </div>
                   <span className="text-green-600 font-bold">+{item.quantity}</span>
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
-                    {item.locationCode || '无库位'}
+                    {item.locationCode || t('batchTrace.noLocation')}
                   </span>
                   <span>{item.warehouse}</span>
                   <span>{new Date(item.createdAt).toLocaleDateString()}</span>
@@ -56,10 +58,10 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <MapPin className="w-5 h-5 text-blue-500" />
-          当前库位分布
+          {t('batchTrace.currentLocations')}
         </h3>
         {traceData.locations.length === 0 ? (
-          <p className="text-gray-400 text-center py-4">暂无在库数据</p>
+          <p className="text-gray-400 text-center py-4">{t('batchTrace.noStockData')}</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {traceData.locations.map((loc, idx) => (
@@ -69,19 +71,19 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
                     <span className={`px-2 py-0.5 text-xs rounded ${
                       loc.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                     }`}>
-                      {loc.type === 'BUNDLE' ? '套装' : '商品'}
+                      {loc.type === 'BUNDLE' ? t('batchTrace.bundle') : t('batchTrace.product')}
                     </span>
                     <span className="font-mono text-gray-700">{loc.locationCode}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-blue-600 font-bold">{loc.quantity}</span>
-                    <span className="text-gray-400 text-xs"> / {loc.availableQuantity}可用</span>
+                    <span className="text-gray-400 text-xs"> / {loc.availableQuantity}{t('batchTrace.available')}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                   <span>{loc.warehouse}</span>
                   {loc.lockedQuantity > 0 && (
-                    <span className="text-yellow-600">锁定: {loc.lockedQuantity}</span>
+                    <span className="text-yellow-600">{t('batchTrace.locked')}: {loc.lockedQuantity}</span>
                   )}
                 </div>
               </div>
@@ -93,10 +95,10 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <ShoppingCart className="w-5 h-5 text-yellow-500" />
-          已售订单
+          {t('batchTrace.soldOrders')}
         </h3>
         {(traceData.stockOuts || []).length === 0 ? (
-          <p className="text-gray-400 text-center py-4">暂无售出记录</p>
+          <p className="text-gray-400 text-center py-4">{t('batchTrace.noSoldRecords')}</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {(traceData.stockOuts || []).map((order, idx) => (
@@ -112,7 +114,7 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className={`font-mono hover:underline ${order.isReturned ? 'text-red-600' : 'text-blue-600'}`}>{order.orderNo}</span>
-                    {order.isReturned && <span className="ml-2 px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">已退货</span>}
+                    {order.isReturned && <span className="ml-2 px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">{t('batchTrace.returned')}</span>}
                     <span className="ml-2 text-gray-500">{order.customer}</span>
                     {order.customerPhone && (
                       <span className="ml-2 text-gray-400">{order.customerPhone}</span>
@@ -124,7 +126,7 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
                   <span className={`px-2 py-0.5 text-xs rounded ${
                     order.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                   }`}>
-                    {order.type === 'BUNDLE' ? '套装' : '商品'}
+                    {order.type === 'BUNDLE' ? t('batchTrace.bundle') : t('batchTrace.product')}
                   </span>
                   <span>{order.productName || order.bundleName}</span>
                   <ArrowRight className={`w-3 h-3 ml-auto ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
@@ -138,10 +140,10 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <ArrowRight className="w-5 h-5 text-purple-500" />
-          移库记录
+          {t('batchTrace.transferRecords')}
         </h3>
         {(traceData.transfers || []).length === 0 ? (
-          <p className="text-gray-400 text-center py-4">暂无移库记录</p>
+          <p className="text-gray-400 text-center py-4">{t('batchTrace.noTransferRecords')}</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {(traceData.transfers || []).map((transfer, idx) => (
@@ -153,14 +155,14 @@ export default function BatchRecordCards({ traceData }: BatchRecordCardsProps) {
                     transfer.status === 'PENDING' ? 'bg-yellow-100 text-yellow-600' :
                     'bg-red-100 text-red-600'
                   }`}>
-                    {transfer.status === 'COMPLETED' ? '已完成' : transfer.status === 'PENDING' ? '待执行' : '已取消'}
+                    {transfer.status === 'COMPLETED' ? t('batchTrace.transferCompleted') : transfer.status === 'PENDING' ? t('batchTrace.transferPending') : t('batchTrace.transferCancelled')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-2 text-xs">
                   <span className="text-gray-500">{transfer.fromLocation}</span>
                   <ArrowRight className="w-3 h-3 text-gray-400" />
                   <span className="text-gray-700">{transfer.toLocation}</span>
-                  <span className="ml-auto text-purple-600 font-medium">{transfer.quantity}件</span>
+                  <span className="ml-auto text-purple-600 font-medium">{transfer.quantity}{t('batchTrace.items')}</span>
                 </div>
                 {transfer.executedAt && (
                   <div className="text-xs text-gray-400 mt-1">

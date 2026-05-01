@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, Phone, MapPin, ShoppingCart, Info } from 'lucide-react';
 import { formatPhone, formatAddress } from '../../utils/format';
 import { PickOrder } from '../types';
@@ -11,22 +12,25 @@ interface PickOrderCardProps {
   onTooltip: (tooltip: { x: number; y: number; content: React.ReactNode } | null) => void;
 }
 
-const pickStatusMap: Record<string, string> = {
-  PENDING: '待拣货',
-  PICKING: '拣货中',
-  PICKED: '已拣货',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-};
+const getPickStatusMap = (t: any): Record<string, string> => ({
+  PENDING: t('outbound.pickStatusPending'),
+  PICKING: t('outbound.pickStatusPicking'),
+  PICKED: t('outbound.pickStatusPicked'),
+  COMPLETED: t('outbound.pickStatusCompleted'),
+  CANCELLED: t('outbound.pickStatusCancelled'),
+});
 
 export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundReview, onTooltip }: PickOrderCardProps) {
+  const { t } = useTranslation();
+  const pickStatusMap = getPickStatusMap(t);
+  
   return (
     <div className="border rounded-lg p-3 sm:p-4">
       <div className="hidden sm:flex items-center justify-between mb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <span className="font-medium text-gray-900">{pickOrder.pickNo}</span>
           <span className="text-sm text-gray-500">
-            订单: {pickOrder.orders?.map((o) => (
+            {t('outbound.order')}: {pickOrder.orders?.map((o) => (
               <Link key={o.id} to={`/orders/${o.id}`} className="text-primary-600 hover:text-primary-800 hover:underline mx-0.5">
                 {o.orderNo}
               </Link>
@@ -51,12 +55,12 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
                 className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
               >
                 <CheckCircle className="w-4 h-4" />
-                拣货完成
+                {t('outbound.pickComplete')}
               </button>
             </>
           )}
           {pickOrder.status === 'PICKING' && pickOrder.orders?.some((o) => o.status === 'CANCELLED') && (
-            <span className="text-sm text-red-500">订单已取消</span>
+            <span className="text-sm text-red-500">{t('outbound.orderCancelled')}</span>
           )}
           {pickOrder.status === 'PICKED' && (
             <div className="flex items-center gap-2">
@@ -64,13 +68,13 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
                 onClick={() => onOutboundReview(pickOrder.id, true)}
                 className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
               >
-                审核通过
+                {t('outbound.reviewApprove')}
               </button>
               <button
                 onClick={() => onOutboundReview(pickOrder.id, false)}
                 className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
               >
-                审核不通过
+                {t('outbound.reviewReject')}
               </button>
             </div>
           )}
@@ -95,10 +99,10 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
         <table className="w-full table-fixed">
           <thead>
             <tr className="text-xs text-gray-500 text-center">
-              <th className="py-1 w-1/4">商品</th>
-              <th className="py-1 w-1/4">包装/规格</th>
-              <th className="py-1 w-12">数量</th>
-              <th className="py-1 w-1/4">库位(货位)-批号</th>
+              <th className="py-1 w-1/4">{t('outbound.product')}</th>
+              <th className="py-1 w-1/4">{t('outbound.packagingSpec')}</th>
+              <th className="py-1 w-12">{t('outbound.quantity')}</th>
+              <th className="py-1 w-1/4">{t('outbound.locationBatch')}</th>
             </tr>
           </thead>
           <tbody className="text-sm">
@@ -106,14 +110,14 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
               <tr key={item.id} className="border-t border-gray-200">
                 <td className="py-2 align-top text-center">
                   <div className="flex items-center justify-center gap-1">
-                    {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
+                    {item.bundleId ? <span className="text-purple-600 font-medium">[{t('outbound.bundle')}]</span> : <span className="text-blue-600 font-medium">[{t('outbound.productTag')}]</span>}
                     <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
                     {item.bundleId && (item.bundle as any)?.items?.length > 0 && (
                       <button
                         type="button"
-                        onMouseEnter={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                        onMouseEnter={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('outbound.bundleContains')}:</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                         onMouseLeave={() => onTooltip(null)}
-                        onMouseMove={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                        onMouseMove={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('outbound.bundleContains')}:</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                         className="p-0.5 hover:bg-gray-100 rounded"
                       >
                         <Info className="w-3 h-3 text-purple-500 cursor-help" />
@@ -130,10 +134,10 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
                     const batchNo = item.stockLock?.skuBatch?.batchNo || item.skuBatch?.batchNo || item.bundleStockLock?.bundleBatch?.batchNo || item.bundleBatch?.batchNo;
                     const batchSuffix = batchNo ? `(${batchNo})` : '';
                     const isCompleted = pickOrder.status === 'COMPLETED' || pickOrder.orders?.some((o) => o.status === 'DELIVERED' || o.status === 'IN_TRANSIT');
-                    const statusSuffix = isCompleted ? ' (已出库)' : (pickOrder.status === 'CANCELLED' ? ' (已出库)' : '');
+                    const statusSuffix = isCompleted ? ` (${t('outbound.shipped')})` : (pickOrder.status === 'CANCELLED' ? ` (${t('outbound.shipped')})` : '');
                     return `${locCode}${batchSuffix}${statusSuffix}`;
                   })()}
-                  {pickOrder.orders?.some((o) => o.status === 'CANCELLED') && ' (已退回)'}
+                  {pickOrder.orders?.some((o) => o.status === 'CANCELLED') && ` (${t('outbound.returned')})`}
                 </td>
               </tr>
             ))}
@@ -150,7 +154,7 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
             <div key={item.id} className="bg-gray-50 rounded-lg p-2 text-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  {item.bundleId ? <span className="text-purple-600 font-medium">[套装]</span> : <span className="text-blue-600 font-medium">[商品]</span>}
+                  {item.bundleId ? <span className="text-purple-600 font-medium">[{t('outbound.bundle')}]</span> : <span className="text-blue-600 font-medium">[{t('outbound.productTag')}]</span>}
                   <span className={item.bundleId ? 'text-purple-600 font-medium' : 'font-medium text-blue-600'}>{item.productName}</span>
                 </div>
                 <span className="font-medium">x{item.quantity}</span>
@@ -186,15 +190,15 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
                     const batchNo = pickItem?.skuBatch?.batchNo || pickItem?.bundleBatch?.batchNo;
                     return (
                       <span key={item.id} className="mr-2 inline-flex items-center">
-                        {item.bundleId ? <span className="text-purple-600">[套装]</span> : <span className="text-blue-600">[商品]</span>}
+                        {item.bundleId ? <span className="text-purple-600">[{t('outbound.bundle')}]</span> : <span className="text-blue-600">[{t('outbound.productTag')}]</span>}
                         <span className={item.bundleId ? 'text-purple-600' : 'text-blue-600'}>{item.productName}</span> {item.spec} {item.packaging}
                         {batchNo && <span className="text-orange-500 ml-1">({batchNo})</span>}
                         {item.bundleId && (item.bundle as any)?.items?.length > 0 && (
                           <button
                             type="button"
-                            onMouseEnter={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseEnter={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('outbound.bundleContains')}:</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                             onMouseLeave={() => onTooltip(null)}
-                            onMouseMove={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseMove={(e) => onTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('outbound.bundleContains')}:</div>{(item.bundle as any)?.items?.map((bi: any) => (<div key={bi.id} className="text-gray-200 py-1"><span className="text-blue-400">{bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.sku?.spec}/{bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                             className="p-0.5 hover:bg-gray-100 rounded mx-1"
                           >
                             <Info className="w-3 h-3 text-purple-500 cursor-help" />
@@ -212,8 +216,8 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
       )}
       {(pickOrder.picker || pickOrder.approver) && (
         <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200 justify-end">
-          {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
-          {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
+          {pickOrder.picker && <span>{t('outbound.picker')}: {pickOrder.picker.name}</span>}
+          {pickOrder.approver && <span>{t('outbound.approver')}: {pickOrder.approver.name}</span>}
         </div>
       )}
 
@@ -223,7 +227,7 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
             onClick={() => onPickComplete(pickOrder.id)}
             className="w-full py-2 bg-green-600 text-white text-sm rounded-lg"
           >
-            拣货完成
+            {t('outbound.pickComplete')}
           </button>
         )}
         {pickOrder.status === 'PICKED' && (
@@ -232,20 +236,20 @@ export default function PickOrderCard({ pickOrder, onPickComplete, onOutboundRev
               onClick={() => onOutboundReview(pickOrder.id, true)}
               className="flex-1 py-2 bg-green-600 text-white text-sm rounded-lg"
             >
-              审核通过
+              {t('outbound.reviewApprove')}
             </button>
             <button
               onClick={() => onOutboundReview(pickOrder.id, false)}
               className="flex-1 py-2 bg-red-600 text-white text-sm rounded-lg"
             >
-              不通过
+              {t('outbound.reviewReject')}
             </button>
           </div>
         )}
         {(pickOrder.picker || pickOrder.approver) && (
           <div className="flex items-center gap-4 text-xs text-gray-500 mt-2 justify-center">
-            {pickOrder.picker && <span>拣货人: {pickOrder.picker.name}</span>}
-            {pickOrder.approver && <span>审核人: {pickOrder.approver.name}</span>}
+            {pickOrder.picker && <span>{t('outbound.picker')}: {pickOrder.picker.name}</span>}
+            {pickOrder.approver && <span>{t('outbound.approver')}: {pickOrder.approver.name}</span>}
           </div>
         )}
       </div>

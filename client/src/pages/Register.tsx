@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '../api';
 import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, ArrowLeft, Bot } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 
 export default function Register() {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -26,17 +28,17 @@ export default function Register() {
     e.preventDefault();
     
     if (!formData.username || !formData.password || !formData.name) {
-      toast.error('请填写必填项');
+      toast.error(t('register.inputRequired'));
       return;
     }
     
     if (formData.password !== formData.confirmPassword) {
-      toast.error('两次输入的密码不一致');
+      toast.error(t('register.passwordMismatch'));
       return;
     }
     
     if (formData.password.length < 6) {
-      toast.error('密码长度至少6位');
+      toast.error(t('register.passwordTooShort'));
       return;
     }
 

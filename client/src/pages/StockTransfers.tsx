@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { stockTransferApi, warehouseApi, productApi, bundleApi, stockApi } from '../api';
 import { Warehouse, Package, Plus, X, MapPin, Check, ArrowRight, Trash2, Search, Info, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -7,27 +8,27 @@ import 'react-toastify/dist/ReactToastify.css';
 import { usePermission } from '../hooks/usePermission';
 import { useOwnerStore } from '../stores/owner';
 
-const ZONE_TYPES: Record<string, string> = {
-  INBOUND: '入库区',
-  STORAGE: '存储区',
-  PICKING: '拣货区',
-  RETURNING: '退货区',
-  DAMAGED: '报废区',
-};
+const getZoneTypes = (t: any): Record<string, string> => ({
+  INBOUND: t('transfer.inboundZone'),
+  STORAGE: t('transfer.storageZone'),
+  PICKING: t('transfer.pickingZone'),
+  RETURNING: t('transfer.returningZone'),
+  DAMAGED: t('transfer.damagedZone'),
+});
 
-const STATUS_COLORS: Record<string, string> = {
+const getStatusColors = (): Record<string, string> => ({
   PENDING: 'bg-yellow-100 text-yellow-800',
   IN_TRANSIT: 'bg-blue-100 text-blue-800',
   COMPLETED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-gray-100 text-gray-800',
-};
+});
 
-const STATUS_NAMES: Record<string, string> = {
-  PENDING: '待处理',
-  IN_TRANSIT: '移库中',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-};
+const getStatusNames = (t: any): Record<string, string> => ({
+  PENDING: t('transfer.statusPending'),
+  IN_TRANSIT: t('transfer.statusInTransit'),
+  COMPLETED: t('transfer.statusCompleted'),
+  CANCELLED: t('transfer.statusCancelled'),
+});
 
 interface TransferItemInput {
   itemType: 'PRODUCT' | 'BUNDLE';
@@ -94,6 +95,7 @@ interface StockGroupListProps {
 }
 
 function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupListProps) {
+  const { t } = useTranslation();
   const groups: Record<string, { items: StockItem[], key: string }> = {};
 
   stocks.forEach((stock, index) => {
@@ -131,7 +133,7 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                   <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     firstItem.type === 'bundle' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                   }`}>
-                    {firstItem.type === 'bundle' ? '套装' : '商品'}
+                    {firstItem.type === 'bundle' ? t('transfer.bundle') : t('transfer.productType')}
                   </span>
                   <span className={`font-medium text-sm truncate ${
                     firstItem.type === 'bundle' ? 'text-purple-600' : 'text-blue-600'
@@ -146,7 +148,7 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                 )}
               </div>
               <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                {items.length}库位 | 可移:{qty.transferable} | 总:{qty.total}{qty.locked > 0 && <span className="text-red-500"> | 锁:{qty.locked}</span>}
+                {items.length}{t('transfer.locations')} | {t('transfer.transferable')}:{qty.transferable} | {t('transfer.total')}:{qty.total}{qty.locked > 0 && <span className="text-red-500"> | {t('transfer.locked')}:{qty.locked}</span>}
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -170,8 +172,8 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
                     }`}
                   >
                     <span className="text-orange-600">{stock.locationFullCode}</span>
-                    <span className="ml-1 text-green-600">{stock.totalQuantity - (stock.lockedQuantity || 0)}件</span>
-                    {(stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo) && <div className="ml-1 text-purple-600">批:{stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo}</div>}
+                    <span className="ml-1 text-green-600">{stock.totalQuantity - (stock.lockedQuantity || 0)}{t('transfer.pieces')}</span>
+                    {(stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo) && <div className="ml-1 text-purple-600">{t('transfer.batchNo')}:{stock.type === 'product' ? stock.skuBatch?.batchNo : stock.bundleBatch?.batchNo}</div>}
                   </div>
                 );
               })}
@@ -184,6 +186,7 @@ function StockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupList
 }
 
 function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGroupListProps) {
+  const { t } = useTranslation();
   const groups: Record<string, { items: StockItem[], key: string }> = {};
 
   stocks.forEach((stock, index) => {
@@ -216,7 +219,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
                   <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     items[0].type === 'bundle' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                   }`}>
-                    {items[0].type === 'bundle' ? '套装' : '商品'}
+                    {items[0].type === 'bundle' ? t('transfer.bundle') : t('transfer.productType')}
                   </span>
                   <span className={`font-medium text-sm truncate ${
                     items[0].type === 'bundle' ? 'text-purple-600' : 'text-blue-600'
@@ -231,7 +234,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
                 )}
               </div>
               <div className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                {items.length}库位 | 可移:{qty.transferable} | 总:{qty.total}{qty.locked > 0 && <span className="text-red-500"> | 锁:{qty.locked}</span>}
+                {items.length}{t('transfer.locations')} | {t('transfer.transferable')}:{qty.transferable} | {t('transfer.total')}:{qty.total}{qty.locked > 0 && <span className="text-red-500"> | {t('transfer.locked')}:{qty.locked}</span>}
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -255,7 +258,7 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
                     }`}
                   >
                     <span className="text-orange-600">{stock.locationFullCode}</span>
-                    <span className="ml-1 text-green-600">{stock.totalQuantity - (stock.lockedQuantity || 0)}件</span>
+                    <span className="ml-1 text-green-600">{stock.totalQuantity - (stock.lockedQuantity || 0)}{t('transfer.pieces')}</span>
                   </div>
                 );
               })}
@@ -268,9 +271,12 @@ function InboundStockGroupList({ stocks, selectedStock, onSelectStock }: StockGr
 }
 
 export default function StockTransfers() {
+  const { t } = useTranslation();
   const { canWrite } = usePermission('business', 'transfer');
   const { currentOwnerId } = useOwnerStore();
   const { confirm } = useConfirm();
+  const STATUS_COLORS = getStatusColors();
+  const STATUS_NAMES = getStatusNames(t);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -533,12 +539,12 @@ export default function StockTransfers() {
 
   const handleAddItem = () => {
     if (!selectedStock || !toLocationId || !transferQty) {
-      toast.error('请选择商品、目标库位和数量');
+      toast.error(t('transfer.pleaseSelectProductLocationQty'));
       return;
     }
     const maxTransferQty = selectedStock.totalQuantity - (selectedStock.lockedQuantity || 0);
     if (transferQty > maxTransferQty) {
-      toast.error(`移库数量不能超过可移库数量 (${maxTransferQty})`);
+      toast.error(t('transfer.transferQtyExceed') + ` (${maxTransferQty})`);
       return;
     }
 
@@ -589,11 +595,11 @@ export default function StockTransfers() {
 
   const handleCreateTransfer = async () => {
     if (!formWarehouseId || formItems.length === 0) {
-      toast.error('请完善信息');
+      toast.error(t('transfer.pleaseCompleteInfo'));
       return;
     }
 
-    const ok = await confirm({ message: `确认创建移库单？共 ${formItems.length} 项商品` });
+    const ok = await confirm({ message: t('transfer.confirmCreateTransfer', { count: formItems.length }) });
     if (!ok) return;
 
     try {
@@ -604,47 +610,47 @@ export default function StockTransfers() {
       });
 
       if (res.data.success) {
-        toast.success('移库单创建成功');
+        toast.success(t('transfer.createSuccess'));
         setShowModal(false);
         resetForm();
         loadTransfers();
       } else {
-        toast.error(res.data.message || '创建失败');
+        toast.error(res.data.message || t('transfer.createFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '创建失败');
+      toast.error(error.response?.data?.message || t('transfer.createFailed'));
     }
   };
 
   const handleExecuteTransfer = async (id: string) => {
-    const ok = await confirm({ message: '确认执行移库？' });
+    const ok = await confirm({ message: t('transfer.confirmExecute') });
     if (!ok) return;
     try {
       const res = await stockTransferApi.execute(id);
       if (res.data.success) {
-        toast.success('移库执行成功');
+        toast.success(t('transfer.executeSuccess'));
         loadTransfers();
       } else {
-        toast.error(res.data.message || '执行失败');
+        toast.error(res.data.message || t('transfer.executeFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '执行失败');
+      toast.error(error.response?.data?.message || t('transfer.executeFailed'));
     }
   };
 
   const handleCancelTransfer = async (id: string) => {
-    const ok = await confirm({ message: '确认取消该移库单？' });
+    const ok = await confirm({ message: t('transfer.confirmCancel') });
     if (!ok) return;
     try {
       const res = await stockTransferApi.cancel(id);
       if (res.data.success) {
-        toast.success('移库单已取消');
+        toast.success(t('transfer.cancelSuccess'));
         loadTransfers();
       } else {
-        toast.error(res.data.message || '取消失败');
+        toast.error(res.data.message || t('transfer.cancelFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '取消失败');
+      toast.error(error.response?.data?.message || t('transfer.cancelFailed'));
     }
   };
 

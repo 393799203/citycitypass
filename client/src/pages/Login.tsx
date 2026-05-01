@@ -4,8 +4,11 @@ import { useAuthStore } from '../stores/auth';
 import { authApi } from '../api';
 import { Truck, Package, Warehouse, Route, Eye, EyeOff, Loader2, Bot, Sparkles } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function Login() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +38,7 @@ export default function Login() {
     e.preventDefault();
 
     if (!username || !password) {
-      toast.error('请输入用户名和密码');
+      toast.error(t('login.usernamePlaceholder') + ' / ' + t('login.passwordPlaceholder'));
       return;
     }
     setLoading(true);
@@ -52,13 +55,13 @@ export default function Login() {
           localStorage.removeItem('savedUsername');
           localStorage.removeItem('savedPassword');
         }
-        toast.success('登录成功');
+        toast.success(t('login.loginSuccess'));
         navigate('/');
       } else {
-        toast.error(res.data.message || '登录失败');
+        toast.error(res.data.message || t('login.loginFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '登录失败');
+      toast.error(error.response?.data?.message || t('login.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -67,54 +70,58 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       
-      {/* 左侧品牌区域 */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary-900 to-primary-700">
+        <div className="absolute top-4 right-4 z-20">
+          <LanguageSwitcher />
+        </div>
         <div className="relative z-10 flex flex-col justify-center items-center w-full text-white p-12">
           <Bot className="w-20 h-20 mb-6" />
-          <h1 className="text-4xl font-bold mb-3">智链云AI</h1>
-          <p className="text-lg text-primary-200">进销存AI智能体</p>
+          <h1 className="text-4xl font-bold mb-3">{t('login.title')}</h1>
+          <p className="text-lg text-primary-200">{t('login.subtitle')}</p>
           
           <div className="grid grid-cols-2 gap-4 w-full max-w-md mt-10">
             <div className="bg-white/10 rounded-xl p-4 text-center">
               <Warehouse className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">智能仓储</span>
+              <span className="text-sm">{t('login.smartWarehouse')}</span>
             </div>
             <div className="bg-white/10 rounded-xl p-4 text-center">
               <Truck className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">高效运输</span>
+              <span className="text-sm">{t('login.efficientTransport')}</span>
             </div>
             <div className="bg-white/10 rounded-xl p-4 text-center">
               <Package className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">精准库存</span>
+              <span className="text-sm">{t('login.preciseInventory')}</span>
             </div>
             <div className="bg-white/10 rounded-xl p-4 text-center">
               <Route className="w-8 h-8 mx-auto mb-2 text-primary-300" />
-              <span className="text-sm">全程追踪</span>
+              <span className="text-sm">{t('login.fullTracking')}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 右侧登录表单 */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md">
-          {/* 移动端Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
             <Bot className="w-10 h-10 text-primary-600" />
-            <span className="text-3xl font-bold text-primary-600">智链AI</span>
+            <span className="text-3xl font-bold text-primary-600">{t('login.title')}</span>
+            <div className="ml-4">
+              <LanguageSwitcher />
+            </div>
           </div>
 
-          {/* 欢迎文字 */}
+          <div className="hidden lg:flex justify-end mb-4">
+            <LanguageSwitcher />
+          </div>
+
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">欢迎回来</h2>
-            <p className="text-gray-500">请登录您的账号继续</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('login.welcomeBack')}</h2>
+            <p className="text-gray-500">{t('login.loginHint')}</p>
           </div>
 
-          {/* 登录表单 */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 用户名输入框 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('login.username')}</label>
               <div className={`relative transition-all duration-300 ${focused === 'username' ? 'transform scale-105' : ''}`}>
                 <input
                   type="text"
@@ -126,7 +133,7 @@ export default function Login() {
                     ${focused === 'username' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入用户名"
+                  placeholder={t('login.usernamePlaceholder')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'username' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -137,9 +144,8 @@ export default function Login() {
               </div>
             </div>
 
-            {/* 密码输入框 */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('login.password')}</label>
               <div className={`relative transition-all duration-300 ${focused === 'password' ? 'transform scale-105' : ''}`}>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -151,7 +157,7 @@ export default function Login() {
                     ${focused === 'password' 
                       ? 'border-primary-500 shadow-lg shadow-primary-100' 
                       : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="请输入密码"
+                  placeholder={t('login.passwordPlaceholder')}
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300
                   ${focused === 'password' ? 'text-primary-500 transform -translate-y-1/2 scale-110' : 'text-gray-400'}`}>
@@ -169,7 +175,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* 记住我和忘记密码 */}
             <div className="flex items-center justify-between">
               <label className="flex items-center cursor-pointer">
                 <input 
@@ -178,14 +183,13 @@ export default function Login() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" 
                 />
-                <span className="ml-2 text-sm text-gray-600">记住我</span>
+                <span className="ml-2 text-sm text-gray-600">{t('login.rememberMe')}</span>
               </label>
               <a href="#" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
-                忘记密码？
+                {t('login.forgotPassword')}
               </a>
             </div>
 
-            {/* 登录按钮 */}
             <button
               type="submit"
               disabled={loading}
@@ -197,17 +201,16 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>登录中...</span>
+                  <span>{t('login.loggingIn')}</span>
                 </>
               ) : (
-                <span>立即登录</span>
+                <span>{t('login.loginBtn')}</span>
               )}
             </button>
           </form>
 
-          {/* 注册链接 */}
           <div className="mt-6 text-center text-sm text-gray-500">
-            没有账号？ <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">立即注册</Link>
+            {t('login.noAccount')} <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">{t('login.registerNow')}</Link>
           </div>
         </div>
       </div>

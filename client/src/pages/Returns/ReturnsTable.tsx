@@ -1,20 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Phone } from 'lucide-react';
 import { ReturnOrder } from '../../types/returns';
 import { formatPhone } from '../../utils/format';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  RETURN_REQUESTED: { label: '待发货', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
-  RETURN_SHIPPED: { label: '已发货', color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  RETURN_RECEIVING: { label: '收货中', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  RETURN_QUALIFIED: { label: '已验收(全合格)', color: 'text-green-600', bgColor: 'bg-green-50' },
-  RETURN_PARTIAL_QUALIFIED: { label: '已验收(部分)', color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  RETURN_REJECTED: { label: '已拒收', color: 'text-red-600', bgColor: 'bg-red-50' },
-  RETURN_STOCK_IN: { label: '已入库', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  REFUNDED: { label: '已退款', color: 'text-pink-600', bgColor: 'bg-pink-50' },
-  CANCELLED: { label: '已取消', color: 'text-gray-600', bgColor: 'bg-gray-50' },
-};
+const getStatusConfig = (t: any): Record<string, { label: string; color: string; bgColor: string }> => ({
+  RETURN_REQUESTED: { label: t('returns.statusPending'), color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+  RETURN_SHIPPED: { label: t('returns.statusShipped'), color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  RETURN_RECEIVING: { label: t('returns.statusReceiving'), color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  RETURN_QUALIFIED: { label: t('returns.statusQualified'), color: 'text-green-600', bgColor: 'bg-green-50' },
+  RETURN_PARTIAL_QUALIFIED: { label: t('returns.statusPartialQualified'), color: 'text-orange-600', bgColor: 'bg-orange-50' },
+  RETURN_REJECTED: { label: t('returns.statusRejected'), color: 'text-red-600', bgColor: 'bg-red-50' },
+  RETURN_STOCK_IN: { label: t('returns.statusStockIn'), color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  REFUNDED: { label: t('returns.statusRefunded'), color: 'text-pink-600', bgColor: 'bg-pink-50' },
+  CANCELLED: { label: t('returns.statusCancelled'), color: 'text-gray-600', bgColor: 'bg-gray-50' },
+});
 
 interface ReturnsTableProps {
   returns: ReturnOrder[];
@@ -33,21 +34,24 @@ export default function ReturnsTable({
   onOpenStockInModal,
   onOpenRefundModal
 }: ReturnsTableProps) {
+  const { t } = useTranslation();
+  const STATUS_CONFIG = getStatusConfig(t);
+  
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="hidden sm:block">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr className="text-center">
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">退货单/原订单</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">退货人</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">仓库</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">商品数</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">金额</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">状态</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">退货原因</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">时间</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-600">操作</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.returnNo')}/{t('returns.orderNo')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.returnPerson')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.warehouse')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.itemCount')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.amount')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.status')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.reason')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.time')}</th>
+              <th className="px-6 py-3 text-sm font-medium text-gray-600">{t('returns.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -58,7 +62,7 @@ export default function ReturnsTable({
                     {ret.returnNo}
                   </Link>
                   <div className="flex items-center justify-center gap-1 text-gray-400 text-sm mt-0.5">
-                    <span className="text-xs">订单:</span>
+                    <span className="text-xs">{t('returns.orderNo')}:</span>
                     <Link to={`/orders/${ret.orderId}`} className="text-gray-500 hover:underline">{ret.order?.orderNo}</Link>
                   </div>
                 </td>
@@ -86,7 +90,7 @@ export default function ReturnsTable({
                         onClick={() => onOpenTrackingModal(ret)}
                         className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
                       >
-                        填写快递
+                        {t('returns.fillTracking')}
                       </button>
                     )}
                     {ret.status === 'RETURN_SHIPPED' && (
@@ -94,7 +98,7 @@ export default function ReturnsTable({
                         onClick={() => onReceive(ret)}
                         className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded"
                       >
-                        确认收货
+                        {t('returns.confirmReceive')}
                       </button>
                     )}
                     {ret.status === 'RETURN_RECEIVING' && (
@@ -102,7 +106,7 @@ export default function ReturnsTable({
                         onClick={() => onOpenQualifyModal(ret)}
                         className="px-2 py-1 text-xs text-white bg-green-600 hover:bg-green-700 rounded"
                       >
-                        验收确认
+                        {t('returns.qualifyCheck')}
                       </button>
                     )}
                     {(ret.status === 'RETURN_QUALIFIED' || ret.status === 'RETURN_PARTIAL_QUALIFIED') && (
@@ -110,7 +114,7 @@ export default function ReturnsTable({
                         onClick={() => onOpenStockInModal(ret)}
                         className="px-2 py-1 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded"
                       >
-                        退货入库
+                        {t('returns.stockIn')}
                       </button>
                     )}
                     {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(ret.status) && ret.refundStatus !== 'COMPLETED' && (
@@ -118,7 +122,7 @@ export default function ReturnsTable({
                         onClick={() => onOpenRefundModal(ret)}
                         className="px-2 py-1 text-xs text-white bg-yellow-600 hover:bg-yellow-700 rounded"
                       >
-                        确认退款
+                        {t('returns.confirmRefund')}
                       </button>
                     )}
                   </div>
@@ -127,7 +131,7 @@ export default function ReturnsTable({
             ))}
             {returns.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">暂无数据</td>
+                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">{t('returns.noData')}</td>
               </tr>
             )}
           </tbody>
@@ -147,7 +151,7 @@ export default function ReturnsTable({
             </div>
             <div className="text-xs text-gray-600 space-y-1 mb-2">
               <div className="flex justify-between">
-                <span className="text-gray-400">订单: <Link to={`/orders/${ret.orderId}`} className="text-gray-500">{ret.order?.orderNo}</Link></span>
+                <span className="text-gray-400">{t('returns.orderNo')}: <Link to={`/orders/${ret.orderId}`} className="text-gray-500">{ret.order?.orderNo}</Link></span>
                 <span className="text-primary-600 font-medium">¥{Number(ret.order?.totalAmount || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
@@ -155,14 +159,14 @@ export default function ReturnsTable({
                   <Phone className="w-3 h-3" />
                   {ret.receiverName} {formatPhone(ret.receiverPhone || '')}
                 </span>
-                <span>{ret.items?.reduce((sum: number, item) => sum + item.quantity, 0)}件</span>
+                <span>{ret.items?.reduce((sum: number, item) => sum + item.quantity, 0)}{t('returns.items')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-600">{ret.warehouse?.name}</span>
                 <span className="text-gray-400">{new Date(ret.createdAt).toLocaleDateString()}</span>
               </div>
               {ret.reason && (
-                <div className="text-gray-400 truncate">原因: {ret.reason}</div>
+                <div className="text-gray-400 truncate">{t('returns.reason')}: {ret.reason}</div>
               )}
             </div>
             <div className="pt-2 border-t border-gray-200">
@@ -171,7 +175,7 @@ export default function ReturnsTable({
                   onClick={() => onOpenTrackingModal(ret)}
                   className="w-full py-1.5 text-xs text-white bg-blue-600 rounded-lg"
                 >
-                  填写快递
+                  {t('returns.fillTracking')}
                 </button>
               )}
               {ret.status === 'RETURN_SHIPPED' && (
@@ -179,7 +183,7 @@ export default function ReturnsTable({
                   onClick={() => onReceive(ret)}
                   className="w-full py-1.5 text-xs text-white bg-blue-600 rounded-lg"
                 >
-                  确认收货
+                  {t('returns.confirmReceive')}
                 </button>
               )}
               {ret.status === 'RETURN_RECEIVING' && (
@@ -187,7 +191,7 @@ export default function ReturnsTable({
                   onClick={() => onOpenQualifyModal(ret)}
                   className="w-full py-1.5 text-xs text-white bg-green-600 rounded-lg"
                 >
-                  验收确认
+                  {t('returns.qualifyCheck')}
                 </button>
               )}
               {(ret.status === 'RETURN_QUALIFIED' || ret.status === 'RETURN_PARTIAL_QUALIFIED') && (
@@ -195,7 +199,7 @@ export default function ReturnsTable({
                   onClick={() => onOpenStockInModal(ret)}
                   className="w-full py-1.5 text-xs text-white bg-indigo-600 rounded-lg"
                 >
-                  退货入库
+                  {t('returns.stockIn')}
                 </button>
               )}
               {['RETURN_STOCK_IN', 'RETURN_REJECTED'].includes(ret.status) && ret.refundStatus !== 'COMPLETED' && (
@@ -203,14 +207,14 @@ export default function ReturnsTable({
                   onClick={() => onOpenRefundModal(ret)}
                   className="w-full py-1.5 text-xs text-white bg-yellow-600 rounded-lg"
                 >
-                  确认退款
+                  {t('returns.confirmRefund')}
                 </button>
               )}
             </div>
           </div>
         ))}
         {returns.length === 0 && (
-          <div className="text-center py-8 text-gray-500">暂无数据</div>
+          <div className="text-center py-8 text-gray-500">{t('returns.noData')}</div>
         )}
       </div>
     </div>

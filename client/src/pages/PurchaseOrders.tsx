@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useOwnerStore } from '../stores/owner';
 import { purchaseOrderApi, supplierApi, warehouseApi, productApi, bundleApi, supplierProductApi, supplierMaterialApi } from '../api';
 import { toast } from 'react-toastify';
@@ -10,13 +11,13 @@ import { useConfirm } from '../components/ConfirmProvider';
 import InboundOrderModal from '../components/InboundOrderModal';
 import { usePermission } from '../hooks/usePermission';
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  PENDING: { label: '待确认', color: 'bg-yellow-100 text-yellow-700' },
-  CONFIRMED: { label: '已确认', color: 'bg-blue-100 text-blue-700' },
-  PARTIAL: { label: '部分到货', color: 'bg-orange-100 text-orange-700' },
-  ARRIVED: { label: '已到货', color: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消', color: 'bg-gray-100 text-gray-500' },
-};
+const getStatusMap = (t: any): Record<string, { label: string; color: string }> => ({
+  PENDING: { label: t('purchase.statusPending'), color: 'bg-yellow-100 text-yellow-700' },
+  CONFIRMED: { label: t('purchase.statusConfirmed'), color: 'bg-blue-100 text-blue-700' },
+  PARTIAL: { label: t('purchase.statusPartial'), color: 'bg-orange-100 text-orange-700' },
+  ARRIVED: { label: t('purchase.statusArrived'), color: 'bg-green-100 text-green-700' },
+  CANCELLED: { label: t('purchase.statusCancelled'), color: 'bg-gray-100 text-gray-500' },
+});
 
 interface PurchaseItem {
   id?: string;
@@ -45,11 +46,13 @@ interface PurchaseItem {
 }
 
 export default function PurchaseOrders() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
   const { currentOwnerId } = useOwnerStore();
   const { canWrite } = usePermission('business', 'purchases');
+  const STATUS_MAP = getStatusMap(t);
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -343,7 +346,7 @@ export default function PurchaseOrders() {
       item.skuId === selected.skuId && item.bundleId === selected.bundleId
     );
     if (existing) {
-      toast.error('该商品已在清单中');
+      toast.error(t('purchase.itemAlreadyExists'));
       return;
     }
 
@@ -379,11 +382,11 @@ export default function PurchaseOrders() {
 
   const handleSubmit = async () => {
     if (!formData.supplierId) {
-      toast.error('请选择供应商');
+      toast.error(t('purchase.selectSupplier'));
       return;
     }
     if (formItems.length === 0) {
-      toast.error('请添加采购商品');
+      toast.error(t('purchase.addItems'));
       return;
     }
 
@@ -403,53 +406,53 @@ export default function PurchaseOrders() {
 
       if (editingId) {
         await purchaseOrderApi.update(editingId, payload);
-        toast.success('采购单已更新');
+        toast.success(t('purchase.updateSuccess'));
       } else {
         await purchaseOrderApi.create(payload);
-        toast.success('采购单已创建');
+        toast.success(t('purchase.createSuccess'));
       }
       handleCloseModal();
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleConfirm = async (id: string) => {
-    const ok = await confirm({ message: '确定要确认此采购单吗？' });
+    const ok = await confirm({ message: t('purchase.confirmMessage') });
     if (!ok) return;
     try {
       await purchaseOrderApi.confirm(id);
-      toast.success('采购单已确认');
+      toast.success(t('purchase.confirmSuccess'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     }
   };
 
   const handleCancel = async (id: string) => {
-    const ok = await confirm({ message: '确定要取消此采购单吗？' });
+    const ok = await confirm({ message: t('purchase.cancelMessage') });
     if (!ok) return;
     try {
       await purchaseOrderApi.cancel(id);
-      toast.success('采购单已取消');
+      toast.success(t('purchase.cancelSuccess'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除此采购单吗？' });
+    const ok = await confirm({ message: t('purchase.deleteMessage') });
     if (!ok) return;
     try {
       await purchaseOrderApi.delete(id);
-      toast.success('采购单已删除');
+      toast.success(t('purchase.deleteSuccess'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('purchase.operationFailed'));
     }
   };
 
@@ -469,7 +472,7 @@ export default function PurchaseOrders() {
     <div className="p-2 space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
-          采购单 {id ? `- ${viewingOrder?.orderNo || '加载中...'}` : '管理'}
+          {t('purchase.title')} {id ? `- ${viewingOrder?.orderNo || t('purchase.loading')}` : ''}
         </h1>
         {!id && (
           <div className="flex items-center gap-3">
@@ -479,7 +482,7 @@ export default function PurchaseOrders() {
                 type="text"
                 value={listKeyword}
                 onChange={(e) => setListKeyword(e.target.value)}
-                placeholder="搜索..."
+                placeholder={t('purchase.search')}
                 className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-48"
               />
             </div>
@@ -488,7 +491,7 @@ export default function PurchaseOrders() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             >
-              <option value="">全部状态</option>
+              <option value="">{t('purchase.allStatus')}</option>
               {Object.entries(STATUS_MAP).map(([value, { label }]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -502,7 +505,7 @@ export default function PurchaseOrders() {
             <button
               onClick={() => handleOpenModal()}
               disabled={!currentOwnerId || !canWrite}
-              title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+              title={!currentOwnerId ? t('purchase.selectOwnerFirst') : !canWrite ? t('purchase.noPermission') : ''}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                 currentOwnerId && canWrite
                   ? 'bg-green-600 text-white hover:bg-green-700'
@@ -510,7 +513,7 @@ export default function PurchaseOrders() {
               }`}
             >
               <Plus className="w-4 h-4" />
-              新建采购单
+              {t('purchase.newPurchase')}
             </button>
           </div>
         )}
@@ -523,7 +526,7 @@ export default function PurchaseOrders() {
                 type="text"
                 value={listKeyword}
                 onChange={(e) => setListKeyword(e.target.value)}
-                placeholder="搜索采购单号、供应商..."
+                placeholder={t('purchase.searchPlaceholder')}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg"
               />
             </div>
@@ -532,7 +535,7 @@ export default function PurchaseOrders() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-3 py-2 border rounded-lg"
             >
-              <option value="">全部状态</option>
+              <option value="">{t('purchase.allStatus')}</option>
               {Object.entries(STATUS_MAP).map(([value, { label }]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -543,14 +546,14 @@ export default function PurchaseOrders() {
             <table className="min-w-full">
               <thead className="bg-gray-50">
                 <tr className="text-center">
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">采购单号</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">供应商</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">商品数</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">总金额</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">下单日期</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">期望到货</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">状态</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">操作</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.purchaseNo')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.supplier')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.itemCount')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.totalAmount')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.orderDate')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.expectedDate')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.status')}</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('purchase.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -563,7 +566,7 @@ export default function PurchaseOrders() {
                 ) : filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                      暂无采购记录
+                      {t('purchase.noData')}
                     </td>
                   </tr>
                 ) : (
@@ -595,19 +598,19 @@ export default function PurchaseOrders() {
                                 onClick={() => handleOpenModal(order)}
                                 className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
                               >
-                                编辑
+                                {t('purchase.edit')}
                               </button>
                               <button
                                 onClick={() => handleConfirm(order.id)}
                                 className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                               >
-                                确认
+                                {t('purchase.confirm')}
                               </button>
                               <button
                                 onClick={() => handleDelete(order.id)}
                                 className="px-2 py-1 text-xs text-red-600 hover:underline"
                               >
-                                删除
+                                {t('purchase.delete')}
                               </button>
                             </>
                           )}
@@ -615,7 +618,7 @@ export default function PurchaseOrders() {
                             <>
                               {order.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') ? (
                                 <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                                  已关联入库单
+                                  {t('purchase.linkedInbound')}
                                 </span>
                               ) : (
                                 <>
@@ -628,18 +631,18 @@ export default function PurchaseOrders() {
                                           setShowInboundModal(true);
                                         }
                                       } catch (error) {
-                                        toast.error('加载采购单详情失败');
+                                        toast.error(t('purchase.loadDetailFailed'));
                                       }
                                     }}
                                     className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                                   >
-                                    采购入库
+                                    {t('purchase.purchaseInbound')}
                                   </button>
                                   <button
                                     onClick={() => handleCancel(order.id)}
                                     className="px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700"
                                   >
-                                    取消
+                                    {t('purchase.cancel')}
                                   </button>
                                 </>
                               )}
@@ -647,7 +650,7 @@ export default function PurchaseOrders() {
                           )}
                           {(order.status === 'PARTIAL' || order.status === 'ARRIVED') && order.inboundOrders?.find((io: any) => io.status !== 'CANCELLED') && (
                             <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                              已关联入库单
+                              {t('purchase.linkedInbound')}
                             </span>
                           )}
                         </div>
@@ -666,17 +669,17 @@ export default function PurchaseOrders() {
                 disabled={page === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                上一页
+                {t('purchase.prevPage')}
               </button>
               <span className="text-sm text-gray-500">
-                第 {page} / {totalPages} 页
+                {t('purchase.pageInfo', { current: page, total: totalPages })}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                下一页
+                {t('purchase.nextPage')}
               </button>
             </div>
           )}
@@ -685,7 +688,7 @@ export default function PurchaseOrders() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{editingId ? '编辑采购单' : '新建采购单'}</h2>
+              <h2 className="text-xl font-bold">{editingId ? t('purchase.editPurchase') : t('purchase.newPurchase')}</h2>
               <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
@@ -696,7 +699,7 @@ export default function PurchaseOrders() {
                 <div className="p-4 border-b bg-gray-50">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1 px-1">供应商</label>
+                      <label className="block text-xs text-gray-500 mb-1 px-1">{t('purchase.supplier')}</label>
                       <select
                         value={formData.supplierId}
                         onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
@@ -704,14 +707,14 @@ export default function PurchaseOrders() {
                         required
                         disabled={!!editingId}
                       >
-                        <option value="">选择供应商</option>
+                        <option value="">{t('purchase.selectSupplier')}</option>
                         {suppliers.map(s => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1 px-1">期望到货日期</label>
+                      <label className="block text-xs text-gray-500 mb-1 px-1">{t('purchase.expectedDate')}</label>
                       <input
                         type="date"
                         value={formData.expectedDate}
@@ -731,7 +734,7 @@ export default function PurchaseOrders() {
                         productType === 'SKU' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
                       }`}
                     >
-                      商品
+                      {t('purchase.product')}
                     </button>
                   )}
                   {bundles.length > 0 && (
@@ -742,7 +745,7 @@ export default function PurchaseOrders() {
                         productType === 'BUNDLE' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
                       }`}
                     >
-                      套装
+                      {t('purchase.bundle')}
                     </button>
                   )}
                   {customItems.filter(c => c.type === 'MATERIAL').length > 0 && (
@@ -753,7 +756,7 @@ export default function PurchaseOrders() {
                         productType === 'MATERIAL' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500'
                       }`}
                     >
-                      原材料
+                      {t('purchase.material')}
                     </button>
                   )}
                   {customItems.filter(c => c.type === 'OTHER').length > 0 && (
@@ -764,7 +767,7 @@ export default function PurchaseOrders() {
                         productType === 'OTHER' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500'
                       }`}
                     >
-                      其他
+                      {t('purchase.other')}
                     </button>
                   )}
                 </div>
@@ -773,7 +776,7 @@ export default function PurchaseOrders() {
                   <Search className="w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder={productType === 'SKU' ? "搜索商品..." : productType === 'BUNDLE' ? "搜索套装..." : "搜索..."}
+                    placeholder={productType === 'SKU' ? t('purchase.searchProduct') : productType === 'BUNDLE' ? t('purchase.searchBundle') : t('purchase.search')}
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     className="flex-1 px-3 py-2 border rounded-lg text-sm"
@@ -785,7 +788,7 @@ export default function PurchaseOrders() {
                     <>
                       {Object.entries(productGroups).length === 0 ? (
                         <div className="text-center py-8 text-gray-400 text-sm">
-                          {formData.supplierId ? '暂无商品' : '请先选择供应商'}
+                          {formData.supplierId ? t('purchase.noProducts') : t('purchase.selectSupplierFirst')}
                         </div>
                       ) : (
                         Object.entries(productGroups).map(([productName, skus]) => (
@@ -835,7 +838,7 @@ export default function PurchaseOrders() {
                     <>
                       {(filteredBundles || []).length === 0 ? (
                         <div className="text-center py-8 text-gray-400 text-sm">
-                          {formData.supplierId ? '暂无套装' : '请先选择供应商'}
+                          {formData.supplierId ? t('purchase.noBundles') : t('purchase.selectSupplierFirst')}
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-1.5">
@@ -881,7 +884,7 @@ export default function PurchaseOrders() {
                     <>
                       {customItems.filter(c => c.type === productType && (!searchKeyword || c.name.toLowerCase().includes(searchKeyword.toLowerCase()))).length === 0 ? (
                         <div className="text-center py-8 text-gray-400 text-sm">
-                          {searchKeyword ? '无匹配结果' : '暂无可选项目'}
+                          {searchKeyword ? t('purchase.noMatch') : t('purchase.noItems')}
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-1.5">
@@ -918,7 +921,7 @@ export default function PurchaseOrders() {
                                   {item.unit && <div className="text-gray-400 text-xs">({item.unit})</div>}
                                 </div>
                                 {item.price && (
-                                  <div className="text-green-600 font-medium ml-1 shrink-0">¥{item.price}/{item.unit || '单位'}</div>
+                                  <div className="text-green-600 font-medium ml-1 shrink-0">¥{item.price}/{item.unit || t('purchase.unit')}</div>
                                 )}
                               </div>
                             </div>
@@ -935,9 +938,9 @@ export default function PurchaseOrders() {
               <div className="w-1/2 flex flex-col max-h-[70vh]">
                 <div className="p-4 border-b bg-gray-50">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">采购清单</span>
+                    <span className="text-sm font-medium text-gray-700">{t('purchase.purchaseListTitle')}</span>
                     <span className="text-xs text-gray-500">
-                      {formItems.length} 个商品
+                      {formItems.length} {t('purchase.itemCountLabel')}
                     </span>
                   </div>
                 </div>
@@ -945,7 +948,7 @@ export default function PurchaseOrders() {
                 <div className="flex-1 overflow-y-auto p-4">
                   {formItems.length === 0 ? (
                     <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
-                      暂无商品，请从左侧添加
+                      {t('purchase.noItemsHint')}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -959,7 +962,7 @@ export default function PurchaseOrders() {
                                 item.itemType === 'OTHER' ? 'bg-orange-100 text-orange-600' :
                                 'bg-blue-100 text-blue-600'
                               }`}>
-                                {item.itemType === 'BUNDLE' ? '套装' : item.itemType === 'MATERIAL' ? '原材料' : item.itemType === 'OTHER' ? '其他' : '商品'}
+                                {item.itemType === 'BUNDLE' ? t('purchase.bundle') : item.itemType === 'MATERIAL' ? t('purchase.material') : item.itemType === 'OTHER' ? t('purchase.other') : t('purchase.product')}
                               </span>
                               <span className="font-medium truncate max-w-32">
                                 {item.itemType === 'BUNDLE' ? item.bundleName :
@@ -1017,7 +1020,7 @@ export default function PurchaseOrders() {
 
                 <div className="p-4 border-t bg-gray-50">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="font-medium">总计</span>
+                    <span className="font-medium">{t('purchase.total')}</span>
                     <span className="text-lg text-green-600 font-bold">
                       ¥{formItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0).toFixed(2)}
                     </span>
@@ -1027,7 +1030,7 @@ export default function PurchaseOrders() {
                     onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                     rows={2}
-                    placeholder="添加备注..."
+                    placeholder={t('purchase.addRemark')}
                   />
                 </div>
               </div>
@@ -1038,14 +1041,14 @@ export default function PurchaseOrders() {
                 onClick={handleCloseModal}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
-                取消
+                {t('purchase.cancel')}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || formItems.length === 0}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                {saving ? '保存中...' : '保存'}
+                {saving ? t('purchase.saving') : t('purchase.save')}
               </button>
             </div>
           </div>
@@ -1072,7 +1075,7 @@ export default function PurchaseOrders() {
             setViewingOrder(null);
           }}
           onSuccess={() => {
-            toast.success('入库单创建成功');
+            toast.success(t('purchase.inboundCreateSuccess'));
             setShowInboundModal(false);
             setViewingOrder(null);
             navigate('/inbound');

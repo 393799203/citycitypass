@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { orderApi, pickOrderApi } from '../api';
 import { aiApi } from '../api/ai';
 import { toast } from 'react-toastify';
@@ -12,15 +13,16 @@ import PendingOrdersTab from './components/PendingOrdersTab';
 import WavePickingTab from './components/WavePickingTab';
 import OutboundReviewTab from './components/OutboundReviewTab';
 
-const pickStatusMap: Record<string, string> = {
-  PENDING: '待拣货',
-  PICKING: '拣货中',
-  PICKED: '已拣货',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-};
+const getPickStatusMap = (t: any): Record<string, string> => ({
+  PENDING: t('outbound.pickStatusPending'),
+  PICKING: t('outbound.pickStatusPicking'),
+  PICKED: t('outbound.pickStatusPicked'),
+  COMPLETED: t('outbound.pickStatusCompleted'),
+  CANCELLED: t('outbound.pickStatusCancelled'),
+});
 
 export default function OutboundPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'pending' | 'pick' | 'review'>('pending');
   const [pickOrders, setPickOrders] = useState<PickOrder[]>([]);
@@ -80,7 +82,7 @@ export default function OutboundPage() {
   const handleAICreatePickOrders = async () => {
     const pendingOrders = pickOrders.filter((o: PickOrder) => !o.orders?.[0]?.pickOrder);
     if (pendingOrders.length === 0) {
-      toast.error('没有待拣货订单');
+      toast.error(t('outbound.noPendingOrders'));
       return;
     }
 
@@ -111,7 +113,7 @@ export default function OutboundPage() {
       });
 
       if (orderList.length === 0) {
-        toast.error('没有待拣货订单');
+        toast.error(t('outbound.noPendingOrders'));
         setAiLoading(false);
         return;
       }
@@ -152,14 +154,14 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
         if (bestGroup.orderIds && bestGroup.orderIds.length > 0) {
           setAiRecommendOrders({ orderIds: bestGroup.orderIds, reason: bestGroup.reason });
         } else {
-          toast.error('AI未推荐有效订单组');
+          toast.error(t('outbound.noOrdersSelected'));
         }
       } else {
-        toast.error('AI返回格式不正确或无有效分组');
+        toast.error(t('outbound.pickOrderFailed'));
       }
     } catch (error) {
       console.error('AI error:', error);
-      toast.error('AI分析失败');
+      toast.error(t('outbound.pickOrderFailed'));
     } finally {
       setAiLoading(false);
     }
@@ -168,10 +170,10 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
   const handlePickComplete = async (pickOrderId: string) => {
     try {
       await pickOrderApi.updateStatus(pickOrderId, 'PICKED', user?.id);
-      toast.success('拣货完成');
+      toast.success(t('outbound.pickOrderCompleted'));
       fetchData();
     } catch (error) {
-      toast.error('操作失败');
+      toast.error(t('outbound.pickOrderFailed'));
     }
   };
 
@@ -185,18 +187,18 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             await orderApi.updateStatus(orderId, 'DISPATCHING');
           }
           await pickOrderApi.updateStatus(pickOrderId, 'COMPLETED', user?.id);
-          toast.success('审核通过');
+          toast.success(t('outbound.reviewPassed'));
         } else {
           for (const orderId of orderIds) {
             await orderApi.updateStatus(orderId, 'PICKING');
           }
           await pickOrderApi.updateStatus(pickOrderId, 'PICKING');
-          toast.success('审核不通过，请重新拣货');
+          toast.success(t('outbound.reviewRejected'));
         }
         fetchData();
       }
     } catch (error) {
-      toast.error('操作失败');
+      toast.error(t('outbound.pickOrderFailed'));
     }
   };
 
@@ -220,21 +222,21 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
   const handleCreatePickOrder = async (orderId: string) => {
     try {
       await pickOrderApi.create({ orderId });
-      toast.success('拣货单已生成');
+      toast.success(t('outbound.pickOrderCreated'));
       fetchData();
     } catch (error) {
-      toast.error('生成拣货单失败');
+      toast.error(t('outbound.pickOrderFailed'));
     }
   };
 
   const handleCreateBatchPickOrders = async () => {
     try {
       await pickOrderApi.create({ orderIds: selectedOrders });
-      toast.success(`已生成 1 个合并拣货单`);
+      toast.success(t('outbound.pickOrderCreated'));
       setSelectedOrders([]);
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '批量生成失败');
+      toast.error(error.response?.data?.message || t('outbound.pickOrderFailed'));
     }
   };
 
@@ -243,9 +245,9 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
       {aiRecommendOrders && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">AI推荐拣货单</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('outbound.aiRecommendationTitle')}</h3>
             <p className="text-gray-600 mb-4 text-sm">
-              关联订单：{aiRecommendOrders.orderIds.map(orderNo => {
+              {t('outbound.selectedOrders')}：{aiRecommendOrders.orderIds.map(orderNo => {
                 const order = pickOrders.find((o: PickOrder) => o.orders?.[0]?.orderNo === orderNo);
                 return order?.orders?.[0]?.orderNo;
               }).filter(Boolean).join('、')}
@@ -254,14 +256,14 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
               {aiRecommendOrders.reason}
             </p>
             <p className="text-gray-600 mb-4 text-sm">
-              是否一次性创建拣货单？
+              {t('outbound.applyRecommendation')}？
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setAiRecommendOrders(null)}
                 className="flex-1 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
-                取消
+                {t('order.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -271,17 +273,17 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
                       return order?.orders?.[0]?.id;
                     }).filter(Boolean);
                     await pickOrderApi.create({ orderIds });
-                    toast.success(`已生成 1 个合并拣货单`);
+                    toast.success(t('outbound.pickOrderCreated'));
                     setAiRecommendOrders(null);
                     setSelectedOrders([]);
                     fetchData();
                   } catch (error: any) {
-                    toast.error(error.response?.data?.message || '批量生成失败');
+                    toast.error(error.response?.data?.message || t('outbound.pickOrderFailed'));
                   }
                 }}
                 className="flex-1 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
-                确认创建
+                {t('order.confirmCreate')}
               </button>
             </div>
           </div>
@@ -290,7 +292,7 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
 
       <div className="hidden sm:flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-800">发货管理</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{t('outbound.title')}</h1>
         </div>
         <button
           onClick={() => fetchData()}
@@ -313,8 +315,8 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <Package className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="sm:hidden">待拣货</span>
-                <span className="hidden sm:inline">拣货调度中心(待拣货订单)</span>
+                <span className="sm:hidden">{t('outbound.pickStatusPending')}</span>
+                <span className="hidden sm:inline">{t('outbound.pendingOrders')}</span>
               </div>
             </button>
             <button
@@ -327,8 +329,8 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="sm:hidden">拣货单</span>
-                <span className="hidden sm:inline">波次拣货单</span>
+                <span className="sm:hidden">{t('outbound.wavePicking')}</span>
+                <span className="hidden sm:inline">{t('outbound.wavePicking')}</span>
               </div>
             </button>
             <button
@@ -341,8 +343,8 @@ ${orderList.map(o => `订单号: ${o.orderNo}, 仓库: ${o.warehouse}, 下单时
             >
               <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="sm:hidden">出库</span>
-                <span className="hidden sm:inline">出库审核</span>
+                <span className="sm:hidden">{t('outbound.outboundReview')}</span>
+                <span className="hidden sm:inline">{t('outbound.outboundReview')}</span>
               </div>
             </button>
           </nav>

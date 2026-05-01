@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Users, FileText, MapPin, Phone, Clock } from 'lucide-react';
@@ -97,6 +98,7 @@ const defaultFormData: Customer = {
 };
 
 export default function CustomersPage() {
+  const { t } = useTranslation();
   const { confirm } = useConfirm();
   const { currentOwnerId, owners } = useOwnerStore();
   const { canWrite } = usePermission('config', 'customers');
@@ -167,40 +169,40 @@ export default function CustomersPage() {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      toast.error('请输入客户名称');
+      toast.error(t('customer.inputCustomerName'));
       return;
     }
     if (!formData.contact.trim()) {
-      toast.error('请输入联系人');
+      toast.error(t('customer.inputContact'));
       return;
     }
     if (!formData.phone.trim()) {
-      toast.error('请输入联系电话');
+      toast.error(t('customer.inputPhone'));
       return;
     }
     const phoneRegex = /^1[3-9]\d{9}$/;
     if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-      toast.error('请输入正确的11位手机号');
+      toast.error(t('customer.inputCorrectPhone'));
       return;
     }
     if (!formData.province || !formData.city || !formData.address.trim()) {
-      toast.error('请填写完整配送地址');
+      toast.error(t('customer.inputCompleteAddress'));
       return;
     }
     
     try {
       if (editingId) {
         await customerApi.update(editingId, formData);
-        toast.success('更新成功');
+        toast.success(t('customer.updateSuccess'));
       } else {
         await customerApi.create(formData);
-        toast.success('创建成功');
+        toast.success(t('customer.createSuccess'));
       }
       setShowModal(false);
       resetForm();
       fetchCustomers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('customer.operationFailed'));
     }
   };
 
@@ -235,14 +237,14 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该客户吗？' });
+    const ok = await confirm({ message: t('customer.deleteConfirm') });
     if (!ok) return;
     try {
       await customerApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('customer.deleteSuccess'));
       fetchCustomers();
     } catch (error) {
-      toast.error('删除失败');
+      toast.error(t('customer.deleteFailed'));
     }
   };
 
@@ -250,29 +252,29 @@ export default function CustomersPage() {
     e.preventDefault();
     
     if (!contractForm.name.trim()) {
-      toast.error('请输入合同名称');
+      toast.error(t('customer.inputContractName'));
       return;
     }
     if (!contractForm.startDate) {
-      toast.error('请选择开始日期');
+      toast.error(t('customer.selectStartDate'));
       return;
     }
     if (!contractForm.endDate) {
-      toast.error('请选择结束日期');
+      toast.error(t('customer.selectEndDate'));
       return;
     }
     if (contractForm.startDate > contractForm.endDate) {
-      toast.error('结束日期不能早于开始日期');
+      toast.error(t('customer.endDateBeforeStart'));
       return;
     }
     
     try {
       if (editingContractId) {
         await contractApi.update(editingContractId, contractForm);
-        toast.success('更新成功');
+        toast.success(t('customer.contractUpdateSuccess'));
       } else {
         await contractApi.create(contractForm);
-        toast.success('创建成功');
+        toast.success(t('customer.contractCreateSuccess'));
       }
       setShowContractModal(false);
       setContractView('list');
@@ -296,7 +298,7 @@ export default function CustomersPage() {
       });
       fetchCustomers();
     } catch (error) {
-      toast.error('操作失败');
+      toast.error(t('customer.contractOperationFailed'));
     }
   };
 
@@ -323,26 +325,26 @@ export default function CustomersPage() {
   };
 
   const handleDeleteContract = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该合同吗？' });
+    const ok = await confirm({ message: t('customer.contractDeleteConfirm') });
     if (!ok) return;
     try {
       await contractApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('customer.contractDeleteSuccess'));
       fetchCustomers();
     } catch (error) {
-      toast.error('删除失败');
+      toast.error(t('customer.contractDeleteFailed'));
     }
   };
 
   const handleUnbindShopUser = async (customerId: string, shopUserId: string) => {
-    const ok = await confirm({ message: '确定要解除该用户的关联吗？' });
+    const ok = await confirm({ message: t('customer.unbindUserConfirm') });
     if (!ok) return;
     try {
       await customerApi.unbindShopUser(customerId, shopUserId);
-      toast.success('解除成功');
+      toast.success(t('customer.unbindUserSuccess'));
       fetchCustomers();
     } catch (error) {
-      toast.error('解除失败');
+      toast.error(t('customer.unbindUserFailed'));
     }
   };
 
@@ -368,22 +370,22 @@ export default function CustomersPage() {
       
       
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">客户管理</h1>
+        <h1 className="text-2xl font-bold">{t('customer.title')}</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">
-            客户: {customers.length}
+            {t('customer.customerCount')}: {customers.length}
           </span>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
             disabled={!filterOwner || !canWrite}
-            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!filterOwner ? t('customer.pleaseSelectOwner') : !canWrite ? t('customer.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            <Plus className="w-4 h-4" /> 新建客户
+            <Plus className="w-4 h-4" /> {t('customer.newCustomer')}
           </button>
         </div>
       </div>
@@ -391,7 +393,7 @@ export default function CustomersPage() {
       <div className="mb-4 flex gap-2 flex-wrap">
         <input
           type="text"
-          placeholder="搜索客户名称/编码/联系人"
+          placeholder={t('customer.searchPlaceholder')}
           value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           className="px-3 py-2 border rounded-lg text-sm w-48"
@@ -401,20 +403,20 @@ export default function CustomersPage() {
           onChange={(e) => setFilters({ ...filters, channel: e.target.value })}
           className="px-3 py-2 border rounded-lg text-sm"
         >
-          <option value="">全部渠道</option>
-          <option value="电商">电商</option>
-          <option value="线下门店">线下门店</option>
-          <option value="批发商">批发商</option>
+          <option value="">{t('customer.allChannels')}</option>
+          <option value="电商">{t('customer.channelEcommerce')}</option>
+          <option value="线下门店">{t('customer.channelOffline')}</option>
+          <option value="批发商">{t('customer.channelWholesale')}</option>
         </select>
         <select
           value={filters.level}
           onChange={(e) => setFilters({ ...filters, level: e.target.value })}
           className="px-3 py-2 border rounded-lg text-sm"
         >
-          <option value="">全部等级</option>
-          <option value="VIP">VIP</option>
-          <option value="NORMAL">普通</option>
-          <option value="POTENTIAL">潜在</option>
+          <option value="">{t('customer.allLevels')}</option>
+          <option value="VIP">{t('customer.levelVIP')}</option>
+          <option value="NORMAL">{t('customer.levelNormal')}</option>
+          <option value="POTENTIAL">{t('customer.levelPotential')}</option>
         </select>
       </div>
 
@@ -425,7 +427,7 @@ export default function CustomersPage() {
       ) : customers.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p>暂无客户数据</p>
+          <p>{t('customer.noCustomer')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -444,10 +446,10 @@ export default function CustomersPage() {
                 </div>
                 <div className="flex gap-1">
                   <span className={`px-2 py-1 text-xs rounded font-medium ${getLevelColor(customer.level)}`}>
-                    {customer.level === 'VIP' ? 'VIP' : customer.level === 'POTENTIAL' ? '潜在' : '普通'}
+                    {customer.level === 'VIP' ? t('customer.levelVIP') : customer.level === 'POTENTIAL' ? t('customer.levelPotential') : t('customer.levelNormal')}
                   </span>
                   <span className={`px-2 py-1 text-xs rounded font-medium ${getStatusColor(customer.status)}`}>
-                    {customer.status === 'ACTIVE' ? '活跃' : customer.status === 'INACTIVE' ? '不活跃' : '黑名单'}
+                    {customer.status === 'ACTIVE' ? t('customer.statusActive') : customer.status === 'INACTIVE' ? t('customer.statusInactive') : t('customer.statusBlacklisted')}
                   </span>
                 </div>
               </div>
@@ -464,7 +466,7 @@ export default function CustomersPage() {
                 {(customer.deliveryStartTime || customer.deliveryEndTime) && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <Clock className="w-4 h-4" />
-                    配送时间: {customer.deliveryStartTime || '--'}-{customer.deliveryEndTime || '--'}
+                    {t('customer.deliveryTime')}: {customer.deliveryStartTime || '--'}-{customer.deliveryEndTime || '--'}
                   </div>
                 )}
                 <div className="flex gap-2 pt-2 border-t">
@@ -472,13 +474,13 @@ export default function CustomersPage() {
                     onClick={() => handleEdit(customer)}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-primary-200 text-primary-600 rounded text-sm hover:bg-primary-50"
                   >
-                    <Pencil className="w-4 h-4" /> 编辑
+                    <Pencil className="w-4 h-4" /> {t('customer.edit')}
                   </button>
                   <button
                     onClick={() => { setSelectedCustomer(customer); setShowContractModal(true); setContractForm({ ...contractForm, customerId: customer.id }); }}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 border border-green-200 text-green-600 rounded text-sm hover:bg-green-50"
                   >
-                    <FileText className="w-4 h-4" /> 合同及用户
+                    <FileText className="w-4 h-4" /> {t('customer.contractAndUsers')}
                   </button>
                   {canWrite && (
                     <button
@@ -499,7 +501,7 @@ export default function CustomersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-bold">{editingId ? '编辑客户' : '新建客户'}</h2>
+              <h2 className="text-lg font-bold">{editingId ? t('customer.editCustomerTitle') : t('customer.createCustomerTitle')}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }}>
                 <X className="w-5 h-5" />
               </button>
@@ -508,7 +510,7 @@ export default function CustomersPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    客户名称 <span className="text-red-500">*</span>
+                    {t('customer.customerName')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -519,28 +521,28 @@ export default function CustomersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">渠道</label>
+                  <label className="block text-sm font-medium mb-1">{t('customer.channel')}</label>
                   <select
                     value={formData.channel}
                     onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="">选择渠道</option>
-                    <option value="电商">电商</option>
-                    <option value="线下门店">线下门店</option>
-                    <option value="批发商">批发商</option>
+                    <option value="">{t('customer.selectChannel')}</option>
+                    <option value="电商">{t('customer.channelEcommerce')}</option>
+                    <option value="线下门店">{t('customer.channelOffline')}</option>
+                    <option value="批发商">{t('customer.channelWholesale')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">客户等级</label>
+                  <label className="block text-sm font-medium mb-1">{t('customer.level')}</label>
                   <select
                     value={formData.level}
                     onChange={(e) => setFormData({ ...formData, level: e.target.value as any })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value="NORMAL">普通</option>
-                    <option value="VIP">VIP</option>
-                    <option value="POTENTIAL">潜在</option>
+                    <option value="NORMAL">{t('customer.levelNormal')}</option>
+                    <option value="VIP">{t('customer.levelVIP')}</option>
+                    <option value="POTENTIAL">{t('customer.levelPotential')}</option>
                   </select>
                 </div>
               </div>
@@ -548,7 +550,7 @@ export default function CustomersPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    联系人 <span className="text-red-500">*</span>
+                    {t('customer.contactRequired')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -560,7 +562,7 @@ export default function CustomersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    联系电话 <span className="text-red-500">*</span>
+                    {t('customer.phoneRequired')} <span className="text-red-500">*</span>
                   </label>
                   <PhoneInput
                     value={formData.phone}
@@ -573,7 +575,7 @@ export default function CustomersPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  配送地址 <span className="text-red-500">*</span>
+                  {t('customer.deliveryAddress')} <span className="text-red-500">*</span>
                 </label>
                 <AddressInput
                   value={{
@@ -597,11 +599,11 @@ export default function CustomersPage() {
 
               <div className="bg-blue-50 rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="block text-sm font-medium text-blue-700">配送设置</label>
+                  <label className="block text-sm font-medium text-blue-700">{t('customer.deliverySettings')}</label>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">配送开始时间</label>
+                    <label className="block text-sm font-medium mb-1">{t('customer.deliveryStartTime')}</label>
                     <input
                       type="time"
                       value={formData.deliveryStartTime}
@@ -610,7 +612,7 @@ export default function CustomersPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">配送结束时间</label>
+                    <label className="block text-sm font-medium mb-1">{t('customer.deliveryEndTime')}</label>
                     <input
                       type="time"
                       value={formData.deliveryEndTime}
@@ -619,12 +621,12 @@ export default function CustomersPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">特殊要求</label>
+                    <label className="block text-sm font-medium mb-1">{t('customer.specialRequirements')}</label>
                     <input
                       type="text"
                       value={formData.specialRequirements}
                       onChange={(e) => setFormData({ ...formData, specialRequirements: e.target.value })}
-                      placeholder="如：夜间配送"
+                      placeholder={t('customer.specialRequirementsPlaceholder')}
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
@@ -632,7 +634,7 @@ export default function CustomersPage() {
               </div>
 
               <div className="bg-purple-50 rounded-lg p-4 space-y-4">
-                <label className="block text-sm font-medium text-purple-700">签收规则</label>
+                <label className="block text-sm font-medium text-purple-700">{t('customer.signatureRules')}</label>
                 <div className="flex gap-6">
                   <label className="flex items-center gap-2">
                     <input
@@ -641,7 +643,7 @@ export default function CustomersPage() {
                       onChange={(e) => setFormData({ ...formData, inspectionRequired: e.target.checked })}
                       className="w-4 h-4"
                     />
-                    <span className="text-sm">需要验货</span>
+                    <span className="text-sm">{t('customer.needInspection')}</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -650,23 +652,23 @@ export default function CustomersPage() {
                       onChange={(e) => setFormData({ ...formData, certificateRequired: e.target.checked })}
                       className="w-4 h-4"
                     />
-                    <span className="text-sm">需要凭证</span>
+                    <span className="text-sm">{t('customer.needCertificate')}</span>
                   </label>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">签收备注</label>
+                  <label className="block text-sm font-medium mb-1">{t('customer.signatureNote')}</label>
                   <input
                     type="text"
                     value={formData.signatureNote}
                     onChange={(e) => setFormData({ ...formData, signatureNote: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
-                    placeholder="验货/凭证的特殊要求说明"
+                    placeholder={t('customer.signatureNotePlaceholder')}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">备注</label>
+                <label className="block text-sm font-medium mb-1">{t('customer.remark')}</label>
                 <textarea
                   value={formData.remark}
                   onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
@@ -676,8 +678,8 @@ export default function CustomersPage() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg">取消</button>
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg">保存</button>
+                <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg">{t('customer.cancel')}</button>
+                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg">{t('customer.save')}</button>
               </div>
             </form>
           </div>
@@ -688,7 +690,7 @@ export default function CustomersPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold">合同及用户 - {selectedCustomer.name}</h2>
+              <h2 className="text-lg font-bold">{t('customer.contractAndUsers')} - {selectedCustomer.name}</h2>
               <button onClick={() => { setShowContractModal(false); setContractView('list'); setEditingContractId(null); setSelectedCustomer(null); setContractForm({ contractNo: '', name: '', customerId: '', startDate: '', endDate: '', amount: '', discount: '', pricingTerms: '', serviceTerms: '', specialTerms: '', status: 'DRAFT' as const, autoRenew: false, fileUrl: '', fileName: '', fileSize: 0 }); }}>
                 <X className="w-5 h-5" />
               </button>
@@ -697,13 +699,13 @@ export default function CustomersPage() {
             {contractView === 'list' ? (
               <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">合同列表 {selectedCustomer.contracts?.length || 0}/1</h3>
+                  <h3 className="font-medium">{t('customer.contractList')} {selectedCustomer.contracts?.length || 0}/1</h3>
                   {canWrite && (!selectedCustomer.contracts || selectedCustomer.contracts.length === 0) && (
                     <button
                       onClick={() => { setContractForm({ ...contractForm, customerId: selectedCustomer.id }); setContractView('form'); }}
                       className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700"
                     >
-                      <Plus className="w-4 h-4" /> 新建合同
+                      <Plus className="w-4 h-4" /> {t('customer.newContract')}
                     </button>
                   )}
                 </div>
@@ -727,7 +729,7 @@ export default function CustomersPage() {
                             contract.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
                             contract.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'
                           }`}>
-                            {contract.status === 'ACTIVE' ? '生效中' : contract.status === 'EXPIRED' ? '已过期' : contract.status}
+                            {contract.status === 'ACTIVE' ? t('customer.contractActive') : contract.status === 'EXPIRED' ? t('customer.contractExpired') : contract.status}
                           </span>
                         </div>
                         {canWrite && (
@@ -743,13 +745,13 @@ export default function CustomersPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center text-gray-500 py-8">暂无合同</div>
+                    <div className="text-center text-gray-500 py-8">{t('customer.noContract')}</div>
                   )}
                 </div>
 
                 <div className="border-t pt-4 mt-4">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-medium">关联用户</h3>
+                    <h3 className="font-medium">{t('customer.relatedUsers')}</h3>
                   </div>
                   {selectedCustomer.shopUsers && selectedCustomer.shopUsers.length > 0 ? (
                     <div className="space-y-2">
@@ -779,7 +781,7 @@ export default function CustomersPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-500 py-8">暂无关联用户</div>
+                    <div className="text-center text-gray-500 py-8">{t('customer.noRelatedUsers')}</div>
                   )}
                 </div>
               </div>
@@ -791,59 +793,59 @@ export default function CustomersPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      合同名称 <span className="text-red-500">*</span>
+                      {t('customer.contractName')} <span className="text-red-500">*</span>
                     </label>
                     <input type="text" value={contractForm.name} onChange={(e) => setContractForm({ ...contractForm, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">状态</label>
+                    <label className="block text-sm font-medium mb-1">{t('customer.contractStatus')}</label>
                     <select value={contractForm.status} onChange={(e) => setContractForm({ ...contractForm, status: e.target.value as any })} className="w-full px-3 py-2 border rounded-lg">
-                      <option value="DRAFT">草稿</option>
-                      <option value="PENDING">待生效</option>
-                      <option value="ACTIVE">生效中</option>
-                      <option value="EXPIRED">已过期</option>
-                      <option value="TERMINATED">已终止</option>
+                      <option value="DRAFT">{t('customer.contractDraft')}</option>
+                      <option value="PENDING">{t('customer.contractPending')}</option>
+                      <option value="ACTIVE">{t('customer.contractActive')}</option>
+                      <option value="EXPIRED">{t('customer.contractExpired')}</option>
+                      <option value="TERMINATED">{t('customer.contractTerminated')}</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-2 pt-6">
                     <input type="checkbox" id="autoRenew" checked={contractForm.autoRenew} onChange={(e) => setContractForm({ ...contractForm, autoRenew: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                    <label htmlFor="autoRenew" className="text-sm cursor-pointer">自动续约</label>
+                    <label htmlFor="autoRenew" className="text-sm cursor-pointer">{t('customer.autoRenew')}</label>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      开始日期 <span className="text-red-500">*</span>
+                      {t('customer.startDate')} <span className="text-red-500">*</span>
                     </label>
                     <input type="date" value={contractForm.startDate} onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      结束日期 <span className="text-red-500">*</span>
+                      {t('customer.endDate')} <span className="text-red-500">*</span>
                     </label>
                     <input type="date" value={contractForm.endDate} onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">合同金额(元)</label>
-                    <input type="number" value={contractForm.amount} onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="0.00" />
+                    <label className="block text-sm font-medium mb-1">{t('customer.contractAmount')}</label>
+                    <input type="number" value={contractForm.amount} onChange={(e) => setContractForm({ ...contractForm, amount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder={t('customer.amountPlaceholder')} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">折扣</label>
-                    <input type="number" step="0.01" min="0" max="1" value={contractForm.discount} onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="如0.85" />
+                    <label className="block text-sm font-medium mb-1">{t('customer.discount')}</label>
+                    <input type="number" step="0.01" min="0" max="1" value={contractForm.discount} onChange={(e) => setContractForm({ ...contractForm, discount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder={t('customer.discountPlaceholder')} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">服务条款</label>
-                    <textarea value={contractForm.serviceTerms} onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="服务范围、质量标准等" />
+                    <label className="block text-sm font-medium mb-1">{t('customer.serviceTerms')}</label>
+                    <textarea value={contractForm.serviceTerms} onChange={(e) => setContractForm({ ...contractForm, serviceTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder={t('customer.serviceTermsPlaceholder')} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">特殊条款</label>
-                    <textarea value={contractForm.specialTerms} onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder="差异化条款、特殊约定等" />
+                    <label className="block text-sm font-medium mb-1">{t('customer.specialTerms')}</label>
+                    <textarea value={contractForm.specialTerms} onChange={(e) => setContractForm({ ...contractForm, specialTerms: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} placeholder={t('customer.specialTermsPlaceholder')} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">合同文件</label>
+                  <label className="block text-sm font-medium mb-1">{t('customer.contractFile')}</label>
                   <div className="flex items-center gap-4">
                     <input type="file" id="contract-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={async (e) => {
                       const file = e.target.files?.[0];
@@ -855,18 +857,18 @@ export default function CustomersPage() {
                         const res = await uploadApi.contract(formData);
                         if (res.data.success) {
                           setContractForm({ ...contractForm, fileUrl: res.data.data.fileUrl, fileName: res.data.data.fileName, fileSize: res.data.data.fileSize });
-                          toast.success('上传成功');
+                          toast.success(t('customer.uploadSuccess'));
                         } else {
-                          toast.error(res.data.message || '上传失败');
+                          toast.error(res.data.message || t('customer.uploadFailed'));
                         }
                       } catch (error) {
-                        toast.error('上传失败');
+                        toast.error(t('customer.uploadFailed'));
                       } finally {
                         setUploading(false);
                       }
                     }} className="hidden" />
                     <label htmlFor="contract-file" className="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg text-sm cursor-pointer hover:bg-primary-50">
-                      {uploading ? '上传中...' : '选择文件'}
+                      {uploading ? t('customer.uploading') : t('customer.selectFile')}
                     </label>
                     {contractForm.fileName && (
                       <div className="flex items-center gap-2">
@@ -877,8 +879,8 @@ export default function CustomersPage() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button type="button" onClick={() => { setContractView('list'); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
-                  <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">保存</button>
+                  <button type="button" onClick={() => { setContractView('list'); setEditingContractId(null); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">{t('customer.cancel')}</button>
+                  <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">{t('customer.save')}</button>
                 </div>
               </form>
             )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { stockApi } from '../api';
 import { Package, MapPin, ShoppingCart, ArrowLeft, ArrowRight, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -96,6 +97,7 @@ interface BatchInfo {
 }
 
 export default function BatchTracePage() {
+  const { t } = useTranslation();
   const { batchNo } = useParams<{ batchNo: string }>();
   const navigate = useNavigate();
   const [inputBatchNo, setInputBatchNo] = useState('');
@@ -123,7 +125,7 @@ export default function BatchTracePage() {
 
   const loadTraceData = async (batch: string) => {
     if (!batch.trim()) {
-      toast.error('请输入批次号');
+      toast.error(t('batchTrace.searchPlaceholder'));
       return;
     }
     setLoading(true);
@@ -132,11 +134,11 @@ export default function BatchTracePage() {
       if (res.data.success) {
         setTraceData(res.data.data);
       } else {
-        toast.error(res.data.message || '加载失败');
+        toast.error(res.data.message || t('batchTrace.noData'));
         setTraceData(null);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '加载失败');
+      toast.error(error.response?.data?.message || t('batchTrace.noData'));
       setTraceData(null);
     } finally {
       setLoading(false);
@@ -153,7 +155,7 @@ export default function BatchTracePage() {
     return (
       <div className="p-2 space-y-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">批次列表</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{t('batchTrace.title')}</h1>
           <button
             onClick={() => loadBatchList()}
             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -170,7 +172,7 @@ export default function BatchTracePage() {
 
         {!loading && batchList.length === 0 && (
           <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <p className="text-gray-500">暂无批次数据</p>
+            <p className="text-gray-500">{t('batchTrace.noData')}</p>
           </div>
         )}
 
@@ -179,13 +181,13 @@ export default function BatchTracePage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">批次号</th>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">类别</th>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">关联商品</th>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">供应商</th>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">有效期</th>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">剩余库存</th>
-                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">操作</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('batchTrace.batchNo')}</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('batchTrace.type')}</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('batchTrace.productName')}</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('batchTrace.supplier')}</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('batchTrace.expiryDate')}</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('inventory.totalStock')}</th>
+                  <th className="px-4 py-3 text-center text-base font-medium text-gray-700">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -194,7 +196,7 @@ export default function BatchTracePage() {
                     <td className="px-4 py-3 text-center text-base font-mono">{batch.batchNo}</td>
                     <td className="px-4 py-3 text-center text-base">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${batch.type === 'PRODUCT' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                        {batch.type === 'PRODUCT' ? '商品' : '套装'}
+                        {batch.type === 'PRODUCT' ? t('batchTrace.product') : t('batchTrace.bundle')}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-base text-gray-500">
@@ -220,7 +222,7 @@ export default function BatchTracePage() {
                         onClick={() => navigate(`/batch-trace/${batch.batchNo}`)}
                         className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
                       >
-                        追踪
+                        {t('batchTrace.search')}
                       </button>
                     </td>
                   </tr>
@@ -238,7 +240,7 @@ export default function BatchTracePage() {
       <div className="p-6 flex items-center justify-center h-64">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-500" />
-          <p className="mt-2 text-gray-600">加载中...</p>
+          <p className="mt-2 text-gray-600">{t('batchTrace.loading')}</p>
         </div>
       </div>
     );
@@ -249,12 +251,12 @@ export default function BatchTracePage() {
       <div className="p-2 space-y-6">
         <div className="max-w-xl mx-auto mt-20">
           <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <p className="text-red-600 mb-4">未找到该批次的数据</p>
+            <p className="text-red-600 mb-4">{t('batchTrace.notFound')}</p>
             <button
               onClick={() => navigate('/batch-trace')}
               className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
             >
-              返回查询
+              {t('batchTrace.backToSearch')}
             </button>
           </div>
         </div>
@@ -272,13 +274,13 @@ export default function BatchTracePage() {
     <div className="p-2 space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">批次追踪</h1>
-          <p className="text-sm text-gray-500 mt-1">批次号: <span className="font-mono text-blue-600">{batchNo}</span></p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('batchTrace.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('batchTrace.batchNo')}: <span className="font-mono text-blue-600">{batchNo}</span></p>
         </div>
         <button
           onClick={() => loadTraceData(batchNo)}
           className="p-2 hover:bg-gray-100 rounded-lg ml-auto"
-          title="刷新"
+          title={t('common.refresh')}
         >
           <RefreshCw className="w-5 h-5 text-gray-600" />
         </button>
@@ -287,7 +289,7 @@ export default function BatchTracePage() {
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
           <Package className="w-5 h-5 text-blue-500" />
-          物流流向图
+          {t('batchTrace.traceFlow')}
         </h3>
 
         <div className="flex flex-col items-center gap-6">
@@ -295,9 +297,9 @@ export default function BatchTracePage() {
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
                 <span className="text-3xl font-bold text-white">{totalInbound}</span>
-                <span className="text-xs text-green-100">入库</span>
+                <span className="text-xs text-green-100">{t('batchTrace.inbound')}</span>
               </div>
-              <div className="text-xs text-gray-500 mt-2">总入库量</div>
+              <div className="text-xs text-gray-500 mt-2">{t('batchTrace.totalInboundQty')}</div>
             </div>
 
             <div className="relative h-6 w-[90px]">
@@ -307,10 +309,10 @@ export default function BatchTracePage() {
 
             <div className="flex flex-col items-center">
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center shadow-xl hover:scale-105 transition-transform border-4 border-white">
-                <span className="text-[10px] text-indigo-200">批次号</span>
+                <span className="text-[10px] text-indigo-200">{t('batchTrace.batchNo')}</span>
                 <span className="text-xs font-bold text-white font-mono mt-0.5">{batchNo}</span>
                 <div className="w-24 h-[1px] bg-indigo-300 my-1"></div>
-                <span className="text-[10px] text-indigo-200">有效期</span>
+                <span className="text-[10px] text-indigo-200">{t('batchTrace.expiryDate')}</span>
                 <span className="text-xs font-bold text-white mt-0.5">
                   {traceData?.batchInfo?.expiryDate
                     ? new Date(traceData.batchInfo.expiryDate).toLocaleDateString()
@@ -329,9 +331,9 @@ export default function BatchTracePage() {
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
                 <span className="text-3xl font-bold text-white">{totalSold}</span>
-                <span className="text-xs text-orange-100">已售</span>
+                <span className="text-xs text-orange-100">{t('batchTrace.sold')}</span>
               </div>
-              <div className="text-xs text-gray-500 mt-2">总售出量</div>
+              <div className="text-xs text-gray-500 mt-2">{t('batchTrace.totalSoldQty')}</div>
             </div>
             <div className="flex flex-col items-center">
               <svg width="80" height="40" className="overflow-visible">
@@ -343,9 +345,9 @@ export default function BatchTracePage() {
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
                 <span className="text-3xl font-bold text-white">{totalReturned}</span>
-                <span className="text-xs text-red-100">已退货</span>
+                <span className="text-xs text-red-100">{t('batchTrace.returned')}</span>
               </div>
-              <div className="text-xs text-gray-500 mt-2">总退货量</div>
+              <div className="text-xs text-gray-500 mt-2">{t('batchTrace.totalReturnedQty')}</div>
             </div>
           </div>
 
@@ -359,9 +361,9 @@ export default function BatchTracePage() {
           <div className="flex flex-col items-center" style={{ transform: 'translateX(-115%)' }}>
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl font-bold text-white">{totalInWarehouse}</span>
-              <span className="text-xs text-blue-100">在库</span>
+              <span className="text-xs text-blue-100">{t('batchTrace.inStock')}</span>
             </div>
-            <div className="text-xs text-gray-500 mt-2">当前库存</div>
+            <div className="text-xs text-gray-500 mt-2">{t('batchTrace.currentStock')}</div>
           </div>
         </div>
 
@@ -370,7 +372,7 @@ export default function BatchTracePage() {
             <div className="flex-1">
               <h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                库位分布 ({traceData.locations.length})
+                {t('batchTrace.locationDistribution')} ({traceData.locations.length})
               </h4>
               <div className="flex flex-wrap gap-2">
                 {traceData.locations.map((loc, idx) => (
@@ -379,7 +381,7 @@ export default function BatchTracePage() {
                     <span className="ml-2 text-blue-600 font-bold">{loc.quantity}</span>
                   </div>
                 ))}
-                {traceData.locations.length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
+                {traceData.locations.length === 0 && <span className="text-gray-400 text-sm">{t('batchTrace.noData')}</span>}
               </div>
             </div>
 
@@ -388,7 +390,7 @@ export default function BatchTracePage() {
             <div className="flex-1">
               <h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
-                订单列表 ({(traceData.stockOuts || []).length})
+                {t('batchTrace.orderList')} ({(traceData.stockOuts || []).length})
               </h4>
               <div className="flex flex-wrap gap-2">
                 {(traceData.stockOuts || []).map((order, idx) => (
@@ -402,12 +404,12 @@ export default function BatchTracePage() {
                     }`}
                   >
                     <span className={`font-mono text-sm ${order.isReturned ? 'text-red-700' : 'text-yellow-700'}`}>{order.orderNo}</span>
-                    {order.isReturned && <span className="px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">已退货</span>}
+                    {order.isReturned && <span className="px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">{t('batchTrace.returned')}</span>}
                     <span className={`font-bold ${order.isReturned ? 'text-red-600' : 'text-yellow-600'}`}>-{order.quantity}</span>
                     <ArrowRight className={`w-3 h-3 ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
                   </Link>
                 ))}
-                {(traceData.stockOuts || []).length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
+                {(traceData.stockOuts || []).length === 0 && <span className="text-gray-400 text-sm">{t('batchTrace.noData')}</span>}
               </div>
             </div>
           </div>
@@ -418,10 +420,10 @@ export default function BatchTracePage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <ArrowRight className="w-5 h-5 text-green-500" />
-            入库记录
+            {t('batchTrace.stockInRecords')}
           </h3>
           {allStockIns.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">暂无入库记录</p>
+            <p className="text-gray-400 text-center py-4">{t('batchTrace.noInboundRecords')}</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {allStockIns.map((item, idx) => (
@@ -431,21 +433,21 @@ export default function BatchTracePage() {
                       <span className={`px-2 py-0.5 text-xs rounded ${
                         item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                       }`}>
-                        {item.type === 'BUNDLE' ? '套装' : '商品'}
+                        {item.type === 'BUNDLE' ? t('batchTrace.bundle') : t('batchTrace.product')}
                       </span>
                       <span className="font-medium">
                         {item.productName || item.bundleName}
                       </span>
                       {item.spec && <span className="text-gray-500">{item.spec}</span>}
                       {item.packaging && <span className="text-gray-500">{item.packaging}</span>}
-                      {item.inboundNo && <span className="text-green-600 font-mono text-xs">入库单: {item.inboundNo}</span>}
+                      {item.inboundNo && <span className="text-green-600 font-mono text-xs">{t('batchTrace.inboundNo')}: {item.inboundNo}</span>}
                     </div>
                     <span className="text-green-600 font-bold">+{item.quantity}</span>
                   </div>
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      {item.locationCode || '无库位'}
+                      {item.locationCode || t('batchTrace.noLocation')}
                     </span>
                     <span>{item.warehouse}</span>
                     <span>{new Date(item.createdAt).toLocaleDateString()}</span>
@@ -459,10 +461,10 @@ export default function BatchTracePage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-blue-500" />
-            当前库位分布
+            {t('batchTrace.currentLocations')}
           </h3>
           {traceData.locations.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">暂无在库数据</p>
+            <p className="text-gray-400 text-center py-4">{t('batchTrace.noStockData')}</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {traceData.locations.map((loc, idx) => (
@@ -472,19 +474,19 @@ export default function BatchTracePage() {
                       <span className={`px-2 py-0.5 text-xs rounded ${
                         loc.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                       }`}>
-                        {loc.type === 'BUNDLE' ? '套装' : '商品'}
+                        {loc.type === 'BUNDLE' ? t('batchTrace.bundle') : t('batchTrace.product')}
                       </span>
                       <span className="font-mono text-gray-700">{loc.locationCode}</span>
                     </div>
                     <div className="text-right">
                       <span className="text-blue-600 font-bold">{loc.quantity}</span>
-                      <span className="text-gray-400 text-xs"> / {loc.availableQuantity}可用</span>
+                      <span className="text-gray-400 text-xs"> / {loc.availableQuantity}{t('batchTrace.available')}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                     <span>{loc.warehouse}</span>
                     {loc.lockedQuantity > 0 && (
-                      <span className="text-yellow-600">锁定: {loc.lockedQuantity}</span>
+                      <span className="text-yellow-600">{t('batchTrace.locked')}: {loc.lockedQuantity}</span>
                     )}
                   </div>
                 </div>
@@ -496,10 +498,10 @@ export default function BatchTracePage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-yellow-500" />
-            已售订单
+            {t('batchTrace.soldOrders')}
           </h3>
           {(traceData.stockOuts || []).length === 0 ? (
-            <p className="text-gray-400 text-center py-4">暂无售出记录</p>
+            <p className="text-gray-400 text-center py-4">{t('batchTrace.noSoldRecords')}</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {(traceData.stockOuts || []).map((order: any, idx: number) => (
@@ -515,7 +517,7 @@ export default function BatchTracePage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <span className={`font-mono hover:underline ${order.isReturned ? 'text-red-600' : 'text-blue-600'}`}>{order.orderNo}</span>
-                      {order.isReturned && <span className="ml-2 px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">已退货</span>}
+                      {order.isReturned && <span className="ml-2 px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">{t('batchTrace.returned')}</span>}
                       <span className="ml-2 text-gray-500">{order.customer}</span>
                       {order.customerPhone && (
                         <span className="ml-2 text-gray-400">{order.customerPhone}</span>
@@ -527,7 +529,7 @@ export default function BatchTracePage() {
                     <span className={`px-2 py-0.5 text-xs rounded ${
                       order.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                     }`}>
-                      {order.type === 'BUNDLE' ? '套装' : '商品'}
+                      {order.type === 'BUNDLE' ? t('batchTrace.bundle') : t('batchTrace.product')}
                     </span>
                     <span>{order.productName || order.bundleName}</span>
                     <ArrowRight className={`w-3 h-3 ml-auto ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
@@ -541,10 +543,10 @@ export default function BatchTracePage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <ArrowRight className="w-5 h-5 text-purple-500" />
-            移库记录
+            {t('batchTrace.transferRecords')}
           </h3>
           {(traceData.transfers || []).length === 0 ? (
-            <p className="text-gray-400 text-center py-4">暂无移库记录</p>
+            <p className="text-gray-400 text-center py-4">{t('batchTrace.noTransferRecords')}</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {(traceData.transfers || []).map((transfer: any, idx: number) => (
@@ -556,14 +558,14 @@ export default function BatchTracePage() {
                       transfer.status === 'PENDING' ? 'bg-yellow-100 text-yellow-600' :
                       'bg-red-100 text-red-600'
                     }`}>
-                      {transfer.status === 'COMPLETED' ? '已完成' : transfer.status === 'PENDING' ? '待执行' : '已取消'}
+                      {transfer.status === 'COMPLETED' ? t('batchTrace.transferCompleted') : transfer.status === 'PENDING' ? t('batchTrace.transferPending') : t('batchTrace.transferCancelled')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-2 text-xs">
                     <span className="text-gray-500">{transfer.fromLocation}</span>
                     <ArrowRight className="w-3 h-3 text-gray-400" />
                     <span className="text-gray-700">{transfer.toLocation}</span>
-                    <span className="ml-auto text-purple-600 font-medium">{transfer.quantity}件</span>
+                    <span className="ml-auto text-purple-600 font-medium">{transfer.quantity}{t('batchTrace.items')}</span>
                   </div>
                   {transfer.executedAt && (
                     <div className="text-xs text-gray-400 mt-1">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Plus, Pencil, Trash2, X, Loader2, Users, Phone, MapPin, FileText, Package } from 'lucide-react';
@@ -86,6 +87,7 @@ const defaultContractForm: SupplierContract = {
 };
 
 export default function SuppliersPage() {
+  const { t } = useTranslation();
   const { currentOwnerId, owners } = useOwnerStore();
   const { canWrite } = usePermission('config', 'suppliers');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -168,24 +170,24 @@ export default function SuppliersPage() {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      toast.error('请输入供应商名称');
+      toast.error(t('supplier.inputSupplierName'));
       return;
     }
     if (!formData.contact.trim()) {
-      toast.error('请输入联系人');
+      toast.error(t('supplier.inputContact'));
       return;
     }
     if (!formData.phone.trim()) {
-      toast.error('请输入联系电话');
+      toast.error(t('supplier.inputPhone'));
       return;
     }
     const phoneRegex = /^1[3-9]\d{9}$/;
     if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-      toast.error('请输入正确的11位手机号');
+      toast.error(t('supplier.inputCorrectPhone'));
       return;
     }
     if (!formData.province || !formData.city || !formData.address.trim()) {
-      toast.error('请填写完整地址（省/市/详细地址）');
+      toast.error(t('supplier.inputCompleteAddress'));
       return;
     }
 
@@ -193,16 +195,16 @@ export default function SuppliersPage() {
     try {
       if (editingId) {
         await supplierApi.update(editingId, formData);
-        toast.success('更新成功');
+        toast.success(t('supplier.updateSuccess'));
       } else {
         await supplierApi.create(formData);
-        toast.success('创建成功');
+        toast.success(t('supplier.createSuccess'));
       }
       setShowModal(false);
       resetForm();
       fetchSuppliers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('supplier.operationFailed'));
     } finally {
       setSaving(false);
     }
@@ -218,15 +220,15 @@ export default function SuppliersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该供应商吗？' });
+    const ok = await confirm({ message: t('supplier.deleteConfirm') });
     if (!ok) return;
 
     try {
       await supplierApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('supplier.deleteSuccess'));
       fetchSuppliers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('supplier.deleteFailed'));
     }
   };
 

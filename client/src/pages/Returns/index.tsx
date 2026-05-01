@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { returnApi } from '../../api';
 import { orderApi } from '../../api';
 import { toast } from 'react-toastify';
@@ -16,6 +17,7 @@ import QualifyModal from './QualifyModal';
 import RefundModal from './RefundModal';
 
 export default function Returns() {
+  const { t } = useTranslation();
   const [returns, setReturns] = useState<ReturnOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -86,17 +88,17 @@ export default function Returns() {
 
   const handleCreate = async () => {
     if (!createForm.orderId || !createForm.reason) {
-      toast.error('请填写订单和原因');
+      toast.error(t('returns.pleaseFillOrderAndReason'));
       return;
     }
     try {
       await returnApi.create(createForm);
-      toast.success('退货申请已提交');
+      toast.success(t('returns.returnCreated'));
       setShowCreateModal(false);
       setCreateForm({ orderId: '', reason: '' });
       fetchReturns();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '创建失败');
+      toast.error(error.response?.data?.message || t('returns.returnFailed'));
     }
   };
 
@@ -104,16 +106,16 @@ export default function Returns() {
     const returnOrder = ret || selectedReturn;
     if (!returnOrder) return;
     
-    const ok = await confirm({ message: '确认收到退货？' });
+    const ok = await confirm({ message: t('returns.confirmReceive') });
     if (!ok) return;
     
     try {
       await returnApi.receive(returnOrder.id, {});
-      toast.success('收货确认成功');
+      toast.success(t('returns.receiveConfirmed'));
       setActionModal(null);
       fetchReturns();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('returns.returnFailed'));
     }
   };
 
@@ -121,11 +123,11 @@ export default function Returns() {
     if (!selectedReturn) return;
     try {
       await returnApi.qualify(selectedReturn.id, { items: qualifyItems });
-      toast.success('验收确认成功');
+      toast.success(t('returns.qualifyComplete'));
       setActionModal(null);
       fetchReturns();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('returns.returnFailed'));
     }
   };
 
@@ -155,11 +157,11 @@ export default function Returns() {
     if (!refundModal) return;
     try {
       await returnApi.refund(refundModal.returnOrder.id, { refundAmount: refundModal.refundAmount });
-      toast.success('退款确认成功');
+      toast.success(t('returns.refundComplete'));
       setRefundModal(null);
       fetchReturns();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('returns.returnFailed'));
     }
   };
 
@@ -203,7 +205,7 @@ export default function Returns() {
   return (
     <div className="p-2 space-y-4">
       <div className="hidden sm:flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">退货管理</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t('returns.title')}</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -212,19 +214,19 @@ export default function Returns() {
               onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
               className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white"
             >
-              <option value="">全部状态</option>
-              <option value="RETURN_REQUESTED">待发货</option>
-              <option value="RETURN_SHIPPED">已发货</option>
-              <option value="RETURN_RECEIVING">收货中</option>
-              <option value="RETURN_QUALIFIED">已验收(全合格)</option>
-              <option value="RETURN_PARTIAL_QUALIFIED">已验收(部分)</option>
-              <option value="RETURN_REJECTED">已拒收</option>
-              <option value="RETURN_STOCK_IN">已入库</option>
-              <option value="REFUNDED">已退款</option>
-              <option value="CANCELLED">已取消</option>
+              <option value="">{t('returns.allStatus')}</option>
+              <option value="RETURN_REQUESTED">{t('returns.statusPending')}</option>
+              <option value="RETURN_SHIPPED">{t('returns.statusReturning')}</option>
+              <option value="RETURN_RECEIVING">{t('returns.statusReturning')}</option>
+              <option value="RETURN_QUALIFIED">{t('returns.qualifyPass')}</option>
+              <option value="RETURN_PARTIAL_QUALIFIED">{t('returns.qualifyPass')}</option>
+              <option value="RETURN_REJECTED">{t('returns.statusRejected')}</option>
+              <option value="RETURN_STOCK_IN">{t('returns.stockIn')}</option>
+              <option value="REFUNDED">{t('returns.statusRefunded')}</option>
+              <option value="CANCELLED">{t('returns.statusCancelled')}</option>
             </select>
           </div>
-          <span className="text-sm text-gray-500">{total} 条</span>
+          <span className="text-sm text-gray-500">{total} {t('common.items')}</span>
           <button
             onClick={() => fetchReturns()}
             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -242,16 +244,16 @@ export default function Returns() {
             onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
             className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white"
           >
-            <option value="">全部状态</option>
-            <option value="RETURN_REQUESTED">待发货</option>
-            <option value="RETURN_SHIPPED">已发货</option>
-            <option value="RETURN_RECEIVING">收货中</option>
-            <option value="RETURN_QUALIFIED">已验收</option>
-            <option value="RETURN_PARTIAL_QUALIFIED">部分验收</option>
-            <option value="RETURN_REJECTED">已拒收</option>
-            <option value="RETURN_STOCK_IN">已入库</option>
-            <option value="REFUNDED">已退款</option>
-            <option value="CANCELLED">已取消</option>
+            <option value="">{t('returns.allStatus')}</option>
+            <option value="RETURN_REQUESTED">{t('returns.statusPending')}</option>
+            <option value="RETURN_SHIPPED">{t('returns.statusReturning')}</option>
+            <option value="RETURN_RECEIVING">{t('returns.statusReturning')}</option>
+            <option value="RETURN_QUALIFIED">{t('returns.qualifyPass')}</option>
+            <option value="RETURN_PARTIAL_QUALIFIED">{t('returns.qualifyPass')}</option>
+            <option value="RETURN_REJECTED">{t('returns.statusRejected')}</option>
+            <option value="RETURN_STOCK_IN">{t('returns.stockIn')}</option>
+            <option value="REFUNDED">{t('returns.statusRefunded')}</option>
+            <option value="CANCELLED">{t('returns.statusCancelled')}</option>
           </select>
         </div>
         <button
@@ -263,7 +265,7 @@ export default function Returns() {
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-gray-500">加载中...</div>
+        <div className="text-center py-8 text-gray-500">{t('returns.loading')}</div>
       ) : (
         <ReturnsTable
           returns={returns}
@@ -282,7 +284,7 @@ export default function Returns() {
             disabled={page === 1}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
-            上一页
+            {t('common.previousPage')}
           </button>
           <span className="px-3 py-1">{page} / {Math.ceil(total / pageSize)}</span>
           <button
@@ -290,7 +292,7 @@ export default function Returns() {
             disabled={page * pageSize >= total}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
-            下一页
+            {t('common.nextPage')}
           </button>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { orderApi, productApi, warehouseApi, geocodeApi, bundleApi, stockApi, returnApi, customerApi, contractApi } from '../api';
 import { toast } from 'react-toastify';
@@ -85,35 +86,36 @@ interface OrderFormItem {
   quantity: number;
 }
 
-const statusMap: Record<string, string> = {
-  PENDING: '待拣货',
-  PICKING: '拣货中',
-  OUTBOUND_REVIEW: '出库审核',
-  DISPATCHING: '运力调度',
-  DISPATCHED: '已调度',
-  IN_TRANSIT: '运输中',
-  DELIVERED: '已送达',
-  COMPLETED: '已完成',
-  RETURNING: '退货中',
-  RETURNED: '已退款',
-  CANCELLED: '已取消',
-};
+const getStatusMap = (t: any): Record<string, string> => ({
+  PENDING: t('order.pending'),
+  PICKING: t('order.picking'),
+  OUTBOUND_REVIEW: t('order.outboundReview'),
+  DISPATCHING: t('order.dispatching'),
+  DISPATCHED: t('order.dispatched'),
+  IN_TRANSIT: t('order.inTransit'),
+  DELIVERED: t('order.delivered'),
+  COMPLETED: t('order.completed'),
+  RETURNING: t('order.returning'),
+  RETURNED: t('order.returned'),
+  CANCELLED: t('order.cancelled'),
+});
 
-const statusOptions = [
-  { value: 'PENDING', label: '待拣货' },
-  { value: 'PICKING', label: '拣货中' },
-  { value: 'OUTBOUND_REVIEW', label: '出库审核中' },
-  { value: 'DISPATCHING', label: '运力调度' },
-  { value: 'DISPATCHED', label: '已调度' },
-  { value: 'IN_TRANSIT', label: '运输中' },
-  { value: 'DELIVERED', label: '已送达' },
-  { value: 'COMPLETED', label: '已完成' },
-  { value: 'RETURNING', label: '退货中' },
-  { value: 'RETURNED', label: '已退款' },
-  { value: 'CANCELLED', label: '已取消' },
+const getStatusOptions = (t: any) => [
+  { value: 'PENDING', label: t('order.pending') },
+  { value: 'PICKING', label: t('order.picking') },
+  { value: 'OUTBOUND_REVIEW', label: t('order.outboundReview') },
+  { value: 'DISPATCHING', label: t('order.dispatching') },
+  { value: 'DISPATCHED', label: t('order.dispatched') },
+  { value: 'IN_TRANSIT', label: t('order.inTransit') },
+  { value: 'DELIVERED', label: t('order.delivered') },
+  { value: 'COMPLETED', label: t('order.completed') },
+  { value: 'RETURNING', label: t('order.returning') },
+  { value: 'RETURNED', label: t('order.returned') },
+  { value: 'CANCELLED', label: t('order.cancelled') },
 ];
 
 export default function OrdersPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { confirm } = useConfirm();
@@ -262,38 +264,39 @@ export default function OrdersPage() {
   }, [location.state]);
 
   const handleExport = () => {
+    const statusMap = getStatusMap(t);
     const exportData: any[] = [];
     
     orders.forEach(order => {
       order.items.forEach((item, idx) => {
         exportData.push({
-          '订单编号': order.orderNo,
-          '主体': order.owner?.name || '',
-          '客户名称': (order as any).customer?.name || '',
-          '折扣': idx === 0 ? ((order as any).contractDiscount ? `${((order as any).contractDiscount * 100).toFixed(0)}%` : '') : '',
-          '收货人': order.receiver,
-          '手机号': order.phone,
-          '省份': order.province || '',
-          '城市': order.city || '',
-          '收货地址': order.address || '',
-          '商品名称': item.productName,
-          '包装': item.packaging,
-          '规格': item.spec,
-          '单价': Number(item.price),
-          '数量': item.quantity,
-          '小计': Number(item.subtotal),
-          '总金额': idx === 0 ? Number(order.totalAmount) : '',
-          '状态': idx === 0 ? statusMap[order.status] || order.status : '',
-          '下单时间': idx === 0 ? new Date(order.createdAt).toLocaleString() : '',
+          [t('order.orderNo')]: order.orderNo,
+          [t('order.entity')]: order.owner?.name || '',
+          [t('order.customerName')]: (order as any).customer?.name || '',
+          [t('order.discount')]: idx === 0 ? ((order as any).contractDiscount ? `${((order as any).contractDiscount * 100).toFixed(0)}%` : '') : '',
+          [t('order.receiver')]: order.receiver,
+          [t('order.phone')]: order.phone,
+          [t('order.province')]: order.province || '',
+          [t('order.city')]: order.city || '',
+          [t('order.deliveryAddress')]: order.address || '',
+          [t('order.productName')]: item.productName,
+          [t('order.packaging')]: item.packaging,
+          [t('order.spec')]: item.spec,
+          [t('order.unitPrice')]: Number(item.price),
+          [t('order.quantity')]: item.quantity,
+          [t('order.subtotal')]: Number(item.subtotal),
+          [t('order.totalAmount')]: idx === 0 ? Number(order.totalAmount) : '',
+          [t('order.status')]: idx === 0 ? statusMap[order.status as keyof typeof statusMap] || order.status : '',
+          [t('order.orderTime')]: idx === 0 ? new Date(order.createdAt).toLocaleString() : '',
         });
       });
     });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '订单');
-    XLSX.writeFile(wb, `订单_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('导出成功');
+    XLSX.utils.book_append_sheet(wb, ws, t('order.title'));
+    XLSX.writeFile(wb, `${t('order.title')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success(t('order.exportSuccess'));
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -309,12 +312,12 @@ export default function OrdersPage() {
         const sheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(sheet) as any[];
 
-        console.log('Excel 列名:', Object.keys(json[0] || {}));
-        console.log('Excel 第一行数据:', JSON.stringify(json[0], null, 2));
+        console.log('Excel columns:', Object.keys(json[0] || {}));
+        console.log('Excel first row:', JSON.stringify(json[0], null, 2));
         
         const orderGroups: Record<string, any[]> = {};
         json.forEach(row => {
-          const orderNo = row['订单编号'];
+          const orderNo = row[t('order.orderNo')];
           if (!orderNo) return;
           if (!orderGroups[orderNo]) {
             orderGroups[orderNo] = [];
@@ -334,17 +337,17 @@ export default function OrdersPage() {
 
         if (ordersToImport.length < Object.keys(orderGroups).length) {
           const skippedCount = Object.keys(orderGroups).length - ordersToImport.length;
-          toast.info(`已跳过 ${skippedCount} 个重复订单`);
+          toast.info(`${t('order.skippedDuplicateOrders')} ${skippedCount} ${t('order.duplicateOrders')}`);
         }
 
         if (ordersToImport.length === 0) {
-          toast.warning('没有需要导入的订单');
+          toast.warning(t('order.noOrdersToImport'));
           return;
         }
 
         setImportPreviewData(ordersToImport);
       } catch (error) {
-        toast.error('导入失败，请检查文件格式');
+        toast.error(t('order.importFailed'));
       }
     };
     reader.readAsArrayBuffer(file);
@@ -600,7 +603,7 @@ export default function OrdersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.ownerId || !formData.receiver || !formData.phone || !formData.province || !formData.city || !formData.address || formData.items.length === 0) {
-      toast.error('请填写完整信息');
+      toast.error(t('order.pleaseFillComplete'));
       return;
     }
 
@@ -739,17 +742,17 @@ export default function OrdersPage() {
 
       if (editingId) {
         await orderApi.update(editingId, data);
-        toast.success('订单更新成功');
+        toast.success(t('order.orderUpdated'));
       } else {
         const res = await orderApi.create(data);
-        toast.success(`订单创建成功${Array.isArray(res.data.data) ? `，共 ${res.data.data.length} 个订单` : ''}`);
+        toast.success(`${t('order.orderCreated')}${Array.isArray(res.data.data) ? `，${t('order.total')} ${res.data.data.length} ${t('order.warehouses')}` : ''}`);
       }
       setShowModal(false);
       resetForm();
       setEditingId(null);
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('common.failed'));
     }
   };
 
@@ -767,14 +770,15 @@ export default function OrdersPage() {
 
   const getStatusButtonText = (status: string): string => {
     const textMap: Record<string, string> = {
-      PENDING: '开始拣货',
-      PICKING: '拣货完成',
-      OUTBOUND_REVIEW: '审核通过',
-      DISPATCHING: '开始调度',
-      DISPATCHED: '开始运输',
-      IN_TRANSIT: '确认送达',
+      PENDING: t('order.startPicking'),
+      PICKING: t('order.pickingComplete'),
+      OUTBOUND_REVIEW: t('order.approve'),
+      DISPATCHING: t('order.startDispatch'),
+      DISPATCHED: t('order.startTransport'),
+      IN_TRANSIT: t('order.confirmDelivery'),
     };
-    return textMap[status] || statusMap[status] || '';
+    const statusMap = getStatusMap(t);
+    return textMap[status] || statusMap[status as keyof typeof statusMap] || '';
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -783,30 +787,30 @@ export default function OrdersPage() {
         const { pickOrderApi } = await import('../api');
         const res = await pickOrderApi.create({ orderId: id });
         if (res.data.success) {
-          toast.success('拣货单已生成');
+          toast.success(t('order.pickListGenerated'));
         } else {
-          toast.error(res.data.message || '生成拣货单失败');
+          toast.error(res.data.message || t('order.pickListFailed'));
           return;
         }
       } else {
         await orderApi.updateStatus(id, newStatus);
       }
-      toast.success('状态已更新');
+      toast.success(t('order.statusUpdated'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('common.failed'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定要删除该订单吗？' });
+    const ok = await confirm({ message: t('order.confirmDelete') });
     if (!ok) return;
     try {
       await orderApi.delete(id);
-      toast.success('订单已删除');
+      toast.success(t('order.orderDeleted'));
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('common.deleteFailed'));
     }
   };
 
@@ -832,7 +836,7 @@ export default function OrdersPage() {
 
   const addItem = () => {
     if (!selectedSku) {
-      toast.error('请选择商品');
+      toast.error(t('order.pleaseSelectProduct'));
       return;
     }
     const product = products.find(p => p.skus.some(s => s.id === selectedSku));
@@ -841,7 +845,7 @@ export default function OrdersPage() {
 
     const existing = formData.items.find(item => item.skuId === selectedSku);
     if (existing) {
-      toast.error('该商品已添加');
+      toast.error(t('order.productAlreadyAdded'));
       return;
     }
 
@@ -885,45 +889,45 @@ export default function OrdersPage() {
       {returnModal?.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-4">申请退货</h2>
+            <h2 className="text-lg font-bold mb-4">{t('order.applyReturn')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">订单</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('order.title')}</label>
                 <div className="w-full border rounded-lg px-3 py-2 bg-gray-50">
                   {returnModal.orderNo}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">退货原因</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('order.returnReason')}</label>
                 <textarea
                   value={returnReason}
                   onChange={e => setReturnReason(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2"
                   rows={3}
-                  placeholder="请输入退货原因"
+                  placeholder={t('order.pleaseEnterReturnReason')}
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setReturnModal(null)} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
+              <button onClick={() => setReturnModal(null)} className="flex-1 px-4 py-2 border rounded-lg">{t('order.cancel')}</button>
               <button
                 onClick={async () => {
                   if (!returnReason.trim()) {
-                    toast.error('请输入退货原因');
+                    toast.error(t('order.pleaseEnterReturnReason'));
                     return;
                   }
                   try {
                     await returnApi.create({ orderId: returnModal.orderId, reason: returnReason });
-                    toast.success('退货申请已提交');
+                    toast.success(t('order.returnSubmitted'));
                     setReturnModal(null);
                     fetchOrders();
                   } catch (error: any) {
-                    toast.error(error.response?.data?.message || '创建失败');
+                    toast.error(error.response?.data?.message || t('common.failed'));
                   }
                 }}
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg"
               >
-                提交
+                {t('order.submit')}
               </button>
             </div>
           </div>
@@ -943,13 +947,13 @@ export default function OrdersPage() {
           }}
           onSave={async (data, apiData) => {
             await returnApi.receive(data.returnId!, apiData);
-            toast.success('快递单号已保存');
+            toast.success(t('order.trackingSaved'));
           }}
         />
       )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h1 className="hidden sm:block text-xl sm:text-2xl font-bold text-gray-800">订单中心</h1>
+        <h1 className="hidden sm:block text-xl sm:text-2xl font-bold text-gray-800">{t('order.title')}</h1>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -962,7 +966,7 @@ export default function OrdersPage() {
                 fetchOrders(newFilters);
               }}
               onKeyDown={(e) => e.key === 'Enter' && fetchOrders(filters)}
-              placeholder="订单编号"
+              placeholder={t('order.orderNo')}
               className="w-full sm:w-36 pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
           </div>
@@ -975,8 +979,8 @@ export default function OrdersPage() {
             }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">全部状态</option>
-            {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            <option value="">{t('order.allStatus')}</option>
+            {getStatusOptions(t).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <button
             onClick={() => fetchOrders()}
@@ -991,7 +995,7 @@ export default function OrdersPage() {
             className="hidden sm:flex items-center gap-2 px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
-            导出
+            {t('order.export')}
           </button>
           <input
             type="file"
@@ -1003,20 +1007,20 @@ export default function OrdersPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!currentOwnerId ? t('order.pleaseSelectOwner') : !canWrite ? t('order.noPermission') : ''}
             className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 text-sm shadow-md hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">AI导入</span>
+            <span className="hidden sm:inline">{t('order.aiImport')}</span>
           </button>
           <button
             onClick={() => { resetForm(); setShowModal(true); }}
             disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!currentOwnerId ? t('order.pleaseSelectOwner') : !canWrite ? t('order.noPermission') : ''}
             className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">新建订单</span>
+            <span className="hidden sm:inline">{t('order.createOrder')}</span>
           </button>
         </div>
       </div>
@@ -1027,7 +1031,7 @@ export default function OrdersPage() {
             <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">暂无数据</div>
+          <div className="text-center py-12 text-gray-500">{t('order.noData')}</div>
         ) : (
           <>
             {/* 移动端卡片列表 */}
@@ -1044,7 +1048,7 @@ export default function OrdersPage() {
                           ? 'bg-blue-100 text-blue-700' 
                           : 'bg-gray-100 text-gray-700'
                       }`}>
-                        {order.source === 'CUSTOMER' ? '客户下单' : '系统创建'}
+                        {order.source === 'CUSTOMER' ? t('order.customerOrder') : t('order.systemCreate')}
                       </span>
                       <span className={`px-2 py-1 text-xs rounded border ${
                         order.status === 'PENDING' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
@@ -1059,13 +1063,13 @@ export default function OrdersPage() {
                         order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
                         'bg-gray-50 border-gray-500 text-gray-700'
                       }`}>
-                        {statusMap[order.status]}
+                        {getStatusMap(t)[order.status as keyof ReturnType<typeof getStatusMap>]}
                       </span>
                     </div>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400">收货人:</span>
+                      <span className="text-gray-400">{t('order.receiver')}:</span>
                       <span>{order.receiver}</span>
                       <span className="text-gray-400">|</span>
                       <span>{formatPhone(order.phone)}</span>
@@ -1075,7 +1079,7 @@ export default function OrdersPage() {
                       <span className="truncate">{formatAddress(order.province, order.city, order.address)}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-gray-400">共{order.items.reduce((sum, item) => sum + item.quantity, 0)}件</span>
+                      <span className="text-gray-400">{t('order.total')}{order.items.reduce((sum, item) => sum + item.quantity, 0)}{t('order.items')}</span>
                       <span className="text-primary-600 font-bold">¥{Number(order.totalAmount).toLocaleString()}</span>
                     </div>
                   </div>
@@ -1114,18 +1118,18 @@ export default function OrdersPage() {
                             }}
                             className="flex-1 px-2 py-1.5 text-xs bg-primary-600 text-white rounded hover:bg-primary-700"
                           >
-                            修改
+                            {t('order.modify')}
                           </button>
                         )}
                         {canWrite && (
                           <button
                             onClick={async () => {
-                              const ok = await confirm({ message: '确定要取消该订单吗？' });
+                              const ok = await confirm({ message: t('order.confirmCancel') });
                               if (ok) handleStatusChange(order.id, 'CANCELLED');
                             }}
                             className="flex-1 px-2 py-1.5 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
                           >
-                            取消
+                            {t('order.cancel')}
                           </button>
                         )}
                       </>
@@ -1134,12 +1138,12 @@ export default function OrdersPage() {
                       <>
                         <button
                           onClick={async () => {
-                            const ok = await confirm({ message: '确认已收到货？' });
+                            const ok = await confirm({ message: t('order.confirmReceive') });
                             if (ok) handleStatusChange(order.id, 'COMPLETED');
                           }}
                           className="flex-1 px-2 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                         >
-                          确认收货
+                          {t('order.confirmReceive')}
                         </button>
                         {canWrite && (
                           <button
@@ -1149,7 +1153,7 @@ export default function OrdersPage() {
                             }}
                             className="flex-1 px-2 py-1.5 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
                           >
-                            申请退货
+                            {t('order.applyReturn')}
                           </button>
                         )}
                       </>
@@ -1162,7 +1166,7 @@ export default function OrdersPage() {
                         }}
                         className="flex-1 px-2 py-1.5 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
                       >
-                        申请退货
+                        {t('order.applyReturn')}
                       </button>
                     )}
                     {order.status === 'RETURNING' && (() => {
@@ -1180,23 +1184,23 @@ export default function OrdersPage() {
                                 }}
                                 className="flex-1 px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                               >
-                                填写快递
+                                {t('order.fillExpress')}
                               </button>
                               <button
                                 onClick={async () => {
-                                  const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                                  const ok = await confirm({ message: t('order.confirmCancelReturn') });
                                   if (ok) {
                                     returnApi.cancel(returnOrder.id).then(() => {
-                                      toast.success('已取消退货');
+                                      toast.success(t('order.returnCancelled'));
                                       fetchOrders();
                                     }).catch((err: any) => {
-                                      toast.error(err.response?.data?.message || '取消失败');
+                                      toast.error(err.response?.data?.message || t('common.failed'));
                                     });
                                   }
                                 }}
                                 className="flex-1 px-2 py-1.5 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                               >
-                                取消退货
+                                {t('order.cancelReturn')}
                               </button>
                             </>
                           )}
@@ -1206,12 +1210,12 @@ export default function OrdersPage() {
                     {order.status === 'CANCELLED' && canWrite && (
                       <button
                         onClick={async () => {
-                          const ok = await confirm({ message: '确定要删除该订单吗？' });
+                          const ok = await confirm({ message: t('order.confirmDelete') });
                           if (ok) handleDelete(order.id);
                         }}
                         className="flex-1 px-2 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                       >
-                        删除
+                        {t('common.delete')}
                       </button>
                     )}
                   </div>
@@ -1223,16 +1227,16 @@ export default function OrdersPage() {
             <table className="w-full table-fixed hidden lg:table">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">订单编号</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">主体</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">订单来源</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">收货人/电话</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">收货地址</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">总数</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">金额</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">状态</th>
-                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">下单时间</th>
-                  <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-28">操作</th>
+                  <th className="pl-4 pr-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-40">{t('order.orderNo')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-24">{t('order.entity')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">{t('order.orderSource')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-32">{t('order.receiver')}/{t('order.phone')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-48">{t('order.deliveryAddress')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-12">{t('order.totalItems')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-16">{t('order.amount')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-14">{t('order.status')}</th>
+                  <th className="px-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-20">{t('order.orderTime')}</th>
+                  <th className="pr-4 pl-2 py-3 text-center text-base font-medium text-gray-500 uppercase w-28">{t('order.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -1246,7 +1250,7 @@ export default function OrdersPage() {
                         const latestReturn = getLatestActiveReturn(order as any);
                         return latestReturn ? (
                           <div className="text-orange-500 text-sm mt-0.5">
-                            退: <Link to={`/returns/${latestReturn.id}`} className="text-orange-500 hover:underline">{latestReturn.returnNo}</Link>
+                            {t('order.return')}: <Link to={`/returns/${latestReturn.id}`} className="text-orange-500 hover:underline">{latestReturn.returnNo}</Link>
                           </div>
                         ) : null;
                       })()}
@@ -1261,7 +1265,7 @@ export default function OrdersPage() {
                           ? 'bg-blue-100 text-blue-700' 
                           : 'bg-gray-100 text-gray-700'
                       }`}>
-                        {order.source === 'CUSTOMER' ? '客户下单' : '系统创建'}
+                        {order.source === 'CUSTOMER' ? t('order.customerOrder') : t('order.systemCreate')}
                       </span>
                     </td>
                     <td className="px-2 py-4 text-base w-32 text-center">
@@ -1270,7 +1274,7 @@ export default function OrdersPage() {
                           <div className="flex items-center gap-1">
                             <span className="truncate font-medium">{(order as any).customer.name}</span>
                             {((order as any).customer.level === 'VIP' || (order as any).customer.level === 'vip') && (
-                              <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">VIP</span>
+                              <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">{t('order.vip')}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-1 text-gray-400 text-sm truncate">
@@ -1302,7 +1306,7 @@ export default function OrdersPage() {
                     <td className="px-2 py-4 whitespace-nowrap text-base text-primary-600 font-medium w-16 text-center">
                       <div>¥{Number(order.totalAmount).toLocaleString()}</div>
                       {(order as any).customerId && (order as any).contractDiscount && (
-                        <span className="inline-block px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
+                        <span className="inline-block px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">{t('order.corporatePrice')}</span>
                       )}
                     </td>
                     <td className="px-2 py-4 whitespace-nowrap w-14 text-center">
@@ -1321,7 +1325,7 @@ export default function OrdersPage() {
                         order.status === 'CANCELLED' ? 'bg-gray-50 border-gray-500 text-gray-700' :
                         'bg-gray-50 border-gray-500 text-gray-700'
                       }`}>
-                        {statusMap[order.status]}
+                        {getStatusMap(t)[order.status]}
                       </span>
                     </td>
                     <td className="px-2 py-4 whitespace-nowrap text-base text-gray-500 w-20 text-center">
@@ -1366,20 +1370,20 @@ export default function OrdersPage() {
                                 }}
                                 className="px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 mr-1"
                               >
-                                修改
+                                {t('order.modify')}
                               </button>
                             )}
                             {canWrite && (
                               <button
                                 onClick={async () => {
-                                  const ok = await confirm({ message: '确定要取消该订单吗？' });
+                                  const ok = await confirm({ message: t('order.confirmCancel') });
                                   if (ok) {
                                     handleStatusChange(order.id, 'CANCELLED');
                                   }
                                 }}
                                 className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
                               >
-                                取消
+                                {t('order.cancel')}
                               </button>
                             )}
                           </>
@@ -1387,28 +1391,28 @@ export default function OrdersPage() {
                         {order.status === 'CANCELLED' && canWrite && (
                           <button
                             onClick={async () => {
-                              const ok = await confirm({ message: '确定要删除该订单吗？' });
+                              const ok = await confirm({ message: t('order.confirmDelete') });
                               if (ok) {
                                 handleDelete(order.id);
                               }
                             }}
                             className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                           >
-                            删除
+                            {t('common.delete')}
                           </button>
                         )}
                         {order.status === 'DELIVERED' && (
                           <>
                             <button
                               onClick={async () => {
-                                const ok = await confirm({ message: '确认已收到货？' });
+                                const ok = await confirm({ message: t('order.confirmReceive') });
                                 if (ok) {
                                   handleStatusChange(order.id, 'COMPLETED');
                                 }
                               }}
                               className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 mr-1"
                             >
-                              确认收货
+                              {t('order.confirmReceive')}
                             </button>
                             {canWrite && (
                               <button
@@ -1418,7 +1422,7 @@ export default function OrdersPage() {
                                 }}
                                 className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
                               >
-                                申请退货
+                                {t('order.applyReturn')}
                               </button>
                             )}
                           </>
@@ -1431,7 +1435,7 @@ export default function OrdersPage() {
                             }}
                             className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
                           >
-                            申请退货
+                            {t('order.applyReturn')}
                           </button>
                         )}
                         {order.status === 'RETURNING' && (
@@ -1452,23 +1456,23 @@ export default function OrdersPage() {
                                       }}
                                       className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 mr-1"
                                     >
-                                      填写快递
+                                      {t('order.fillExpress')}
                                     </button>
                                     <button
                                       onClick={async () => {
-                                        const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                                        const ok = await confirm({ message: t('order.confirmCancelReturn') });
                                         if (ok) {
                                           returnApi.cancel(returnOrder.id).then(() => {
-                                            toast.success('已取消退货');
+                                            toast.success(t('order.returnCancelled'));
                                             fetchOrders();
                                           }).catch((err: any) => {
-                                            toast.error(err.response?.data?.message || '取消失败');
+                                            toast.error(err.response?.data?.message || t('common.failed'));
                                           });
                                         }
                                       }}
                                       className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                                     >
-                                      取消退货
+                                      {t('order.cancelReturn')}
                                     </button>
                                   </>
                                 )}
@@ -1490,7 +1494,7 @@ export default function OrdersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center px-3 py-2 sm:p-4 border-b bg-gray-50 flex-shrink-0">
-              <h2 className="text-sm sm:text-lg font-bold">{editingId ? '编辑订单' : '新建订单'}</h2>
+              <h2 className="text-sm sm:text-lg font-bold">{editingId ? t('order.editOrder') : t('order.createOrder')}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); setEditingId(null); }} className="p-1.5 sm:p-2 hover:bg-gray-200 rounded-lg">
                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -1509,7 +1513,7 @@ export default function OrdersPage() {
                           itemType === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
                         }`}
                       >
-                        商品
+                        {t('order.productsTab')}
                       </button>
                       <button
                         type="button"
@@ -1518,7 +1522,7 @@ export default function OrdersPage() {
                           itemType === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
                         }`}
                       >
-                        套装
+                        {t('order.bundlesTab')}
                       </button>
                     </div>
                   )}
@@ -1540,7 +1544,7 @@ export default function OrdersPage() {
                       if (filteredProducts.length === 0) {
                         return <div className="text-center py-8 sm:py-12 text-gray-500">
                         <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 text-gray-300" />
-                        <p className="text-[10px] sm:text-xs">该主体暂无商品</p>
+                        <p className="text-[10px] sm:text-xs">{t('order.noProductsForOwner')}</p>
                       </div>;
                       }
                       return (
@@ -1666,11 +1670,11 @@ export default function OrdersPage() {
                                   </div>
                                 )}
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-gray-500">库存 {b.totalAvailable}</span>
+                                  <span className="text-[10px] text-gray-500">{t('order.stock')} {b.totalAvailable}</span>
                                   <span className={`px-1 py-0.5 text-[10px] rounded font-medium ${
                                     isAdded ? 'bg-gray-200 text-gray-500' : 'bg-purple-100 text-purple-700'
                                   }`}>
-                                    {isAdded ? '✓' : '添加'}
+                                    {isAdded ? '✓' : t('order.add')}
                                   </span>
                                 </div>
                               </div>
@@ -1680,7 +1684,7 @@ export default function OrdersPage() {
                       ) : (
                         <div className="text-center py-8 sm:py-12 text-gray-500">
                           <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 text-gray-300" />
-                          <p className="text-[10px] sm:text-xs">该主体暂无套装</p>
+                          <p className="text-[10px] sm:text-xs">{t('order.noBundlesForOwner')}</p>
                         </div>
                       );
                     })()
@@ -1768,7 +1772,7 @@ export default function OrdersPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-400 py-10">请先选择主体查看可用商品</div>
+                    <div className="text-center text-gray-400 py-10">{t('order.pleaseSelectOwnerToViewProducts')}</div>
                   )}
                 </div>
               </div>
@@ -1777,7 +1781,7 @@ export default function OrdersPage() {
               {/* 右侧 - 订单信息 */}
               <div className={`flex flex-col flex-1 overflow-hidden min-h-0 ${editingId ? 'w-full' : 'w-full lg:w-1/2 lg:flex-none'}`}>
                 <div className="p-2 sm:p-4 border-b bg-gray-50 flex-shrink-0">
-                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">收货人信息</div>
+                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">{t('order.receiverInfo')}</div>
                   {!editingId && (
                     <div className="mb-1.5 sm:mb-2">
                       <div className="flex gap-2 sm:gap-3 mb-1.5 sm:mb-2">
@@ -1793,7 +1797,7 @@ export default function OrdersPage() {
                             }}
                             className="w-3 h-3"
                           />
-                          <span className="text-[10px] sm:text-xs">自然人</span>
+                          <span className="text-[10px] sm:text-xs">{t('order.naturalPerson')}</span>
                         </label>
                         <label className="flex items-center gap-1">
                           <input
@@ -1803,7 +1807,7 @@ export default function OrdersPage() {
                             onChange={() => setCustomerType('CORPORATE')}
                             className="w-3 h-3"
                           />
-                          <span className="text-[10px] sm:text-xs">大客户</span>
+                          <span className="text-[10px] sm:text-xs">{t('order.corporateClient')}</span>
                         </label>
                       </div>
                       {customerType === 'CORPORATE' && (
@@ -1813,7 +1817,7 @@ export default function OrdersPage() {
                           className="w-full px-2 py-1 border rounded-lg text-[10px] sm:text-sm bg-gray-100"
                           disabled={!!editingId}
                         >
-                          <option value="">选择客户</option>
+                          <option value="">{t('order.selectCustomer')}</option>
                           {customers.map(c => (
                             <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
                           ))}
@@ -1823,7 +1827,7 @@ export default function OrdersPage() {
                   )}
                   {formData.contractDiscount && (
                     <div className="mb-1.5 text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                      已应用客户折扣：{formData.contractDiscount * 10}折
+                      {t('order.customerDiscountApplied')}：{formData.contractDiscount * 10}{t('order.discount')}
                     </div>
                   )}
                   {customerType !== 'CORPORATE' && (
@@ -1832,7 +1836,7 @@ export default function OrdersPage() {
                         type="text"
                         value={formData.receiver}
                         onChange={(e) => setFormData({ ...formData, receiver: e.target.value })}
-                        placeholder="收货人"
+                        placeholder={t('order.receiver')}
                         className="px-2 py-1 border rounded-lg text-[10px] sm:text-sm"
                         required
                       />
@@ -1845,7 +1849,7 @@ export default function OrdersPage() {
                   )}
                   {customerType !== 'CORPORATE' ? (
                     <div>
-                      <label className="block text-[10px] font-medium mb-0.5 sm:mb-1">配送地址</label>
+                      <label className="block text-[10px] font-medium mb-0.5 sm:mb-1">{t('order.deliveryAddress')}</label>
                       <AddressInput
                         value={{
                           province: formData.province,
@@ -1866,7 +1870,7 @@ export default function OrdersPage() {
                     </div>
                   ) : selectedCustomerId ? (
                     <div className="px-1.5 py-0.5 bg-gray-50 rounded text-[10px] sm:text-xs">
-                      <span className="text-gray-500">配送至：</span>
+                      <span className="text-gray-500">{t('order.deliveryTo')}：</span>
                       <span className="font-medium text-gray-800">{formData.receiver}</span>
                       <span className="mx-1 text-gray-400">|</span>
                       <span className="text-gray-600">{formatPhone(formData.phone)}</span>
@@ -1877,10 +1881,10 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-2 sm:p-4 min-h-0">
-                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">已选商品 ({formData.items.length})</div>
+                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">{t('order.selectedProducts')} ({formData.items.length})</div>
                   {formData.items.length === 0 ? (
                     <div className="text-center text-gray-400 py-4 sm:py-6 bg-gray-50 rounded-lg text-[10px] sm:text-sm">
-                      暂无商品，请从左侧添加
+                      {t('order.noProducts')}
                     </div>
                   ) : (
                     <div className="space-y-1 sm:space-y-1.5">
@@ -1930,10 +1934,10 @@ export default function OrdersPage() {
                     <div className="flex-shrink-0">
                       {formData.contractDiscount && formData.contractDiscount < 1 && (
                         <div className="text-[10px] sm:text-xs text-gray-500 mb-0.5">
-                          原价: ¥{formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()} × {formData.contractDiscount * 10}折
+                          {t('order.originalPrice')}: ¥{formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()} × {formData.contractDiscount * 10}{t('order.discount')}
                         </div>
                       )}
-                      <span className="text-[10px] sm:text-sm text-gray-600">应付: </span>
+                      <span className="text-[10px] sm:text-sm text-gray-600">{t('order.payable')}: </span>
                       <span className="text-sm sm:text-xl font-bold text-primary-600">¥{(formData.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * (formData.contractDiscount || 1)).toLocaleString()}</span>
                     </div>
                     <div className="flex gap-1.5 sm:gap-2">
@@ -1942,14 +1946,14 @@ export default function OrdersPage() {
                         onClick={() => { setShowModal(false); resetForm(); }}
                         className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg text-xs sm:text-sm hover:bg-gray-100"
                       >
-                        取消
+                        {t('order.cancel')}
                       </button>
                       <button
                         type="submit"
                         disabled={formData.items.length === 0}
                         className="px-4 sm:px-6 py-1.5 sm:py-2 bg-primary-600 text-white rounded-lg text-xs sm:text-sm hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                       >
-                        {editingId ? '修改订单' : '创建订单'}
+                        {editingId ? t('order.modifyOrderBtn') : t('order.createOrderBtn')}
                       </button>
                     </div>
                   </div>
@@ -1964,7 +1968,7 @@ export default function OrdersPage() {
       {splitPreview?.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">订单将拆分为多个仓库</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('order.orderWillSplit')}</h3>
             <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
               {Object.entries(splitPreview.allocations).map(([warehouseName, items]) => (
                 <div key={warehouseName} className="border rounded-lg p-3">
@@ -1978,7 +1982,7 @@ export default function OrdersPage() {
               ))}
             </div>
             <div className="text-sm text-gray-500 mb-4">
-              共 {Object.keys(splitPreview.allocations).length} 个仓库，{formData.items.length} 件商品
+              {t('order.total')} {Object.keys(splitPreview.allocations).length} {t('order.warehouses')}，{formData.items.length} {t('order.products')}
             </div>
             <div className="flex gap-3">
               <button
@@ -1986,7 +1990,7 @@ export default function OrdersPage() {
                 onClick={() => setSplitPreview(null)}
                 className="flex-1 px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50"
               >
-                取消
+                {t('order.cancel')}
               </button>
               <button
                 type="button"
@@ -1996,7 +2000,7 @@ export default function OrdersPage() {
                 }}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                确认创建
+                {t('order.confirmCreate')}
               </button>
             </div>
           </div>

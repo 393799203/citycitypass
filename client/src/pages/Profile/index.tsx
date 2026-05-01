@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User as UserIcon, LogOut, Building2, Phone, Mail, ChevronDown, Check, QrCode, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth';
 import { useOwnerStore } from '../../stores/owner';
@@ -10,6 +11,7 @@ import { qrcodeApi } from '../../api';
 import { toast } from 'react-toastify';
 
 const Profile: React.FC = () => {
+  const { t } = useTranslation();
   const { user, logout, owners: authOwners } = useAuthStore();
   const { currentOwnerId, currentOwnerName, setCurrentOwner, logout: logoutOwner } = useOwnerStore();
   const { confirm } = useConfirm();
@@ -19,7 +21,7 @@ const Profile: React.FC = () => {
   const [qrCodeData, setQRCodeData] = useState<{ qrCode: string; shoppingUrl: string } | null>(null);
 
   const handleLogout = async () => {
-    const ok = await confirm({ message: '确定要退出登录吗？' });
+    const ok = await confirm({ message: t('profile.logoutConfirm') });
     if (ok) {
       logout();
       logoutOwner();
@@ -29,7 +31,7 @@ const Profile: React.FC = () => {
 
   const handleGenerateShopQRCode = async () => {
     if (!currentOwnerId) {
-      toast.warning('请先选择主体');
+      toast.warning(t('profile.selectOwnerFirst'));
       return;
     }
     try {
@@ -40,8 +42,8 @@ const Profile: React.FC = () => {
         setShowQRCodeModal(true);
       }
     } catch (error: any) {
-      console.error('生成店铺二维码失败:', error);
-      toast.error(error.response?.data?.message || '生成店铺二维码失败');
+      console.error('Failed to generate QR code:', error);
+      toast.error(error.response?.data?.message || t('profile.qrCodeFailed'));
     }
   };
 

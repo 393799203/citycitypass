@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Plus, Package, Warehouse, X, Info, MapPin } from 'lucide-react';
 import { useOwnerStore } from '../stores/owner';
@@ -39,6 +40,7 @@ interface Shelf {
 }
 
 export default function InventoryPage() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -330,23 +332,23 @@ export default function InventoryPage() {
     <div className="p-2 space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
         <div className="bg-white rounded-lg shadow p-2 sm:p-4">
-          <div className="text-gray-500 text-xs sm:text-sm">有库存商品SKU</div>
+          <div className="text-gray-500 text-xs sm:text-sm">{t('inventory.productSkuWithStock')}</div>
           <div className="text-lg sm:text-2xl font-bold text-primary-600">{new Set(stocks.filter(s => s.type === 'product' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.skuId)).size}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-2 sm:p-4">
-          <div className="text-gray-500 text-xs sm:text-sm">有库存套装SKU</div>
+          <div className="text-gray-500 text-xs sm:text-sm">{t('inventory.bundleSkuWithStock')}</div>
           <div className="text-lg sm:text-2xl font-bold text-purple-600">{new Set(stocks.filter(s => s.type === 'bundle' && s.warehouse?.type !== 'MATERIAL' && (s.totalQuantity || 0) > 0).map(s => s.bundleId)).size}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-2 sm:p-4">
-          <div className="text-gray-500 text-xs sm:text-sm">今日入库</div>
+          <div className="text-gray-500 text-xs sm:text-sm">{t('inventory.todayStockIn')}</div>
           <div className="text-lg sm:text-2xl font-bold text-green-600">{stockIns.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, i) => sum + i.quantity, 0)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-2 sm:p-4">
-          <div className="text-gray-500 text-xs sm:text-sm">今日出库</div>
+          <div className="text-gray-500 text-xs sm:text-sm">{t('inventory.todayStockOut')}</div>
           <div className="text-lg sm:text-2xl font-bold text-orange-600">{stockOuts.filter(s => s.warehouse?.type !== 'MATERIAL' && new Date(s.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.quantity, 0)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-2 sm:p-4 col-span-2 sm:col-span-1">
-          <div className="text-gray-500 text-xs sm:text-sm">总库存</div>
+          <div className="text-gray-500 text-xs sm:text-sm">{t('inventory.totalStock')}</div>
           <div className="text-lg sm:text-2xl font-bold text-gray-700">{stocks.filter(s => s.warehouse?.type !== 'MATERIAL').reduce((sum, s) => sum + (s.totalQuantity || 0), 0)}</div>
         </div>
       </div>
@@ -355,25 +357,25 @@ export default function InventoryPage() {
         <div className="hidden sm:flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Package className="w-5 h-5" />
-            库存列表
+            {t('inventory.inventoryList')}
           </h2>
           <div className="flex gap-2 items-center">
             {inventoryType === 'sales' && (
-              <span className="text-orange-500 text-sm">存储区与拣货区库存为销售库存！</span>
+              <span className="text-orange-500 text-sm">{t('inventory.salesStockHint')}</span>
             )}
-            <span className="text-sm text-gray-500">库存类型：</span>
+            <span className="text-sm text-gray-500">{t('inventory.inventoryType')}：</span>
             <div className="flex rounded-lg overflow-hidden border">
               <button
                 onClick={() => { setInventoryType('sales'); }}
                 className={`px-3 py-1.5 text-sm ${inventoryType === 'sales' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               >
-                销售库存
+                {t('inventory.salesStock')}
               </button>
               <button
                 onClick={() => { setInventoryType('all'); }}
                 className={`px-3 py-1.5 text-sm ${inventoryType === 'all' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               >
-                全部库存
+                {t('inventory.allStock')}
               </button>
             </div>
           </div>
@@ -382,20 +384,20 @@ export default function InventoryPage() {
         <div className="sm:hidden flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold flex items-center gap-2">
             <Package className="w-4 h-4" />
-            库存列表
+            {t('inventory.inventoryList')}
           </h2>
           <div className="flex rounded-lg overflow-hidden border">
             <button
               onClick={() => { setInventoryType('sales'); }}
               className={`px-2 py-1 text-xs ${inventoryType === 'sales' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700'}`}
             >
-              销售
+              {t('inventory.salesStock')}
             </button>
             <button
               onClick={() => { setInventoryType('all'); }}
               className={`px-2 py-1 text-xs ${inventoryType === 'all' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700'}`}
             >
-              全部
+              {t('inventory.allStock')}
             </button>
           </div>
         </div>
@@ -407,7 +409,7 @@ export default function InventoryPage() {
               className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
             >
               <Warehouse className="w-4 h-4" />
-              入库记录
+              {t('inventory.stockInRecords')}
             </button>
             <button
               onClick={() => {
@@ -421,7 +423,7 @@ export default function InventoryPage() {
               className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50"
             >
               <Package className="w-4 h-4" />
-              出库记录
+              {t('inventory.stockOutRecords')}
             </button>
           </div>
           <div className="flex gap-2 items-center flex-wrap">
@@ -430,7 +432,7 @@ export default function InventoryPage() {
               onChange={(e) => { setFilterWarehouse(e.target.value); setFilterZone(''); setFilterShelf(''); }}
               className="px-3 py-2 border rounded text-sm w-36"
             >
-              <option value="">全部仓库</option>
+              <option value="">{t('inventory.allWarehouses')}</option>
               {warehouses.map(w => (
                 <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
               ))}
@@ -441,9 +443,9 @@ export default function InventoryPage() {
               disabled={!filterWarehouse}
               className="px-3 py-2 border rounded text-sm w-32 disabled:opacity-50"
             >
-              <option value="">全部货区</option>
+              <option value="">{t('inventory.allZones')}</option>
               {zones.map(z => {
-                const typeMap: Record<string, string> = { PICKING: '拣货区', STORAGE: '存储区', RETURNING: '退货区', INBOUND: '入库区', DAMAGED: '损坏区' };
+                const typeMap: Record<string, string> = { PICKING: t('inventory.pickingZone'), STORAGE: t('inventory.storageZone'), RETURNING: t('inventory.returningZone'), INBOUND: t('inventory.inboundZone'), DAMAGED: t('inventory.damagedZone') };
                 return <option key={z.id} value={z.id}>{z.code}-{typeMap[z.type] || z.type}</option>;
               })}
             </select>
@@ -453,7 +455,7 @@ export default function InventoryPage() {
               disabled={!filterZone}
               className="px-3 py-2 border rounded text-sm w-28 disabled:opacity-50"
             >
-              <option value="">全部货架</option>
+              <option value="">{t('inventory.allShelves')}</option>
               {filterShelfOptions.map(s => (
                 <option key={s.id} value={s.id}>{s.code}</option>
               ))}
@@ -463,9 +465,9 @@ export default function InventoryPage() {
               onChange={(e) => { setFilterType(e.target.value); setFilterProduct(''); setFilterBundle(''); }}
               className="px-3 py-2 border rounded text-sm w-28"
             >
-              <option value="">全部类型</option>
-              <option value="product">普通商品</option>
-              <option value="bundle">套装</option>
+              <option value="">{t('inventory.allTypes')}</option>
+              <option value="product">{t('inventory.normalProduct')}</option>
+              <option value="bundle">{t('inventory.bundle')}</option>
             </select>
             <select
               value={filterType === 'bundle' ? filterBundle : filterProduct}
@@ -478,7 +480,7 @@ export default function InventoryPage() {
               }}
               className="px-3 py-2 border rounded text-sm w-36"
             >
-              <option value="">全部{filterType === 'bundle' ? '套装' : filterType === 'product' ? '商品' : '商品/套装'}</option>
+              <option value="">{t('inventory.allTypes')}{filterType === 'bundle' ? t('inventory.bundleType') : filterType === 'product' ? t('inventory.productType') : t('inventory.allProductsOrBundles')}</option>
               {filterType === 'bundle'
                 ? bundles.map(b => <option key={b.id} value={b.id}>{b.name}</option>)
                 : filterType === 'product'
@@ -492,12 +494,12 @@ export default function InventoryPage() {
               onClick={() => { setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); setFilterBatchNo(''); }}
               className="px-3 py-1.5 border border-gray-300 text-gray-600 rounded text-sm"
             >
-              重置
+              {t('inventory.reset')}
             </button>
             <div className="relative">
               <input
                 type="text"
-                placeholder="批号筛选"
+                placeholder={t('inventory.batchNoFilter')}
                 value={filterBatchNo}
                 onChange={(e) => setFilterBatchNo(e.target.value)}
                 className="px-3 py-1.5 pr-7 border border-gray-300 rounded text-sm w-32"
@@ -506,7 +508,7 @@ export default function InventoryPage() {
                 <button
                   onClick={() => setFilterBatchNo('')}
                   className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full text-xs"
-                  title="清空"
+                  title={t('inventory.clear')}
                 >
                   ×
                 </button>
@@ -555,15 +557,15 @@ export default function InventoryPage() {
               onChange={(e) => { setFilterType(e.target.value); setFilterProduct(''); setFilterBundle(''); }}
               className="w-20 px-2 py-1.5 border rounded text-xs"
             >
-              <option value="">全部</option>
-              <option value="product">商品</option>
-              <option value="bundle">套装</option>
+              <option value="">{t('inventory.allTypes')}</option>
+              <option value="product">{t('inventory.product')}</option>
+              <option value="bundle">{t('inventory.bundle')}</option>
             </select>
             <button
               onClick={() => { setFilterWarehouse(''); setFilterZone(''); setFilterProduct(''); setFilterType(''); setFilterBundle(''); setFilterBatchNo(''); }}
               className="px-2 py-1.5 border border-gray-300 text-gray-600 rounded text-xs"
             >
-              重置
+              {t('inventory.reset')}
             </button>
           </div>
         </div>
@@ -589,7 +591,7 @@ export default function InventoryPage() {
             return true;
           });
           const groupedStocks = filteredStocks.reduce((acc: any, stock: any) => {
-            const key = stock.warehouse?.name || '未知仓库';
+            const key = stock.warehouse?.name || t('inventory.unknownWarehouse');
             if (!acc[key]) acc[key] = [];
             acc[key].push(stock);
             return acc;
@@ -667,23 +669,23 @@ export default function InventoryPage() {
                       <div className="hidden sm:flex items-center gap-4 text-xs">
                         <span className="flex items-center gap-1.5">
                           <Package className="w-3 h-3 text-blue-500" />
-                          <span className="text-gray-600">商品</span>
+                          <span className="text-gray-600">{t('inventory.product')}</span>
                           <span className="font-medium text-gray-800">{productSkus.length} SKU</span>
                           <span className="text-gray-400">/</span>
-                          <span className="text-blue-600 font-medium">{productTotal}件</span>
+                          <span className="text-blue-600 font-medium">{productTotal}{t('inventory.itemsUnit')}</span>
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Package className="w-3 h-3 text-purple-500" />
-                          <span className="text-gray-600">套装</span>
+                          <span className="text-gray-600">{t('inventory.bundle')}</span>
                           <span className="font-medium text-gray-800">{bundleSkus.length} SKU</span>
                           <span className="text-gray-400">/</span>
-                          <span className="text-purple-600 font-medium">{bundleTotal}件</span>
+                          <span className="text-purple-600 font-medium">{bundleTotal}{t('inventory.itemsUnit')}</span>
                         </span>
                       </div>
                       <div className="sm:hidden flex items-center gap-2 text-xs">
-                        <span className="text-blue-600">{productTotal}件</span>
+                        <span className="text-blue-600">{productTotal}{t('inventory.itemsUnit')}</span>
                         <span className="text-gray-300">|</span>
-                        <span className="text-purple-600">{bundleTotal}件</span>
+                        <span className="text-purple-600">{bundleTotal}{t('inventory.itemsUnit')}</span>
                       </div>
                     </div>
                   </div>
@@ -702,7 +704,7 @@ export default function InventoryPage() {
                             onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? (
                               <div>
                                 <div className={`font-semibold mb-2 ${stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? 'text-orange-400' : 'text-green-400') : stock.type === 'bundle' ? 'text-purple-400' : 'text-blue-400'}`}>
-                                  {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原材料') : stock.type === 'bundle' ? '套装' : '商品'}
+                                  {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? t('inventory.otherType') : t('inventory.materialType')) : stock.type === 'bundle' ? t('inventory.bundle') : t('inventory.product')}
                                 </div>
                                 {stock.batchNos.map((bn: string, i: number) => {
                                   const ed = stock.expiryDates[i] || stock.expiryDates[0];
@@ -713,12 +715,12 @@ export default function InventoryPage() {
                                   );
                                 })}
                               </div>
-                            ) : <div className="text-gray-400">无批次信息</div> })}
+                            ) : <div className="text-gray-400">{t('inventory.noBatchInfo')}</div> })}
                             onMouseLeave={() => setTooltip(null)}
                             onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: stock.batchNos.length > 0 ? (
                               <div>
                                 <div className={`font-semibold mb-2 ${stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? 'text-orange-400' : 'text-green-400') : stock.type === 'bundle' ? 'text-purple-400' : 'text-blue-400'}`}>
-                                  {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原材料') : stock.type === 'bundle' ? '套装' : '商品'}
+                                  {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? t('inventory.otherType') : t('inventory.materialType')) : stock.type === 'bundle' ? t('inventory.bundle') : t('inventory.product')}
                                 </div>
                                 {stock.batchNos.map((bn: string, i: number) => {
                                   const ed = stock.expiryDates[i] || stock.expiryDates[0];
@@ -729,9 +731,9 @@ export default function InventoryPage() {
                                   );
                                 })}
                               </div>
-                            ) : <div className="text-gray-400">无批次信息</div> })}
+                            ) : <div className="text-gray-400">{t('inventory.noBatchInfo')}</div> })}
                           >
-                            {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原材料') : stock.type === 'bundle' ? '套装' : '商品'}
+                            {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? t('inventory.otherType') : t('inventory.materialType')) : stock.type === 'bundle' ? t('inventory.bundle') : t('inventory.product')}
                           </span>
                           <div className="flex-1 min-w-0">
                             {stock.type === 'bundle' ? (
@@ -741,9 +743,9 @@ export default function InventoryPage() {
                                 {stock.bundle?.items?.length > 0 && (
                                   <button
                                     type="button"
-                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{stock.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inventory.bundleContains')}</div>{stock.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
                                     onMouseLeave={() => setTooltip(null)}
-                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{stock.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inventory.bundleContains')}</div>{stock.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
                                     className="p-0.5 hover:bg-gray-100 rounded shrink-0"
                                   >
                                     <Info className="w-4 h-4 text-gray-400 cursor-help" />
@@ -818,18 +820,18 @@ export default function InventoryPage() {
                                   ? (stock.supplierMaterial?.category === 'OTHER' ? 'bg-orange-500' : 'bg-green-500')
                                   : stock.type === 'bundle' ? 'bg-purple-500' : 'bg-blue-500'
                               }`}>
-                                {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? '其他' : '原料') : stock.type === 'bundle' ? '套装' : '商品'}
+                                {stock.type === 'material' ? (stock.supplierMaterial?.category === 'OTHER' ? t('inventory.otherType') : t('inventory.materialShort')) : stock.type === 'bundle' ? t('inventory.bundle') : t('inventory.product')}
                               </span>
                               <span className="font-medium text-sm text-gray-800 truncate">
                                 {stock.type === 'bundle' ? stock.bundle?.name : stock.type === 'material' ? stock.supplierMaterial?.name : stock.sku?.product?.name}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
-                              <span className="text-gray-500">总<span className="font-medium text-gray-700">{stock.totalQuantity}</span></span>
+                              <span className="text-gray-500">{t('inventory.stockShort')}<span className="font-medium text-gray-700">{stock.totalQuantity}</span></span>
                               {stock.lockedQuantity > 0 && (
-                                <span className="text-orange-500">冻<span className="font-medium">{stock.lockedQuantity}</span></span>
+                                <span className="text-orange-500">{t('inventory.frozenShort')}<span className="font-medium">{stock.lockedQuantity}</span></span>
                               )}
-                              <span className="text-green-600">可<span className="font-medium">{stock.availableQuantity}</span></span>
+                              <span className="text-green-600">{t('inventory.availableShort')}<span className="font-medium">{stock.availableQuantity}</span></span>
                             </div>
                           </div>
                           {stock.type !== 'bundle' && stock.type !== 'material' && (
@@ -845,15 +847,15 @@ export default function InventoryPage() {
                                     <MapPin className="w-3 h-3" />
                                     <span className="font-mono">{shelf.code}</span>
                                     {shelf.batchNo && (
-                                      <span className="text-purple-500 ml-1">批:{shelf.batchNo}</span>
+                                      <span className="text-purple-500 ml-1">{t('inventory.batchShort')}:{shelf.batchNo}</span>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-gray-600">库{shelf.total}</span>
+                                    <span className="text-gray-600">{t('inventory.stockShort')}{shelf.total}</span>
                                     {shelf.locked > 0 && (
-                                      <span className="text-orange-500">冻{shelf.locked}</span>
+                                      <span className="text-orange-500">{t('inventory.frozenShort')}{shelf.locked}</span>
                                     )}
-                                    <span className="text-green-600">可{shelf.available}</span>
+                                    <span className="text-green-600">{t('inventory.availableShort')}{shelf.available}</span>
                                   </div>
                                 </div>
                               ))}
@@ -877,7 +879,7 @@ export default function InventoryPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center p-3 sm:p-6 border-b">
-              <h2 className="text-base sm:text-xl font-bold">入库记录</h2>
+              <h2 className="text-base sm:text-xl font-bold">{t('inventory.stockInRecords')}</h2>
               <button onClick={() => setShowStockInModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -886,12 +888,12 @@ export default function InventoryPage() {
               <table className="w-full text-sm hidden sm:table">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr className="text-center">
-                    <th className="px-3 py-2">仓库名</th>
-                    <th className="px-3 py-2">类型</th>
-                    <th className="px-3 py-2">商品/套装</th>
-                    <th className="px-3 py-2">货位</th>
-                    <th className="px-3 py-2">数量</th>
-                    <th className="px-3 py-2">时间</th>
+                    <th className="px-3 py-2">{t('inventory.warehouseName')}</th>
+                    <th className="px-3 py-2">{t('inventory.type')}</th>
+                    <th className="px-3 py-2">{t('inventory.productOrBundle')}</th>
+                    <th className="px-3 py-2">{t('inventory.location')}</th>
+                    <th className="px-3 py-2">{t('inventory.quantity')}</th>
+                    <th className="px-3 py-2">{t('inventory.time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -899,10 +901,10 @@ export default function InventoryPage() {
                     const sortedStockIns = [...stockIns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                     return sortedStockIns.map((item: any) => (
                       <tr key={item.id} className="border-t">
-                        <td className="px-3 py-2 text-center text-primary-600 font-medium">{item.warehouse?.name || '未知仓库'}</td>
+                        <td className="px-3 py-2 text-center text-primary-600 font-medium">{item.warehouse?.name || t('inventory.unknownWarehouse')}</td>
                         <td className="px-3 py-2 text-center">
                           <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {item.type === 'bundle' ? '套装' : '商品'}
+                            {item.type === 'bundle' ? t('inventory.bundle') : t('inventory.product')}
                           </span>
                         </td>
                         <td className="px-3 py-2 text-center">
@@ -916,9 +918,9 @@ export default function InventoryPage() {
                                 {item.bundle?.items?.length > 0 && (
                                   <button
                                     type="button"
-                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
+                                    onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inventory.bundleContains')}</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
                                     onMouseLeave={() => setTooltip(null)}
-                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
+                                    onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inventory.bundleContains')}</div>{item.bundle.items.map((bundleItem: any) => (<div key={bundleItem.id} className="text-gray-200 py-1"><span className="text-blue-400">{bundleItem.sku?.product?.name}</span><span className="text-gray-400"> · {bundleItem.sku?.spec}/{bundleItem.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bundleItem.quantity}</span></div>))}</div> })}
                                     className="p-0.5 hover:bg-gray-100 rounded"
                                   >
                                     <Info className="w-4 h-4 text-gray-400 cursor-help" />
@@ -935,8 +937,8 @@ export default function InventoryPage() {
                         </td>
                         <td className="px-3 py-2 text-center">
                           <div>{item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}</div>
-                          {item.skuBatch?.batchNo && <div className="text-purple-600 text-xs">批:{item.skuBatch?.batchNo}</div>}
-                          {item.bundleBatch?.batchNo && <div className="text-purple-600 text-xs">批:{item.bundleBatch?.batchNo}</div>}
+                          {item.skuBatch?.batchNo && <div className="text-purple-600 text-xs">{t('inventory.batchShort')}:{item.skuBatch?.batchNo}</div>}
+                          {item.bundleBatch?.batchNo && <div className="text-purple-600 text-xs">{t('inventory.batchShort')}:{item.bundleBatch?.batchNo}</div>}
                         </td>
                         <td className="px-3 py-2 text-center text-green-600">+{item.quantity}</td>
                         <td className="px-3 py-2 text-center text-gray-500">
@@ -948,14 +950,14 @@ export default function InventoryPage() {
                   {stockIns.length === 0 && !stockInLoading && (
                     <tr>
                       <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
-                        暂无入库记录
+                        {t('inventory.noStockInRecords')}
                       </td>
                     </tr>
                   )}
                   {stockInLoading && (
                     <tr>
                       <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
-                        加载中...
+                        {t('inventory.loading')}
                       </td>
                     </tr>
                   )}
@@ -965,17 +967,17 @@ export default function InventoryPage() {
                 {(() => {
                   const sortedStockIns = [...stockIns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                   if (sortedStockIns.length === 0 && !stockInLoading) {
-                    return <div className="text-center text-gray-500 py-8">暂无入库记录</div>;
+                    return <div className="text-center text-gray-500 py-8">{t('inventory.noStockInRecords')}</div>;
                   }
                   if (stockInLoading) {
-                    return <div className="text-center text-gray-500 py-8">加载中...</div>;
+                    return <div className="text-center text-gray-500 py-8">{t('inventory.loading')}</div>;
                   }
                   return sortedStockIns.map((item: any) => (
                     <div key={item.id} className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-primary-600 font-medium text-sm">{item.warehouse?.name || '未知仓库'}</span>
+                        <span className="text-primary-600 font-medium text-sm">{item.warehouse?.name || t('inventory.unknownWarehouse')}</span>
                         <span className={`px-2 py-0.5 text-xs rounded ${item.type === 'bundle' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {item.type === 'bundle' ? '套装' : '商品'}
+                          {item.type === 'bundle' ? t('inventory.bundle') : t('inventory.product')}
                         </span>
                       </div>
                       <div className="text-sm font-medium mb-1">
@@ -988,7 +990,7 @@ export default function InventoryPage() {
                         <span className="text-gray-400">
                           {item.location?.shelf?.zone?.code || '-'}-{item.location?.shelf?.code || '-'}-L{item.location?.level}
                           {(item.skuBatch?.batchNo || item.bundleBatch?.batchNo) && (
-                            <span className="text-purple-600 ml-1">批:{item.skuBatch?.batchNo || item.bundleBatch?.batchNo}</span>
+                            <span className="text-purple-600 ml-1">{t('inventory.batchShort')}:{item.skuBatch?.batchNo || item.bundleBatch?.batchNo}</span>
                           )}
                         </span>
                         <span className="text-green-600 font-medium">+{item.quantity}</span>
@@ -1009,7 +1011,7 @@ export default function InventoryPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center p-3 sm:p-6 border-b shrink-0">
-              <h2 className="text-base sm:text-xl font-bold">出库记录</h2>
+              <h2 className="text-base sm:text-xl font-bold">{t('inventory.stockOutRecords')}</h2>
               <button onClick={() => setShowStockOutModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -1018,13 +1020,13 @@ export default function InventoryPage() {
               <table className="w-full text-sm hidden sm:table">
                 <thead className="bg-gray-50">
                   <tr className="text-center">
-                    <th className="px-3 py-2">仓库</th>
-                    <th className="px-3 py-2">订单号</th>
-                    <th className="px-3 py-2">类型</th>
-                    <th className="px-3 py-2">商品/套装</th>
-                    <th className="px-3 py-2">货位</th>
-                    <th className="px-3 py-2">数量</th>
-                    <th className="px-3 py-2">时间</th>
+                    <th className="px-3 py-2">{t('inventory.warehouse')}</th>
+                    <th className="px-3 py-2">{t('inventory.orderNo')}</th>
+                    <th className="px-3 py-2">{t('inventory.type')}</th>
+                    <th className="px-3 py-2">{t('inventory.productOrBundle')}</th>
+                    <th className="px-3 py-2">{t('inventory.location')}</th>
+                    <th className="px-3 py-2">{t('inventory.quantity')}</th>
+                    <th className="px-3 py-2">{t('inventory.time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1040,7 +1042,7 @@ export default function InventoryPage() {
                         </td>
                       <td className="px-3 py-2 text-center">
                         <span className={`px-2 py-0.5 text-xs rounded ${out.skuId ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                          {out.skuId ? '商品' : '套装'}
+                          {out.skuId ? t('inventory.product') : t('inventory.bundle')}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-center">
@@ -1060,9 +1062,9 @@ export default function InventoryPage() {
                               {out.bundle?.items?.length > 0 && (
                                 <button
                                   type="button"
-                                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{out.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inventory.bundleContains')}</div>{out.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
                                   onMouseLeave={() => setTooltip(null)}
-                                  onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{out.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
+                                  onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inventory.bundleContains')}</div>{out.bundle.items.map((item: any) => (<div key={item.id} className="text-gray-200 py-1"><span className="text-blue-400">{item.sku?.product?.name}</span><span className="text-gray-400"> · {item.sku?.spec}/{item.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{item.quantity}</span></div>))}</div> })}
                                   className="p-0.5 hover:bg-gray-100 rounded"
                                 >
                                   <Info className="w-4 h-4 text-gray-400 cursor-help" />
@@ -1073,8 +1075,8 @@ export default function InventoryPage() {
                       </td>
                       <td className="px-3 py-2 text-center">
                         <div>{out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}</div>
-                        {out.skuBatch?.batchNo && <div className="text-purple-600 text-xs">批:{out.skuBatch?.batchNo}</div>}
-                        {out.bundleBatch?.batchNo && <div className="text-purple-600 text-xs">批:{out.bundleBatch?.batchNo}</div>}
+                        {out.skuBatch?.batchNo && <div className="text-purple-600 text-xs">{t('inventory.batchShort')}:{out.skuBatch?.batchNo}</div>}
+                        {out.bundleBatch?.batchNo && <div className="text-purple-600 text-xs">{t('inventory.batchShort')}:{out.bundleBatch?.batchNo}</div>}
                       </td>
                       <td className="px-3 py-2 text-center text-red-600">-{out.quantity}</td>
                       <td className="px-3 py-2 text-center text-gray-500">
@@ -1084,7 +1086,7 @@ export default function InventoryPage() {
                   )) : (
                     <tr>
                       <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
-                        暂无出库记录
+                        {t('inventory.noStockOutRecords')}
                       </td>
                     </tr>
                   )}
@@ -1096,7 +1098,7 @@ export default function InventoryPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-gray-700 font-medium text-sm">{out.warehouse?.name || '-'}</span>
                       <span className={`px-2 py-0.5 text-xs rounded ${out.skuId ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                        {out.skuId ? '商品' : '套装'}
+                        {out.skuId ? t('inventory.product') : t('inventory.bundle')}
                       </span>
                     </div>
                     <div className="text-sm font-medium mb-1">
@@ -1109,7 +1111,7 @@ export default function InventoryPage() {
                       <span className="text-gray-400">
                         {out.location?.shelf?.zone?.code || '-'}-{out.location?.shelf?.code || '-'}-L{out.location?.level}
                         {(out.skuBatch?.batchNo || out.bundleBatch?.batchNo) && (
-                          <span className="text-purple-600 ml-1">批:{out.skuBatch?.batchNo || out.bundleBatch?.batchNo}</span>
+                          <span className="text-purple-600 ml-1">{t('inventory.batchShort')}:{out.skuBatch?.batchNo || out.bundleBatch?.batchNo}</span>
                         )}
                       </span>
                       <span className="text-red-600 font-medium">-{out.quantity}</span>
@@ -1124,7 +1126,7 @@ export default function InventoryPage() {
                     </div>
                   </div>
                 )) : (
-                  <div className="text-center text-gray-500 py-8">暂无出库记录</div>
+                  <div className="text-center text-gray-500 py-8">{t('inventory.noStockOutRecords')}</div>
                 )}
               </div>
             </div>

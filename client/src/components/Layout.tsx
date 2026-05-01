@@ -2,12 +2,15 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useConfirm } from './ConfirmProvider';
 import OwnerModal from './OwnerModal';
 import AIAssistantWrapper from './AIAssistantWrapper';
+import LanguageSwitcher from './LanguageSwitcher';
+import UserMenu from './UserMenu';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth';
 import { useOwnerStore } from '../stores/owner';
 import { ownerApi, authApi } from '../api';
 import { ToastContainer, toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Bot as LogoIcon,
   ShoppingCart,
@@ -69,6 +72,7 @@ const MenuIcon = ({ path, className }: { path: string; className?: string }) => 
 };
 
 export default function Layout() {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [ownerDropdownOpen, setOwnerDropdownOpen] = useState(false);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
@@ -210,7 +214,7 @@ export default function Layout() {
         <div className="h-14 flex items-center justify-between px-3 border-b bg-primary-600">
           <div className={`flex items-center gap-2 ${collapsed ? 'justify-center w-full' : ''}`}>
             <LogoIcon className="w-7 h-7 text-white flex-shrink-0" />
-            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">智链云AI</span>}
+            {!collapsed && <span className="text-lg font-bold text-white whitespace-nowrap">{t('login.title')}</span>}
           </div>
         </div>
 
@@ -219,7 +223,7 @@ export default function Layout() {
           <>
             <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
               <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
-              {!collapsed && <span className="text-xs text-gray-400">业务</span>}
+              {!collapsed && <span className="text-xs text-gray-400">{t('menu.business')}</span>}
               <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
             </div>
 
@@ -237,7 +241,7 @@ export default function Layout() {
                 }
               >
                 <MenuIcon path={item.path} className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                {!collapsed && <span className="whitespace-nowrap">{t(item.labelKey)}</span>}
               </NavLink>
             ))}
           </>
@@ -247,7 +251,7 @@ export default function Layout() {
           <>
             <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
               <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
-              {!collapsed && <span className="text-xs text-gray-400">配置</span>}
+              {!collapsed && <span className="text-xs text-gray-400">{t('menu.config')}</span>}
               <div className="h-px bg-gray-200 flex-1" />
             </div>
 
@@ -264,7 +268,7 @@ export default function Layout() {
                 }
               >
                 <MenuIcon path={item.path} className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                {!collapsed && <span className="whitespace-nowrap">{t(item.labelKey)}</span>}
               </NavLink>
             ))}
           </>
@@ -274,7 +278,7 @@ export default function Layout() {
           <>
             <div className={`flex items-center gap-2 my-3 ${collapsed ? 'justify-center' : ''}`}>
               <div className={`h-px bg-gray-200 flex-1 ${collapsed ? 'w-6' : ''}`} />
-              {!collapsed && <span className="text-xs text-gray-400">权限</span>}
+              {!collapsed && <span className="text-xs text-gray-400">{t('menu.permission')}</span>}
               <div className="h-px bg-gray-200 flex-1" />
             </div>
 
@@ -291,7 +295,7 @@ export default function Layout() {
                 }
               >
                 <MenuIcon path={item.path} className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                {!collapsed && <span className="whitespace-nowrap">{t(item.labelKey)}</span>}
               </NavLink>
             ))}
           </>
@@ -310,7 +314,7 @@ export default function Layout() {
             ) : (
               <>
                 <ChevronLeft className="w-5 h-5" />
-                <span>收起</span>
+                <span>{t('common.collapse')}</span>
               </>
             )}
           </button>
@@ -330,7 +334,7 @@ export default function Layout() {
                 className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>返回</span>
+                <span>{t('common.back')}</span>
               </button>
             )}
           </div>
@@ -340,7 +344,7 @@ export default function Layout() {
             className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600 text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
           >
             <PlayCircle className="w-4 h-4" />
-            <span>观看演示</span>
+            <span>{t('header.watchDemo')}</span>
           </button>
           
           <div className="flex items-center gap-4">
@@ -351,7 +355,7 @@ export default function Layout() {
               >
                 <Building2 className="w-4 h-4 text-gray-500" />
                 <span className="text-sm text-gray-700">
-                  {currentOwnerName || (owners.length === 0 ? '创建主体' : '全部主体')}
+                  {currentOwnerName || (owners.length === 0 ? t('header.createEntity') : t('header.allEntities'))}
                 </span>
                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${ownerDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -367,7 +371,7 @@ export default function Layout() {
                           }}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${!currentOwnerId ? 'text-primary-600 font-medium' : 'text-gray-600'}`}
                         >
-                          全部主体
+                          {t('header.allEntities')}
                         </button>
                       )}
                       {owners.map(o => (
@@ -409,11 +413,11 @@ export default function Layout() {
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  const ok = await confirm({ message: `确定要删除主体"${o.name}"吗？` });
-                                  if (!ok) return;
-                                  try {
-                                    await ownerApi.delete(o.id);
-                                    toast.success('主体已删除');
+                                  const ok = await confirm({ message: t('owner.deleteConfirm', { name: o.name }) });
+                                if (!ok) return;
+                                try {
+                                  await ownerApi.delete(o.id);
+                                  toast.success(t('owner.deleted'));
                                     // 重新调用 /me 获取当前用户拥有的主体列表
                                     authApi.me()
                                       .then(res => {
@@ -423,7 +427,7 @@ export default function Layout() {
                                         }
                                       });
                                   } catch (error: any) {
-                                    toast.error(error.response?.data?.message || '删除失败');
+                                    toast.error(error.response?.data?.message || t('common.failed'));
                                   }
                                 }}
                                 className="p-0.5 hover:bg-gray-200 rounded text-red-500"
@@ -443,7 +447,7 @@ export default function Layout() {
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 text-primary-600"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        {owners.length === 0 ? '创建主体' : '新增主体'}
+                        {owners.length === 0 ? t('header.createEntity') : t('header.newEntity')}
                       </button>
                     </div>
                   </>
@@ -451,25 +455,21 @@ export default function Layout() {
               </div>
             <div className="h-6 w-px bg-gray-200" />
             <span className="text-sm text-gray-600">
-              {user?.isAdmin ? '系统管理员' : (() => {
+              {t('system.role')}：{user?.isAdmin ? t('header.systemAdmin') : (() => {
                 const currentOwnerRole = authOwners.find(o => o.id === currentOwnerId);
                 return currentOwnerRole?.roleName || currentOwnerRole?.roleCode || '';
-              })()}：{user?.name}
+              })()}
             </span>
             <NavLink
               to="/knowledge-base"
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
             >
               <FileText className="w-4 h-4" />
-              知识库管理
+              {t('header.knowledgeBase')}
             </NavLink>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-            >
-              <LogOut className="w-4 h-4" />
-              退出
-            </button>
+            <div className="h-6 w-px bg-gray-200" />
+            <LanguageSwitcher />
+            <UserMenu />
           </div>
         </header>
         <main className="lg:p-4 pb-16 lg:pb-6">
@@ -477,8 +477,8 @@ export default function Layout() {
             <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
               <div className="text-center">
                 <Building2 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                <h2 className="text-xl font-medium text-gray-700 mb-2">暂无主体</h2>
-                <p className="text-gray-500 mb-6">您还没有关联任何主体，请先创建一个主体</p>
+                <h2 className="text-xl font-medium text-gray-700 mb-2">{t('owner.noEntity')}</h2>
+                <p className="text-gray-500 mb-6">{t('owner.noEntityHint')}</p>
                 <button
                   onClick={() => {
                     setEditingOwner(null);
@@ -487,7 +487,7 @@ export default function Layout() {
                   className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 mx-auto"
                 >
                   <Plus className="w-5 h-5" />
-                  创建主体
+                  {t('owner.createEntity')}
                 </button>
               </div>
             </div>
@@ -495,7 +495,7 @@ export default function Layout() {
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
                 <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-                <span className="mt-2 text-sm text-gray-500">加载中...</span>
+                <span className="mt-2 text-sm text-gray-500">{t('common.loading')}</span>
               </div>
             }>
               <div key={contentKey}>
@@ -521,7 +521,7 @@ export default function Layout() {
               }
             >
               <MenuIcon path={item.path} className="w-5 h-5" />
-              <span className="text-xs mt-0.5">{item.label.replace('中心', '').replace('管理', '').replace('看板', '').replace('调度', '')}</span>
+              <span className="text-xs mt-0.5">{t(item.labelKey)}</span>
             </NavLink>
           ))}
           <NavLink
@@ -533,7 +533,7 @@ export default function Layout() {
             }
           >
             <User className="w-5 h-5" />
-            <span className="text-xs mt-0.5">我的</span>
+            <span className="text-xs mt-0.5">{t('header.myProfile')}</span>
           </NavLink>
         </div>
       </nav>
@@ -564,15 +564,15 @@ export default function Layout() {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Settings className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">温馨提示</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('mobile.tip')}</h3>
               <p className="text-gray-600 text-sm mb-6">
-                移动端仅支持部分能力，全量能力请登录PC查看。
+                {t('mobile.mobileTipHint')}
               </p>
               <button
                 onClick={() => setShowMobileTip(false)}
                 className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
-                我知道了
+                {t('mobile.gotIt')}
               </button>
             </div>
           </div>
@@ -603,7 +603,7 @@ export default function Layout() {
               className="w-full h-auto"
               style={{ maxHeight: '80vh' }}
             >
-              您的浏览器不支持视频播放
+              {t('video.notSupported')}
             </video>
           </div>
         </div>

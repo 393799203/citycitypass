@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, MapPin, ShoppingCart, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { TraceData } from '../../types/batchTrace';
@@ -20,11 +21,13 @@ export default function BatchFlowChart({
   totalSold, 
   totalReturned 
 }: BatchFlowChartProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
       <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
         <Package className="w-5 h-5 text-blue-500" />
-        物流流向图
+        {t('batchTrace.traceFlow')}
       </h3>
 
       <div className="flex flex-col items-center gap-6">
@@ -32,9 +35,9 @@ export default function BatchFlowChart({
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl font-bold text-white">{totalInbound}</span>
-              <span className="text-xs text-green-100">入库</span>
+              <span className="text-xs text-green-100">{t('batchTrace.inbound')}</span>
             </div>
-            <div className="text-xs text-gray-500 mt-2">总入库量</div>
+            <div className="text-xs text-gray-500 mt-2">{t('batchTrace.totalInboundQty')}</div>
           </div>
 
           <div className="relative h-6 w-[90px]">
@@ -44,10 +47,10 @@ export default function BatchFlowChart({
 
           <div className="flex flex-col items-center">
             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center shadow-xl hover:scale-105 transition-transform border-4 border-white">
-              <span className="text-[10px] text-indigo-200">批次号</span>
+              <span className="text-[10px] text-indigo-200">{t('batchTrace.batchNo')}</span>
               <span className="text-xs font-bold text-white font-mono mt-0.5">{batchNo}</span>
               <div className="w-24 h-[1px] bg-indigo-300 my-1"></div>
-              <span className="text-[10px] text-indigo-200">有效期</span>
+              <span className="text-[10px] text-indigo-200">{t('batchTrace.expiryDate')}</span>
               <span className="text-xs font-bold text-white mt-0.5">
                 {traceData?.batchInfo?.expiryDate
                   ? new Date(traceData.batchInfo.expiryDate).toLocaleDateString()
@@ -66,9 +69,9 @@ export default function BatchFlowChart({
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl font-bold text-white">{totalSold}</span>
-              <span className="text-xs text-orange-100">已售</span>
+              <span className="text-xs text-orange-100">{t('batchTrace.sold')}</span>
             </div>
-            <div className="text-xs text-gray-500 mt-2">总售出量</div>
+            <div className="text-xs text-gray-500 mt-2">{t('batchTrace.totalSoldQty')}</div>
           </div>
           <div className="flex flex-col items-center">
             <svg width="80" height="40" className="overflow-visible">
@@ -80,9 +83,9 @@ export default function BatchFlowChart({
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
               <span className="text-3xl font-bold text-white">{totalReturned}</span>
-              <span className="text-xs text-red-100">已退货</span>
+              <span className="text-xs text-red-100">{t('batchTrace.returned')}</span>
             </div>
-            <div className="text-xs text-gray-500 mt-2">总退货量</div>
+            <div className="text-xs text-gray-500 mt-2">{t('batchTrace.totalReturnedQty')}</div>
           </div>
         </div>
 
@@ -96,9 +99,9 @@ export default function BatchFlowChart({
         <div className="flex flex-col items-center" style={{ transform: 'translateX(-115%)' }}>
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex flex-col items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
             <span className="text-3xl font-bold text-white">{totalInWarehouse}</span>
-            <span className="text-xs text-blue-100">在库</span>
+            <span className="text-xs text-blue-100">{t('batchTrace.inStock')}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-2">当前库存</div>
+          <div className="text-xs text-gray-500 mt-2">{t('batchTrace.currentStock')}</div>
         </div>
       </div>
 
@@ -107,7 +110,7 @@ export default function BatchFlowChart({
           <div className="flex-1">
             <h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              库位分布 ({traceData.locations.length})
+              {t('batchTrace.locationDistribution')} ({traceData.locations.length})
             </h4>
             <div className="flex flex-wrap gap-2">
               {traceData.locations.map((loc, idx) => (
@@ -116,7 +119,7 @@ export default function BatchFlowChart({
                   <span className="ml-2 text-blue-600 font-bold">{loc.quantity}</span>
                 </div>
               ))}
-              {traceData.locations.length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
+              {traceData.locations.length === 0 && <span className="text-gray-400 text-sm">{t('batchTrace.noData')}</span>}
             </div>
           </div>
 
@@ -125,7 +128,7 @@ export default function BatchFlowChart({
           <div className="flex-1">
             <h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
-              订单列表 ({(traceData.stockOuts || []).length})
+              {t('batchTrace.orderList')} ({(traceData.stockOuts || []).length})
             </h4>
             <div className="flex flex-wrap gap-2">
               {(traceData.stockOuts || []).map((order, idx) => (
@@ -139,12 +142,12 @@ export default function BatchFlowChart({
                   }`}
                 >
                   <span className={`font-mono text-sm ${order.isReturned ? 'text-red-700' : 'text-yellow-700'}`}>{order.orderNo}</span>
-                  {order.isReturned && <span className="px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">已退货</span>}
+                  {order.isReturned && <span className="px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">{t('batchTrace.returned')}</span>}
                   <span className={`font-bold ${order.isReturned ? 'text-red-600' : 'text-yellow-600'}`}>-{order.quantity}</span>
                   <ArrowRight className={`w-3 h-3 ${order.isReturned ? 'text-red-500' : 'text-yellow-500'}`} />
                 </Link>
               ))}
-              {(traceData.stockOuts || []).length === 0 && <span className="text-gray-400 text-sm">暂无数据</span>}
+              {(traceData.stockOuts || []).length === 0 && <span className="text-gray-400 text-sm">{t('batchTrace.noData')}</span>}
             </div>
           </div>
         </div>

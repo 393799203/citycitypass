@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ownerApi } from '../api';
 import { useOwnerStore } from '../stores/owner';
 import { toast } from 'react-toastify';
@@ -29,6 +30,7 @@ interface Owner {
 }
 
 export default function OwnersPage() {
+  const { t } = useTranslation();
   const { confirm } = useConfirm();
   const { setCurrentOwner } = useOwnerStore();
   const [owners, setOwners] = useState<Owner[]>([]);

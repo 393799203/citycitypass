@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ReturnOrder } from '../types';
 
 interface RefundModalProps {
@@ -16,6 +17,8 @@ export default function RefundModal({
   onClose,
   onSubmit
 }: RefundModalProps) {
+  const { t } = useTranslation();
+  
   if (!isOpen || !returnOrder) return null;
 
   const qualifiedItems = (returnOrder.items || []).filter(item => (item.qualifiedQuantity ?? 0) > 0);
@@ -23,19 +26,19 @@ export default function RefundModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">确认退款</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('returns.confirmRefund')}</h3>
         <div className="space-y-4">
           <div className="bg-gray-50 rounded-lg p-4">
-            <div className="text-sm text-gray-500 mb-2">退款金额</div>
+            <div className="text-sm text-gray-500 mb-2">{t('returns.refundAmount')}</div>
             <div className="text-2xl font-bold text-green-600">¥{refundAmount.toFixed(2)}</div>
             {returnOrder.order?.contractDiscount && returnOrder.order.contractDiscount < 1 && (
               <div className="text-xs text-gray-500 mt-1">
-                客户折扣: {((returnOrder.order.contractDiscount || 1) * 10).toFixed(1)}折
+                {t('returns.customerDiscount')}: {((returnOrder.order.contractDiscount || 1) * 10).toFixed(1)}{t('returns.discount')}
               </div>
             )}
           </div>
           <div className="text-sm text-gray-600">
-            仅退款通过验收的商品
+            {t('returns.refundQualifiedOnly')}
           </div>
           <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
             {qualifiedItems.map((item) => {

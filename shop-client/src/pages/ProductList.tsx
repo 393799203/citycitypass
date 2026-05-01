@@ -4,6 +4,8 @@ import { Package, ShoppingCart, Search, Layers, User } from 'lucide-react';
 import { shopApi, getShopUser } from '@/api/shop';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 interface Product {
   id: string;
@@ -47,6 +49,7 @@ interface ProductListProps {
 }
 
 export default function ProductList({ ownerId, onViewCart, onViewUserCenter, cartCount }: ProductListProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,11 +67,21 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
       if (ownerId) params.ownerId = ownerId;
       const res = await shopApi.getProducts(Object.keys(params).length > 0 ? params : undefined);
       if (res.data.success) {
-        setProducts(res.data.data);
+        const productList = res.data.data || [];
+        const sortedProducts = [...productList].sort((a, b) => {
+          const aTotal = a.type === 'BUNDLE'
+            ? (a.availableStock || 0)
+            : (a.skus?.reduce((sum: number, sku: any) => sum + (sku.availableStock || 0), 0) || 0);
+          const bTotal = b.type === 'BUNDLE'
+            ? (b.availableStock || 0)
+            : (b.skus?.reduce((sum: number, sku: any) => sum + (sku.availableStock || 0), 0) || 0);
+          return bTotal - aTotal;
+        });
+        setProducts(sortedProducts);
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      toast.error('加载商品失败');
+      toast.error(t('common.failed'));
     } finally {
       setLoading(false);
     }
@@ -128,7 +141,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
           )}
         </div>
         <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          购物车
+          {t('cart.title')}
         </div>
       </div>
       
@@ -146,7 +159,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
           )}
         </div>
         <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          {user ? '用户中心' : '登录'}
+          {user ? t('user.title') : t('user.login')}
         </div>
       </div>
 
@@ -155,8 +168,9 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Package className="w-6 h-6 text-blue-600" />
-              <h1 className="text-lg font-bold text-gray-800">商品列表</h1>
+              <h1 className="text-lg font-bold text-gray-800">{t('shop.productList')}</h1>
             </div>
+            <LanguageSwitcher />
           </div>
 
           <div className="mt-3 flex gap-2">
@@ -167,7 +181,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="搜索商品..."
+                placeholder={t('shop.searchPlaceholder')}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -175,7 +189,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
               onClick={handleSearch}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
             >
-              搜索
+              {t('common.search')}
             </button>
           </div>
         </div>
@@ -189,7 +203,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
         ) : products.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <Package className="w-16 h-16 mx-auto mb-3 text-gray-300" />
-            <p className="text-lg">暂无商品</p>
+            <p className="text-lg">{t('shop.noProducts')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
@@ -243,7 +257,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
                         <h3 className="font-bold text-gray-800 truncate">{product.name}</h3>
                         {isBundle && (
                           <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700 border border-purple-300 shrink-0">
-                            套装
+                            {t('product.bundle')}
                           </span>
                         )}
                       </div>
@@ -267,8 +281,8 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
                       </div>
                       {isBundle && product.items && product.items.length > 0 && (
                         <div className="text-xs text-gray-600 mb-1">
-                          <span className="font-medium">{product.items.length}种商品</span>
-                          <span className="text-gray-400 ml-1">共{product.items.reduce((sum, item) => sum + item.quantity, 0)}件</span>
+                          <span className="font-medium">{product.items.length}{t('product.spec')}</span>
+                          <span className="text-gray-400 ml-1">{t('product.quantity')}: {product.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                         </div>
                       )}
                     </div>
@@ -278,7 +292,7 @@ export default function ProductList({ ownerId, onViewCart, onViewUserCenter, car
                           ¥{minPrice === maxPrice ? minPrice.toFixed(2) : `${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)}`}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {isBundle ? `库存 ${totalStock}` : `${skuCount}个规格 · 库存 ${totalStock}`}
+                          {isBundle ? `${t('product.stock')}: ${totalStock}` : `${skuCount}${t('product.spec')} · ${t('product.stock')}: ${totalStock}`}
                         </div>
                       </div>
                     </div>

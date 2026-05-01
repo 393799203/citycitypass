@@ -5,6 +5,7 @@ import { ConfirmProvider } from './components/ConfirmProvider';
 import { useAuthStore } from './stores/auth';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import { useTranslation } from 'react-i18next';
 
 const Orders = lazy(() => import('./pages/Orders'));
 const OrderDetail = lazy(() => import('./pages/OrderDetail'));
@@ -34,10 +35,11 @@ const Profile = lazy(() => import('./pages/Profile'));
 const QRCode = lazy(() => import('./pages/QRCode'));
 
 function PageLoader() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <span className="mt-2 text-sm text-gray-500">加载中...</span>
+      <span className="mt-2 text-sm text-gray-500">{t('common.loading')}</span>
     </div>
   );
 }

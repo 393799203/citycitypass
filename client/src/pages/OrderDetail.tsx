@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { orderApi, pickOrderApi, returnApi } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,45 +10,49 @@ import { formatPhone, formatAddress } from '../utils/format';
 import { useConfirm } from '../components/ConfirmProvider';
 import { usePermission } from '../hooks/usePermission';
 
-const statusFlow = [
-  { key: 'PENDING', label: '待拣货', mobileLabel: '待拣', description: '订单已创建，等待仓库拣货' },
-  { key: 'PICKING', label: '拣货中', mobileLabel: '拣货', description: '仓库正在拣货中' },
-  { key: 'OUTBOUND_REVIEW', label: '出库审核', mobileLabel: '出库', description: '等待出库审核' },
-  { key: 'DISPATCHING', label: '运力调度', mobileLabel: '运调', description: '审核通过，等待调度运力' },
-  { key: 'DISPATCHED', label: '已调度', mobileLabel: '已调', description: '已分配运力' },
-  { key: 'IN_TRANSIT', label: '运输中', mobileLabel: '运输', description: '货物运输中' },
-  { key: 'DELIVERED', label: '已送达', mobileLabel: '送达', description: '货物已送达' },
-  { key: 'COMPLETED', label: '已收货', mobileLabel: '收货', description: '客户已确认收货' },
+const getStatusFlow = (t: any) => [
+  { key: 'PENDING', label: t('order.pendingPick'), mobileLabel: t('order.pendingShort'), description: t('order.pendingPickDesc') },
+  { key: 'PICKING', label: t('order.picking'), mobileLabel: t('order.pickingShort'), description: t('order.pickingDesc') },
+  { key: 'OUTBOUND_REVIEW', label: t('order.outboundReview'), mobileLabel: t('order.outboundShort'), description: t('order.outboundReviewDesc') },
+  { key: 'DISPATCHING', label: t('order.dispatching'), mobileLabel: t('order.dispatchShort'), description: t('order.dispatchingDesc') },
+  { key: 'DISPATCHED', label: t('order.dispatched'), mobileLabel: t('order.dispatchedShort'), description: t('order.dispatchedDesc') },
+  { key: 'IN_TRANSIT', label: t('order.inTransit'), mobileLabel: t('order.transitShort'), description: t('order.inTransitDesc') },
+  { key: 'DELIVERED', label: t('order.delivered'), mobileLabel: t('order.deliveredShort'), description: t('order.deliveredDesc') },
+  { key: 'COMPLETED', label: t('order.completed'), mobileLabel: t('order.completedShort'), description: t('order.completedDesc') },
 ];
 
-const returnStatusFlow = [
-  { key: 'RETURN_REQUESTED', label: '申请退货' },
-  { key: 'RETURN_SHIPPED', label: '买家发货' },
-  { key: 'RETURN_RECEIVING', label: '仓库收货' },
-  { key: 'RETURN_QUALIFIED', label: '验收' },
-  { key: 'RETURN_STOCK_IN', label: '入库' },
-  { key: 'REFUNDED', label: '退款完成' },
+const getReturnStatusFlow = (t: any) => [
+  { key: 'RETURN_REQUESTED', label: t('order.returnRequested') },
+  { key: 'RETURN_SHIPPED', label: t('order.buyerShipped') },
+  { key: 'RETURN_RECEIVING', label: t('order.warehouseReceiving') },
+  { key: 'RETURN_QUALIFIED', label: t('order.qualified') },
+  { key: 'RETURN_STOCK_IN', label: t('order.stockIn') },
+  { key: 'REFUNDED', label: t('order.refundCompleted') },
 ];
 
-const statusMap: Record<string, string> = {
-  PENDING: '待拣货',
-  PICKING: '拣货中',
-  OUTBOUND_REVIEW: '出库审核中',
-  DISPATCHING: '运力调度',
-  DISPATCHED: '已调度',
-  IN_TRANSIT: '运输中',
-  DELIVERED: '已送达',
-  COMPLETED: '已完成',
-  RETURNING: '退货中',
-  RETURNED: '已退货退款',
-  CANCELLED: '已取消',
-};
+const getStatusMap = (t: any): Record<string, string> => ({
+  PENDING: t('order.pendingPick'),
+  PICKING: t('order.picking'),
+  OUTBOUND_REVIEW: t('order.outboundReviewing'),
+  DISPATCHING: t('order.dispatching'),
+  DISPATCHED: t('order.dispatched'),
+  IN_TRANSIT: t('order.inTransit'),
+  DELIVERED: t('order.delivered'),
+  COMPLETED: t('order.completed'),
+  RETURNING: t('order.returning'),
+  RETURNED: t('order.returnedRefunded'),
+  CANCELLED: t('order.orderCancelled'),
+});
 
 export default function OrderDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
   const { canWrite } = usePermission('business', 'orders');
+  const statusFlow = getStatusFlow(t);
+  const returnStatusFlow = getReturnStatusFlow(t);
+  const statusMap = getStatusMap(t);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [returnModal, setReturnModal] = useState<{ show: boolean; orderId: string; orderNo: string } | null>(null);
@@ -67,7 +72,7 @@ export default function OrderDetail() {
         setOrder(res.data.data);
       }
     } catch (error) {
-      toast.error('获取订单详情失败');
+      toast.error(t('order.getOrderDetailFailed'));
     } finally {
       setLoading(false);
     }
@@ -78,18 +83,18 @@ export default function OrderDetail() {
       if (newStatus === 'PICKING') {
         const res = await pickOrderApi.create({ orderId: order.id });
         if (res.data.success) {
-          toast.success('拣货单已生成');
+          toast.success(t('order.pickListGenerated'));
         } else {
-          toast.error(res.data.message || '生成拣货单失败');
+          toast.error(res.data.message || t('order.pickListFailed'));
           return;
         }
       } else {
         await orderApi.updateStatus(order.id, newStatus);
       }
-      toast.success('状态已更新');
+      toast.success(t('order.statusUpdated'));
       fetchOrder();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('order.operationFailed'));
     }
   };
 
@@ -142,7 +147,7 @@ export default function OrderDetail() {
   if (!order) {
     return (
       <div className="text-center py-12 text-gray-500">
-        订单不存在
+        {t('order.orderNotExist')}
       </div>
     );
   }
@@ -154,29 +159,29 @@ export default function OrderDetail() {
       {returnModal?.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold mb-4">申请退货</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('order.applyReturn')}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">退货订单</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('order.returnOrder')}</label>
                 <div className="w-full border rounded-lg px-3 py-2 bg-gray-50">{returnModal.orderNo}</div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">退货原因</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('order.returnReasonLabel')}</label>
                 <textarea
                   value={returnReason}
                   onChange={e => setReturnReason(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2"
                   rows={3}
-                  placeholder="请输入退货原因"
+                  placeholder={t('order.pleaseEnterReturnReason')}
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setReturnModal(null)} className="flex-1 px-4 py-2 border rounded-lg">取消</button>
+              <button onClick={() => setReturnModal(null)} className="flex-1 px-4 py-2 border rounded-lg">{t('common.cancel')}</button>
               <button
                 onClick={async () => {
                   if (!returnReason.trim()) {
-                    toast.error('请输入退货原因');
+                    toast.error(t('order.pleaseEnterReturnReason'));
                     return;
                   }
                   try {
@@ -184,16 +189,16 @@ export default function OrderDetail() {
                       orderId: returnModal.orderId,
                       reason: returnReason,
                     });
-                    toast.success('退货申请已提交');
+                    toast.success(t('order.returnSubmitted'));
                     setReturnModal(null);
                     fetchOrder();
                   } catch (error: any) {
-                    toast.error(error.response?.data?.message || '提交失败');
+                    toast.error(error.response?.data?.message || t('order.submitFailed'));
                   }
                 }}
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg"
               >
-                提交
+                {t('common.submit')}
               </button>
             </div>
           </div>
@@ -211,7 +216,7 @@ export default function OrderDetail() {
           onSave={async (data, apiData) => {
             if (!data.returnId) return;
             await returnApi.receive(data.returnId, apiData);
-            toast.success('快递单号已保存');
+            toast.success(t('order.trackingSaved'));
             fetchOrder();
           }}
         />
@@ -219,9 +224,9 @@ export default function OrderDetail() {
 
       <div className="bg-white rounded-xl shadow-sm border p-3 sm:p-6 pb-20 lg:pb-6">
         <div className="mb-4 sm:mb-6">
-          <h1 className="hidden sm:block text-2xl font-bold text-gray-800">订单详情</h1>
+          <h1 className="hidden sm:block text-2xl font-bold text-gray-800">{t('order.orderDetail')}</h1>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <p className="text-sm sm:text-base text-gray-500">订单号: {order.orderNo}</p>
+            <p className="text-sm sm:text-base text-gray-500">{t('order.orderNo')}: {order.orderNo}</p>
             <span className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm rounded-full ${
               order.status === 'PENDING' ? 'bg-yellow-500 text-white' :
               order.status === 'PICKING' ? 'bg-orange-600 text-white' :
@@ -235,13 +240,13 @@ export default function OrderDetail() {
               {statusMap[order.status]}
             </span>
             {(order as any).returnOrders?.[0] && (
-              <p className="text-orange-500 text-xs sm:text-sm">退货单号: {(order as any).returnOrders[0].returnNo}</p>
+              <p className="text-orange-500 text-xs sm:text-sm">{t('order.returnOrderNo')}: {(order as any).returnOrders[0].returnNo}</p>
             )}
           </div>
         </div>
 
         <div className="mb-6">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">订单流程</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">{t('order.orderFlow')}</h2>
           <div className="sm:hidden">
             <div className="flex items-start justify-between">
               {statusFlow.map((step, index) => {
@@ -318,7 +323,7 @@ export default function OrderDetail() {
 
         {(order as any).returnOrders?.[0] && (order as any).returnOrders[0].status !== 'CANCELLED' && (
           <div className="mb-6">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">退货流程</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">{t('order.returnFlow')}</h2>
             <div className="sm:hidden">
               <div className="flex items-start justify-between">
                 {returnStatusFlow.map((step, index) => {
@@ -394,7 +399,7 @@ export default function OrderDetail() {
 
         <div className="grid grid-cols-1 gap-4 sm:gap-6 mt-6 sm:mt-8 border-t pt-4 sm:pt-6">
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">收货信息</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">{t('order.receiverInfo')}</h3>
             <div className="space-y-2 sm:space-y-3">
               <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
                 <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
@@ -426,26 +431,26 @@ export default function OrderDetail() {
           </div>
 
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">订单信息</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">{t('order.orderInfo')}</h3>
             <div className="space-y-2 sm:space-y-3">
               {order.warehouse && (
                 <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
                   <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                  <span>发货仓库: {order.warehouse.name}</span>
+                  <span>{t('order.shippingWarehouse')}: {order.warehouse.name}</span>
                 </div>
               )}
               <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                <span>创建时间: {new Date(order.createdAt).toLocaleString()}</span>
+                <span>{t('order.createTime')}: {new Date(order.createdAt).toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-gray-600 text-sm sm:text-base">
                 <Package className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                <span>商品数量: {order.items?.length || 0} 种</span>
+                <span>{t('order.productCount')}: {order.items?.length || 0} {t('order.types')}</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg font-medium text-primary-600">
-                <span>订单金额: ¥{Number(order.totalAmount).toLocaleString()}</span>
+                <span>{t('order.orderAmount')}: ¥{Number(order.totalAmount).toLocaleString()}</span>
                 {(order as any).customerId && (order as any).contractDiscount && (
-                  <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">大客户协议价</span>
+                  <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">{t('order.corporateContractPrice')}</span>
                 )}
               </div>
             </div>
@@ -453,59 +458,59 @@ export default function OrderDetail() {
         </div>
 
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">关联信息</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">{t('order.relatedInfo')}</h3>
             <div className={`grid grid-cols-1 ${(order as any).returnOrders?.filter((ret: any) => ret.status !== 'CANCELLED')?.[0] ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="w-5 h-5 text-primary-600" />
-                  <span className="font-medium">拣货信息</span>
+                  <span className="font-medium">{t('order.pickingInfo')}</span>
                 </div>
                 {order.picking ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">拣货单号:</span>
+                      <span className="text-gray-500">{t('order.pickNo')}:</span>
                       <span className="font-medium">{order.picking.pickNo}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">状态:</span>
+                      <span className="text-gray-500">{t('order.status')}:</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
                         order.picking.status === 'PENDING' ? 'bg-yellow-500 text-white' :
                         order.picking.status === 'PICKING' ? 'bg-blue-600 text-white' :
                         'bg-green-600 text-white'
                       }`}>
-                        {order.picking.status === 'PENDING' ? '待拣货' :
-                         order.picking.status === 'PICKING' ? '拣货中' : '已完成'}
+                        {order.picking.status === 'PENDING' ? t('order.pendingPick') :
+                         order.picking.status === 'PICKING' ? t('order.picking') : t('order.completed')}
                       </span>
                     </div>
                     {order.picking.picker && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">拣货人:</span>
+                        <span className="text-gray-500">{t('order.picker')}:</span>
                         <span className="font-medium">{order.picking.picker.name}</span>
                       </div>
                     )}
                     {order.picking.approver && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">审核人:</span>
+                        <span className="text-gray-500">{t('order.approver')}:</span>
                         <span className="font-medium">{order.picking.approver.name}</span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-400">暂无拣货信息</div>
+                  <div className="text-sm text-gray-400">{t('order.noPickingInfo')}</div>
                 )}
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Truck className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium">配送信息</span>
+                  <span className="font-medium">{t('order.dispatchInfo')}</span>
                 </div>
                 {order.dispatch ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">配送单号:</span>
+                      <span className="text-gray-500">{t('order.dispatchNo')}:</span>
                       <div className="flex items-center gap-1">
                         {order.dispatch.vehicleSource === 'CARRIER' && (
-                          <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">承运商</span>
+                          <span className="px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded">{t('order.carrier')}</span>
                         )}
                         <Link to={`/dispatch/${order.dispatch.id}`} className="font-medium text-primary-600 hover:underline">
                           {order.dispatch.dispatchNo}
@@ -513,19 +518,19 @@ export default function OrderDetail() {
                       </div>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">状态:</span>
+                      <span className="text-gray-500">{t('order.status')}:</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
                         order.dispatch.status === 'PENDING' ? 'bg-yellow-500 text-white' :
                         order.dispatch.status === 'IN_TRANSIT' ? 'bg-blue-600 text-white' :
                         'bg-green-600 text-white'
                       }`}>
-                        {order.dispatch.status === 'PENDING' ? '待发运' :
-                         order.dispatch.status === 'IN_TRANSIT' ? '配送中' : '已完成'}
+                        {order.dispatch.status === 'PENDING' ? t('order.pendingDispatch') :
+                         order.dispatch.status === 'IN_TRANSIT' ? t('order.dispatching') : t('order.completed')}
                       </span>
                     </div>
                     {order.dispatch.driver && (
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500">配送司机:</span>
+                        <span className="text-gray-500">{t('order.driver')}:</span>
                         <span className="font-medium flex items-center gap-1">
                           <Phone className="w-3 h-3" />
                           {order.dispatch.driver.name} {order.dispatch.driver.phone}
@@ -534,33 +539,33 @@ export default function OrderDetail() {
                     )}
                     {order.dispatch.completedTime && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">到达时间:</span>
+                        <span className="text-gray-500">{t('order.arrivalTime')}:</span>
                         <span className="font-medium">{new Date(order.dispatch.completedTime).toLocaleString()}</span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-400">暂无配送信息</div>
+                  <div className="text-sm text-gray-400">{t('order.noDispatchInfo')}</div>
                 )}
               </div>
               {(order as any).returnOrders?.filter((ret: any) => ret.status !== 'CANCELLED')?.[0] && (
                 <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
                   <div className="flex items-center gap-2 mb-2">
                     <RotateCcw className="w-5 h-5 text-orange-600" />
-                    <span className="font-medium text-orange-700">退货信息</span>
+                    <span className="font-medium text-orange-700">{t('order.returnInfo')}</span>
                   </div>
                   {(order as any).returnOrders
                     .filter((ret: any) => ret.status !== 'CANCELLED')
                     .map((ret: any) => (
                     <div key={ret.id} className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">退货单号:</span>
+                        <span className="text-gray-500">{t('order.returnNo')}:</span>
                         <Link to={`/returns/${ret.id}`} className="font-medium text-orange-600 hover:underline">
                           {ret.returnNo}
                         </Link>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">状态:</span>
+                        <span className="text-gray-500">{t('order.status')}:</span>
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
                           ret.status === 'RETURN_REQUESTED' ? 'bg-yellow-500 text-white' :
                           ret.status === 'RETURN_SHIPPED' ? 'bg-blue-500 text-white' :
@@ -570,24 +575,24 @@ export default function OrderDetail() {
                           ret.status === 'REFUNDED' ? 'bg-pink-500 text-white' :
                           'bg-gray-500 text-white'
                         }`}>
-                          {ret.status === 'RETURN_REQUESTED' ? '待发货' :
-                           ret.status === 'RETURN_SHIPPED' ? '已发货' :
-                           ret.status === 'RETURN_RECEIVING' ? '收货中' :
-                           ret.status === 'RETURN_QUALIFIED' ? '已验收' :
-                           ret.status === 'RETURN_STOCK_IN' ? '已入库' :
-                           ret.status === 'REFUNDED' ? '已退款' :
-                           ret.status === 'CANCELLED' ? '已取消' : ret.status}
+                          {ret.status === 'RETURN_REQUESTED' ? t('returns.statusPending') :
+                           ret.status === 'RETURN_SHIPPED' ? t('returns.statusShipped') :
+                           ret.status === 'RETURN_RECEIVING' ? t('returns.statusReceiving') :
+                           ret.status === 'RETURN_QUALIFIED' ? t('returns.statusQualified') :
+                           ret.status === 'RETURN_STOCK_IN' ? t('returns.statusStockIn') :
+                           ret.status === 'REFUNDED' ? t('returns.statusRefunded') :
+                           ret.status === 'CANCELLED' ? t('returns.statusCancelled') : ret.status}
                         </span>
                       </div>
                       {ret.trackingNo && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">快递:</span>
+                          <span className="text-gray-500">{t('order.express')}:</span>
                           <span className="text-gray-700">{ret.logisticsCompany}</span>
                         </div>
                       )}
                       {ret.trackingNo && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">单号:</span>
+                          <span className="text-gray-500">{t('order.trackingNo')}:</span>
                           <span className="text-gray-700">{ret.trackingNo}</span>
                         </div>
                       )}
@@ -599,9 +604,8 @@ export default function OrderDetail() {
           </div>
 
         <div className="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">商品明细</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">{t('order.orderItems')}</h3>
           
-          {/* 移动端卡片列表 */}
           <div className="sm:hidden space-y-3">
             {order.items?.map((item: any) => (
               <div key={item.id} className="bg-gray-50 rounded-lg p-3">
@@ -610,40 +614,39 @@ export default function OrderDetail() {
                   <div className="flex-1 min-w-0">
                     {item.bundleId ? (
                       <div>
-                        <span className="text-purple-600 text-sm font-medium">[套装] {item.productName}</span>
+                        <span className="text-purple-600 text-sm font-medium">[{t('order.bundle')}] {item.productName}</span>
                         <div className="text-xs text-purple-600 mt-1">
-                          包含: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
+                          {t('order.includes')}: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
                         </div>
                       </div>
                     ) : (
-                      <span className="font-medium text-blue-600 text-sm">[商品] {item.productName}</span>
+                      <span className="font-medium text-blue-600 text-sm">[{t('order.product')}] {item.productName}</span>
                     )}
                   </div>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
-                  <div>包装: {item.packaging}</div>
-                  <div>规格: {item.spec}</div>
-                  <div>单价: ¥{Number(item.price).toLocaleString()}</div>
-                  <div>数量: {item.quantity}</div>
+                  <div>{t('order.packaging')}: {item.packaging}</div>
+                  <div>{t('order.spec')}: {item.spec}</div>
+                  <div>{t('order.unitPrice')}: ¥{Number(item.price).toLocaleString()}</div>
+                  <div>{t('order.quantity')}: {item.quantity}</div>
                 </div>
                 <div className="mt-2 text-right text-sm font-medium text-primary-600">
-                  小计: ¥{Number(item.subtotal).toLocaleString()}
+                  {t('order.subtotal')}: ¥{Number(item.subtotal).toLocaleString()}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* 桌面端表格 */}
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr className="text-center">
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">商品</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">包装</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">规格</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">单价</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">数量</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">小计</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t('order.product')}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t('order.packaging')}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t('order.spec')}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t('order.unitPrice')}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t('order.quantity')}</th>
+                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">{t('order.subtotal')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -654,13 +657,13 @@ export default function OrderDetail() {
                         <Package className="w-5 h-5 text-gray-400" />
                         {item.bundleId ? (
                           <div>
-                            <span className="text-purple-600 text-sm font-medium">[套装] {item.productName}</span>
+                            <span className="text-purple-600 text-sm font-medium">[{t('order.bundle')}] {item.productName}</span>
                             <div className="text-xs text-purple-600 mt-1">
-                              包含: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
+                              {t('order.includes')}: {item.bundle?.items?.map((bi: any) => `${bi.sku?.product?.name || ''} ${bi.sku?.spec || ''}/${bi.sku?.packaging || ''}×${bi.quantity}`).join(', ')}
                             </div>
                           </div>
                         ) : (
-                          <span className="font-medium text-blue-600">[商品] {item.productName}</span>
+                          <span className="font-medium text-blue-600">[{t('order.product')}] {item.productName}</span>
                         )}
                       </div>
                     </td>
@@ -676,7 +679,6 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* 桌面端操作按钮 */}
         <div className="hidden lg:flex border-t pt-4 mt-4 justify-end gap-3">
           {(order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && (
             <>
@@ -686,19 +688,19 @@ export default function OrderDetail() {
                   className="flex items-center gap-2 px-4 py-2 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg"
                 >
                   <Pencil className="w-4 h-4" />
-                  修改
+                  {t('common.edit')}
                 </button>
               )}
               {canWrite && (
                 <button
                   onClick={async () => {
-                    const ok = await confirm({ message: '确定要取消该订单吗？' });
+                    const ok = await confirm({ message: t('order.confirmCancelOrder') });
                     if (ok) handleStatusChange('CANCELLED');
                   }}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
                 >
                   <Ban className="w-4 h-4" />
-                  取消
+                  {t('common.cancel')}
                 </button>
               )}
             </>
@@ -706,10 +708,10 @@ export default function OrderDetail() {
           {order.status === 'CANCELLED' && canWrite && (
             <button
               onClick={async () => {
-                const ok = await confirm({ message: '确定要删除该订单吗？' });
+                const ok = await confirm({ message: t('order.confirmDeleteOrder') });
                 if (ok) {
                   orderApi.delete(order.id).then(() => {
-                    toast.success('订单已删除');
+                    toast.success(t('order.orderDeleted'));
                     navigate('/orders');
                   });
                 }
@@ -717,20 +719,20 @@ export default function OrderDetail() {
               className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
             >
               <Trash2 className="w-4 h-4" />
-              删除
+              {t('common.delete')}
             </button>
           )}
           {order.status === 'DELIVERED' && (
             <>
               <button
                 onClick={async () => {
-                  const ok = await confirm({ message: '确认已收到货？' });
+                  const ok = await confirm({ message: t('order.confirmReceiveGoods') });
                   if (ok) handleStatusChange('COMPLETED');
                 }}
                 className="flex items-center gap-2 px-4 py-2 text-sm text-green-600 bg-green-50 hover:bg-green-100 rounded-lg"
               >
                 <CheckCircle className="w-4 h-4" />
-                确认收货
+                {t('order.confirmReceive')}
               </button>
               <button
                 onClick={() => {
@@ -740,7 +742,7 @@ export default function OrderDetail() {
                 className="flex items-center gap-2 px-4 py-2 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg"
               >
                 <RotateCcw className="w-4 h-4" />
-                申请退货
+                {t('order.applyReturn')}
               </button>
             </>
           )}
@@ -753,7 +755,7 @@ export default function OrderDetail() {
               className="flex items-center gap-2 px-4 py-2 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg"
             >
               <RotateCcw className="w-4 h-4" />
-              申请退货
+              {t('order.applyReturn')}
             </button>
           )}
           {order.status === 'RETURNING' && (order as any).returnOrders?.[0] && (
@@ -773,24 +775,24 @@ export default function OrderDetail() {
                         className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg"
                       >
                         <Pencil className="w-4 h-4" />
-                        填写快递单号
+                        {t('returns.fillTracking')}
                       </button>
                       <button
                         onClick={async () => {
-                          const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                          const ok = await confirm({ message: t('order.confirmCancelReturnWarning') });
                           if (ok) {
                             returnApi.cancel(returnOrder.id).then(() => {
-                              toast.success('已取消退货');
+                              toast.success(t('returns.returnCancelled'));
                               fetchOrder();
                             }).catch((err: any) => {
-                              toast.error(err.response?.data?.message || '取消失败');
+                              toast.error(err.response?.data?.message || t('order.operationFailed'));
                             });
                           }
                         }}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
                       >
                         <XCircle className="w-4 h-4" />
-                        取消退货
+                        {t('returns.cancelReturn')}
                       </button>
                     </>
                   )}
@@ -801,7 +803,6 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {/* 移动端底部操作栏 */}
       {(() => {
         const hasButtons = 
           (order.status === 'PENDING' || order.status === 'PICKING' || order.status === 'OUTBOUND_REVIEW') && 
@@ -823,18 +824,18 @@ export default function OrderDetail() {
                       onClick={() => navigate('/orders', { state: { editingOrder: order } })}
                       className="flex-1 py-2.5 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg text-center"
                     >
-                      修改
+                      {t('common.edit')}
                     </button>
                   )}
                   {canWrite && (
                     <button
                       onClick={async () => {
-                        const ok = await confirm({ message: '确定要取消该订单吗？' });
+                        const ok = await confirm({ message: t('order.confirmCancelOrder') });
                         if (ok) handleStatusChange('CANCELLED');
                       }}
                       className="flex-1 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-center"
                     >
-                      取消
+                      {t('common.cancel')}
                     </button>
                   )}
                 </>
@@ -842,29 +843,29 @@ export default function OrderDetail() {
               {order.status === 'CANCELLED' && canWrite && (
                 <button
                   onClick={async () => {
-                    const ok = await confirm({ message: '确定要删除该订单吗？' });
+                    const ok = await confirm({ message: t('order.confirmDeleteOrder') });
                     if (ok) {
                       orderApi.delete(order.id).then(() => {
-                        toast.success('订单已删除');
+                        toast.success(t('order.orderDeleted'));
                         navigate('/orders');
                       });
                     }
                   }}
                   className="flex-1 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-center"
                 >
-                  删除
+                  {t('common.delete')}
                 </button>
               )}
               {order.status === 'DELIVERED' && (
                 <>
                   <button
                     onClick={async () => {
-                      const ok = await confirm({ message: '确认已收到货？' });
+                      const ok = await confirm({ message: t('order.confirmReceiveGoods') });
                       if (ok) handleStatusChange('COMPLETED');
                     }}
                     className="flex-1 py-2.5 text-sm text-green-600 bg-green-50 hover:bg-green-100 rounded-lg text-center"
                   >
-                    确认收货
+                    {t('order.confirmReceive')}
                   </button>
                   <button
                     onClick={() => {
@@ -873,7 +874,7 @@ export default function OrderDetail() {
                     }}
                     className="flex-1 py-2.5 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg text-center"
                   >
-                    申请退货
+                    {t('order.applyReturn')}
                   </button>
                 </>
               )}
@@ -885,7 +886,7 @@ export default function OrderDetail() {
                   }}
                   className="flex-1 py-2.5 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg text-center"
                 >
-                  申请退货
+                  {t('order.applyReturn')}
                 </button>
               )}
               {order.status === 'RETURNING' && (order as any).returnOrders?.[0] && (
@@ -904,23 +905,23 @@ export default function OrderDetail() {
                             }}
                             className="flex-1 py-2.5 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg text-center"
                           >
-                            填写快递
+                            {t('returns.fillTracking')}
                           </button>
                           <button
                             onClick={async () => {
-                              const ok = await confirm({ message: '确认取消退货？取消退货将自动确认收货，订单状态转为已完成！' });
+                              const ok = await confirm({ message: t('order.confirmCancelReturnWarning') });
                               if (ok) {
                                 returnApi.cancel(returnOrder.id).then(() => {
-                                  toast.success('已取消退货');
+                                  toast.success(t('returns.returnCancelled'));
                                   fetchOrder();
                                 }).catch((err: any) => {
-                                  toast.error(err.response?.data?.message || '取消失败');
+                                  toast.error(err.response?.data?.message || t('order.operationFailed'));
                                 });
                               }
                             }}
                             className="flex-1 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-center"
                           >
-                            取消退货
+                            {t('returns.cancelReturn')}
                           </button>
                         </>
                       )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { warehouseApi, productApi, bundleApi, stockApi, supplierApi } from '../api';
 import { Warehouse, Package, Plus, X, ArrowRight, Trash2, Loader2, Truck, ClipboardCheck, MapPin, Barcode, CheckCircle, Search, Info, RefreshCw } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmProvider';
@@ -9,21 +10,21 @@ import BatchSelect from '../components/BatchSelect';
 import { usePermission } from '../hooks/usePermission';
 import { useOwnerStore } from '../stores/owner';
 
-const SOURCE_COLORS: Record<string, string> = {
+const getSourceColors = (): Record<string, string> => ({
   PURCHASE: 'bg-blue-100 text-blue-700',
   RETURN: 'bg-orange-100 text-orange-700',
   TRANSFER: 'bg-purple-100 text-purple-700',
   OTHER: 'bg-gray-100 text-gray-700',
-};
+});
 
-const SOURCE_NAMES: Record<string, string> = {
-  PURCHASE: '采购入库',
-  RETURN: '退货入库',
-  TRANSFER: '调拨入库',
-  OTHER: '其他入库',
-};
+const getSourceNames = (t: any): Record<string, string> => ({
+  PURCHASE: t('inbound.sourcePurchase'),
+  RETURN: t('inbound.sourceReturn'),
+  TRANSFER: t('inbound.sourceTransfer'),
+  OTHER: t('inbound.sourceOther'),
+});
 
-const STATUS_COLORS: Record<string, string> = {
+const getStatusColors = (): Record<string, string> => ({
   PENDING: 'bg-yellow-100 text-yellow-800',
   ARRIVED: 'bg-blue-100 text-blue-800',
   RECEIVING: 'bg-indigo-100 text-indigo-800',
@@ -31,17 +32,17 @@ const STATUS_COLORS: Record<string, string> = {
   PUTAWAY: 'bg-teal-100 text-teal-800',
   COMPLETED: 'bg-emerald-100 text-emerald-800',
   CANCELLED: 'bg-gray-100 text-gray-800',
-};
+});
 
-const STATUS_NAMES: Record<string, string> = {
-  PENDING: '待到货',
-  ARRIVED: '已到货',
-  RECEIVING: '验收中',
-  RECEIVED: '已收货',
-  PUTAWAY: '上架中',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-};
+const getStatusNames = (t: any): Record<string, string> => ({
+  PENDING: t('inbound.statusPending'),
+  ARRIVED: t('inbound.statusArrived'),
+  RECEIVING: t('inbound.statusReceiving'),
+  RECEIVED: t('inbound.statusReceived'),
+  PUTAWAY: t('inbound.statusPutaway'),
+  COMPLETED: t('inbound.statusCompleted'),
+  CANCELLED: t('inbound.statusCancelled'),
+});
 
 interface InboundOrder {
   id: string;
@@ -152,9 +153,14 @@ interface InboundProduct {
 }
 
 export default function InboundPage() {
+  const { t } = useTranslation();
   const { confirm } = useConfirm();
   const { canWrite } = usePermission('business', 'inbound');
   const { currentOwnerId } = useOwnerStore();
+  const SOURCE_COLORS = getSourceColors();
+  const SOURCE_NAMES = getSourceNames(t);
+  const STATUS_COLORS = getStatusColors();
+  const STATUS_NAMES = getStatusNames(t);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
   const [orders, setOrders] = useState<InboundOrder[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -341,7 +347,7 @@ export default function InboundPage() {
 
   const handleAddItem = () => {
     if (!toLocationId || (!selectedSkuId && !selectedBundleId)) {
-      toast.error('请选择商品和库位');
+      toast.error(t('inbound.selectProductAndLocation'));
       return;
     }
 
@@ -362,7 +368,7 @@ export default function InboundPage() {
         quantity: updatedItems[existingIndex].quantity + quantity,
       };
       setInboundItems(updatedItems);
-      toast.success('已合并到同库位商品');
+      toast.success(t('inbound.mergedToSameLocation'));
     } else {
       const item: InboundItemInput = {
         type: productType === 'BUNDLE' ? 'BUNDLE' : 'PRODUCT',
@@ -397,11 +403,11 @@ export default function InboundPage() {
 
   const handleCreateOrder = async () => {
     if (!formWarehouseId) {
-      toast.error('请选择仓库');
+      toast.error(t('inbound.selectWarehouse'));
       return;
     }
     if (inboundItems.length === 0) {
-      toast.error('请添加入库明细');
+      toast.error(t('inbound.addInboundItems'));
       return;
     }
 
@@ -415,15 +421,15 @@ export default function InboundPage() {
       });
 
       if (res.data.success) {
-        toast.success('入库单创建成功');
+        toast.success(t('inbound.createSuccess'));
         setShowModal(false);
         resetForm();
         loadOrders();
       } else {
-        toast.error(res.data.message || '创建失败');
+        toast.error(res.data.message || t('inbound.createFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '创建失败');
+      toast.error(error.response?.data?.message || t('inbound.createFailed'));
     } finally {
       setSaving(false);
     }
@@ -481,19 +487,18 @@ export default function InboundPage() {
   const handleArrivalSubmit = async () => {
     if (!selectedArrivalOrder) return;
     
-    // 验证必填字段
     for (const item of arrivalItems) {
       if (item.arrivalQuantity > 0) {
         if (!item.batchNo) {
-          toast.error(`请填写商品"${item.productName}"的批次号`);
+          toast.error(t('inbound.fillBatchNo', { name: item.productName }));
           return;
         }
         if (!item.supplierId) {
-          toast.error(`请选择商品"${item.productName}"的供应商`);
+          toast.error(t('inbound.selectSupplier', { name: item.productName }));
           return;
         }
         if (item.type === 'PRODUCT' && !item.expiryDate) {
-          toast.error(`请填写商品"${item.productName}"的有效期`);
+          toast.error(t('inbound.fillExpiryDate', { name: item.productName }));
           return;
         }
       }
@@ -518,12 +523,12 @@ export default function InboundPage() {
         items,
       });
       if (res.data.success) {
-        toast.success('到货登记成功');
+        toast.success(t('inbound.arrivalSuccess'));
         setShowArrivalModal(false);
         loadOrders();
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('inbound.operationFailed'));
     }
   };
 
@@ -583,9 +588,9 @@ export default function InboundPage() {
         i.id === matchedItem.id ? { ...i, receivedQuantity: i.receivedQuantity + 1 } : i
       );
       setReceivingItems(newItems);
-      toast.success(`已增加 ${matchedItem.productName} 数量`);
+      toast.success(t('inbound.quantityIncreased', { name: matchedItem.productName }));
     } else {
-      toast.error('未找到匹配的商品');
+      toast.error(t('inbound.noMatchingProduct'));
     }
   };
 
@@ -593,7 +598,7 @@ export default function InboundPage() {
     if (!selectedReceivingOrder) return;
     const pendingItems = receivingItems.filter(i => i.inspectionResult === 'PENDING');
     if (pendingItems.length > 0) {
-      toast.error('请完成所有商品的验收');
+      toast.error(t('inbound.completeAllInspection'));
       return;
     }
     try {
@@ -609,12 +614,12 @@ export default function InboundPage() {
         items,
       });
       if (res.data.success) {
-        toast.success('验收完成');
+        toast.success(t('inbound.inspectionComplete'));
         setShowReceivingModal(false);
         loadOrders();
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('inbound.operationFailed'));
     }
   };
 
@@ -666,7 +671,7 @@ export default function InboundPage() {
       setPutawayItems(items);
     } catch (error) {
       console.error('Failed to load putaway data:', error);
-      toast.error('加载上架数据失败');
+      toast.error(t('inbound.loadPutawayDataFailed'));
     } finally {
       setPutawayLoading(false);
     }
@@ -797,7 +802,7 @@ export default function InboundPage() {
     const validItems = putawayItems.filter(i => i.quantity > 0);
     const invalidItems = validItems.filter(i => !i.targetLocationId);
     if (invalidItems.length > 0) {
-      toast.error('请为所有有数量的商品分配库位');
+      toast.error(t('inbound.assignLocationToAll'));
       return;
     }
 
@@ -815,46 +820,46 @@ export default function InboundPage() {
       });
 
       if (res.data.success) {
-        toast.success('上架完成，入库成功');
+        toast.success(t('inbound.putawayComplete'));
         setShowPutawayModal(false);
         loadOrders();
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('inbound.operationFailed'));
     }
   };
 
   const handleExecuteOrder = async (id: string) => {
-    const ok = await confirm({ message: '确认执行该入库单？' });
+    const ok = await confirm({ message: t('inbound.confirmExecute') });
     if (!ok) return;
 
     try {
       const res = await stockApi.executeInboundOrder(id);
       if (res.data.success) {
-        toast.success('入库单执行成功');
+        toast.success(t('inbound.executeSuccess'));
         loadOrders();
       } else {
-        toast.error(res.data.message || '执行失败');
+        toast.error(res.data.message || t('inbound.executeFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '执行失败');
+      toast.error(error.response?.data?.message || t('inbound.executeFailed'));
     }
   };
 
   const handleCancelOrder = async (id: string) => {
-    const ok = await confirm({ message: '确认取消该入库单？' });
+    const ok = await confirm({ message: t('inbound.confirmCancel') });
     if (!ok) return;
 
     try {
       const res = await stockApi.cancelInboundOrder(id);
       if (res.data.success) {
-        toast.success('入库单已取消');
+        toast.success(t('inbound.cancelSuccess'));
         loadOrders();
       } else {
-        toast.error(res.data.message || '取消失败');
+        toast.error(res.data.message || t('inbound.cancelFailed'));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '取消失败');
+      toast.error(error.response?.data?.message || t('inbound.cancelFailed'));
     }
   };
 
@@ -881,15 +886,15 @@ export default function InboundPage() {
   const getNextAction = (order: InboundOrder) => {
     switch (order.status) {
       case 'PENDING':
-        return { label: '到货登记', action: () => handleArrived(order.id), color: 'bg-blue-600 hover:bg-blue-700' };
+        return { label: t('inbound.arrivalRegister'), action: () => handleArrived(order.id), color: 'bg-blue-600 hover:bg-blue-700' };
       case 'ARRIVED':
-        return { label: '开始验收', action: () => handleStartReceiving(order.id), color: 'bg-indigo-600 hover:bg-indigo-700' };
+        return { label: t('inbound.startInspection'), action: () => handleStartReceiving(order.id), color: 'bg-indigo-600 hover:bg-indigo-700' };
       case 'RECEIVING':
-        return { label: '继续验收', action: () => handleStartReceiving(order.id), color: 'bg-indigo-600 hover:bg-indigo-700' };
+        return { label: t('inbound.continueInspection'), action: () => handleStartReceiving(order.id), color: 'bg-indigo-600 hover:bg-indigo-700' };
       case 'RECEIVED':
-        return { label: '开始上架', action: () => handleStartPutaway(order.id), color: 'bg-teal-600 hover:bg-teal-700' };
+        return { label: t('inbound.startPutaway'), action: () => handleStartPutaway(order.id), color: 'bg-teal-600 hover:bg-teal-700' };
       case 'PUTAWAY':
-        return { label: '执行入库', action: () => handleExecuteOrder(order.id), color: 'bg-emerald-600 hover:bg-emerald-700' };
+        return { label: t('inbound.executeInbound'), action: () => handleExecuteOrder(order.id), color: 'bg-emerald-600 hover:bg-emerald-700' };
       default:
         return null;
     }
@@ -901,7 +906,7 @@ export default function InboundPage() {
 
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">
-          入库管理
+          {t('inbound.title')}
         </h1>
         <div className="flex items-center gap-3">
           <select
@@ -909,7 +914,7 @@ export default function InboundPage() {
             onChange={(e) => { setFilterWarehouseId(e.target.value); loadOrders(filterStatus, filterSource, e.target.value); }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">全部仓库</option>
+            <option value="">{t('inbound.allWarehouses')}</option>
             {warehouses.map(w => (
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
@@ -919,25 +924,25 @@ export default function InboundPage() {
             onChange={(e) => { setFilterSource(e.target.value); loadOrders(filterStatus, e.target.value, filterWarehouseId); }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">全部来源</option>
-            <option value="PURCHASE">采购入库</option>
-            <option value="RETURN">退货入库</option>
-            <option value="TRANSFER">调拨入库</option>
-            <option value="OTHER">其他</option>
+            <option value="">{t('inbound.allSources')}</option>
+            <option value="PURCHASE">{t('inbound.sourcePurchase')}</option>
+            <option value="RETURN">{t('inbound.sourceReturn')}</option>
+            <option value="TRANSFER">{t('inbound.sourceTransfer')}</option>
+            <option value="OTHER">{t('inbound.sourceOther')}</option>
           </select>
           <select
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value); loadOrders(e.target.value, filterSource, filterWarehouseId); }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">全部状态</option>
-            <option value="PENDING">待收货</option>
-            <option value="ARRIVED">已到货</option>
-            <option value="RECEIVING">验收中</option>
-            <option value="RECEIVED">已收货</option>
-            <option value="PUTAWAY">上架中</option>
-            <option value="COMPLETED">已完成</option>
-            <option value="CANCELLED">已取消</option>
+            <option value="">{t('inbound.allStatus')}</option>
+            <option value="PENDING">{t('inbound.statusPending')}</option>
+            <option value="ARRIVED">{t('inbound.statusArrived')}</option>
+            <option value="RECEIVING">{t('inbound.statusReceiving')}</option>
+            <option value="RECEIVED">{t('inbound.statusReceived')}</option>
+            <option value="PUTAWAY">{t('inbound.statusPutaway')}</option>
+            <option value="COMPLETED">{t('inbound.statusCompleted')}</option>
+            <option value="CANCELLED">{t('inbound.statusCancelled')}</option>
           </select>
           <button
             onClick={() => { loadWarehouses(); loadOrders(); }}
@@ -951,7 +956,7 @@ export default function InboundPage() {
               setShowModal(true);
             }}
             disabled={!currentOwnerId || !canWrite}
-            title={!currentOwnerId ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!currentOwnerId ? t('inbound.selectOwnerFirst') : !canWrite ? t('inbound.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               currentOwnerId && canWrite
                 ? 'bg-green-600 text-white hover:bg-green-700'
@@ -959,7 +964,7 @@ export default function InboundPage() {
             }`}
           >
             <Plus className="w-4 h-4" />
-            新建入库单
+            {t('inbound.createInbound')}
           </button>
         </div>
       </div>
@@ -968,15 +973,15 @@ export default function InboundPage() {
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr className="text-center">
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">入库单号</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">来源</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">仓库</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">商品</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">库位</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">数量</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">状态</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">时间</th>
-              <th className="px-4 py-3 text-sm font-medium text-gray-500">操作</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.inboundNo')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.source')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.warehouse')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.product')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.location')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.quantity')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.status')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.time')}</th>
+              <th className="px-4 py-3 text-sm font-medium text-gray-500">{t('inbound.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -989,7 +994,7 @@ export default function InboundPage() {
             ) : orders.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-8 text-center text-gray-400">
-                  暂无入库记录
+                  {t('inbound.noRecords')}
                 </td>
               </tr>
             ) : (
@@ -1030,7 +1035,7 @@ export default function InboundPage() {
                           <div className="font-mono">{order.inboundNo}</div>
                           {(order as any).purchaseOrder?.orderNo && (
                             <div className="text-xs text-blue-600 mt-1">
-                              采购单:{' '}
+                              {t('inbound.purchaseOrder')}:{' '}
                               <a
                                 href={`/purchases/${(order as any).purchaseOrder.id}`}
                                 className="hover:underline"
@@ -1062,16 +1067,16 @@ export default function InboundPage() {
                         <span className={`px-1.5 py-0.5 text-xs rounded ${
                           row.itemType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : row.itemType === 'MATERIAL' ? 'bg-green-100 text-green-600' : row.itemType === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
                         }`}>
-                          {row.itemType === 'BUNDLE' ? '套装' : row.itemType === 'MATERIAL' ? '原材料' : row.itemType === 'OTHER' ? '其他' : '商品'}
+                          {row.itemType === 'BUNDLE' ? t('inbound.bundle') : row.itemType === 'MATERIAL' ? t('inbound.material') : row.itemType === 'OTHER' ? t('inbound.other') : t('inbound.product')}
                         </span>
                         <span className="font-medium">{row.itemName}</span>
                         {row.itemUnit && <span className="text-xs text-gray-500">({row.itemUnit})</span>}
                         {row.itemType === 'BUNDLE' && row.items && row.items.length > 0 && (
                           <button
                             type="button"
-                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inbound.bundleContains')}:</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                             onMouseLeave={() => setTooltip(null)}
-                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">套装包含：</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
+                            onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <div><div className="font-semibold mb-2 text-blue-400">{t('inbound.bundleContains')}:</div>{row.items.map((bi: any) => (<div key={bi.id || bi.skuCode} className="text-gray-200 py-1"><span className="text-blue-400">{bi.productName || bi.sku?.product?.name}</span><span className="text-gray-400"> · {bi.spec || bi.sku?.spec}/{bi.packaging || bi.sku?.packaging}</span><span className="text-yellow-400 ml-1">×{bi.quantity}</span></div>))}</div> })}
                             className="p-0.5 hover:bg-gray-100 rounded"
                           >
                             <Info className="w-4 h-4 text-purple-500 cursor-help" />
@@ -1085,11 +1090,11 @@ export default function InboundPage() {
                     <td className="px-4 py-3 text-sm text-center">
                       <div className="text-green-600">{row.locationCode}</div>
                       {row.batchNo && row.batchNo !== '-' && (
-                        <div className="text-xs text-gray-400">批:{row.batchNo}</div>
+                        <div className="text-xs text-gray-400">{t('inbound.batch')}:{row.batchNo}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center text-sm">
-                      {row.quantity}件
+                      {row.quantity}{t('inbound.pieces')}
                     </td>
                     {rowIdx === 0 && (
                       <>
@@ -1101,11 +1106,11 @@ export default function InboundPage() {
                         <td className="px-4 py-3 text-sm text-center" rowSpan={orderRows.length}>
                           {order.putawayAt ? (
                             <>
-                              <div className="text-xs text-green-600">上架: {new Date(order.putawayAt).toLocaleString()}</div>
-                              <div className="text-xs text-gray-400">创建: {new Date(order.createdAt).toLocaleString()}</div>
+                              <div className="text-xs text-green-600">{t('inbound.putaway')}: {new Date(order.putawayAt).toLocaleString()}</div>
+                              <div className="text-xs text-gray-400">{t('inbound.created')}: {new Date(order.createdAt).toLocaleString()}</div>
                             </>
                           ) : (
-                            <div className="text-xs text-gray-400">创建: {new Date(order.createdAt).toLocaleString()}</div>
+                            <div className="text-xs text-gray-400">{t('inbound.created')}: {new Date(order.createdAt).toLocaleString()}</div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-center" rowSpan={orderRows.length}>
@@ -1122,7 +1127,7 @@ export default function InboundPage() {
                               onClick={() => handleCancelOrder(order.id)}
                               className="text-white px-2 py-1 rounded text-xs bg-red-600 hover:bg-red-700 ml-2"
                             >
-                              取消
+                              {t('inbound.cancel')}
                             </button>
                           )}
                         </td>
@@ -1140,7 +1145,7 @@ export default function InboundPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">新建入库单</h2>
+              <h2 className="text-xl font-bold">{t('inbound.newInboundOrder')}</h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
@@ -1150,7 +1155,7 @@ export default function InboundPage() {
               <div className="w-1/2 border-r flex flex-col max-h-[70vh]">
                 <div className="p-4 border-b bg-gray-50">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-700">入库单信息</span>
+                    <span className="text-sm font-medium text-gray-700">{t('inbound.inboundOrderInfo')}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <select
@@ -1158,10 +1163,10 @@ export default function InboundPage() {
                       onChange={(e) => setFormSource(e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
                     >
-                      <option value="PURCHASE">采购入库</option>
-                      <option value="RETURN">退货入库</option>
-                      <option value="TRANSFER">调拨入库</option>
-                      <option value="OTHER">其他入库</option>
+                      <option value="PURCHASE">{t('inbound.purchaseInbound')}</option>
+                      <option value="RETURN">{t('inbound.returnInbound')}</option>
+                      <option value="TRANSFER">{t('inbound.transferInbound')}</option>
+                      <option value="OTHER">{t('inbound.otherInbound')}</option>
                     </select>
                     <select
                       value={formWarehouseId}
@@ -1182,7 +1187,7 @@ export default function InboundPage() {
                       }}
                       className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
                     >
-                      <option value="">选择仓库</option>
+                      <option value="">{t('inbound.selectWarehouse')}</option>
                       {warehouses.map(w => (
                         <option key={w.id} value={w.id}>{w.name} {w.owner ? `(${w.owner.name})` : ''}</option>
                       ))}
@@ -1198,7 +1203,7 @@ export default function InboundPage() {
                       productType === 'SKU' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
                     }`}
                   >
-                    商品
+                    {t('inbound.product')}
                   </button>
                   <button
                     type="button"
@@ -1207,7 +1212,7 @@ export default function InboundPage() {
                       productType === 'BUNDLE' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
                     }`}
                   >
-                    套装
+                    {t('inbound.bundle')}
                   </button>
                 </div>
 
@@ -1215,7 +1220,7 @@ export default function InboundPage() {
                   <Search className="w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="搜索商品或套装..."
+                    placeholder={t('inbound.searchProductOrBundle')}
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     className="flex-1 px-3 py-2 border rounded-lg text-sm"
@@ -1238,7 +1243,7 @@ export default function InboundPage() {
                           <div key={productName} className="border border-blue-200 rounded-lg p-3 mb-2 bg-white">
                             <div className="flex items-center gap-2 mb-2">
                               <Package className="w-4 h-4 text-blue-500" />
-                              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">商品</span>
+                              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">{t('inbound.productTag')}</span>
                               <h3 className="font-bold text-sm text-blue-600">{productName}</h3>
                             </div>
                             <div className="grid grid-cols-4 gap-1.5">
@@ -1294,11 +1299,11 @@ export default function InboundPage() {
                                 </div>
                               )}
                               <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500">编码: {bundle.skuCode}</span>
+                                <span className="text-xs text-gray-500">{t('inbound.code')}: {bundle.skuCode}</span>
                                 <span className={`px-2 py-0.5 text-xs rounded font-medium ${
                                   isAdded ? 'bg-gray-200 text-gray-500' : 'bg-purple-100 text-purple-700'
                                 }`}>
-                                  {isAdded ? '✓' : '选择'}
+                                  {isAdded ? '✓' : t('inbound.select')}
                                 </span>
                               </div>
                             </div>
@@ -1311,7 +1316,7 @@ export default function InboundPage() {
 
                 <div className="w-1/2 flex flex-col">
                   <div className="p-4 border-b bg-gray-50">
-                    <div className="text-sm font-medium text-gray-700 mb-3">添加入库明细</div>
+                    <div className="text-sm font-medium text-gray-700 mb-3">{t('inbound.addInboundItems')}</div>
                     {(selectedSkuId || selectedBundleId) ? (
                       <div className="border rounded-lg p-3 bg-blue-50">
                         <div className="flex items-center justify-between mb-2">
@@ -1319,7 +1324,7 @@ export default function InboundPage() {
                             <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
                               productType === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                             }`}>
-                              {productType === 'BUNDLE' ? '套装' : '商品'}
+                              {productType === 'BUNDLE' ? t('inbound.bundle') : t('inbound.productTag')}
                             </span>
                             <span className="font-medium text-sm">
                               {productType === 'BUNDLE'
@@ -1336,7 +1341,7 @@ export default function InboundPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-xs">数量:</label>
+                            <label className="text-xs">{t('inbound.quantity')}:</label>
                             <input
                               type="number"
                               min="1"
@@ -1349,7 +1354,7 @@ export default function InboundPage() {
                               disabled={!toLocationId}
                               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 text-xs"
                             >
-                              添加
+                              {t('inbound.add')}
                             </button>
                           </div>
                         </div>
@@ -1360,7 +1365,7 @@ export default function InboundPage() {
                             className="px-2 py-1 border rounded text-xs"
                             disabled={!formWarehouseId}
                           >
-                            <option value="">选择库区</option>
+                            <option value="">{t('inbound.selectZone')}</option>
                             {uniqueZones.map(z => (
                               <option key={z.id} value={z.id}>{z.name}({z.code})</option>
                             ))}
@@ -1371,7 +1376,7 @@ export default function InboundPage() {
                               onChange={(e) => { setToShelfId(e.target.value); setToLocationId(''); }}
                               className="px-2 py-1 border rounded text-xs"
                             >
-                              <option value="">选择货架</option>
+                              <option value="">{t('inbound.selectShelf')}</option>
                               {zoneShelves.map(s => (
                                 <option key={s.id} value={s.id}>{s.name || s.code}</option>
                               ))}
@@ -1383,7 +1388,7 @@ export default function InboundPage() {
                               onChange={(e) => setToLocationId(e.target.value)}
                               className="px-2 py-1 border rounded text-xs"
                             >
-                              <option value="">选择库位</option>
+                              <option value="">{t('inbound.selectLocation')}</option>
                               {shelfLocations.map(l => (
                                 <option key={l.id} value={l.id}>L{l.level}</option>
                               ))}
@@ -1393,16 +1398,16 @@ export default function InboundPage() {
                       </div>
                     ) : (
                       <div className="text-center text-gray-400 py-6 border rounded-lg">
-                        请从左侧选择商品或套装
+                        {t('inbound.selectProductFirst')}
                       </div>
                     )}
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4">
-                    <div className="text-sm font-medium text-gray-700 mb-2">入库清单 ({inboundItems.length})</div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">{t('inbound.inboundList')} ({inboundItems.length})</div>
                     {inboundItems.length === 0 ? (
                       <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg">
-                        暂无商品，请从左侧添加
+                        {t('inbound.noItemsHint')}
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -1413,7 +1418,7 @@ export default function InboundPage() {
                                 <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
                                   item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                                 }`}>
-                                  {item.type === 'BUNDLE' ? '套装' : '商品'}
+                                  {item.type === 'BUNDLE' ? t('inbound.bundle') : t('inbound.productTag')}
                                 </span>
                                 <span className="font-medium truncate max-w-32">{item.productName}</span>
                                 {(item.spec || item.packaging) && (
@@ -1425,7 +1430,7 @@ export default function InboundPage() {
                               <span className="text-green-600 text-xs whitespace-nowrap">{item.locationCode}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="text-blue-600 font-bold">{item.quantity}件</span>
+                              <span className="text-blue-600 font-bold">{item.quantity}{t('inbound.pieces')}</span>
                               <button onClick={() => handleRemoveItem(idx)} className="text-red-500 hover:text-red-700">
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -1436,7 +1441,7 @@ export default function InboundPage() {
                     )}
 
                     <div className="mt-4">
-                      <label className="block text-xs text-gray-600 mb-1">备注</label>
+                      <label className="block text-xs text-gray-600 mb-1">{t('inbound.remark')}</label>
                       <textarea
                         value={inboundRemark}
                         onChange={(e) => setInboundRemark(e.target.value)}
@@ -1451,14 +1456,14 @@ export default function InboundPage() {
                       onClick={() => { setShowModal(false); resetForm(); }}
                       className="px-4 py-2 border rounded-lg"
                     >
-                      取消
+                      {t('inbound.cancel')}
                     </button>
                     <button
                       onClick={handleCreateOrder}
                       disabled={saving || inboundItems.length === 0}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                     >
-                      {saving ? '创建中...' : '创建入库单'}
+                      {saving ? t('inbound.creating') : t('inbound.createInboundOrder')}
                     </button>
                   </div>
                 </div>
@@ -1471,7 +1476,7 @@ export default function InboundPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">入库单详情</h2>
+              <h2 className="text-xl font-bold">{t('inbound.inboundDetail')}</h2>
               <button onClick={() => { setShowDetailModal(false); setSelectedOrder(null); }} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
@@ -1480,23 +1485,23 @@ export default function InboundPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600">入库单号</label>
+                  <label className="block text-sm text-gray-600">{t('inbound.inboundNo')}</label>
                   <div className="font-mono font-medium">{selectedOrder.inboundNo}</div>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">状态</label>
+                  <label className="block text-sm text-gray-600">{t('inbound.status')}</label>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${STATUS_COLORS[selectedOrder.status]}`}>
                     {STATUS_NAMES[selectedOrder.status]}
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">来源</label>
+                  <label className="block text-sm text-gray-600">{t('inbound.source')}</label>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${SOURCE_COLORS[selectedOrder.source]}`}>
                     {SOURCE_NAMES[selectedOrder.source]}
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600">仓库</label>
+                  <label className="block text-sm text-gray-600">{t('inbound.warehouse')}</label>
                   <div>{selectedOrder.warehouse?.name}</div>
                   {selectedOrder.warehouse?.owner?.name && (
                     <div className="text-xs text-gray-400">{selectedOrder.warehouse.owner.name}</div>
@@ -1504,37 +1509,37 @@ export default function InboundPage() {
                 </div>
                 {selectedOrder.arrivalQuantity && (
                   <div>
-                    <label className="block text-sm text-gray-600">到货数量</label>
+                    <label className="block text-sm text-gray-600">{t('inbound.arrivalQuantity')}</label>
                     <div>{selectedOrder.arrivalQuantity}</div>
                   </div>
                 )}
                 {selectedOrder.palletNo && (
                   <div>
-                    <label className="block text-sm text-gray-600">托盘号</label>
+                    <label className="block text-sm text-gray-600">{t('inbound.palletNo')}</label>
                     <div>{selectedOrder.palletNo}</div>
                   </div>
                 )}
                 {selectedOrder.vehicleNo && (
                   <div>
-                    <label className="block text-sm text-gray-600">车牌号</label>
+                    <label className="block text-sm text-gray-600">{t('inbound.vehicleNo')}</label>
                     <div>{selectedOrder.vehicleNo}</div>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-2">入库明细</label>
+                <label className="block text-sm text-gray-600 mb-2">{t('inbound.inboundItems')}</label>
                 <table className="min-w-full border">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs">商品</th>
-                      <th className="px-3 py-2 text-left text-xs">规格</th>
-                      <th className="px-3 py-2 text-left text-xs">包装</th>
-                      <th className="px-3 py-2 text-center text-xs">期望</th>
-                      <th className="px-3 py-2 text-center text-xs">实收</th>
-                      <th className="px-3 py-2 text-center text-xs">验收</th>
-                      <th className="px-3 py-2 text-left text-xs">库位</th>
-                      <th className="px-3 py-2 text-left text-xs">批次</th>
+                      <th className="px-3 py-2 text-left text-xs">{t('inbound.product')}</th>
+                      <th className="px-3 py-2 text-left text-xs">{t('inbound.spec')}</th>
+                      <th className="px-3 py-2 text-left text-xs">{t('inbound.packaging')}</th>
+                      <th className="px-3 py-2 text-center text-xs">{t('inbound.expected')}</th>
+                      <th className="px-3 py-2 text-center text-xs">{t('inbound.actual')}</th>
+                      <th className="px-3 py-2 text-center text-xs">{t('inbound.inspection')}</th>
+                      <th className="px-3 py-2 text-left text-xs">{t('inbound.location')}</th>
+                      <th className="px-3 py-2 text-left text-xs">{t('inbound.batch')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -1554,7 +1559,7 @@ export default function InboundPage() {
                               item.inspectionResult === 'SHORT' ? 'bg-orange-100 text-orange-800' :
                               'bg-red-100 text-red-800'
                             }`}>
-                              {item.inspectionResult === 'OK' ? '合格' : item.inspectionResult === 'SHORT' ? '少货' : '损坏'}
+                              {item.inspectionResult === 'OK' ? t('inbound.qualified') : item.inspectionResult === 'SHORT' ? t('inbound.shortage') : t('inbound.damaged')}
                             </span>
                           ) : '-'}
                         </td>
@@ -1575,13 +1580,13 @@ export default function InboundPage() {
 
               {selectedOrder.items?.some((item: any) => item.snCodes && item.snCodes.length > 0) && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">SN明细</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('inbound.snDetails')}</label>
                   <table className="min-w-full border">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs">商品</th>
-                        <th className="px-3 py-2 text-left text-xs">批次</th>
-                        <th className="px-3 py-2 text-left text-xs">SN码</th>
+                        <th className="px-3 py-2 text-left text-xs">{t('inbound.product')}</th>
+                        <th className="px-3 py-2 text-left text-xs">{t('inbound.batch')}</th>
+                        <th className="px-3 py-2 text-left text-xs">{t('inbound.snCode')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -1603,7 +1608,7 @@ export default function InboundPage() {
 
               {selectedOrder.remark && (
                 <div>
-                  <label className="block text-sm text-gray-600">备注</label>
+                  <label className="block text-sm text-gray-600">{t('inbound.remark')}</label>
                   <div>{selectedOrder.remark}</div>
                 </div>
               )}
@@ -1616,7 +1621,7 @@ export default function InboundPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">到货登记 - {selectedArrivalOrder.inboundNo}</h2>
+              <h2 className="text-xl font-bold">{t('inbound.arrivalRegister')} - {selectedArrivalOrder.inboundNo}</h2>
               <button onClick={() => setShowArrivalModal(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
@@ -1624,13 +1629,13 @@ export default function InboundPage() {
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">到货时间</label>
+                <label className="block text-sm text-gray-600 mb-1">{t('inbound.arrivalTime')}</label>
                 <div className="border rounded-lg px-3 py-2 bg-gray-50">
                   {new Date().toLocaleString()}
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">车牌号</label>
+                <label className="block text-sm text-gray-600 mb-1">{t('inbound.vehicleNo')}</label>
                 <LicensePlateInput
                   value={arrivalVehicleNo}
                   onChange={setArrivalVehicleNo}
@@ -1640,19 +1645,19 @@ export default function InboundPage() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">到货明细</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('inbound.arrivalDetails')}</label>
               <table className="min-w-full border divide-y">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs w-40">商品</th>
-                    <th className="px-3 py-2 text-left text-xs w-32">规格/包装</th>
-                    <th className="px-3 py-2 text-center text-xs w-24">计划/到货</th>
-                    <th className="px-3 py-2 text-center text-xs w-36"><span className="text-red-500">*</span>供应商</th>
-                    <th className="px-3 py-2 text-center text-xs w-24"><span className="text-red-500">*</span>批次号</th>
+                    <th className="px-3 py-2 text-left text-xs w-40">{t('inbound.product')}</th>
+                    <th className="px-3 py-2 text-left text-xs w-32">{t('inbound.specPackaging')}</th>
+                    <th className="px-3 py-2 text-center text-xs w-24">{t('inbound.plannedArrived')}</th>
+                    <th className="px-3 py-2 text-center text-xs w-36"><span className="text-red-500">*</span>{t('inbound.supplier')}</th>
+                    <th className="px-3 py-2 text-center text-xs w-24"><span className="text-red-500">*</span>{t('inbound.batchNo')}</th>
                     {arrivalItems.some(i => i.type === 'PRODUCT' || i.type === 'BUNDLE') && (
                       <>
                         {arrivalItems.some(i => i.type === 'PRODUCT') && (
-                          <th className="px-3 py-2 text-center text-xs w-28"><span className="text-red-500">*</span>有效期</th>
+                          <th className="px-3 py-2 text-center text-xs w-28"><span className="text-red-500">*</span>{t('inbound.expiryDate')}</th>
                         )}
                       </>
                     )}
@@ -1666,7 +1671,7 @@ export default function InboundPage() {
                           <span className={`px-1.5 py-0.5 text-xs rounded shrink-0 ${
                             item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' : item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
                           }`}>
-                            {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
+                            {item.type === 'BUNDLE' ? t('inbound.bundle') : item.type === 'MATERIAL' ? t('inbound.material') : item.type === 'OTHER' ? t('inbound.other') : t('inbound.productTag')}
                           </span>
                           <span className="truncate">{item.productName}</span>
                         </div>
@@ -1703,7 +1708,7 @@ export default function InboundPage() {
                           }}
                           className={`border rounded px-1 py-1 text-sm w-full ${item.arrivalQuantity > 0 && !item.supplierId ? 'border-red-300 bg-red-50' : ''}`}
                         >
-                          <option value="">选择</option>
+                          <option value="">{t('inbound.select')}</option>
                           {suppliers.map(s => (
                             <option key={s.id} value={s.id}>{s.name}</option>
                           ))}
@@ -1769,13 +1774,13 @@ export default function InboundPage() {
                 onClick={() => setShowArrivalModal(false)}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
-                取消
+                {t('inbound.cancel')}
               </button>
               <button
                 onClick={handleArrivalSubmit}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                确认到货
+                {t('inbound.confirmArrival')}
               </button>
             </div>
           </div>
@@ -1786,14 +1791,14 @@ export default function InboundPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">验收收货 - {selectedReceivingOrder.inboundNo}</h2>
+              <h2 className="text-xl font-bold">{t('inbound.receivingInspection')} - {selectedReceivingOrder.inboundNo}</h2>
               <button onClick={() => setShowReceivingModal(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm text-gray-600 mb-1">扫描商品条码</label>
+              <label className="block text-sm text-gray-600 mb-1">{t('inbound.scanProductBarcode')}</label>
               <input
                 type="text"
                 value={receivingBarcode}
@@ -1804,25 +1809,25 @@ export default function InboundPage() {
                   }
                 }}
                 className="w-full border rounded-lg px-3 py-2"
-                placeholder="扫描或输入商品条码后按回车"
+                placeholder={t('inbound.scanOrInputBarcode')}
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">验收明细</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('inbound.inspectionDetails')}</label>
               <table className="min-w-full border divide-y">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs">商品</th>
-                    <th className="px-3 py-2 text-left text-xs">规格/包装</th>
-                    <th className="px-3 py-2 text-center text-xs">计划</th>
-                    <th className="px-3 py-2 text-center text-xs">实收</th>
-                    <th className="px-3 py-2 text-center text-xs">批次</th>
+                    <th className="px-3 py-2 text-left text-xs">{t('inbound.product')}</th>
+                    <th className="px-3 py-2 text-left text-xs">{t('inbound.specPackaging')}</th>
+                    <th className="px-3 py-2 text-center text-xs">{t('inbound.planned')}</th>
+                    <th className="px-3 py-2 text-center text-xs">{t('inbound.actual')}</th>
+                    <th className="px-3 py-2 text-center text-xs">{t('inbound.batch')}</th>
                     {receivingItems.some(i => i.type === 'PRODUCT') && (
-                      <th className="px-3 py-2 text-center text-xs">有效期</th>
+                      <th className="px-3 py-2 text-center text-xs">{t('inbound.expiryDate')}</th>
                     )}
-                    <th className="px-3 py-2 text-center text-xs">验收</th>
-                    <th className="px-3 py-2 text-left text-xs">备注</th>
+                    <th className="px-3 py-2 text-center text-xs">{t('inbound.inspection')}</th>
+                    <th className="px-3 py-2 text-left text-xs">{t('inbound.remark')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -1875,7 +1880,7 @@ export default function InboundPage() {
                             setReceivingItems(newItems);
                           }}
                           className="w-32 border rounded px-1 py-0.5 text-sm"
-                          placeholder="批次号"
+                          placeholder={t('inbound.batchNoPlaceholder')}
                         />
                       </td>
                       {receivingItems.some(i => i.type === 'PRODUCT') && (
@@ -1906,10 +1911,10 @@ export default function InboundPage() {
                           }}
                           className="border rounded px-2 py-1 text-sm"
                         >
-                          <option value="PENDING">待验收</option>
-                          <option value="OK">合格</option>
-                          <option value="SHORT">短缺</option>
-                          <option value="DAMAGED">破损</option>
+                          <option value="PENDING">{t('inbound.pendingInspection')}</option>
+                          <option value="OK">{t('inbound.qualified')}</option>
+                          <option value="SHORT">{t('inbound.shortage')}</option>
+                          <option value="DAMAGED">{t('inbound.damaged')}</option>
                         </select>
                       </td>
                       <td className="px-3 py-2 text-center">
@@ -1922,7 +1927,7 @@ export default function InboundPage() {
                             setReceivingItems(newItems);
                           }}
                           className="w-24 border rounded px-2 py-1 text-sm"
-                          placeholder="备注"
+                          placeholder={t('inbound.remarkPlaceholder')}
                         />
                       </td>
                     </tr>
@@ -1936,13 +1941,13 @@ export default function InboundPage() {
                 onClick={() => setShowReceivingModal(false)}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
-                取消
+                {t('inbound.cancel')}
               </button>
               <button
                 onClick={handleCompleteReceivingSubmit}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
-                确认验收
+                {t('inbound.confirmInspection')}
               </button>
             </div>
           </div>
@@ -1953,7 +1958,7 @@ export default function InboundPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">开始上架 - {selectedPutawayOrder.inboundNo}</h2>
+              <h2 className="text-xl font-bold">{t('inbound.startPutawayTitle')} - {selectedPutawayOrder.inboundNo}</h2>
               <button onClick={() => setShowPutawayModal(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
@@ -1962,26 +1967,26 @@ export default function InboundPage() {
             {putawayLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <span className="ml-2">加载库位数据...</span>
+                <span className="ml-2">{t('inbound.loadingLocationData')}</span>
               </div>
             ) : (
               <>
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="text-sm text-blue-800">
-                    <strong>AI推荐规则：</strong>优先推荐同批次同商品库位 → 空库位 → 任意库位
+                    <strong>{t('inbound.aiRecommendationRule')}</strong>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">上架明细</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('inbound.putawayDetails')}</label>
                   <table className="min-w-full border divide-y">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs">商品</th>
-                        <th className="px-3 py-2 text-center text-xs">数量</th>
-                        <th className="px-3 py-2 text-left text-xs">原预计库位</th>
-                        <th className="px-3 py-2 text-center text-xs">AI推荐库位</th>
-                        <th className="px-3 py-2 text-center text-xs">目标库位</th>
+                        <th className="px-3 py-2 text-left text-xs">{t('inbound.product')}</th>
+                        <th className="px-3 py-2 text-center text-xs">{t('inbound.quantity')}</th>
+                        <th className="px-3 py-2 text-left text-xs">{t('inbound.originalLocation')}</th>
+                        <th className="px-3 py-2 text-center text-xs">{t('inbound.aiRecommendedLocation')}</th>
+                        <th className="px-3 py-2 text-center text-xs">{t('inbound.targetLocation')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -1991,7 +1996,7 @@ export default function InboundPage() {
                             <span className={`px-1.5 py-0.5 text-xs rounded mr-1 ${
                               item.type === 'BUNDLE' ? 'bg-purple-100 text-purple-600' : item.type === 'MATERIAL' ? 'bg-green-100 text-green-600' : item.type === 'OTHER' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
                             }`}>
-                              {item.type === 'BUNDLE' ? '套装' : item.type === 'MATERIAL' ? '原材料' : item.type === 'OTHER' ? '其他' : '商品'}
+                              {item.type === 'BUNDLE' ? t('inbound.bundleTag') : item.type === 'MATERIAL' ? t('inbound.materialTag') : item.type === 'OTHER' ? t('inbound.otherTag') : t('inbound.productTag')}
                             </span>
                             {item.productName}
                             {item.unit && <span className="text-xs text-gray-500 ml-1">({item.unit})</span>}
@@ -2018,7 +2023,7 @@ export default function InboundPage() {
                               }}
                               className="border rounded px-2 py-1 text-sm"
                             >
-                              <option value="">选择库位</option>
+                              <option value="">{t('inbound.selectLocationPlaceholder')}</option>
                               {putawayZones.filter((z: any) => z.type === (selectedPutawayOrder.source === 'RETURN' ? 'RETURNING' : 'INBOUND')).flatMap((zone: any) =>
                                 (zone.shelves || []).flatMap((shelf: any) =>
                                   (shelf.locations || []).map((loc: any) => {
@@ -2028,7 +2033,7 @@ export default function InboundPage() {
                                                    (loc.bundleStock && loc.bundleStock.totalQuantity > 0);
                                     return (
                                       <option key={loc.id} value={loc.id}>
-                                        {code} {isRecommended ? '【推荐】' : ''} {hasStock ? '[有货]' : '[空]'}
+                                        {code} {isRecommended ? t('inbound.recommendedTag') : ''} {hasStock ? t('inbound.hasStockTag') : t('inbound.emptyTag')}
                                       </option>
                                     );
                                   })
@@ -2047,13 +2052,13 @@ export default function InboundPage() {
                     onClick={() => setShowPutawayModal(false)}
                     className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                   >
-                    取消
+                    {t('inbound.cancel')}
                   </button>
                   <button
                     onClick={handlePutawayConfirm}
                     className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
                   >
-                    确认上架
+                    {t('inbound.confirmPutaway')}
                   </button>
                 </div>
               </>

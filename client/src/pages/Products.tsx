@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { productApi, bundleApi, warehouseApi, stockApi, qrcodeApi } from '../api';
 import api from '../api';
 import { toast } from 'react-toastify';
@@ -107,6 +108,7 @@ const defaultBundlePackagings = ['礼盒', '纸盒', '简装'];
 const defaultBundleSpecs = ['单品', '组合'];
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
   const { confirm } = useConfirm();
   const { currentOwnerId, owners } = useOwnerStore();
   const { canWrite } = usePermission('config', 'products');
@@ -295,16 +297,16 @@ export default function ProductsPage() {
       
       if (editingId) {
         await productApi.update(editingId, data);
-        toast.success('更新成功');
+        toast.success(t('product.updateSuccess'));
       } else {
         await productApi.create(data);
-        toast.success('创建成功');
+        toast.success(t('product.createSuccess'));
       }
       setShowModal(false);
       resetForm();
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('common.failed'));
     }
   };
 
@@ -315,17 +317,17 @@ export default function ProductsPage() {
       if (editingId) {
         const res = await bundleApi.update(editingId, bundleFormData);
         console.log('[Bundle Submit] Update response:', res.data);
-        toast.success('更新成功');
+        toast.success(t('product.updateSuccess'));
       } else {
         await bundleApi.create(bundleFormData);
-        toast.success('创建成功');
+        toast.success(t('product.createSuccess'));
       }
       setShowModal(false);
       resetBundleForm();
       fetchData();
     } catch (error: any) {
       console.error('[Bundle Submit] Error:', error);
-      toast.error(error.response?.data?.message || '操作失败');
+      toast.error(error.response?.data?.message || t('common.failed'));
     }
   };
 
@@ -391,26 +393,26 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定删除?' });
+    const ok = await confirm({ message: t('product.confirmDelete') });
     if (!ok) return;
     try {
       await productApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('product.deleteSuccess'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('common.failed'));
     }
   };
 
   const handleBundleDelete = async (id: string) => {
-    const ok = await confirm({ message: '确定删除?' });
+    const ok = await confirm({ message: t('product.confirmDelete') });
     if (!ok) return;
     try {
       await bundleApi.delete(id);
-      toast.success('删除成功');
+      toast.success(t('product.deleteSuccess'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '删除失败');
+      toast.error(error.response?.data?.message || t('common.failed'));
     }
   };
 
@@ -423,8 +425,8 @@ export default function ProductsPage() {
         setShowQRCodeModal(true);
       }
     } catch (error: any) {
-      console.error('生成二维码失败:', error);
-      toast.error(error.response?.data?.message || '生成二维码失败');
+      console.error(t('product.qrcodeGenerateFailed'), error);
+      toast.error(error.response?.data?.message || t('product.qrcodeGenerateFailed'));
     }
   };
 
@@ -433,12 +435,12 @@ export default function ProductsPage() {
     
     const link = document.createElement('a');
     link.href = qrCodeData.qrCode;
-    link.download = `商品二维码_${qrCodeData.productName || 'product'}.png`;
+    link.download = `${t('product.productQRCode')}_${qrCodeData.productName || 'product'}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    toast.success('二维码已下载');
+    toast.success(t('product.qrcodeDownloaded'));
   };
 
   const resetForm = () => {
@@ -459,12 +461,12 @@ export default function ProductsPage() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('图片大小不能超过5MB');
+      toast.error(t('product.imageSizeExceeded'));
       return;
     }
 
     if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
-      toast.error('只支持 JPEG、PNG、WebP 格式的图片');
+      toast.error(t('product.imageFormatError'));
       return;
     }
 
@@ -485,13 +487,13 @@ export default function ProductsPage() {
         } else {
           setBundleFormData({ ...bundleFormData, imageUrl: response.data.data.url });
         }
-        toast.success('图片上传成功');
+        toast.success(t('product.imageUploadSuccess'));
       } else {
-        toast.error(response.data.message || '图片上传失败');
+        toast.error(response.data.message || t('product.imageUploadFailed'));
       }
     } catch (error) {
       console.error('Image upload error:', error);
-      toast.error('图片上传失败');
+      toast.error(t('product.imageUploadFailed'));
     } finally {
       setUploadingImage(false);
       if (imageInputRef.current) {
@@ -501,8 +503,8 @@ export default function ProductsPage() {
   };
 
   const handleSpecChange = async (newSpec: string) => {
-    if (bundleFormData.spec === '组合' && newSpec === '单品' && bundleFormData.items.length > 1) {
-      const ok = await confirm({ message: '切换为单品将只保留第一个商品，确定要切换吗？' });
+    if (bundleFormData.spec === t('product.combo') && newSpec === t('product.singleItem') && bundleFormData.items.length > 1) {
+      const ok = await confirm({ message: t('product.switchToSingleConfirm') });
       if (!ok) return;
       setBundleFormData({ ...bundleFormData, spec: newSpec, items: [bundleFormData.items[0]] });
     } else {
@@ -624,7 +626,7 @@ export default function ProductsPage() {
     <div className="p-2 space-y-6">
       
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">商品&套装管理</h1>
+        <h1 className="text-2xl font-bold">{t('product.title')}</h1>
         <div className="flex items-center gap-4">
           <button
             onClick={() => fetchData()}
@@ -633,7 +635,7 @@ export default function ProductsPage() {
             <RefreshCw className="w-4 h-4" />
           </button>
           <span className="text-sm text-gray-500">
-            商品: {products.length} | 套装: {bundles.length}
+            {t('product.productCount')}: {products.length} | {t('product.bundleCount')}: {bundles.length}
           </span>
           <button
             onClick={() => {
@@ -642,7 +644,7 @@ export default function ProductsPage() {
               setShowModal(true);
             }}
             disabled={!filterOwner || !canWrite}
-            title={!filterOwner ? '请先选择主体' : !canWrite ? '无操作权限' : ''}
+            title={!filterOwner ? t('product.pleaseSelectOwner') : !canWrite ? t('product.noPermission') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
               filterOwner && canWrite
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -650,18 +652,18 @@ export default function ProductsPage() {
             }`}
           >
             <Plus className="w-5 h-5" />
-            {activeTab === 'product' ? '创建商品' : '创建套装'}
+            {activeTab === 'product' ? t('product.createProduct') : t('product.createBundle')}
           </button>
           <button
             onClick={() => navigate('/product-basic-data')}
             disabled={!filterOwner}
-            title={!filterOwner ? '请先选择主体' : ''}
+            title={!filterOwner ? t('product.pleaseSelectOwner') : ''}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-primary-600 hover:bg-primary-50 ${
               filterOwner ? 'text-primary-600' : 'text-gray-400 border-gray-300 cursor-not-allowed'
             }`}
           >
             <Database className="w-4 h-4" />
-            基础类目
+            {t('product.basicData')}
           </button>
         </div>
       </div>
@@ -673,7 +675,7 @@ export default function ProductsPage() {
             activeTab === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'
           }`}
         >
-          商品管理
+          {t('product.productManagement')}
         </button>
         <button
           onClick={() => setActiveTab('bundle')}
@@ -681,7 +683,7 @@ export default function ProductsPage() {
             activeTab === 'bundle' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500'
           }`}
         >
-          套装管理
+          {t('product.bundleManagement')}
         </button>
       </div>
 
@@ -694,7 +696,7 @@ export default function ProductsPage() {
           {products.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>暂无商品，请创建</p>
+              <p>{t('product.noProduct')}</p>
             </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -747,18 +749,18 @@ export default function ProductsPage() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className={`px-2 py-1 text-xs rounded font-medium ${product.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {product.status === 'ACTIVE' ? '在售' : '停售'}
+                      {product.status === 'ACTIVE' ? t('product.onShelf') : t('product.offShelf')}
                     </span>
                     {product.isVisibleToCustomer === false && (
                       <span className="px-2 py-1 text-xs rounded font-medium bg-red-100 text-red-700 whitespace-nowrap">
-                        对客户隐藏
+                        {t('product.hiddenToCustomer')}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: '#f0f4f8' }}>
                   <div className="text-sm text-gray-600">
-                    <span className="font-medium text-gray-800">{product.skus?.length || 0}</span> 个规格
+                    <span className="font-medium text-gray-800">{product.skus?.length || 0}</span> {t('product.specCount')}
                   </div>
                   {product.skus && product.skus.length > 0 && (
                     <div className="mt-2 text-xs max-h-16 overflow-y-auto text-gray-600">
@@ -777,19 +779,19 @@ export default function ProductsPage() {
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-green-200 text-green-600 rounded-lg text-sm hover:bg-green-50"
                   >
                     <Warehouse className="w-4 h-4" />
-                    库存
+                    {t('product.stock')}
                   </button>
                   <button
                     onClick={() => handleEdit(product)}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-primary-200 text-primary-600 rounded-lg text-sm hover:bg-primary-50"
                   >
                     <Pencil className="w-4 h-4" />
-                    编辑
+                    {t('common.edit')}
                   </button>
                   <button
                     onClick={() => handleGenerateQRCode(product.id, product.name)}
                     className="px-3 py-2 border border-blue-200 text-blue-600 rounded-lg text-sm hover:bg-blue-50"
-                    title="生成商品二维码"
+                    title={t('product.generateQRCode')}
                   >
                     <QrCode className="w-4 h-4" />
                   </button>
@@ -811,7 +813,7 @@ export default function ProductsPage() {
         bundles.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p>暂无套装，请创建</p>
+            <p>{t('product.noBundle')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -851,11 +853,11 @@ export default function ProductsPage() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className={`px-2 py-1 text-xs rounded font-medium ${bundle.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {bundle.status === 'ACTIVE' ? '在售' : '停售'}
+                      {bundle.status === 'ACTIVE' ? t('product.onShelf') : t('product.offShelf')}
                     </span>
                     {bundle.isVisibleToCustomer === false && (
                       <span className="px-2 py-1 text-xs rounded font-medium bg-red-100 text-red-700 whitespace-nowrap">
-                        对客户隐藏
+                        {t('product.hiddenToCustomer')}
                       </span>
                     )}
                   </div>
@@ -870,7 +872,7 @@ export default function ProductsPage() {
                 </div>
                 <div className="bg-purple-50 rounded-lg p-3 mb-3">
                   <div className="text-sm text-purple-700">
-                    <span className="font-medium">{bundle.items?.length || 0}</span> 种商品 · 共 <span className="font-medium">{getTotalItems(bundle)}</span> 件
+                    <span className="font-medium">{bundle.items?.length || 0}</span> {t('product.types')} · {t('product.totalItems')} <span className="font-medium">{getTotalItems(bundle)}</span> {t('product.items')}
                   </div>
                   {bundle.items && bundle.items.length > 0 && (
                     <div className="mt-2 text-xs text-purple-600 max-h-16 overflow-y-auto">
@@ -889,19 +891,19 @@ export default function ProductsPage() {
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-purple-200 text-purple-600 rounded-lg text-sm hover:bg-purple-50"
                   >
                     <Warehouse className="w-4 h-4" />
-                    库存
+                    {t('product.stock')}
                   </button>
                   <button
                     onClick={() => { setActiveTab('bundle'); handleBundleEdit(bundle); }}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-primary-200 text-primary-600 rounded-lg text-sm hover:bg-primary-50"
                   >
                     <Pencil className="w-4 h-4" />
-                    编辑
+                    {t('common.edit')}
                   </button>
                   <button
                     onClick={() => handleGenerateQRCode(bundle.id, bundle.name)}
                     className="px-3 py-2 border border-blue-200 text-blue-600 rounded-lg text-sm hover:bg-blue-50"
-                    title="生成套装二维码"
+                    title={t('product.generateBundleQRCode')}
                   >
                     <QrCode className="w-4 h-4" />
                   </button>
@@ -925,7 +927,7 @@ export default function ProductsPage() {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-lg font-bold">
-                {editingId ? (activeTab === 'product' ? '编辑商品' : '编辑套装') : (activeTab === 'product' ? '创建商品' : '创建套装')}
+                {editingId ? (activeTab === 'product' ? t('product.editProduct') : t('product.editBundle')) : (activeTab === 'product' ? t('product.createProduct') : t('product.createBundle'))}
               </h2>
               <button onClick={() => { setShowModal(false); resetForm(); resetBundleForm(); }}>
                 <X className="w-5 h-5" />
@@ -937,7 +939,7 @@ export default function ProductsPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">分类</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.category')}</label>
                       <select
                         value={formCategoryId}
                         onChange={e => {
@@ -947,28 +949,28 @@ export default function ProductsPage() {
                         className="w-full px-3 py-2 border rounded-lg"
                         required
                       >
-                        <option value="">选择分类</option>
+                        <option value="">{t('product.selectCategory')}</option>
                         {categories.map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">二级分类</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.subCategory')}</label>
                       <select
                         value={formData.subCategoryId}
                         onChange={e => setFormData({ ...formData, subCategoryId: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
                         disabled={!formCategoryId}
                       >
-                        <option value="">选择二级分类</option>
+                        <option value="">{t('product.selectSubCategory')}</option>
                         {filteredSubCategories.map(sc => (
                           <option key={sc.id} value={sc.id}>{sc.name}（{sc.code}）</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">品牌</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.brand')}</label>
                       <select
                         value={formData.brandId}
                         onChange={e => setFormData({ ...formData, brandId: e.target.value })}
@@ -976,7 +978,7 @@ export default function ProductsPage() {
                         required
                         disabled={!formCategoryId}
                       >
-                        <option value="">{formCategoryId ? '选择品牌' : '请先选择分类'}</option>
+                        <option value="">{formCategoryId ? t('product.selectBrand') : t('product.pleaseSelectCategoryFirst')}</option>
                         {filteredBrands.map(b => (
                           <option key={b.id} value={b.id}>{b.name}</option>
                         ))}
@@ -984,7 +986,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">商品名称</label>
+                    <label className="block text-sm font-medium mb-1">{t('product.productName')}</label>
                     <input
                       type="text"
                       value={formData.name}
@@ -994,14 +996,14 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">商品图片</label>
+                    <label className="block text-sm font-medium mb-1">{t('product.productImage')}</label>
                     <div className="flex items-start gap-3">
                       <div className="flex-1">
                         {formData.imageUrl ? (
                           <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
                             <img 
                               src={formData.imageUrl} 
-                              alt="商品图片" 
+                              alt={t('product.productImage')} 
                               className="w-full h-full object-cover"
                             />
                             <button
@@ -1022,7 +1024,7 @@ export default function ProductsPage() {
                             ) : (
                               <>
                                 <Upload className="w-8 h-8 text-gray-400" />
-                                <span className="text-xs text-gray-500 mt-1">上传图片</span>
+                                <span className="text-xs text-gray-500 mt-1">{t('product.uploadImage')}</span>
                               </>
                             )}
                           </div>
@@ -1036,9 +1038,9 @@ export default function ProductsPage() {
                         />
                       </div>
                       <div className="text-xs text-gray-500">
-                        <p>• 支持 JPEG、PNG、WebP 格式</p>
-                        <p>• 图片大小不超过 5MB</p>
-                        <p>• 建议尺寸 800x800px</p>
+                        <p>• {t('product.imageFormatTip')}</p>
+                        <p>• {t('product.imageSizeTip')}</p>
+                        <p>• {t('product.imageSizeRecommend')}</p>
                       </div>
                     </div>
                   </div>
@@ -1051,15 +1053,15 @@ export default function ProductsPage() {
                       className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                     />
                     <label htmlFor="isVisibleToCustomer" className="text-sm text-gray-700">
-                      对客户可见（在客户购物页面显示此商品）
+                      {t('product.visibleToCustomer')}（{t('product.visibleToCustomerHint')}）
                     </label>
                   </div>
                 </div>
 
                 <div className="bg-purple-50 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <label className="block text-sm font-medium text-purple-700">规格配置</label>
-                    <button type="button" onClick={addSkuField} className="text-sm text-purple-600 hover:text-purple-800">+ 添加规格</button>
+                    <label className="block text-sm font-medium text-purple-700">{t('product.specConfig')}</label>
+                    <button type="button" onClick={addSkuField} className="text-sm text-purple-600 hover:text-purple-800">+ {t('product.addSpec')}</button>
                   </div>
                   {formData.skus.map((sku, index) => (
                     <div key={index} className="flex gap-2 mb-2 items-center">
@@ -1068,7 +1070,7 @@ export default function ProductsPage() {
                         onChange={e => updateSkuField(index, 'packaging', e.target.value)}
                         className="flex-1 px-2 py-2 border rounded-lg text-sm bg-white"
                       >
-                        <option value="">选择包装</option>
+                        <option value="">{t('product.selectPackaging')}</option>
                         {brandPackagings.map((p: any) => (
                           <option key={p.id} value={p.name}>{p.name}</option>
                         ))}
@@ -1078,7 +1080,7 @@ export default function ProductsPage() {
                         onChange={e => updateSkuField(index, 'spec', e.target.value)}
                         className="flex-1 px-2 py-2 border rounded-lg text-sm bg-white"
                       >
-                        <option value="">选择规格</option>
+                        <option value="">{t('product.selectSpec')}</option>
                         {brandSpecs.map((s: any) => (
                           <option key={s.id} value={s.name}>{s.name}</option>
                         ))}
@@ -1089,7 +1091,7 @@ export default function ProductsPage() {
                           type="number"
                           value={sku.price}
                           onChange={e => updateSkuField(index, 'price', e.target.value)}
-                          placeholder="价格"
+                          placeholder={t('product.price')}
                           className="w-24 px-2 py-2 border rounded-lg text-sm"
                         />
                       </div>
@@ -1103,8 +1105,8 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50">取消</button>
-                  <button type="submit" className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">保存</button>
+                  <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50">{t('common.cancel')}</button>
+                  <button type="submit" className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">{t('common.save')}</button>
                 </div>
               </form>
             ) : (
@@ -1112,7 +1114,7 @@ export default function ProductsPage() {
                 <div className="bg-purple-50 rounded-lg p-4">
                   <div className="flex gap-4 mb-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium mb-1">套装名称</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.bundleName')}</label>
                       <input
                         type="text"
                         value={bundleFormData.name}
@@ -1122,7 +1124,7 @@ export default function ProductsPage() {
                       />
                     </div>
                     <div className="w-32">
-                      <label className="block text-sm font-medium mb-1">价格</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.price')}</label>
                       <div className="flex items-center h-[42px]">
                         <span className="text-gray-500 text-sm">¥</span>
                         <input
@@ -1136,14 +1138,14 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">套装图片</label>
+                    <label className="block text-sm font-medium mb-1">{t('product.bundleImage')}</label>
                     <div className="flex items-start gap-3">
                       <div className="flex-1">
                         {bundleFormData.imageUrl ? (
                           <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
                             <img 
                               src={bundleFormData.imageUrl} 
-                              alt="套装图片" 
+                              alt={t('product.bundleImage')} 
                               className="w-full h-full object-cover"
                             />
                             <button
@@ -1164,7 +1166,7 @@ export default function ProductsPage() {
                             ) : (
                               <>
                                 <Upload className="w-8 h-8 text-gray-400" />
-                                <span className="text-xs text-gray-500 mt-1">上传图片</span>
+                                <span className="text-xs text-gray-500 mt-1">{t('product.uploadImage')}</span>
                               </>
                             )}
                           </div>
@@ -1178,34 +1180,34 @@ export default function ProductsPage() {
                         />
                       </div>
                       <div className="text-xs text-gray-500">
-                        <p>• 支持 JPEG、PNG、WebP 格式</p>
-                        <p>• 图片大小不超过 5MB</p>
-                        <p>• 建议尺寸 800x800px</p>
+                        <p>• {t('product.imageFormatTip')}</p>
+                        <p>• {t('product.imageSizeTip')}</p>
+                        <p>• {t('product.imageSizeRecommend')}</p>
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">包装</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.packaging')}</label>
                       <select
                         value={bundleFormData.packaging}
                         onChange={e => setBundleFormData({ ...bundleFormData, packaging: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg"
                       >
-                        <option value="">选择包装</option>
+                        <option value="">{t('product.selectPackaging')}</option>
                         {defaultBundlePackagings.map(p => (
                           <option key={p} value={p}>{p}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">规格</label>
+                      <label className="block text-sm font-medium mb-1">{t('product.spec')}</label>
                       <select
                         value={bundleFormData.spec}
                         onChange={e => handleSpecChange(e.target.value)}
                         className="w-full px-3 py-2 border rounded-lg"
                       >
-                        <option value="">选择规格</option>
+                        <option value="">{t('product.selectSpec')}</option>
                         {defaultBundleSpecs.map(s => (
                           <option key={s} value={s}>{s}</option>
                         ))}
@@ -1215,13 +1217,13 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="bg-green-50 rounded-lg p-4">
-                  <label className="block text-sm font-medium text-green-700 mb-3">选择商品</label>
+                  <label className="block text-sm font-medium text-green-700 mb-3">{t('product.selectSpec')}</label>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="border rounded-lg p-3 max-h-80 overflow-y-auto bg-white">
                       {skus.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">
                           <Package className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                          <p>暂无商品</p>
+                          <p>{t('product.noProductsAvailable')}</p>
                         </div>
                       ) : (
                         skus.map(sku => {
@@ -1238,8 +1240,8 @@ export default function ProductsPage() {
                               </div>
                               <div className="text-right">
                                 <div className="text-primary-600 font-medium">¥{Number(sku.price || 0).toFixed(2)}</div>
-                                {isAdded && <span className="text-green-600 text-xs">✓ 已选</span>}
-                                {!canAdd && !isAdded && <span className="text-gray-400 text-xs">{canSelectMultiple ? '组合可选' : '单品限选1个'}</span>}
+                                {isAdded && <span className="text-green-600 text-xs">✓ {t('product.selected')}</span>}
+                                {!canAdd && !isAdded && <span className="text-gray-400 text-xs">{canSelectMultiple ? t('product.multiSelectAvailable') : t('product.singleSelectOnly')}</span>}
                               </div>
                             </div>
                           );
@@ -1247,9 +1249,9 @@ export default function ProductsPage() {
                       )}
                     </div>
                     <div className="border rounded-lg p-3 bg-white">
-                      <div className="text-sm font-medium text-gray-700 mb-2">已选商品 ({bundleFormData.items.length})</div>
+                      <div className="text-sm font-medium text-gray-700 mb-2">{t('product.selectedProducts')} ({bundleFormData.items.length})</div>
                       {bundleFormData.items.length === 0 ? (
-                        <div className="text-center text-gray-400 py-8 text-sm">点击左侧商品添加</div>
+                        <div className="text-center text-gray-400 py-8 text-sm">{t('product.clickToAddProduct')}</div>
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {bundleFormData.items.map(item => {
@@ -1287,9 +1289,9 @@ export default function ProductsPage() {
                       )}
                       {bundleFormData.items.length > 0 && (
                         <div className="mt-3 pt-2 border-t text-sm text-gray-600">
-                          共 {bundleFormData.items.reduce((sum, i) => sum + i.quantity, 0)} 件
+                          {t('product.totalItems')} {bundleFormData.items.reduce((sum, i) => sum + i.quantity, 0)} {t('product.items')}
                           <span className="ml-2 text-purple-600">
-                            (原价 ¥{bundleFormData.items.reduce((sum, i) => {
+                            ({t('product.originalPrice')} ¥{bundleFormData.items.reduce((sum, i) => {
                               const sku = skus.find(s => s.id === i.skuId);
                               return sum + (Number(sku?.price || 0) * i.quantity);
                             }, 0).toFixed(2)})
@@ -1308,12 +1310,12 @@ export default function ProductsPage() {
                     className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
                   <label htmlFor="bundleIsVisibleToCustomer" className="text-sm text-gray-700">
-                    对客户可见（在客户购物页面显示此套装）
+                    {t('product.visibleToCustomer')}（{t('product.visibleToCustomerBundleHint')}）
                   </label>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => { setShowModal(false); resetBundleForm(); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50">取消</button>
-                  <button type="submit" className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">保存</button>
+                  <button type="button" onClick={() => { setShowModal(false); resetBundleForm(); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50">{t('common.cancel')}</button>
+                  <button type="submit" className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">{t('common.save')}</button>
                 </div>
               </form>
             )}
@@ -1325,7 +1327,7 @@ export default function ProductsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-bold">{selectedBundle ? `${selectedBundle.name} - 库存看板` : selectedProduct ? `${selectedProduct.name} - 库存看板` : '库存看板'}</h2>
+              <h2 className="text-lg font-bold">{selectedBundle ? `${selectedBundle.name} - ${t('product.inventory')}` : selectedProduct ? `${selectedProduct.name} - ${t('product.inventory')}` : t('product.inventory')}</h2>
               <button onClick={() => { setShowStockModal(false); setSelectedBundle(null); setSelectedProduct(null); }}>
                 <X className="w-5 h-5" />
               </button>
@@ -1338,18 +1340,18 @@ export default function ProductsPage() {
             ) : selectedBundle ? (
                   <>
                     {bundleStocks.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">暂无库存记录</div>
+                      <div className="text-center py-8 text-gray-500">{t('product.noStockRecord')}</div>
                     ) : (
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50">
                           <tr className="text-center">
-                            <th className="px-3 py-2">仓库</th>
-                            <th className="px-3 py-2">规格</th>
-                            <th className="px-3 py-2">库位</th>
-                            <th className="px-3 py-2">批号</th>
-                            <th className="px-3 py-2">总库存</th>
-                            <th className="px-3 py-2">可用</th>
-                            <th className="px-3 py-2">冻结</th>
+                            <th className="px-3 py-2">{t('inventory.warehouse')}</th>
+                            <th className="px-3 py-2">{t('product.spec')}</th>
+                            <th className="px-3 py-2">{t('inventory.location')}</th>
+                            <th className="px-3 py-2">{t('inventory.batchNo')}</th>
+                            <th className="px-3 py-2">{t('inventory.quantity')}</th>
+                            <th className="px-3 py-2">{t('inventory.availableQty')}</th>
+                            <th className="px-3 py-2">{t('inventory.lockedQty')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1373,18 +1375,18 @@ export default function ProductsPage() {
                 ) : selectedProduct ? (
                   <>
                     {productStocks.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">暂无库存记录</div>
+                      <div className="text-center py-8 text-gray-500">{t('product.noStockRecord')}</div>
                     ) : (
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50">
                           <tr className="text-center">
-                            <th className="px-3 py-2">仓库</th>
-                            <th className="px-3 py-2">规格</th>
-                            <th className="px-3 py-2">库位</th>
-                            <th className="px-3 py-2">批号</th>
-                            <th className="px-3 py-2">总库存</th>
-                            <th className="px-3 py-2">可用</th>
-                            <th className="px-3 py-2">冻结</th>
+                            <th className="px-3 py-2">{t('inventory.warehouse')}</th>
+                            <th className="px-3 py-2">{t('product.spec')}</th>
+                            <th className="px-3 py-2">{t('inventory.location')}</th>
+                            <th className="px-3 py-2">{t('inventory.batchNo')}</th>
+                            <th className="px-3 py-2">{t('inventory.quantity')}</th>
+                            <th className="px-3 py-2">{t('inventory.availableQty')}</th>
+                            <th className="px-3 py-2">{t('inventory.lockedQty')}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1406,7 +1408,7 @@ export default function ProductsPage() {
                     )}
                   </>
                 ) : (
-                <div className="text-center py-8 text-gray-500">请选择一个商品或套装</div>
+                <div className="text-center py-8 text-gray-500">{t('product.selectProductOrBundle')}</div>
               )}
             </div>
           </div>
@@ -1417,7 +1419,7 @@ export default function ProductsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">商品二维码</h3>
+              <h3 className="text-lg font-bold">{t('product.productQRCode')}</h3>
               <button
                 onClick={() => {
                   setShowQRCodeModal(false);
@@ -1435,18 +1437,18 @@ export default function ProductsPage() {
               )}
               <img
                 src={qrCodeData.qrCode}
-                alt="商品二维码"
+                alt={t('product.productQRCode')}
                 className="mx-auto mb-3"
               />
               <p className="text-xs text-gray-400 break-all mb-4">
-                扫描二维码访问商品页面
+                {t('product.scanQRCodeTip')}
               </p>
               
               <button
                 onClick={handleDownloadQRCode}
                 className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                下载二维码
+                {t('product.downloadQRCode')}
               </button>
             </div>
           </div>
