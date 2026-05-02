@@ -11,7 +11,7 @@ export const aiConfigs: AIConfig[] = [
     name: 'SiliconFlow',
     apiKey: 'sk-zgplwjaynnfbgmjwvdvtkmpabzhbwwhamxdfusaebuwnlwff',
     model: 'Qwen/Qwen2.5-72B-Instruct',
-    visionModel: 'Qwen/Qwen2.5-VL-72B-Instruct',
+    visionModel: 'Qwen/Qwen3-VL-32B-Instruct',
     apiUrl: 'https://api.siliconflow.cn/v1/chat/completions'
   }
 ];
